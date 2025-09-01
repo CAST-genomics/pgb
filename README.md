@@ -1,4 +1,4 @@
-# PGB MVP (Pangenome Browser - Minimal Viable Product)
+# PGB (Pangenome Browser)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/824b1763-2af8-44d4-af3c-1a5d0c1f26d2/deploy-status)](https://app.netlify.com/projects/pgb-mvp/deploys)
 
 A web-based 3D visualization tool for exploring pangenome data.
@@ -23,7 +23,7 @@ This project provides an interactive 3D visualization interface for exploring pa
 1. Clone the repository:
 ```bash
 git clone [repository-url]
-cd pgb-mvp
+cd pgb
 ```
 
 2. Install dependencies:
