@@ -1,0 +1,378 @@
+{
+    "HG01123": {
+        "assembly": "HG01123",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "CLM02",
+        "population": "CLM",
+        "superpopulation": "AMR"
+    },
+    "HG01258": {
+        "assembly": "HG01258",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "CLM16",
+        "population": "CLM",
+        "superpopulation": "AMR"
+    },
+    "HG01358": {
+        "assembly": "HG01358",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "CLM31",
+        "population": "CLM",
+        "superpopulation": "AMR"
+    },
+    "HG01361": {
+        "assembly": "HG01361",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "CLM32",
+        "population": "CLM",
+        "superpopulation": "AMR"
+    },
+    "HG01891": {
+        "assembly": "HG01891",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "BB05",
+        "population": "ACB",
+        "superpopulation": "AFR"
+    },
+    "HG02257": {
+        "assembly": "HG02257",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "BB21",
+        "population": "ACB",
+        "superpopulation": "AFR"
+    },
+    "HG02486": {
+        "assembly": "HG02486",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "BB55",
+        "population": "ACB",
+        "superpopulation": "AFR"
+    },
+    "HG02559": {
+        "assembly": "HG02559",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "BB68",
+        "population": "ACB",
+        "superpopulation": "AFR"
+    },
+    "HG02572": {
+        "assembly": "HG02572",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "GB21",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG03516": {
+        "assembly": "HG03516",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "NG107",
+        "population": "ESN",
+        "superpopulation": "AFR"
+    },
+    "HG00438": {
+        "assembly": "HG00438",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "SH012",
+        "population": "CHS",
+        "superpopulation": "EAS"
+    },
+    "HG00621": {
+        "assembly": "HG00621",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "SH066",
+        "population": "CHS",
+        "superpopulation": "EAS"
+    },
+    "HG00673": {
+        "assembly": "HG00673",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "SH079",
+        "population": "CHS",
+        "superpopulation": "EAS"
+    },
+    "HG00735": {
+        "assembly": "HG00735",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "PR06",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG00741": {
+        "assembly": "HG00741",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "PR09",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG01071": {
+        "assembly": "HG01071",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "PR17",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG01106": {
+        "assembly": "HG01106",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "PR25",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG01175": {
+        "assembly": "HG01175",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "PR36",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG01928": {
+        "assembly": "HG01928",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "PEL011",
+        "population": "PEL",
+        "superpopulation": "AMR"
+    },
+    "HG01952": {
+        "assembly": "HG01952",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "PEL019",
+        "population": "PEL",
+        "superpopulation": "AMR"
+    },
+    "HG01978": {
+        "assembly": "HG01978",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "PEL26",
+        "population": "PEL",
+        "superpopulation": "AMR"
+    },
+    "HG02148": {
+        "assembly": "HG02148",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "PEL39",
+        "population": "PEL",
+        "superpopulation": "AMR"
+    },
+    "HG02622": {
+        "assembly": "HG02622",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "GB31",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG02630": {
+        "assembly": "HG02630",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "GB33",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG02717": {
+        "assembly": "HG02717",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "GB50",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG02886": {
+        "assembly": "HG02886",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "GB89",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG03453": {
+        "assembly": "HG03453",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "SL50",
+        "population": "MSL",
+        "superpopulation": "AFR"
+    },
+    "HG03540": {
+        "assembly": "HG03540",
+        "cohort": "HPRC",
+        "sex": "female",
+        "family_id": "GB125",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG03579": {
+        "assembly": "HG03579",
+        "cohort": "HPRC",
+        "sex": "male",
+        "family_id": "SL72",
+        "population": "MSL",
+        "superpopulation": "AFR"
+    },
+    "HG002": {
+        "sex": "male",
+        "population": "N/A",
+        "superpopulation": "N/A",
+        "cohort": "HPRC_PLUS",
+        "family_id": "3140",
+        "notes": "PGP - Ashkenazim Jewish"
+    },
+    "HG005": {
+        "sex": "male",
+        "population": "N/A",
+        "superpopulation": "N/A",
+        "cohort": "HPRC_PLUS",
+        "family_id": "3150",
+        "notes": "PGP - Chinese"
+    },
+    "HG00733": {
+        "assembly": "HG00733",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "PR05",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG01109": {
+        "assembly": "HG01109",
+        "cohort": "HPRC_PLUS",
+        "sex": "male",
+        "family_id": "PR33",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG01243": {
+        "assembly": "HG01243",
+        "cohort": "HPRC_PLUS",
+        "sex": "male",
+        "family_id": "PR22",
+        "population": "PUR",
+        "superpopulation": "AMR"
+    },
+    "HG02080": {
+        "assembly": "HG02080",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "VN068",
+        "population": "KHV",
+        "superpopulation": "EAS"
+    },
+    "HG02109": {
+        "assembly": "HG02109",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "BB18",
+        "population": "ACB",
+        "superpopulation": "AFR"
+    },
+    "HG02145": {
+        "assembly": "HG02145",
+        "cohort": "HPRC_PLUS",
+        "sex": "male",
+        "family_id": "BB20",
+        "population": "ACB",
+        "superpopulation": "AFR"
+    },
+    "HG02723": {
+        "assembly": "HG02723",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "GB52",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG02818": {
+        "assembly": "HG02818",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "GB66",
+        "population": "GWD",
+        "superpopulation": "AFR"
+    },
+    "HG03486": {
+        "assembly": "HG03486",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "SL61",
+        "population": "MSL",
+        "superpopulation": "AFR"
+    },
+    "HG03492": {
+        "assembly": "HG03492",
+        "cohort": "HPRC_PLUS",
+        "sex": "male",
+        "family_id": "PK43",
+        "population": "PJL",
+        "superpopulation": "SAS"
+    },
+    "NA18906": {
+        "assembly": "NA18906",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "Y020",
+        "population": "YRI",
+        "superpopulation": "AFR"
+    },
+    "NA19240": {
+        "assembly": "NA19240",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "Y117",
+        "population": "YRI",
+        "superpopulation": "AFR"
+    },
+    "NA20129": {
+        "assembly": "NA20129",
+        "cohort": "HPRC_PLUS",
+        "sex": "female",
+        "family_id": "2433",
+        "population": "ASW",
+        "superpopulation": "AFR"
+    },
+    "NA21309": {
+        "sex": "female",
+        "population": "MKK",
+        "superpopulation": "AFR",
+        "cohort": "HPRC_PLUS",
+        "family_id": "2565",
+        "notes": "HAPMAP - MAASAI IN KINYAWA, KENYA"
+    },
+    "HG02055": {
+        "assembly": "HG02055",
+        "cohort": "HPRC_PLUS",
+        "sex": "male",
+        "family_id": "BB15",
+        "population": "ACB",
+        "superpopulation": "AFR"
+    },
+    "HG03098": {
+        "assembly": "HG03098",
+        "cohort": "HPRC_PLUS",
+        "sex": "male",
+        "family_id": "SL16",
+        "population": "MSL",
+        "superpopulation": "AFR"
+    }
+}
