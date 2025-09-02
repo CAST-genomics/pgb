@@ -1,5 +1,5 @@
 # PGB (Pangenome Browser)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/e29f0502-c053-4de6-bbc4-49b92bd782da/deploy-status)](https://app.netlify.com/projects/pgb-main/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/8de8a9e9-655d-4571-bf43-a735a78b840c/deploy-status)](https://app.netlify.com/projects/pgb-site/deploys)
 
 A web-based 3D visualization tool for exploring pangenome data.
 
