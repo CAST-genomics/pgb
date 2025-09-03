@@ -20,6 +20,7 @@ let locusInput
 let defaultGenome
 let sequenceService
 let annotationRenderService
+let assemblyWidget
 document.addEventListener("DOMContentLoaded", async (event) => {
 
     await materialService.initialize()
@@ -44,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const gear = document.getElementById('pgb-gear-btn-container')
     const assemblyWidgetContainer = document.getElementById('pgb-gear-card')
-    const assemblyWidget = new AssemblyWidget(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService);
+    assemblyWidget = new AssemblyWidget(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService);
 
 
     // Scene and Look managers
@@ -91,5 +92,5 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
 })
 
-export { app, locusInput, annotationRenderService, defaultGenome }
+export { app, locusInput, annotationRenderService, defaultGenome, assemblyWidget }
 

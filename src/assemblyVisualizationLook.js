@@ -7,7 +7,7 @@ import materialService from './materialService.js';
 import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
 import {getAppleCrayonColorByName, getRandomAppleCrayonColor} from "./utils/color.js"
-import genomicService from "./genomicService.js"
+import { assemblyWidget } from "./main.js"
 
 class AssemblyVisualizationLook extends Look {
 
@@ -269,7 +269,8 @@ class AssemblyVisualizationLook extends Look {
         const { nodeName } = nodeObject.userData;
         const nativeAssemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
         const set = new Set([ ...nativeAssemblies ])
-        const str = [ ...set ].map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
+        const onlySelectedAssembles = [ ...set].filter(assembly => assemblyWidget.selectedAssemblies.has(assembly))
+        const str = onlySelectedAssembles.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
         return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
     }
 

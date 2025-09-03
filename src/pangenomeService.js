@@ -148,7 +148,74 @@ class PangenomeService {
     // --- Locus baseline ---
 
     setDefaultLocusStartBp(bp) { this._defaultLocusStartBp = Number(bp) || 0; return this._defaultLocusStartBp; }
+
     getDefaultLocusStartBp()   { return this._defaultLocusStartBp ?? 0; }
+
+    /**
+     * Return the induced subgraph for an assembly key.
+     * By default returns just node IDs and directed edge keys that exist in the dataset.
+     *
+     * @param {string} assemblyKey
+     * @param {{ includeAdj?: boolean, includeDirectedAdj?: boolean }} [opts]
+     * @returns {{
+     *   nodes: string[],
+     *   edges: string[],
+     *   adj?: { [id: string]: string[] },               // undirected adjacency (if includeAdj)
+     *   out?: { [id: string]: string[] }, in?: { [id: string]: string[] } // directed (if includeDirectedAdj)
+     * }}
+     */
+    getAssemblySubgraph(assemblyKey, { includeAdj = false, includeDirectedAdj = false } = {}) {
+        this.#requireGraph();
+
+        // Induced node set (undirected adjacency map as in #induced)
+        const { nodesIn, adj } = this.#induced(assemblyKey);
+        if (nodesIn.size === 0) return { nodes: [], edges: [] };
+
+        // Nodes sorted for determinism
+        const nodes = [...nodesIn].sort(this.#idCmp);
+
+        // Collect directed edges whose endpoints are both in the induced set
+        const edges = [];
+        for (const from of nodes) {
+            const outs = this.graph.out.get(from);
+            if (!outs) continue;
+            for (const to of outs) {
+                if (!nodesIn.has(to)) continue;
+                const k = `edge:${from}:${to}`;
+                if (this.graph.edges.has(k)) edges.push(k);
+            }
+        }
+        edges.sort(this.#idCmp);
+
+        // Optional: undirected adjacency object
+        let adjObj;
+        if (includeAdj) {
+            adjObj = {};
+            for (const [v, set] of adj) adjObj[v] = [...set].sort(this.#idCmp);
+        }
+
+        // Optional: directed adjacency objects
+        let outObj, inObj;
+        if (includeDirectedAdj) {
+            const outD = new Map(), inD = new Map();
+            for (const id of nodesIn) { outD.set(id, []); inD.set(id, []); }
+            for (const from of nodesIn) {
+                const outs = this.graph.out.get(from);
+                if (!outs) continue;
+                for (const to of outs) if (nodesIn.has(to)) {
+                    outD.get(from).push(to);
+                    inD.get(to).push(from);
+                }
+            }
+            outObj = {}; inObj = {};
+            for (const [v, arr] of outD) outObj[v] = arr.sort(this.#idCmp);
+            for (const [v, arr] of inD)  inObj[v]  = arr.sort(this.#idCmp);
+        }
+
+        return Object.assign({ nodes, edges },
+            includeAdj ? { adj: adjObj } : null,
+            includeDirectedAdj ? { out: outObj, in: inObj } : null);
+    }
 
     // --- Spine + features (bounded) ---
 
