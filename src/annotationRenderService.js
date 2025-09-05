@@ -60,7 +60,7 @@ class AnnotationRenderService {
 
         this.assembly = assembly
 
-        const { spine } = this.genomicService.assemblyWalkMap.get(assembly)
+        const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures
         const { nodes, edges } = spine
 
         this.bpIndex = buildBpIndex(spine);

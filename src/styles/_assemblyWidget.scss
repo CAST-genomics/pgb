@@ -1,5 +1,5 @@
 .assembly-widget {
-  &__container {
+  &__button_container {
     z-index: 1000;
     position: absolute;
     top: 0;
@@ -9,17 +9,17 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-  }
 
-  &__button {
-    transition: transform 0.2s ease;
-    &:hover {
-      transform: scale(1.2);
+    .assembly-widget__button {
+      transition: transform 0.2s ease;
+      &:hover {
+        transform: scale(1.2);
+      }
+
+      .assembly-widget__icon {
+        font-size: 2.0rem;
+      }
     }
-  }
-
-  &__icon {
-    font-size: 2.0rem;
   }
 
   &__card {
@@ -46,17 +46,12 @@
       height: calc(100% - 120px);
       padding: 0;
       overflow: hidden;
-    }
 
-    .assembly-widget__list-container {
-      height: calc(100% - 70px); // Account for search box height
-      overflow-y: auto;
+      .assembly-widget__list-container {
+        height: calc(100% - 70px); // Account for search box height
+        overflow-y: auto;
+      }
     }
-  }
-
-  &__list-container {
-    height: 100%;
-    overflow-y: auto;
   }
 
   &__genome-selector {
@@ -69,6 +64,35 @@
 
     &:hover {
       transform: scale(1.5);
+    }
+  }
+
+  &__switch {
+    // Styling for the form switch input
+    .form-check-input {
+      width: 3rem;
+      height: 1.5rem;
+
+      &:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+      }
+
+      &:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+      }
+    }
+  }
+
+  &__mode-label {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #6c757d;
+    user-select: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #495057;
     }
   }
 }

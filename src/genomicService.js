@@ -75,7 +75,9 @@ class GenomicService {
 
             const features = pangenomeService.getSpineFeatures(assemblyKey, assessmentConfig, walkConfig)
 
-            this.assemblyWalkMap.set(assemblyKey, features)
+            const assemblySubgraph = pangenomeService.getAssemblySubgraph(assemblyKey);
+
+            this.assemblyWalkMap.set(assemblyKey, { spineFeatures: features, assemblySubgraph })
         }
 
         const uniqueColors = getPerceptuallyDistinctColors(1 + this.assemblySet.size)
