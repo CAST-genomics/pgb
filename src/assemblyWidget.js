@@ -5,6 +5,9 @@ import { app } from "./main.js";
 import genomicService from "./genomicService.js"
 
 class AssemblyWidget {
+    static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
+    static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
+
     constructor(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService) {
         this.gear = gear;
         this.gear.addEventListener('click', this.onGearClick.bind(this));
@@ -12,6 +15,8 @@ class AssemblyWidget {
         this.assemblyWidgetContainer = assemblyWidgetContainer;
         this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');
         this.searchInput = null; // Will be initialized when card is shown
+        this.switchInput = null; // Will be initialized when card is shown
+        this.modeLabel = null; // Will be initialized when card is shown
 
         this.genomicService = genomicService;
         this.geometryManager = geometryManager
@@ -29,6 +34,7 @@ class AssemblyWidget {
         this.draggable = new Draggable(this.assemblyWidgetContainer);
         this.selectedAssemblies = new Set()
         this.allAssemblyItems = new Map(); // Store all items for filtering
+        this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS; // Default to subgraph emphasis
 
     }
 
@@ -61,23 +67,6 @@ class AssemblyWidget {
         label.className = 'flex-grow-1';
         label.textContent = assembly;
         container.appendChild(label);
-
-        // assembly flow switch - for the time being, the flow switch is hidden
-        const assemblyFlowSwitch = document.createElement('div');
-        assemblyFlowSwitch.className = 'form-check form-switch d-none';
-
-        const assemblyFlowSwitchInput = document.createElement('input');
-        assemblyFlowSwitchInput.className = 'form-check-input';
-        assemblyFlowSwitchInput.type = 'checkbox';
-        assemblyFlowSwitchInput.role = 'switch';
-        assemblyFlowSwitchInput.checked = true;
-
-        const onFlowSwitch = this.onFlowSwitch.bind(this, assembly);
-        assemblyFlowSwitchInput.onFlowSwitch = onFlowSwitch;
-        assemblyFlowSwitchInput.addEventListener('change', onFlowSwitch);
-
-        assemblyFlowSwitch.appendChild(assemblyFlowSwitchInput);
-        container.appendChild(assemblyFlowSwitch);
 
         return container;
     }
@@ -117,18 +106,27 @@ class AssemblyWidget {
             // const nodeSet = new Set([ ...(nodes.map(({ id }) => id)) ])
             // const edgeSet = new Set([ ...edges ])
 
-            const { nodes, edges } = this.genomicService.assemblyWalkMap.get(assembly).assemblySubgraph
-            const nodeSet = new Set([ ...nodes ])
-            const edgeSet = new Set([ ...edges ])
-
-            eventBus.publish('assembly:emphasis', { assembly, nodeSet, edgeSet });
+            this.emphasizeAssembly(assembly);
         }
     }
 
-    onFlowSwitch(assembly, event) {
-        event.stopPropagation();
-        // TODO: Handle flow switch toggle
-        console.log('Flow switch toggled for:', assembly, event.target.checked);
+    emphasizeAssembly(assembly) {
+        let nodeSet, edgeSet;
+        
+        if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
+            // Use spine features data
+            const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures;
+            const { nodes, edges } = spine;
+            nodeSet = new Set([...(nodes.map(({ id }) => id))]);
+            edgeSet = new Set([...edges]);
+        } else {
+            // Use assembly subgraph data (default)
+            const { nodes, edges } = this.genomicService.assemblyWalkMap.get(assembly).assemblySubgraph;
+            nodeSet = new Set([...nodes]);
+            edgeSet = new Set([...edges]);
+        }
+        
+        eventBus.publish('assembly:emphasis', { assembly, nodeSet, edgeSet });
     }
 
     initializeSearchInput() {
@@ -139,6 +137,31 @@ class AssemblyWidget {
                 console.log('Search input initialized successfully');
             } else {
                 console.error('Search input element not found');
+            }
+        }
+    }
+
+    initializeSwitchInput() {
+        if (!this.switchInput) {
+            this.switchInput = this.assemblyWidgetContainer.querySelector('.form-check-input[type="checkbox"]');
+            if (this.switchInput) {
+                this.switchInput.addEventListener('change', this.onSwitchChange.bind(this));
+                console.log('Switch input initialized successfully');
+            } else {
+                console.error('Switch input element not found');
+            }
+        }
+    }
+
+    initializeModeLabel() {
+        if (!this.modeLabel) {
+            this.modeLabel = this.assemblyWidgetContainer.querySelector('#emphasis-mode-label');
+            if (this.modeLabel) {
+                // Set initial label text based on current emphasis mode
+                this.updateModeLabel();
+                console.log('Mode label initialized successfully');
+            } else {
+                console.error('Mode label element not found');
             }
         }
     }
@@ -170,18 +193,45 @@ class AssemblyWidget {
         });
     }
 
+    updateModeLabel() {
+        if (this.modeLabel) {
+            if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
+                this.modeLabel.textContent = 'Assembly Walk';
+            } else {
+                this.modeLabel.textContent = 'Assembly Subgraph';
+            }
+        }
+    }
+
+    onSwitchChange(event) {
+        const isChecked = event.target.checked;
+        console.log('Switch toggled:', isChecked);
+        
+        // Toggle between the two emphasis modes
+        if (isChecked) {
+            this.emphasisMode = AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS;
+        } else {
+            this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS;
+        }
+        
+        console.log('Emphasis mode changed to:', this.emphasisMode);
+        
+        // Update the label text
+        this.updateModeLabel();
+        
+        // If there's a currently selected assembly, re-emphasize it with the new mode
+        if (this.selectedAssemblies.size > 0) {
+            const selectedAssembly = [...this.selectedAssemblies][0];
+            this.emphasizeAssembly(selectedAssembly);
+        }
+    }
+
     cleanupListItem(item) {
 
         const assemblySelector = item.querySelector('.assembly-widget__genome-selector');
         if (assemblySelector && assemblySelector.onAssemblySelectorClick) {
             assemblySelector.removeEventListener('click', assemblySelector.onAssemblySelectorClick);
             delete assemblySelector.onAssemblySelectorClick;
-        }
-
-        const genomeFlowSwitchInput = item.querySelector('.form-check-input');
-        if (genomeFlowSwitchInput && genomeFlowSwitchInput.onFlowSwitch) {
-            genomeFlowSwitchInput.removeEventListener('change', genomeFlowSwitchInput.onFlowSwitch);
-            delete genomeFlowSwitchInput.onFlowSwitch;
         }
 
     }
@@ -221,6 +271,10 @@ class AssemblyWidget {
             this.assemblyWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
             this.initializeSearchInput();
+            // Initialize switch input when card is shown
+            this.initializeSwitchInput();
+            // Initialize mode label when card is shown
+            this.initializeModeLabel();
         }, 0);
     }
 
@@ -240,6 +294,9 @@ class AssemblyWidget {
         this.draggable.destroy();
         if (this.searchInput) {
             this.searchInput.removeEventListener('input', this.onSearchInput.bind(this));
+        }
+        if (this.switchInput) {
+            this.switchInput.removeEventListener('change', this.onSwitchChange.bind(this));
         }
     }
 }
