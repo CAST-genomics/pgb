@@ -112,10 +112,13 @@ class AssemblyWidget {
             event.target.style.border = '2px solid #000';
             event.target.style.transform = 'scale(1.5)'
 
-            const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures
-            const { nodes, edges } = spine
+            // const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures
+            // const { nodes, edges } = spine
+            // const nodeSet = new Set([ ...(nodes.map(({ id }) => id)) ])
+            // const edgeSet = new Set([ ...edges ])
 
-            const nodeSet = new Set([ ...(nodes.map(({ id }) => id)) ])
+            const { nodes, edges } = this.genomicService.assemblyWalkMap.get(assembly).assemblySubgraph
+            const nodeSet = new Set([ ...nodes ])
             const edgeSet = new Set([ ...edges ])
 
             eventBus.publish('assembly:emphasis', { assembly, nodeSet, edgeSet });
