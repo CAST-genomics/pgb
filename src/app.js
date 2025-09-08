@@ -8,6 +8,7 @@ import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
 import {calculateBasicStats, calculatePercentiles, prettyPrintPercentiles} from "./utils/stats.js"
+import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 
 class App {
 
@@ -15,6 +16,8 @@ class App {
         this.container = container
 
         this.renderer = RendererFactory.createRenderer(container)
+
+        lineMaterialResolutionService.initialize(this.renderer)
 
         this.pangenomeService = pangenomeService
         this.genomicService = genomicService
@@ -46,6 +49,8 @@ class App {
             const { clientWidth, clientHeight } = this.container
             this.cameraManager.windowResizeHelper(clientWidth/clientHeight)
             this.renderer.setSize(clientWidth, clientHeight)
+            // Update line material resolutions for worldUnits: false
+            lineMaterialResolutionService.handleResize()
         })
     }
 
@@ -163,7 +168,10 @@ class App {
     }
 
     hideTooltip() {
-        if (this.tooltip) {
+
+        this.tooltip.innerHTML = ''
+
+        if ('none' !== this.tooltip.style.display) {
             this.tooltip.style.display = 'none';
         }
     }
@@ -177,13 +185,15 @@ class App {
 
     animate() {
 
+        lineMaterialResolutionService.handleResize()
+
         if (true === this.raycastService.isEnabled) {
-            // Combine both node lines and edge meshes for raycasting
-            const allObjects = [
-                ...this.geometryManager.linesGroup.children,
-                ...this.geometryManager.edgesGroup.children
-            ];
-            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, allObjects)
+
+            this.raycastService.updateLine2Threshold(this.cameraManager.camera)
+
+            const all = [ ...this.geometryManager.linesGroup.children, ...this.geometryManager.edgesGroup.children ];
+            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
+
             this.handleIntersection(intersections)
         }
 
@@ -357,6 +367,8 @@ class App {
 
         // Clear geometry manager
         this.geometryManager.clear()
+
+        lineMaterialResolutionService.materials.clear()
 
         // Clear the current scene (but keep the scene itself)
         this.sceneManager.clearScene(this.sceneManager.getActiveScene())

@@ -13,6 +13,7 @@ import AssemblyVisualizationLook from './assemblyVisualizationLook.js'
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
+import Look from './look.js'
 import './styles/app.scss'
 
 let app
@@ -31,7 +32,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const threeJSContainer = document.getElementById('pgb-three-container')
 
-    const threshold = 8
+    // Dynamic threshold based on line width for pixel-based rendering
+    const threshold = Math.max(2, Look.NODE_LINE_WIDTH + 1)  // Line width + 1 pixel tolerance
     const raycastService = new RayCastService(threeJSContainer, threshold)
 
     const genomicService = new GenomicService()

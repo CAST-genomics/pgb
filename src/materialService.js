@@ -7,6 +7,7 @@ import { textures } from './utils/textureLibrary.js';
 import {getAppleCrayonColorByName} from "./utils/color.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import Look from "./look.js"
+import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 
 // Material type constants
 const MATERIAL_TYPES =
@@ -19,6 +20,8 @@ class MaterialService {
 
     constructor() {
         this.materialLibrary = new Map();
+        // Cache for LineMaterials to avoid creating duplicates
+        this.lineMaterialCache = new Map();
     }
 
     /**
@@ -41,22 +44,48 @@ class MaterialService {
         return colorRampArrowMaterialFactory(color, color, this.getTexture('arrow-white'), 1, MATERIAL_TYPES.EMPHASIS);
     }
 
-    createNodeLineDeemphasisMaterial() {
+    createNodeLineDeemphasisMaterial(nodeName) {
+        const cacheKey = `${nodeName}:deemphasis`;
+
+        // Check if we already have this material cached
+        if (this.lineMaterialCache.has(cacheKey)) {
+            return this.lineMaterialCache.get(cacheKey);
+        }
 
         const material = new LineMaterial({
             color: getAppleCrayonColorByName('mercury'),
             linewidth: Look.NODE_LINE_DEEMPHASIS_WIDTH,
-            worldUnits: true,
+            worldUnits: false, // pixel sizing
             opacity: 1,
             transparent: true,
             // depthWrite: false
         });
         material.materialType = MATERIAL_TYPES.DEEMPHASIS;
+
+        // Register with resolution service for automatic resolution updates
+        lineMaterialResolutionService.registerMaterial(material);
+
+        // Cache the material
+        this.lineMaterialCache.set(cacheKey, material);
+
         return material;
     }
 
     getTexture(name) {
         return textureService.getTexture(name);
+    }
+
+    /**
+     * Dispose of all cached LineMaterials and clear the cache
+     */
+    dispose() {
+        // Unregister all cached LineMaterials from the resolution service
+        for (const material of this.lineMaterialCache.values()) {
+            lineMaterialResolutionService.unregisterMaterial(material);
+        }
+
+        // Clear the LineMaterial cache
+        this.lineMaterialCache.clear();
     }
 }
 

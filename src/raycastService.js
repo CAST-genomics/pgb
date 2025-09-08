@@ -113,6 +113,30 @@ class RayCastService {
         this.pointer.y = -((clientY - top) / height) * 2 + 1;
     }
 
+    updateLine2Threshold(camera) {
+
+        // pixels
+        const screenPixelThreshold = 5
+
+        // points in NDC space
+        const v1 = new THREE.Vector3(0, 0, 0.5);
+        const v2 = new THREE.Vector3(screenPixelThreshold / window.innerWidth * 2, 0, 0.5);
+
+        // NDC -> World
+        v1.unproject(camera);
+        v2.unproject(camera);
+
+        // Delta in world space === updated raycast threshold
+        const updatedThreshold = v1.distanceTo(v2);
+        const currentThreshold = this.raycaster.params.Line2.threshold
+
+        if (updatedThreshold.toFixed(3) !== currentThreshold.toFixed(3)) {
+            console.log(`raycaster threshold update from ${currentThreshold} to ${updatedThreshold}`)
+        }
+
+        this.raycaster.params.Line2.threshold = updatedThreshold;
+    }
+
     updateRaycaster(camera) {
         this.raycaster.setFromCamera(this.pointer, camera);
     }
