@@ -19,9 +19,6 @@ class AssemblyVisualizationLook extends Look {
 
         this.emphasisStates = new Map();
 
-        // Material cache to avoid creating duplicate materials
-        this.materialCache = new Map();
-
         this.genomicService = config.genomicService;
         this.geometryManager = config.geometryManager;
 

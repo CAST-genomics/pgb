@@ -19,7 +19,6 @@ const MATERIAL_TYPES =
 class MaterialService {
 
     constructor() {
-        this.materialLibrary = new Map();
         // Cache for LineMaterials to avoid creating duplicates
         this.lineMaterialCache = new Map();
     }

@@ -9,6 +9,7 @@ import { annotationRenderService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
 import {calculateBasicStats, calculatePercentiles, prettyPrintPercentiles} from "./utils/stats.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
+import materialService from './materialService.js'
 
 class App {
 
@@ -185,7 +186,7 @@ class App {
 
     animate() {
 
-        lineMaterialResolutionService.handleResize()
+        // lineMaterialResolutionService.handleResize()
 
         if (true === this.raycastService.isEnabled) {
 
@@ -265,6 +266,8 @@ class App {
         // Position camera to frame the scene
         cameraManager.camera.position.set(0, 0, 2 * boundingSphere.radius) // Position camera at 2x the radius
         cameraManager.camera.lookAt(boundingSphere.center)
+
+        this.raycastService.updateLine2Threshold(cameraManager.camera)
     }
 
     #createBoundingSphereHelper(boundingSphere) {
@@ -300,7 +303,6 @@ class App {
         }
 
         this.pangenomeService.loadData(json)
-
 
         annotationRenderService.clear()
 
@@ -362,13 +364,17 @@ class App {
      * Clear current data and geometry from the active scene
      */
     clearCurrentData() {
-        // Clear genomic service data
+
         this.genomicService.clear()
 
-        // Clear geometry manager
         this.geometryManager.clear()
 
         lineMaterialResolutionService.materials.clear()
+
+        materialService.lineMaterialCache.clear()
+
+        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
+        look.materialCache.clear()
 
         // Clear the current scene (but keep the scene itself)
         this.sceneManager.clearScene(this.sceneManager.getActiveScene())
