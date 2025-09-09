@@ -4,15 +4,25 @@
  */
 class Look {
 
+    // pixel unite
+    static NODE_LINE_WIDTH_PIXELS = 2;
+    static NODE_LINE_DEEMPHASIS_WIDTH_PIXELS = 2;
+
+    // world units
     static NODE_LINE_WIDTH = 16;
     static NODE_LINE_DEEMPHASIS_WIDTH = 16;
 
+
     constructor(name, config) {
         this.name = name;
-        this.material = config.material;
         this.behaviors = config.behaviors || {};
         this.zOffset = config.zOffset || 0;
+
         this.isActive = false; // Track if this look is currently active
+
+        // Material cache to avoid creating duplicate materials
+        this.materialCache = new Map();
+
     }
 
     /**
@@ -71,9 +81,7 @@ class Look {
     }
 
     dispose() {
-        if (this.material) {
-            this.material.dispose();
-        }
+        this.materialCache.clear()
     }
 }
 

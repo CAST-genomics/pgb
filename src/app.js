@@ -3,11 +3,14 @@ import CameraManager from './cameraManager.js'
 import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
-import {loadPath, prettyPrint} from './utils/utils.js'
+import {loadPath, prettyPrint, getWorldDistanceFromPixelDistance} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
 import {calculateBasicStats, calculatePercentiles, prettyPrintPercentiles} from "./utils/stats.js"
+import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
+import materialService from './materialService.js'
+import Look from "./look.js"
 
 class App {
 
@@ -15,6 +18,8 @@ class App {
         this.container = container
 
         this.renderer = RendererFactory.createRenderer(container)
+
+        lineMaterialResolutionService.initialize(this.renderer)
 
         this.pangenomeService = pangenomeService
         this.genomicService = genomicService
@@ -46,6 +51,8 @@ class App {
             const { clientWidth, clientHeight } = this.container
             this.cameraManager.windowResizeHelper(clientWidth/clientHeight)
             this.renderer.setSize(clientWidth, clientHeight)
+            // Update line material resolutions for worldUnits: false
+            lineMaterialResolutionService.handleResize()
         })
     }
 
@@ -61,7 +68,7 @@ class App {
 
         const { point, object } = intersections[0];
 
-        this.renderer.domElement.style.cursor = 'none';
+        // this.renderer.domElement.style.cursor = 'none';
 
         if (object.userData?.type === 'edge') {
             this.raycastService.showVisualFeedback(point, new THREE.Color(0x00ff00));
@@ -101,6 +108,7 @@ class App {
     }
 
     createTooltip() {
+
         const tooltip = document.createElement('div');
         tooltip.className = 'graph-tooltip';
 
@@ -113,57 +121,60 @@ class App {
 
     showTooltip(object, point, type) {
 
-        if (false === this.isTooltipEnabled) {
-            return
-        }
+        if (true === this.isTooltipEnabled){
 
-        // Convert 3D world coordinates to screen coordinates
-        const screenPoint = point.clone().project(this.cameraManager.camera);
+            // Convert 3D world coordinates to screen coordinates
+            const screenPoint = point.clone().project(this.cameraManager.camera);
 
-        // Convert to CSS coordinates
-        const rect = this.container.getBoundingClientRect();
-        const x = (screenPoint.x + 1) * rect.width / 2;
-        const y = (-screenPoint.y + 1) * rect.height / 2;
+            // Convert to CSS coordinates
+            const rect = this.container.getBoundingClientRect();
+            const x = (screenPoint.x + 1) * rect.width / 2;
+            const y = (-screenPoint.y + 1) * rect.height / 2;
 
-        // Get the current look
-        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName());
+            // Get the current look
+            const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName());
 
-        // Try to get custom tooltip content from the look for nodes
-        let content = '';
-        if (type === 'edge') {
-            // Default edge tooltip content
-            const { nodeNameStart, nodeNameEnd, geometryKey } = object.userData;
-            content = `
+            // Try to get custom tooltip content from the look for nodes
+            let content = '';
+            if (type === 'edge') {
+                // Default edge tooltip content
+                const { nodeNameStart, nodeNameEnd, geometryKey } = object.userData;
+                content = `
                 <div><strong>Key:</strong> ${geometryKey}</div>
                 <div><strong>Start Node:</strong> ${nodeNameStart}</div>
                 <div><strong>End Node:</strong> ${nodeNameEnd}</div>`;
-        } else if (type === 'node') {
-            // Only use custom tooltip content if the look is active
-            if (look && look.isActive) {
-                content = look.createNodeTooltipContent(object);
-            }
+            } else if (type === 'node') {
+                // Only use custom tooltip content if the look is active
+                if (look && look.isActive) {
+                    content = look.createNodeTooltipContent(object);
+                }
 
-            if (!content) {
-                // Fallback to default node tooltip content
-                const { nodeName, nodeLine } = object.userData;
-                content = `
+                if (!content) {
+                    // Fallback to default node tooltip content
+                    const { nodeName, nodeLine } = object.userData;
+                    content = `
                     <div><strong>Node:</strong> ${nodeName}</div>
                     <div><strong>Line:</strong> ${nodeLine}</div>`;
+                }
             }
+
+            this.tooltip.innerHTML = content;
+
+            // Position tooltip
+            const deltaX = 24
+            const deltaY = 24
+            this.tooltip.style.left = `${x + deltaX}px`;
+            this.tooltip.style.top = `${y - deltaY}px`;
+            this.tooltip.style.display = 'block';
+
         }
-
-        this.tooltip.innerHTML = content;
-
-        // Position tooltip
-        const deltaX = 24
-        const deltaY = 24
-        this.tooltip.style.left = `${x + deltaX}px`;
-        this.tooltip.style.top = `${y - deltaY}px`;
-        this.tooltip.style.display = 'block';
     }
 
     hideTooltip() {
-        if (this.tooltip) {
+
+        this.tooltip.innerHTML = ''
+
+        if ('none' !== this.tooltip.style.display) {
             this.tooltip.style.display = 'none';
         }
     }
@@ -177,13 +188,16 @@ class App {
 
     animate() {
 
+        const worldSize = getWorldDistanceFromPixelDistance(this.cameraManager.camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
+        lineMaterialResolutionService.updateAllLineWidths(worldSize)
+
         if (true === this.raycastService.isEnabled) {
-            // Combine both node lines and edge meshes for raycasting
-            const allObjects = [
-                ...this.geometryManager.linesGroup.children,
-                ...this.geometryManager.edgesGroup.children
-            ];
-            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, allObjects)
+
+            // this.raycastService.updateLine2Threshold(this.cameraManager.camera)
+
+            const all = [ ...this.geometryManager.linesGroup.children, ...this.geometryManager.edgesGroup.children ];
+            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
+
             this.handleIntersection(intersections)
         }
 
@@ -255,6 +269,8 @@ class App {
         // Position camera to frame the scene
         cameraManager.camera.position.set(0, 0, 2 * boundingSphere.radius) // Position camera at 2x the radius
         cameraManager.camera.lookAt(boundingSphere.center)
+
+        // this.raycastService.updateLine2Threshold(cameraManager.camera)
     }
 
     #createBoundingSphereHelper(boundingSphere) {
@@ -291,7 +307,6 @@ class App {
 
         this.pangenomeService.loadData(json)
 
-
         annotationRenderService.clear()
 
         this.genomicService.clear()
@@ -307,6 +322,7 @@ class App {
 
         this.geometryManager.createGeometry(json, look, isMinigraphCactus)
 
+        /*
         const nodeLengths = Object.values(json.node).map(({ length }) => length)
         // const stats = calculateBasicStats(nodeLengths)
         const nodeLengthPercentiles = calculatePercentiles(nodeLengths)
@@ -340,10 +356,13 @@ class App {
             return;
 
         }
+         */
 
         this.geometryManager.addToScene(scene)
 
+        // console.log(`BEFORE camera zoom ${ this.cameraManager.camera.zoom }`)
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
+        // console.log(` AFTER camera zoom ${ this.cameraManager.camera.zoom }`)
 
         this.startAnimation()
     }
@@ -352,11 +371,17 @@ class App {
      * Clear current data and geometry from the active scene
      */
     clearCurrentData() {
-        // Clear genomic service data
+
         this.genomicService.clear()
 
-        // Clear geometry manager
         this.geometryManager.clear()
+
+        lineMaterialResolutionService.materials.clear()
+
+        materialService.lineMaterialCache.clear()
+
+        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
+        look.materialCache.clear()
 
         // Clear the current scene (but keep the scene itself)
         this.sceneManager.clearScene(this.sceneManager.getActiveScene())

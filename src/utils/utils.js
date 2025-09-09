@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 function prettyPrint(number) {
 
     if (typeof number !== "number") {
@@ -65,4 +67,30 @@ function* uniqueRandomGenerator(arr, total) {
     for (let i = 0; i < total; i++) yield next();
 }
 
-export { prettyPrint, loadPath, uniqueRandomGenerator }
+/**
+ * Converts a pixel distance to world distance based on camera and container
+ * @param {THREE.Camera} camera - The camera to use for projection
+ * @param {number} pixelDistance - The pixel distance to convert
+ * @param {HTMLElement} container - The container element to get width from
+ * @returns {number} The world distance
+ */
+function getWorldDistanceFromPixelDistance(camera, pixelDistance, container) {
+    // points in NDC space
+    const ndc0 = new THREE.Vector3(0, 0, 0.5)
+
+    const { width } = container.getBoundingClientRect()
+    const ndc1 = new THREE.Vector3(pixelDistance / width * 2, 0, 0.5)
+
+    // NDC -> World
+    const world0 = ndc0.unproject(camera).clone()
+    const world1 = ndc1.unproject(camera).clone()
+
+    // Delta in world space === updated raycast threshold
+    const worldDistance = world0.distanceTo(world1);
+
+    // console.log(`getWorldDistanceFromPixelDistance. pixel ${ pixelDistance } world ${ worldDistance.toFixed(3) }`)
+
+    return worldDistance
+}
+
+export { prettyPrint, loadPath, uniqueRandomGenerator, getWorldDistanceFromPixelDistance }
