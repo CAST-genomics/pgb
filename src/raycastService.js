@@ -225,8 +225,6 @@ class RayCastService {
         return bestT;
     }
 
-    function
-
     // const { t, u, segmentIndex } = tFromHit(line, intersections[0])
     calculateTParameterFromIntersection(intersection){
 
