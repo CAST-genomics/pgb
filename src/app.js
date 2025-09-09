@@ -10,6 +10,7 @@ import {getAppleCrayonColorByName} from "./utils/color.js"
 import {calculateBasicStats, calculatePercentiles, prettyPrintPercentiles} from "./utils/stats.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
+import Look from "./look.js"
 
 class App {
 
@@ -187,7 +188,8 @@ class App {
 
     animate() {
 
-        // lineMaterialResolutionService.handleResize()
+        const worldSize = this.raycastService.getWorldDistanceFromPixelDistance(this.cameraManager.camera, Look.NODE_LINE_WIDTH_PIXELS)
+        lineMaterialResolutionService.updateAllLineWidths(worldSize)
 
         if (true === this.raycastService.isEnabled) {
 

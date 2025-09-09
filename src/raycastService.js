@@ -11,12 +11,20 @@ class RayCastService {
     static SPLINE_INTERPOLATION_INTERSECTION_STRATEGY = 'splineInterpolationIntersectionStrategy'
 
     constructor(container, threshold) {
+
+        this.container = container
+
         this.pointer = new THREE.Vector2();
+
         this.raycaster = new THREE.Raycaster();
+        this.configureRaycaster(this.raycaster, threshold);
+
         this.isEnabled = true;
-        this.setup(threshold);
+
         this.setupEventListeners(container);
+
         this.clickCallbacks = new Set();
+
         this.currentIntersection = undefined;
 
         this.mouseDownPosition = { x: 0, y: 0 };
@@ -24,9 +32,31 @@ class RayCastService {
         this.isMouseDown = false;
     }
 
-    setup(threshold) {
-        this.raycaster.params.Line2 = {};
-        this.raycaster.params.Line2.threshold = threshold;
+
+    configureRaycaster(raycaster, threshold) {
+        raycaster.params.Line2 = {};
+        raycaster.params.Line2.threshold = threshold;
+    }
+
+    getWorldDistanceFromPixelDistance(camera, pixelDistance) {
+
+        // points in NDC space
+        const ndc0 = new THREE.Vector3(0, 0, 0.5)
+
+        const { width } = this.container.getBoundingClientRect()
+        const ndc1 = new THREE.Vector3(pixelDistance / width * 2, 0, 0.5)
+
+        // NDC -> World
+        const world0 = ndc0.unproject(camera).clone()
+        const world1 = ndc1.unproject(camera).clone()
+
+        // Delta in world space === updated raycast threshold
+        const worldDistance = world0.distanceTo(world1);
+
+        console.log(`getWorldDistanceFromPixelDistance. pixel ${ pixelDistance } world ${ worldDistance.toFixed(3) }`)
+
+        return worldDistance
+
     }
 
     setupEventListeners(container) {

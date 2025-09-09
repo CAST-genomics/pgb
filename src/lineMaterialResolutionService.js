@@ -97,6 +97,19 @@ class LineMaterialResolutionService {
     }
 
     /**
+     * Update line width for all registered LineMaterials
+     * @param {number} worldSize - The new line width in world units
+     */
+    updateAllLineWidths(worldSize) {
+        this.materials.forEach(material => {
+            if (material && typeof material.linewidth !== 'undefined') {
+                material.linewidth = worldSize;
+                material.needsUpdate = true;
+            }
+        });
+    }
+
+    /**
      * Dispose of the service and clear all registered materials
      */
     dispose() {
