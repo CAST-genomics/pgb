@@ -8,6 +8,7 @@ import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
 import {getAppleCrayonColorByName, getRandomAppleCrayonColor} from "./utils/color.js"
 import { assemblyWidget } from "./main.js"
+import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 
 class AssemblyVisualizationLook extends Look {
 
@@ -103,7 +104,14 @@ class AssemblyVisualizationLook extends Look {
 
     getNodeMaterial(nodeName) {
 
-        return new LineMaterial({
+        const cacheKey = `${nodeName}:normal`;
+
+        // Check if we already have this material cached
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey);
+        }
+
+        const material = new LineMaterial({
             // color: getAppleCrayonColorByName('aqua'),
             color: getAppleCrayonColorByName('ocean'),
             linewidth: Look.NODE_LINE_WIDTH,
@@ -111,17 +119,40 @@ class AssemblyVisualizationLook extends Look {
             opacity: 1,
             transparent: true
         });
+
+        // Register with resolution service for automatic resolution updates
+        lineMaterialResolutionService.registerMaterial(material);
+
+        // Cache the material
+        this.materialCache.set(cacheKey, material);
+
+        return material;
     }
 
-    getAssemblyMaterial(assembly) {
+    getAssemblyMaterial(assembly, nodeName) {
 
-        return new LineMaterial({
+        const cacheKey = `${nodeName}assembly:${assembly}`;
+
+        // Check if we already have this material cached
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey);
+        }
+
+        const material = new LineMaterial({
             color: this.genomicService.getAssemblyColor(assembly),
             linewidth: Look.NODE_LINE_WIDTH,
             worldUnits: true,
             opacity: 1,
             transparent: true
         });
+
+        // Register with resolution service for automatic resolution updates
+        lineMaterialResolutionService.registerMaterial(material);
+
+        // Cache the material
+        this.materialCache.set(cacheKey, material);
+
+        return material;
     }
 
     getEdgeMaterial(startColor, endColor) {
@@ -220,22 +251,40 @@ class AssemblyVisualizationLook extends Look {
 
         if (emphasisState === 'deemphasized') {
             if (type === 'node') {
-                mesh.material = materialService.createNodeLineDeemphasisMaterial();
+                mesh.material = materialService.createNodeLineDeemphasisMaterial(mesh.userData.nodeName);
             } else if (type === 'edge') {
                 mesh.material = materialService.getEdgeDeemphasisMaterial();
             }
         } else if (emphasisState === 'emphasized') {
 
             if (type === 'node') {
-                mesh.material = this.getAssemblyMaterial(assembly);
+                mesh.material = this.getAssemblyMaterial(assembly, mesh.userData.nodeName);
             } else if (type === 'edge') {
                 mesh.material = materialService.getEdgeEmphasisMaterial(this.genomicService.getAssemblyColor(assembly));
             }
 
+        }  else if (emphasisState === 'normal') {
+
+            if (type === 'node') {
+                mesh.material = this.getNodeMaterial(mesh.userData.nodeName);
+            } else if (type === 'edge') {
+                // TODO: Handle 'normal' edge material
+                const startColor = getAppleCrayonColorByName('steel')
+                const endColor = getAppleCrayonColorByName('steel')
+                mesh.material = this.getEdgeMaterial(startColor, endColor)
+
+            }
+
         } else {
+            console.warn('DANGER! Should not get here')
             if (originalMaterial) {
                 mesh.material = originalMaterial;
             }
+        }
+
+        // Immediately update resolution for LineMaterials to fix raycasting issues
+        if (mesh.material && mesh.material.resolution) {
+            lineMaterialResolutionService.updateMaterialResolution(mesh.material);
         }
     }
 
@@ -394,6 +443,18 @@ class AssemblyVisualizationLook extends Look {
 
     dispose() {
         this.deactivate(); // Ensure we unsubscribe before disposing
+
+        // Unregister all cached materials from the resolution service
+        for (const material of this.materialCache.values()) {
+            lineMaterialResolutionService.unregisterMaterial(material);
+        }
+
+        // Clear the material cache
+        this.materialCache.clear();
+
+        // Dispose of MaterialService cached materials
+        materialService.dispose();
+
         super.dispose();
         this.emphasisStates.clear();
     }

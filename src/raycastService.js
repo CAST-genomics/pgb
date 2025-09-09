@@ -11,12 +11,20 @@ class RayCastService {
     static SPLINE_INTERPOLATION_INTERSECTION_STRATEGY = 'splineInterpolationIntersectionStrategy'
 
     constructor(container, threshold) {
+
+        this.container = container
+
         this.pointer = new THREE.Vector2();
+
         this.raycaster = new THREE.Raycaster();
+        this.configureRaycaster(this.raycaster, threshold);
+
         this.isEnabled = true;
-        this.setup(threshold);
+
         this.setupEventListeners(container);
+
         this.clickCallbacks = new Set();
+
         this.currentIntersection = undefined;
 
         this.mouseDownPosition = { x: 0, y: 0 };
@@ -24,10 +32,12 @@ class RayCastService {
         this.isMouseDown = false;
     }
 
-    setup(threshold) {
-        this.raycaster.params.Line2 = {};
-        this.raycaster.params.Line2.threshold = threshold;
+
+    configureRaycaster(raycaster, threshold) {
+        raycaster.params.Line2 = {};
+        raycaster.params.Line2.threshold = threshold;
     }
+
 
     setupEventListeners(container) {
         this.container = container;
@@ -111,6 +121,31 @@ class RayCastService {
         const { left, top, width, height } = this.container.getBoundingClientRect();
         this.pointer.x = ((clientX - left) / width) * 2 - 1;
         this.pointer.y = -((clientY - top) / height) * 2 + 1;
+    }
+
+    updateLine2Threshold(camera) {
+
+        // pixels
+        const screenPixelThreshold = 5
+
+        // points in NDC space
+        const { width } = this.container.getBoundingClientRect()
+        const v1 = new THREE.Vector3(0, 0, 0.5);
+        const v2 = new THREE.Vector3(screenPixelThreshold / (width * 2), 0, 0.5);
+
+        // NDC -> World
+        v1.unproject(camera);
+        v2.unproject(camera);
+
+        // Delta in world space === updated raycast threshold
+        const updatedThreshold = v1.distanceTo(v2);
+        const currentThreshold = this.raycaster.params.Line2.threshold
+
+        if (updatedThreshold.toFixed(3) !== currentThreshold.toFixed(3)) {
+            console.log(`raycaster threshold update from ${currentThreshold} to ${updatedThreshold}`)
+        }
+
+        this.raycaster.params.Line2.threshold = updatedThreshold;
     }
 
     updateRaycaster(camera) {
@@ -224,8 +259,6 @@ class RayCastService {
 
         return bestT;
     }
-
-    function
 
     // const { t, u, segmentIndex } = tFromHit(line, intersections[0])
     calculateTParameterFromIntersection(intersection){
