@@ -115,7 +115,7 @@ class AssemblyVisualizationLook extends Look {
             // color: getAppleCrayonColorByName('aqua'),
             color: getAppleCrayonColorByName('ocean'),
             linewidth: Look.NODE_LINE_WIDTH,
-            worldUnits: false, // pixel sizing
+            worldUnits: true,
             opacity: 1,
             transparent: true
         });
@@ -141,7 +141,7 @@ class AssemblyVisualizationLook extends Look {
         const material = new LineMaterial({
             color: this.genomicService.getAssemblyColor(assembly),
             linewidth: Look.NODE_LINE_WIDTH,
-            worldUnits: false, // pixel sizing
+            worldUnits: true,
             opacity: 1,
             transparent: true
         });

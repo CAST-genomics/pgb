@@ -191,7 +191,7 @@ class App {
 
         if (true === this.raycastService.isEnabled) {
 
-            this.raycastService.updateLine2Threshold(this.cameraManager.camera)
+            // this.raycastService.updateLine2Threshold(this.cameraManager.camera)
 
             const all = [ ...this.geometryManager.linesGroup.children, ...this.geometryManager.edgesGroup.children ];
             const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
@@ -268,7 +268,7 @@ class App {
         cameraManager.camera.position.set(0, 0, 2 * boundingSphere.radius) // Position camera at 2x the radius
         cameraManager.camera.lookAt(boundingSphere.center)
 
-        this.raycastService.updateLine2Threshold(cameraManager.camera)
+        // this.raycastService.updateLine2Threshold(cameraManager.camera)
     }
 
     #createBoundingSphereHelper(boundingSphere) {

@@ -32,8 +32,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const threeJSContainer = document.getElementById('pgb-three-container')
 
-    // Dynamic threshold based on line width for pixel-based rendering
-    const threshold = Math.max(2, Look.NODE_LINE_WIDTH + 1)  // Line width + 1 pixel tolerance
+    const threshold = 8
     const raycastService = new RayCastService(threeJSContainer, threshold)
 
     const genomicService = new GenomicService()
