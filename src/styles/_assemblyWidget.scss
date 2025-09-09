@@ -1,27 +1,4 @@
 .assembly-widget {
-  &__button_container {
-    z-index: 1000;
-    position: absolute;
-    top: 0;
-    left: 0;
-    margin-left: 5rem;
-    margin-top: 8rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    .assembly-widget__button {
-      transition: transform 0.2s ease;
-      &:hover {
-        transform: scale(1.2);
-      }
-
-      .assembly-widget__icon {
-        font-size: 2.0rem;
-      }
-    }
-  }
-
   &__card {
     z-index: 1000;
     position: absolute;
@@ -30,7 +7,7 @@
     margin-left: 5rem;
     margin-top: 12rem;
     min-width: 300px;
-    height: 400px; // Fixed height for the card
+    height: 512px; // Fixed height for the card
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: opacity 0.2s ease;
     opacity: 0;

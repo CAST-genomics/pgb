@@ -10,7 +10,7 @@ class AssemblyWidget {
 
     constructor(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService) {
         this.gear = gear;
-        this.gear.addEventListener('click', this.onGearClick.bind(this));
+        // Note: Click handling is now managed by WidgetService
 
         this.assemblyWidgetContainer = assemblyWidgetContainer;
         this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');

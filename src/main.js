@@ -6,6 +6,7 @@ import GenomicService from './genomicService.js'
 import SequenceService from './sequenceService.js'
 import GeometryManager from './geometryManager.js'
 import AssemblyWidget from './assemblyWidget.js'
+import WidgetService from './widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
 import LookManager from './lookManager.js'
@@ -23,6 +24,7 @@ let defaultGenome
 let sequenceService
 let annotationRenderService
 let assemblyWidget
+let widgetService
 document.addEventListener("DOMContentLoaded", async (event) => {
 
     await materialService.initialize()
@@ -45,9 +47,12 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     const annotationRenderServiceContainer = document.querySelector('.pgb-gene-annotation-track-container')
     annotationRenderService = new AnnotationRenderService(annotationRenderServiceContainer, genomicService, geometryManager, raycastService)
 
-    const gear = document.getElementById('pgb-gear-btn-container')
+    const gear = document.getElementById('pgb-widget-container')
     const assemblyWidgetContainer = document.getElementById('pgb-gear-card')
     assemblyWidget = new AssemblyWidget(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService);
+    
+    // Initialize WidgetService to replace the gear with buttons
+    widgetService = new WidgetService(gear, assemblyWidget);
 
 
     // Scene and Look managers
@@ -95,5 +100,5 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
 })
 
-export { app, locusInput, annotationRenderService, defaultGenome, assemblyWidget }
+export { app, locusInput, annotationRenderService, defaultGenome, assemblyWidget, widgetService }
 
