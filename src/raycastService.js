@@ -129,8 +129,9 @@ class RayCastService {
         const screenPixelThreshold = 5
 
         // points in NDC space
+        const { width } = this.container.getBoundingClientRect()
         const v1 = new THREE.Vector3(0, 0, 0.5);
-        const v2 = new THREE.Vector3(screenPixelThreshold / window.innerWidth * 2, 0, 0.5);
+        const v2 = new THREE.Vector3(screenPixelThreshold / (width * 2), 0, 0.5);
 
         // NDC -> World
         v1.unproject(camera);
