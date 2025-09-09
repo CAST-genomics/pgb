@@ -26,6 +26,9 @@
   position: relative;
   height: 64px;
   background-color: transparent;
+  border-top-width: thin;
+  border-top-style: solid;
+  border-top-color: #D0D0D0;
   border-bottom-width: thin;
   border-bottom-style: solid;
   border-bottom-color: #D0D0D0;
@@ -45,7 +48,7 @@
   display: none;
 }
 
-.assembly-widget__container {
+.assembly-widget__button_container {
   z-index: 1000;
   position: absolute;
   top: 0;
@@ -56,13 +59,13 @@
   align-items: center;
   justify-content: center;
 }
-.assembly-widget__button {
+.assembly-widget__button_container .assembly-widget__button {
   transition: transform 0.2s ease;
 }
-.assembly-widget__button:hover {
+.assembly-widget__button_container .assembly-widget__button:hover {
   transform: scale(1.2);
 }
-.assembly-widget__icon {
+.assembly-widget__button_container .assembly-widget__button .assembly-widget__icon {
   font-size: 2rem;
 }
 .assembly-widget__card {
@@ -89,12 +92,8 @@
   padding: 0;
   overflow: hidden;
 }
-.assembly-widget__card .assembly-widget__list-container {
+.assembly-widget__card .card-body .assembly-widget__list-container {
   height: calc(100% - 70px);
-  overflow-y: auto;
-}
-.assembly-widget__list-container {
-  height: 100%;
   overflow-y: auto;
 }
 .assembly-widget__genome-selector {
@@ -107,6 +106,27 @@
 }
 .assembly-widget__genome-selector:hover {
   transform: scale(1.5);
+}
+.assembly-widget__switch .form-check-input {
+  width: 3rem;
+  height: 1.5rem;
+}
+.assembly-widget__switch .form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+.assembly-widget__switch .form-check-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+.assembly-widget__mode-label {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #6c757d;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+.assembly-widget__mode-label:hover {
+  color: #495057;
 }
 
 .graph-tooltip {

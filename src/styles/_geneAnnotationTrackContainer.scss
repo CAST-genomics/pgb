@@ -4,6 +4,9 @@
   position: relative;
   height: 64px;
   background-color: transparent;
+  border-top-width: thin;
+  border-top-style: solid;
+  border-top-color: colors.$silver;
   border-bottom-width: thin;
   border-bottom-style: solid;
   border-bottom-color: colors.$silver;

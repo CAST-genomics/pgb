@@ -38,26 +38,6 @@ class RayCastService {
         raycaster.params.Line2.threshold = threshold;
     }
 
-    getWorldDistanceFromPixelDistance(camera, pixelDistance) {
-
-        // points in NDC space
-        const ndc0 = new THREE.Vector3(0, 0, 0.5)
-
-        const { width } = this.container.getBoundingClientRect()
-        const ndc1 = new THREE.Vector3(pixelDistance / width * 2, 0, 0.5)
-
-        // NDC -> World
-        const world0 = ndc0.unproject(camera).clone()
-        const world1 = ndc1.unproject(camera).clone()
-
-        // Delta in world space === updated raycast threshold
-        const worldDistance = world0.distanceTo(world1);
-
-        // console.log(`getWorldDistanceFromPixelDistance. pixel ${ pixelDistance } world ${ worldDistance.toFixed(3) }`)
-
-        return worldDistance
-
-    }
 
     setupEventListeners(container) {
         this.container = container;

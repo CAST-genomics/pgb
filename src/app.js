@@ -3,7 +3,7 @@ import CameraManager from './cameraManager.js'
 import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
-import {loadPath, prettyPrint} from './utils/utils.js'
+import {loadPath, prettyPrint, getWorldDistanceFromPixelDistance} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
@@ -188,7 +188,7 @@ class App {
 
     animate() {
 
-        const worldSize = this.raycastService.getWorldDistanceFromPixelDistance(this.cameraManager.camera, Look.NODE_LINE_WIDTH_PIXELS)
+        const worldSize = getWorldDistanceFromPixelDistance(this.cameraManager.camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
         lineMaterialResolutionService.updateAllLineWidths(worldSize)
 
         if (true === this.raycastService.isEnabled) {
