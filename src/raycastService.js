@@ -53,7 +53,7 @@ class RayCastService {
         // Delta in world space === updated raycast threshold
         const worldDistance = world0.distanceTo(world1);
 
-        console.log(`getWorldDistanceFromPixelDistance. pixel ${ pixelDistance } world ${ worldDistance.toFixed(3) }`)
+        // console.log(`getWorldDistanceFromPixelDistance. pixel ${ pixelDistance } world ${ worldDistance.toFixed(3) }`)
 
         return worldDistance
 

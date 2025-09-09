@@ -5,8 +5,8 @@
 class Look {
 
     // pixel unite
-    static NODE_LINE_WIDTH_PIXELS = 3;
-    static NODE_LINE_DEEMPHASIS_WIDTH_PIXELS = 3;
+    static NODE_LINE_WIDTH_PIXELS = 2;
+    static NODE_LINE_DEEMPHASIS_WIDTH_PIXELS = 2;
 
     // world units
     static NODE_LINE_WIDTH = 16;

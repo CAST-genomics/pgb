@@ -15,6 +15,7 @@ import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
 import Look from './look.js'
 import './styles/app.scss'
+import {rubinColors} from "./utils/color.js"
 
 let app
 let locusInput
@@ -51,7 +52,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     // Scene and Look managers
     const sceneManager = new SceneManager()
-    sceneManager.createScene('assemblyVisualizationScene', new THREE.Color(0xffffff))
+    // sceneManager.createScene('assemblyVisualizationScene', new THREE.Color(0xffffff))
+    sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
     sceneManager.createScene('genomeFrequencyScene', new THREE.Color(0xffffff))
 
     // Looks
