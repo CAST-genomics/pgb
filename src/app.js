@@ -67,7 +67,7 @@ class App {
 
         const { point, object } = intersections[0];
 
-        this.renderer.domElement.style.cursor = 'none';
+        // this.renderer.domElement.style.cursor = 'none';
 
         if (object.userData?.type === 'edge') {
             this.raycastService.showVisualFeedback(point, new THREE.Color(0x00ff00));
@@ -107,6 +107,7 @@ class App {
     }
 
     createTooltip() {
+
         const tooltip = document.createElement('div');
         tooltip.className = 'graph-tooltip';
 
@@ -119,53 +120,53 @@ class App {
 
     showTooltip(object, point, type) {
 
-        if (false === this.isTooltipEnabled) {
-            return
-        }
+        if (true === this.isTooltipEnabled){
 
-        // Convert 3D world coordinates to screen coordinates
-        const screenPoint = point.clone().project(this.cameraManager.camera);
+            // Convert 3D world coordinates to screen coordinates
+            const screenPoint = point.clone().project(this.cameraManager.camera);
 
-        // Convert to CSS coordinates
-        const rect = this.container.getBoundingClientRect();
-        const x = (screenPoint.x + 1) * rect.width / 2;
-        const y = (-screenPoint.y + 1) * rect.height / 2;
+            // Convert to CSS coordinates
+            const rect = this.container.getBoundingClientRect();
+            const x = (screenPoint.x + 1) * rect.width / 2;
+            const y = (-screenPoint.y + 1) * rect.height / 2;
 
-        // Get the current look
-        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName());
+            // Get the current look
+            const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName());
 
-        // Try to get custom tooltip content from the look for nodes
-        let content = '';
-        if (type === 'edge') {
-            // Default edge tooltip content
-            const { nodeNameStart, nodeNameEnd, geometryKey } = object.userData;
-            content = `
+            // Try to get custom tooltip content from the look for nodes
+            let content = '';
+            if (type === 'edge') {
+                // Default edge tooltip content
+                const { nodeNameStart, nodeNameEnd, geometryKey } = object.userData;
+                content = `
                 <div><strong>Key:</strong> ${geometryKey}</div>
                 <div><strong>Start Node:</strong> ${nodeNameStart}</div>
                 <div><strong>End Node:</strong> ${nodeNameEnd}</div>`;
-        } else if (type === 'node') {
-            // Only use custom tooltip content if the look is active
-            if (look && look.isActive) {
-                content = look.createNodeTooltipContent(object);
-            }
+            } else if (type === 'node') {
+                // Only use custom tooltip content if the look is active
+                if (look && look.isActive) {
+                    content = look.createNodeTooltipContent(object);
+                }
 
-            if (!content) {
-                // Fallback to default node tooltip content
-                const { nodeName, nodeLine } = object.userData;
-                content = `
+                if (!content) {
+                    // Fallback to default node tooltip content
+                    const { nodeName, nodeLine } = object.userData;
+                    content = `
                     <div><strong>Node:</strong> ${nodeName}</div>
                     <div><strong>Line:</strong> ${nodeLine}</div>`;
+                }
             }
+
+            this.tooltip.innerHTML = content;
+
+            // Position tooltip
+            const deltaX = 24
+            const deltaY = 24
+            this.tooltip.style.left = `${x + deltaX}px`;
+            this.tooltip.style.top = `${y - deltaY}px`;
+            this.tooltip.style.display = 'block';
+
         }
-
-        this.tooltip.innerHTML = content;
-
-        // Position tooltip
-        const deltaX = 24
-        const deltaY = 24
-        this.tooltip.style.left = `${x + deltaX}px`;
-        this.tooltip.style.top = `${y - deltaY}px`;
-        this.tooltip.style.display = 'block';
     }
 
     hideTooltip() {
@@ -319,6 +320,7 @@ class App {
 
         this.geometryManager.createGeometry(json, look, isMinigraphCactus)
 
+        /*
         const nodeLengths = Object.values(json.node).map(({ length }) => length)
         // const stats = calculateBasicStats(nodeLengths)
         const nodeLengthPercentiles = calculatePercentiles(nodeLengths)
@@ -352,10 +354,13 @@ class App {
             return;
 
         }
+         */
 
         this.geometryManager.addToScene(scene)
 
+        // console.log(`BEFORE camera zoom ${ this.cameraManager.camera.zoom }`)
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
+        // console.log(` AFTER camera zoom ${ this.cameraManager.camera.zoom }`)
 
         this.startAnimation()
     }
