@@ -55,7 +55,7 @@ handleSearch(url)
     const json = await loadPath(url)
 
     // Create new geometry...
-    this.geometryManager.createGeometry(json, look)
+    this.geometryManager.createGeometry(json)
     this.geometryManager.addToScene(scene)
 
     this.startAnimation()

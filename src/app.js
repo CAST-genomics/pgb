@@ -28,7 +28,6 @@ class App {
         this.sceneManager = sceneManager
         this.lookManager = lookManager
 
-        // Initialize time tracking
         this.clock = new THREE.Clock()
 
         this.cameraManager = new CameraManager(frustumSize, container.clientWidth/container.clientHeight)
@@ -36,16 +35,12 @@ class App {
 
         this.raycastService = raycastService
 
-        // sceneManager.getActiveScene().add(this.raycastService.setupVisualFeedback());
-
-        // Initialize tooltip
         this.isTooltipEnabled = undefined
 
         this.tooltip = this.createTooltip();
 
         this.feedbackColor = getAppleCrayonColorByName('maraschino')
 
-        // Setup resize handler
         window.addEventListener('resize', () => {
             const { clientWidth, clientHeight } = this.container
             this.cameraManager.windowResizeHelper(clientWidth/clientHeight)
@@ -53,6 +48,30 @@ class App {
             // Update line material resolutions for worldUnits: false
             lineMaterialResolutionService.handleResize()
         })
+    }
+
+    animate() {
+
+        if (true === this.raycastService.isEnabled) {
+
+            const scene = this.sceneManager.getActiveScene()
+            const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
+            const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
+
+            const all = [ ...nodeMeshGroup.children, ...edgeMeshGroup.children ];
+            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
+
+            this.handleIntersection(intersections)
+        }
+
+        this.mapControl.update()
+
+        const deltaTime = this.clock.getDelta()
+
+        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
+        look.updateBehavior(deltaTime, this.geometryManager)
+
+        this.renderer.render(this.sceneManager.getActiveScene(), this.cameraManager.camera)
     }
 
     handleIntersection(intersections) {
@@ -96,6 +115,91 @@ class App {
     handleEdgeIntersection(edgeObject, point) {
         this.raycastService.showVisualFeedback(point, new THREE.Color(0x00ff00));
         this.showTooltip(edgeObject, point, 'edge');
+    }
+
+    clearIntersection() {
+        this.raycastService.clearIntersection()
+        this.renderer.domElement.style.cursor = '';
+        this.hideTooltip()
+        eventBus.publish('clearIntersection', {})
+    }
+
+    startAnimation() {
+        this.renderer.setAnimationLoop(() => this.animate())
+    }
+
+    stopAnimation() {
+        this.renderer.setAnimationLoop(null)
+    }
+
+    updateViewToFitScene(scene, cameraManager, mapControl) {
+
+        const bbox = new THREE.Box3()
+
+        let foundObjects = 0;
+        scene.traverse((object) => {
+
+            // Handle Line2 objects (both node lines and edge lines) - check constructor name since isLine2 might not be set
+            if ((object.isLine2 || object.constructor.name === 'Line2') && object.name !== 'boundingSphereHelper') {
+                object.geometry.computeBoundingBox()
+                const objectBox = object.geometry.boundingBox.clone()
+                objectBox.applyMatrix4(object.matrixWorld)
+                bbox.union(objectBox)
+                foundObjects++;
+            }
+
+            else if (object.isMesh && object.name !== 'boundingSphereHelper') {
+                object.geometry.computeBoundingBox()
+                const objectBox = object.geometry.boundingBox.clone()
+                objectBox.applyMatrix4(object.matrixWorld)
+                bbox.union(objectBox)
+                foundObjects++;
+            }
+        })
+
+        // Calculate the bounding sphere from the bounding box
+        const boundingSphere = new THREE.Sphere()
+        bbox.getBoundingSphere(boundingSphere)
+
+        const found = scene.getObjectByName('boundingSphereHelper')
+        if (found) {
+            scene.remove(found)
+        }
+
+        // const boundingSphereHelper = this.#createBoundingSphereHelper(boundingSphere)
+        // scene.add(boundingSphereHelper)
+
+        // Multiplier used to add padding around scene bounding sphere when framing the view
+        const SCENE_VIEW_PADDING = 1.5
+
+        // Calculate required frustum size based on the bounding sphere (with padding)
+        mapControl.reset()
+        const { clientWidth, clientHeight } = this.container
+        cameraManager.frustumHalfSize = boundingSphere.radius * SCENE_VIEW_PADDING
+        cameraManager.windowResizeHelper(clientWidth/clientHeight)
+
+        // Position camera to frame the scene
+        cameraManager.camera.position.set(0, 0, 2 * boundingSphere.radius) // Position camera at 2x the radius
+        cameraManager.camera.lookAt(boundingSphere.center)
+
+        // this.raycastService.updateLine2Threshold(cameraManager.camera)
+    }
+
+    #createBoundingSphereHelper(boundingSphere) {
+        const materialConfig = {
+            color: 0xdddddd,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.5
+        }
+
+        const boundingSphereHelper = new THREE.Mesh(
+            new THREE.SphereGeometry(boundingSphere.radius, 16, 16),
+            new THREE.MeshBasicMaterial(materialConfig)
+        )
+        boundingSphereHelper.position.copy(boundingSphere.center)
+        boundingSphereHelper.name = 'boundingSphereHelper'
+        return boundingSphereHelper
     }
 
     enableTooltip(){
@@ -178,112 +282,6 @@ class App {
         }
     }
 
-    clearIntersection() {
-        this.raycastService.clearIntersection()
-        this.renderer.domElement.style.cursor = '';
-        this.hideTooltip()
-        eventBus.publish('clearIntersection', {})
-    }
-
-    animate() {
-
-        if (true === this.raycastService.isEnabled) {
-
-            const all = [ ...this.geometryManager.nodeMeshesGroup.children, ...this.geometryManager.edgeMeshesGroup.children ];
-            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
-
-            this.handleIntersection(intersections)
-        }
-
-        this.mapControl.update()
-
-        const deltaTime = this.clock.getDelta()
-
-        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
-        look.updateBehavior(deltaTime, this.geometryManager)
-
-        this.renderer.render(this.sceneManager.getActiveScene(), this.cameraManager.camera)
-    }
-
-    startAnimation() {
-        this.renderer.setAnimationLoop(() => this.animate())
-    }
-
-    stopAnimation() {
-        this.renderer.setAnimationLoop(null)
-    }
-
-    updateViewToFitScene(scene, cameraManager, mapControl) {
-
-        const bbox = new THREE.Box3()
-
-        let foundObjects = 0;
-        scene.traverse((object) => {
-
-            // Handle Line2 objects (both node lines and edge lines) - check constructor name since isLine2 might not be set
-            if ((object.isLine2 || object.constructor.name === 'Line2') && object.name !== 'boundingSphereHelper') {
-                object.geometry.computeBoundingBox()
-                const objectBox = object.geometry.boundingBox.clone()
-                objectBox.applyMatrix4(object.matrixWorld)
-                bbox.union(objectBox)
-                foundObjects++;
-            }
-
-            // Handle Mesh objects (if any remain)
-            else if (object.isMesh && object.name !== 'boundingSphereHelper') {
-                object.geometry.computeBoundingBox()
-                const objectBox = object.geometry.boundingBox.clone()
-                objectBox.applyMatrix4(object.matrixWorld)
-                bbox.union(objectBox)
-                foundObjects++;
-            }
-        })
-
-        // Calculate the bounding sphere from the bounding box
-        const boundingSphere = new THREE.Sphere()
-        bbox.getBoundingSphere(boundingSphere)
-
-        const found = scene.getObjectByName('boundingSphereHelper')
-        if (found) {
-            scene.remove(found)
-        }
-
-        // const boundingSphereHelper = this.#createBoundingSphereHelper(boundingSphere)
-        // scene.add(boundingSphereHelper)
-
-        // Multiplier used to add padding around scene bounding sphere when framing the view
-        const SCENE_VIEW_PADDING = 1.5
-
-        // Calculate required frustum size based on the bounding sphere (with padding)
-        mapControl.reset()
-        const { clientWidth, clientHeight } = this.container
-        cameraManager.frustumHalfSize = boundingSphere.radius * SCENE_VIEW_PADDING
-        cameraManager.windowResizeHelper(clientWidth/clientHeight)
-
-        // Position camera to frame the scene
-        cameraManager.camera.position.set(0, 0, 2 * boundingSphere.radius) // Position camera at 2x the radius
-        cameraManager.camera.lookAt(boundingSphere.center)
-
-        // this.raycastService.updateLine2Threshold(cameraManager.camera)
-    }
-
-    #createBoundingSphereHelper(boundingSphere) {
-        const materialConfig = {
-            color: 0xdddddd,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.5
-        }
-
-        const boundingSphereHelper = new THREE.Mesh(
-            new THREE.SphereGeometry(boundingSphere.radius, 16, 16),
-            new THREE.MeshBasicMaterial(materialConfig)
-        )
-        boundingSphereHelper.position.copy(boundingSphere.center)
-        boundingSphereHelper.name = 'boundingSphereHelper'
-        return boundingSphereHelper
-    }
-
     async handleSearch(url) {
         this.stopAnimation()
 
@@ -310,11 +308,12 @@ class App {
         this.assemblyWidget.configure()
 
         const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
-        this.geometryManager.createGeometry(json, look)
+
+        this.geometryManager.createGeometry(json)
+        this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.lookManager)
+        this.geometryManager.createAllSceneEdgeMeshes(this.sceneManager.scenes, this.lookManager)
 
         const scene = this.sceneManager.getActiveScene()
-        scene.add(this.geometryManager.nodeMeshesGroup, this.geometryManager.edgeMeshesGroup)
-
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
 
         scene.add(this.raycastService.setupVisualFeedback())
@@ -344,9 +343,6 @@ class App {
 
         this.sceneManager.clearAllScenes()
 
-        // Re-add visual feedback to the cleared scene
-        // const scene = this.sceneManager.getActiveScene()
-        // scene.add(this.raycastService.setupVisualFeedback())
     }
 
     /**
