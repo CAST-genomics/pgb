@@ -18,21 +18,15 @@ class GeometryManager {
         this.geometryData = null;
     }
 
-    createGeometry(json, look, isMinigraphCactus) {
+    createGeometry(json, look) {
 
-        this.isMinigraphCactus = isMinigraphCactus
-
-        this.geometryData = this.geometryFactory.createGeometryData(json, isMinigraphCactus);
+        this.geometryData = this.geometryFactory.createGeometryData(json);
 
         this.linesGroup.clear();
         this.edgesGroup.clear();
 
         this.#createNodeMeshes(look);
-
-        if (!this.isMinigraphCactus) {
-            this.#createEdgeMeshes(look);
-        }
-
+        this.#createEdgeMeshes(look);
     }
 
     #createNodeMeshes(look) {
@@ -68,7 +62,6 @@ class GeometryManager {
         const line = this.linesGroup.children.find(child => child.userData.nodeName === nodeName)
         return line
     }
-
 
     addToScene(scene) {
         scene.add(this.linesGroup);

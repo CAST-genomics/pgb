@@ -21,9 +21,9 @@ class SceneManager {
         const scene = new THREE.Scene()
         scene.name = sceneName
         scene.background = backgroundColor
-        
+
         this.scenes.set(sceneName, scene)
-        
+
         // Set as active if this is the first scene
         if (this.activeSceneName === null) {
             this.activeSceneName = sceneName
@@ -67,7 +67,7 @@ class SceneManager {
             console.error(`Scene '${sceneName}' not found`)
             return false
         }
-        
+
         this.activeSceneName = sceneName
         return true
     }
@@ -89,6 +89,16 @@ class SceneManager {
         return this.scenes.has(sceneName)
     }
 
+    addToAllScenes(items) {
+
+        for (const scene of this.scenes.values()) {
+            for (const item of items) {
+                scene.add(item)
+            }
+        }
+
+    }
+
     /**
      * Dispose of a specific scene and all its resources
      * @param {string} sceneName - Name of the scene to dispose
@@ -108,7 +118,7 @@ class SceneManager {
 
         // Update active scene if this was the active one
         if (this.activeSceneName === sceneName) {
-            this.activeSceneName = this.scenes.size > 0 ? 
+            this.activeSceneName = this.scenes.size > 0 ?
                 Array.from(this.scenes.keys())[0] : null
         }
     }
@@ -242,4 +252,4 @@ class SceneManager {
     }
 }
 
-export default SceneManager 
+export default SceneManager

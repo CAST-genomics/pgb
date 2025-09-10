@@ -75,13 +75,14 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     heatmapLook.setAnimationEnabled(true)
     lookManager.setLook('heatmapScene', heatmapLook);
 
-    sceneManager.setActiveScene('assemblyVisualizationScene')
-    lookManager.activateLook('assemblyVisualizationScene')
+    // sceneManager.setActiveScene('assemblyVisualizationScene')
+    // lookManager.activateLook('assemblyVisualizationScene')
 
     const pangenomeService = new PangenomeService()
 
     const frustumSize = 5
     app = new App(threeJSContainer, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager, lookManager)
+    app.switchScene('assemblyVisualizationScene')
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 

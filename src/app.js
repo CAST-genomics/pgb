@@ -36,7 +36,7 @@ class App {
 
         this.raycastService = raycastService
 
-        sceneManager.getActiveScene().add(this.raycastService.setupVisualFeedback());
+        // sceneManager.getActiveScene().add(this.raycastService.setupVisualFeedback());
 
         // Initialize tooltip
         this.isTooltipEnabled = undefined
@@ -310,53 +310,14 @@ class App {
         this.assemblyWidget.configure()
 
         const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
+
+        this.geometryManager.createGeometry(json, look)
+
         const scene = this.sceneManager.getActiveScene()
-
-        const isMinigraphCactus = url.includes('graphtype=mc')
-
-        this.geometryManager.createGeometry(json, look, isMinigraphCactus)
-
-        /*
-        const nodeLengths = Object.values(json.node).map(({ length }) => length)
-        // const stats = calculateBasicStats(nodeLengths)
-        const nodeLengthPercentiles = calculatePercentiles(nodeLengths)
-        const report = prettyPrintPercentiles(nodeLengthPercentiles, nodeLengths, "Node Lengths");
-        console.log(report);
-
-        if (isMinigraphCactus) {
-            console.log('graph is Minigraph Cactus')
-
-            // const assemblyKey = 'GRCh38#0#chr8'
-            //
-            // const features = this.pangenomeService.getSpineFeatures(
-            //     assemblyKey,
-            //     {
-            //         includeOffSpineComponents: "none",
-            //         maxPathsPerEvent: 1,
-            //         maxRegionHops: 64,
-            //         maxRegionNodes: 4000,
-            //         maxRegionEdges: 4000,
-            //         operationBudget: 500000,
-            //         locusStartBp: 0
-            //     },
-            //     {
-            //         startPolicy: "preferArrowEndpoint",
-            //         directionPolicy: "edgeFlow"
-            //     }
-            // );
-
-            // const walk = this.pangenomeService.getAssemblyWalk(assemblyKey, { startPolicy: "preferArrowEndpoint", directionPolicy: "edgeFlow" });
-
-            return;
-
-        }
-         */
-
-        this.geometryManager.addToScene(scene)
-
-        // console.log(`BEFORE camera zoom ${ this.cameraManager.camera.zoom }`)
+        scene.add(this.geometryManager.linesGroup, this.geometryManager.edgesGroup)
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
-        // console.log(` AFTER camera zoom ${ this.cameraManager.camera.zoom }`)
+
+        scene.add(this.raycastService.setupVisualFeedback())
 
         this.startAnimation()
     }
@@ -378,11 +339,14 @@ class App {
         look.materialCache.clear()
 
         // Clear the current scene (but keep the scene itself)
-        this.sceneManager.clearScene(this.sceneManager.getActiveScene())
+        // this.sceneManager.clearScene(this.sceneManager.getActiveScene())
+
+
+        this.sceneManager.clearAllScenes()
 
         // Re-add visual feedback to the cleared scene
-        const scene = this.sceneManager.getActiveScene()
-        scene.add(this.raycastService.setupVisualFeedback())
+        // const scene = this.sceneManager.getActiveScene()
+        // scene.add(this.raycastService.setupVisualFeedback())
     }
 
     /**
@@ -390,33 +354,18 @@ class App {
      * @param {string} sceneName - Name of the scene to switch to
      */
     switchScene(sceneName) {
+
         if (!this.sceneManager.hasScene(sceneName)) {
             console.error(`Scene '${sceneName}' not found`)
             return false
         }
 
         this.sceneManager.setActiveScene(sceneName)
+        this.lookManager.activateLook(sceneName)
+
         return true
     }
 
-    /**
-     * Create a new scene with the given name and look
-     * @param {string} sceneName - Name for the new scene
-     * @param {Object} look - The look to apply to the scene
-     * @param {THREE.Color} backgroundColor - Background color for the scene
-     */
-    createScene(sceneName, look, backgroundColor = new THREE.Color(0xffffff)) {
-        // Create the scene
-        const scene = this.sceneManager.createScene(sceneName, backgroundColor)
-
-        // Set the look for this scene
-        this.lookManager.setLook(sceneName, look)
-
-        // Add visual feedback to the new scene
-        scene.add(this.raycastService.setupVisualFeedback())
-
-        return scene
-    }
 }
 
 export default App

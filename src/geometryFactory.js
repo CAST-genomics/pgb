@@ -15,7 +15,7 @@ class GeometryFactory {
         this.geometryCache = new Map(); // Cache geometries by node name
     }
 
-    createGeometryData(json, isMinigraphCactus) {
+    createGeometryData(json) {
         this.splines.clear();
         this.geometryCache.clear();
 
@@ -28,9 +28,7 @@ class GeometryFactory {
 
         this.#createNodeGeometries(json.node);
 
-        if (!isMinigraphCactus){
-            this.#createEdgeGeometries(json.edge);
-        }
+        this.#createEdgeGeometries(json.edge);
 
         const result = {
             splines: this.splines,
