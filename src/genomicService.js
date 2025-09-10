@@ -7,7 +7,7 @@ import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
 class GenomicService {
 
     constructor() {
-        this.metadata = new Map()
+        this.nodeMetadata = new Map()
         this.assemblyColors = new Map()
         this.nodeAssemblyStats = new Map()
         this.assemblySet = new Set()
@@ -38,13 +38,13 @@ class GenomicService {
             }
 
             const metadata =  { assemblySet, sequence: sequences[nodeName] }
-            this.metadata.set(nodeName, metadata);
+            this.nodeMetadata.set(nodeName, metadata);
 
         }
 
         // Build assembly set
         this.assemblySet = new Set()
-        for (const [ key, { assemblySet }] of this.metadata) {
+        for (const [ key, { assemblySet }] of this.nodeMetadata) {
             for (const item of assemblySet){
                 this.assemblySet.add(item)
             }
@@ -92,7 +92,7 @@ class GenomicService {
     }
 
     getAssemblyListForNodeName(nodeName) {
-        const metadata = this.metadata.get(nodeName);
+        const metadata = this.nodeMetadata.get(nodeName);
         if (!metadata) {
             console.error(`GenomicService: Metadata not found for node: ${nodeName}`);
             return null;
@@ -101,7 +101,7 @@ class GenomicService {
     }
 
     getAssemblyForNodeName(nodeName) {
-        const metadata = this.metadata.get(nodeName);
+        const metadata = this.nodeMetadata.get(nodeName);
         if (!metadata) {
             console.error(`GenomicService: Metadata not found for node: ${nodeName}`);
             return null;
@@ -117,7 +117,7 @@ class GenomicService {
 
         const nodeNameSet = new Set()
         for (const nodeName of this.getNodeNameSet()) {
-            const assemblies = [ ...this.metadata.get(nodeName).assemblySet ]
+            const assemblies = [ ...this.nodeMetadata.get(nodeName).assemblySet ]
             if (new Set([ ...assemblies]).has(assembly)) {
                 nodeNameSet.add (nodeName)
             }
@@ -127,14 +127,14 @@ class GenomicService {
     }
 
     getNodeNameSet() {
-        return new Set(this.metadata.keys());
+        return new Set(this.nodeMetadata.keys());
     }
 
     clear() {
 
         this.startNode = undefined
 
-        this.metadata.clear()
+        this.nodeMetadata.clear()
 
         this.assemblyColors.clear()
 

@@ -67,7 +67,7 @@ class SequenceService {
             return;
         }
 
-        const payload = this.genomicService.metadata.get(this.currentNodeName);
+        const payload = this.genomicService.nodeMetadata.get(this.currentNodeName);
         if (!payload) {
             console.error(`No metadata found for ${this.currentNodeName}`);
             return;

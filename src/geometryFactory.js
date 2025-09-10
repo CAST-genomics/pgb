@@ -80,7 +80,7 @@ class GeometryFactory {
                     geometry: LineFactory.createNodeLineGeometry(spline, fixedSplineDivisions(spline, 32), GeometryFactory.NODE_LINE_Z_OFFSET),
                     spline,
                     nodeName,
-                    assembly: this.genomicService.metadata.get(nodeName)?.assembly
+                    assembly: this.genomicService.nodeMetadata.get(nodeName)?.assembly
                 };
 
             this.geometryCache.set(`node:${nodeName}`, payload);
