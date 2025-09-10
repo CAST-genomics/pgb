@@ -47,8 +47,22 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     sequenceService = new SequenceService(threeJSContainer, raycastService, genomicService)
 
-    const annotationRenderServiceContainer = document.querySelector('.pgb-gene-annotation-track-container')
-    annotationRenderService = new AnnotationRenderService(annotationRenderServiceContainer, genomicService, geometryManager, raycastService)
+    // Scene Manager and Look Manager
+    const sceneManager = new SceneManager(new LookManager())
+    sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
+    sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
+
+    // AssemblyVisualizationLook
+    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager })
+    assemblyVisualizationLook.setAnimationEnabled(false)
+    sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
+
+    // HeatmapLook
+    const heatmapLook = HeatmapLook.createHeatmapLookLook('heatmapLook', { genomicService, geometryManager })
+    heatmapLook.setAnimationEnabled(true)
+    sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
+
+    const pangenomeService = new PangenomeService()
 
     const gear = document.getElementById('pgb-widget-container')
     const assemblyWidgetContainer = document.getElementById('pgb-gear-card')
@@ -57,32 +71,11 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     // Initialize WidgetService to replace the gear with buttons
     widgetService = new WidgetService(gear, assemblyWidget);
 
-    // Scene Manager
-    const sceneManager = new SceneManager()
-    sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
-    sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
-
-    // Look Manager
-    const lookManager = new LookManager()
-
-    // AssemblyVisualizationLook
-    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager })
-    assemblyVisualizationLook.setAnimationEnabled(false)
-    lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
-
-    // HeatmapLook
-    const heatmapLook = HeatmapLook.createHeatmapLookLook('heatmapLook', { genomicService, geometryManager })
-    heatmapLook.setAnimationEnabled(true)
-    lookManager.setLook('heatmapScene', heatmapLook);
-
-    // sceneManager.setActiveScene('assemblyVisualizationScene')
-    // lookManager.activateLook('assemblyVisualizationScene')
-
-    const pangenomeService = new PangenomeService()
+    const annotationRenderServiceContainer = document.querySelector('.pgb-gene-annotation-track-container')
+    annotationRenderService = new AnnotationRenderService(annotationRenderServiceContainer, genomicService, sceneManager, raycastService)
 
     const frustumSize = 5
-    app = new App(threeJSContainer, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager, lookManager)
-    app.switchScene('assemblyVisualizationScene')
+    app = new App(threeJSContainer, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager)
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 

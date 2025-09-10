@@ -160,7 +160,7 @@ class HeatmapLook extends Look {
     /**
      * Override updateAnimation to update arrow texture animation
      */
-    updateBehavior(deltaTime, geometryManager) {
+    updateBehavior(deltaTime, scene) {
 
         if (!this.edgeArrowAnimationState.enabled) return;
 
@@ -171,7 +171,8 @@ class HeatmapLook extends Look {
             this.edgeArrowAnimationState.uvOffset = (this.edgeArrowAnimationState.uvOffset - speed) % 1.0;
         }
 
-        this.#updateEdgeAnimation(geometryManager.edgeMeshesGroup)
+        const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
+        this.#updateEdgeAnimation(edgeMeshGroup)
 
     }
 

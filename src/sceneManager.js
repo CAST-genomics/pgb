@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 
 class SceneManager {
-    constructor() {
+    constructor(lookManager) {
+        this.lookManager = lookManager
         this.scenes = new Map()
         this.activeSceneName = null
     }
@@ -60,15 +61,23 @@ class SceneManager {
     /**
      * Set the active scene
      * @param {string} sceneName - Name of the scene to activate
+     * @param renderer
+     * @param camera
      * @returns {boolean} True if successful, false if scene doesn't exist
      */
-    setActiveScene(sceneName) {
+    setActiveScene(sceneName, renderer, camera) {
         if (!this.scenes.has(sceneName)) {
             console.error(`Scene '${sceneName}' not found`)
             return false
         }
 
         this.activeSceneName = sceneName
+        const scene = this.getScene(sceneName)
+
+        this.lookManager.activateLook(sceneName)
+
+        renderer.compile(scene, camera);
+
         return true
     }
 
@@ -123,6 +132,9 @@ class SceneManager {
         }
     }
 
+    getActiveLook(){
+        return this.lookManager.getLook(this.getActiveSceneName())
+    }
     /**
      * Dispose of all scenes and resources
      */

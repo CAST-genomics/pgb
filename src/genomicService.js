@@ -16,7 +16,7 @@ class GenomicService {
         this.startNode = undefined
     }
 
-    async createMetadata(json, pangenomeService, genomeLibrary, geometryManager, raycastService) {
+    async initialize(json, pangenomeService, genomeLibrary, geometryManager, raycastService) {
 
         const { locus:locusString, node:nodes, sequence:sequences } = json
 

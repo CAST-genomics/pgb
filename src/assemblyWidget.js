@@ -19,6 +19,7 @@ class AssemblyWidget {
         this.modeLabel = null; // Will be initialized when card is shown
 
         this.genomicService = genomicService;
+
         this.geometryManager = geometryManager
 
         // raycastService.registerClickHandler(this.raycastClickHandler.bind(this));

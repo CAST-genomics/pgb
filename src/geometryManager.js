@@ -65,10 +65,6 @@ class GeometryManager {
         return this.geometryFactory.getSpline(nodeName);
     }
 
-    getLine(nodeName){
-        return this.nodeMeshesGroup.children.find(child => child.userData.nodeName === nodeName)
-    }
-
     /**
      * Clear all geometry data and groups without full disposal
      * This is useful when loading new data files

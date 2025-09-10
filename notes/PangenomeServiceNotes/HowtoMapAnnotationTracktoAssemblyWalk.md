@@ -208,7 +208,7 @@ function nodeRaycastTToBp(nodeId, tRaw, bpIndex, endpointMap, nodeRecordMap) {
 
 ```js
 // 1) Get monotonic spine for the selected assembly
-const { spine } = pangenomeService.getSpineFeatures(assemblyKey);
+const {spine} = pangenomeService.getSpineFeatures(assemblyKey);
 
 // 2) Build indices
 const bpIndex = buildBpIndex(spine);
@@ -216,22 +216,22 @@ const nodeRecordMap = makeNodeRecordMap(bpIndex);
 
 // 3) Build endpoint map using scene geometry
 const walkNodes = spine.nodes.map(n => n.id);
-const endpointMap = buildNodeEndpointMap(walkNodes, nodeGeomMap, nodeCenter);
+const endpointMap = buildNodeEndpointMap(walkNodes, nodeGeomMap);
 
 // 4a) Track → Graph (hover/scrub)
 function onTrackHover(bp) {
-  const hit = bpToNodeParam(bp, bpIndex, endpointMap, nodeGeomMap);
-  if (hit?.xyz) {
-    dot.position.copy(hit.xyz);
-    // Optional: tooltip with nodeId and hit.u.toFixed(3)
-  }
+    const hit = bpToNodeParam(bp, bpIndex, endpointMap, nodeGeomMap);
+    if (hit?.xyz) {
+        dot.position.copy(hit.xyz);
+        // Optional: tooltip with nodeId and hit.u.toFixed(3)
+    }
 }
 
 // 4b) Graph → Track (raycast on ParametricLine)
-function onRaycastHit({ nodeId, tRaw, xyz }) {
-  dot.position.copy(xyz); // true hit for visuals
-  const mapped = nodeRaycastTToBp(nodeId, tRaw, bpIndex, endpointMap, nodeRecordMap);
-  if (mapped) trackScrubber.setBp(mapped.bp);
+function onRaycastHit({nodeId, tRaw, xyz}) {
+    dot.position.copy(xyz); // true hit for visuals
+    const mapped = nodeRaycastTToBp(nodeId, tRaw, bpIndex, endpointMap, nodeRecordMap);
+    if (mapped) trackScrubber.setBp(mapped.bp);
 }
 ```
 

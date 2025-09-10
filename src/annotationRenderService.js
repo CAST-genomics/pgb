@@ -5,11 +5,11 @@ import { getLineXYZWithTrackBasepair, buildBpIndex, buildNodeEndpointMap, makeNo
 
 class AnnotationRenderService {
 
-    constructor(container, genomicService, geometryManager, raycastService) {
+    constructor(container, genomicService, sceneManager, raycastService) {
 
         this.container = container;
         this.genomicService = genomicService;
-        this.geometryManager = geometryManager;
+        this.sceneManager = sceneManager;
         this.raycastService = raycastService;
 
         this.bpIndex = undefined
@@ -68,7 +68,7 @@ class AnnotationRenderService {
 
         const walkNodes = spine.nodes.map(n => n.id);
 
-        this.endpointMap = buildNodeEndpointMap(walkNodes, this.geometryManager);
+        this.endpointMap = buildNodeEndpointMap(walkNodes, this.sceneManager);
 
         const { chr } = this.genomicService.locus
         const bpStart = nodes[0].bpStart
@@ -270,7 +270,7 @@ class AnnotationRenderService {
 
         const bp= Math.floor(this.bpStart * ( 1 - param) + this.bpEnd * param)
 
-        const { nodeId, t, xyz:pointOnLine, u } = getLineXYZWithTrackBasepair(bp, this.bpIndex, this.endpointMap, this.geometryManager);
+        const { nodeId, t, xyz:pointOnLine, u } = getLineXYZWithTrackBasepair(bp, this.bpIndex, this.endpointMap, this.sceneManager);
 
 
         /*

@@ -13,7 +13,7 @@ import materialService from './materialService.js'
 
 class App {
 
-    constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager, lookManager) {
+    constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager) {
         this.container = container
 
         this.renderer = RendererFactory.createRenderer(container)
@@ -26,7 +26,6 @@ class App {
         this.assemblyWidget = assemblyWidget
         this.genomeLibrary = genomeLibrary
         this.sceneManager = sceneManager
-        this.lookManager = lookManager
 
         this.clock = new THREE.Clock()
 
@@ -50,11 +49,28 @@ class App {
         })
     }
 
+    setActiveScene(sceneName){
+        this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
+    }
+
+    switchScene(sceneName) {
+
+        if (!this.sceneManager.hasScene(sceneName)) {
+            console.error(`Scene '${sceneName}' not found`)
+            return false
+        }
+
+        this.setActiveScene(sceneName)
+
+        return true
+    }
+
     animate() {
+
+        const scene = this.sceneManager.getActiveScene()
 
         if (true === this.raycastService.isEnabled) {
 
-            const scene = this.sceneManager.getActiveScene()
             const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
             const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
 
@@ -68,10 +84,10 @@ class App {
 
         const deltaTime = this.clock.getDelta()
 
-        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
-        look.updateBehavior(deltaTime, this.geometryManager)
+        const look = this.sceneManager.getActiveLook()
+        look.updateBehavior(deltaTime, scene)
 
-        this.renderer.render(this.sceneManager.getActiveScene(), this.cameraManager.camera)
+        this.renderer.render(scene, this.cameraManager.camera)
     }
 
     handleIntersection(intersections) {
@@ -130,6 +146,43 @@ class App {
 
     stopAnimation() {
         this.renderer.setAnimationLoop(null)
+    }
+
+    async handleSearch(url) {
+
+        this.stopAnimation()
+
+        this.clearCurrentData()
+
+        let json
+        try {
+            json = await loadPath(url)
+        } catch (error) {
+            console.error(`Error loading ${url}:`, error)
+            this.startAnimation()
+            return
+        }
+
+        this.pangenomeService.loadData(json)
+
+        await this.genomicService.initialize(json, this.pangenomeService, this.genomeLibrary, this.geometryManager, this.raycastService)
+
+        this.geometryManager.createGeometry(json)
+
+        this.setActiveScene('assemblyVisualizationScene')
+
+        this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.sceneManager.lookManager)
+
+        this.geometryManager.createAllSceneEdgeMeshes(this.sceneManager.scenes, this.sceneManager.lookManager)
+
+        const scene = this.sceneManager.getActiveScene()
+        this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
+
+        scene.add(this.raycastService.setupVisualFeedback())
+
+        this.assemblyWidget.configure()
+
+        this.startAnimation()
     }
 
     updateViewToFitScene(scene, cameraManager, mapControl) {
@@ -235,7 +288,7 @@ class App {
             const y = (-screenPoint.y + 1) * rect.height / 2;
 
             // Get the current look
-            const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName());
+            const look = this.sceneManager.getActiveLook()
 
             // Try to get custom tooltip content from the look for nodes
             let content = '';
@@ -282,49 +335,9 @@ class App {
         }
     }
 
-    async handleSearch(url) {
-        this.stopAnimation()
-
-        // Clear existing data and geometry
-        this.clearCurrentData()
-
-        let json
-        try {
-            json = await loadPath(url)
-        } catch (error) {
-            console.error(`Error loading ${url}:`, error)
-            this.startAnimation()
-            return
-        }
-
-        this.pangenomeService.loadData(json)
+    clearCurrentData() {
 
         annotationRenderService.clear()
-
-        this.genomicService.clear()
-
-        await this.genomicService.createMetadata(json, this.pangenomeService, this.genomeLibrary, this.geometryManager, this.raycastService)
-
-        this.assemblyWidget.configure()
-
-        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
-
-        this.geometryManager.createGeometry(json)
-        this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.lookManager)
-        this.geometryManager.createAllSceneEdgeMeshes(this.sceneManager.scenes, this.lookManager)
-
-        const scene = this.sceneManager.getActiveScene()
-        this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
-
-        scene.add(this.raycastService.setupVisualFeedback())
-
-        this.startAnimation()
-    }
-
-    /**
-     * Clear current data and geometry from the active scene
-     */
-    clearCurrentData() {
 
         this.genomicService.clear()
 
@@ -334,32 +347,11 @@ class App {
 
         materialService.lineMaterialCache.clear()
 
-        const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
+        const look = this.sceneManager.getActiveLook()
         look.materialCache.clear()
-
-        // Clear the current scene (but keep the scene itself)
-        // this.sceneManager.clearScene(this.sceneManager.getActiveScene())
-
 
         this.sceneManager.clearAllScenes()
 
-    }
-
-    /**
-     * Switch to a different scene
-     * @param {string} sceneName - Name of the scene to switch to
-     */
-    switchScene(sceneName) {
-
-        if (!this.sceneManager.hasScene(sceneName)) {
-            console.error(`Scene '${sceneName}' not found`)
-            return false
-        }
-
-        this.sceneManager.setActiveScene(sceneName)
-        this.lookManager.activateLook(sceneName)
-
-        return true
     }
 
 }

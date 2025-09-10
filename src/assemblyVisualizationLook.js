@@ -21,6 +21,7 @@ class AssemblyVisualizationLook extends Look {
 
         this.genomicService = config.genomicService;
         this.geometryManager = config.geometryManager;
+        this.sceneManager = config.sceneManager;
 
         this.edgeArrowAnimationState =
             {
@@ -283,7 +284,7 @@ class AssemblyVisualizationLook extends Look {
     /**
      * Override updateAnimation to update arrow texture animation
      */
-    updateBehavior(deltaTime, geometryManager) {
+    updateBehavior(deltaTime, scene) {
 
         if (!this.edgeArrowAnimationState.enabled) return;
 
@@ -294,7 +295,8 @@ class AssemblyVisualizationLook extends Look {
             this.edgeArrowAnimationState.uvOffset = (this.edgeArrowAnimationState.uvOffset - speed) % 1.0;
         }
 
-        this.#updateEdgeAnimation(geometryManager.edgeMeshesGroup)
+        const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
+        this.#updateEdgeAnimation(edgeMeshGroup)
 
     }
 
@@ -340,7 +342,8 @@ class AssemblyVisualizationLook extends Look {
 
     #updateEdgeEmphasis(edgeSet, emphasisState, assembly) {
 
-        this.geometryManager.edgeMeshesGroup.traverse((object) => {
+        const edgeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('EdgeMeshGroup')
+        edgeMeshGroup.traverse((object) => {
             if (object.userData?.type === 'edge') {
                 if (edgeSet.has(object.userData.geometryKey)) {
                     this.applyEmphasisState(object, emphasisState, assembly);
@@ -352,7 +355,8 @@ class AssemblyVisualizationLook extends Look {
 
     #updateNodeEmphasis(nodeNameSet, emphasisState, assembly) {
 
-        this.geometryManager.nodeMeshesGroup.traverse((object) => {
+        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        nodeMeshGroup.traverse((object) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
                 this.applyEmphasisState(object, emphasisState, assembly);
             }
@@ -361,8 +365,8 @@ class AssemblyVisualizationLook extends Look {
 
     #updateGeometryPositions() {
 
-        // Update node positions
-        this.geometryManager.nodeMeshesGroup.traverse((object) => {
+        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        nodeMeshGroup.traverse((object) => {
             if (object.userData?.nodeName) {
                 const nodeName = object.userData.nodeName;
                 const zOffset = this.getZOffset(`node:${nodeName}`);
@@ -388,8 +392,8 @@ class AssemblyVisualizationLook extends Look {
             }
         });
 
-        // Update edge positions
-        this.geometryManager.edgeMeshesGroup.traverse((object) => {
+        const edgeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('EdgeMeshGroup')
+        edgeMeshGroup.traverse((object) => {
             if (object.userData?.type === 'edge') {
                 const edgeKey = object.userData.geometryKey;
                 object.position.z = this.getZOffset(edgeKey);
