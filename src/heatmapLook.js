@@ -171,7 +171,7 @@ class HeatmapLook extends Look {
             this.edgeArrowAnimationState.uvOffset = (this.edgeArrowAnimationState.uvOffset - speed) % 1.0;
         }
 
-        this.#updateEdgeAnimation(geometryManager.edgesGroup)
+        this.#updateEdgeAnimation(geometryManager.edgeMeshesGroup)
 
     }
 
@@ -197,14 +197,14 @@ class HeatmapLook extends Look {
     //     return `<div><strong>Node:</strong> ${nodeName}</div>`
     // }
 
-    #updateEdgeAnimation(edgesGroup) {
+    #updateEdgeAnimation(edgeMeshesGroup) {
 
         if (!this.edgeArrowAnimationState.enabled) return;
 
         const uvOffset = new THREE.Vector2(this.edgeArrowAnimationState.uvOffset, 0);
 
         let edgeCount = 0;
-        edgesGroup.traverse((object) => {
+        edgeMeshesGroup.traverse((object) => {
             if (object.userData?.type === 'edge' && object.material && object.material.uniforms) {
                 if (object.material.uniforms.uvOffset) {
                     object.material.uniforms.uvOffset.value.copy(uvOffset);

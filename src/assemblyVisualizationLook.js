@@ -294,7 +294,7 @@ class AssemblyVisualizationLook extends Look {
             this.edgeArrowAnimationState.uvOffset = (this.edgeArrowAnimationState.uvOffset - speed) % 1.0;
         }
 
-        this.#updateEdgeAnimation(geometryManager.edgesGroup)
+        this.#updateEdgeAnimation(geometryManager.edgeMeshesGroup)
 
     }
 
@@ -320,14 +320,14 @@ class AssemblyVisualizationLook extends Look {
     //     return `<div><strong>Node:</strong> ${nodeName}</div>`
     // }
 
-    #updateEdgeAnimation(edgesGroup) {
+    #updateEdgeAnimation(edgeMeshesGroup) {
 
         if (!this.edgeArrowAnimationState.enabled) return;
 
         const uvOffset = new THREE.Vector2(this.edgeArrowAnimationState.uvOffset, 0);
 
         let edgeCount = 0;
-        edgesGroup.traverse((object) => {
+        edgeMeshesGroup.traverse((object) => {
             if (object.userData?.type === 'edge' && object.material && object.material.uniforms) {
                 if (object.material.uniforms.uvOffset) {
                     object.material.uniforms.uvOffset.value.copy(uvOffset);
@@ -340,7 +340,7 @@ class AssemblyVisualizationLook extends Look {
 
     #updateEdgeEmphasis(edgeSet, emphasisState, assembly) {
 
-        this.geometryManager.edgesGroup.traverse((object) => {
+        this.geometryManager.edgeMeshesGroup.traverse((object) => {
             if (object.userData?.type === 'edge') {
                 if (edgeSet.has(object.userData.geometryKey)) {
                     this.applyEmphasisState(object, emphasisState, assembly);
@@ -352,7 +352,7 @@ class AssemblyVisualizationLook extends Look {
 
     #updateNodeEmphasis(nodeNameSet, emphasisState, assembly) {
 
-        this.geometryManager.linesGroup.traverse((object) => {
+        this.geometryManager.nodeMeshesGroup.traverse((object) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
                 this.applyEmphasisState(object, emphasisState, assembly);
             }
@@ -362,7 +362,7 @@ class AssemblyVisualizationLook extends Look {
     #updateGeometryPositions() {
 
         // Update node positions
-        this.geometryManager.linesGroup.traverse((object) => {
+        this.geometryManager.nodeMeshesGroup.traverse((object) => {
             if (object.userData?.nodeName) {
                 const nodeName = object.userData.nodeName;
                 const zOffset = this.getZOffset(`node:${nodeName}`);
@@ -389,7 +389,7 @@ class AssemblyVisualizationLook extends Look {
         });
 
         // Update edge positions
-        this.geometryManager.edgesGroup.traverse((object) => {
+        this.geometryManager.edgeMeshesGroup.traverse((object) => {
             if (object.userData?.type === 'edge') {
                 const edgeKey = object.userData.geometryKey;
                 object.position.z = this.getZOffset(edgeKey);

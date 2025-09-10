@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    html,body{height:100%;margin:0;overflow:hidden}
+    #ui{position:fixed;top:10px;left:10px;background:rgba(0,0,0,.55);color:#fff;padding:8px 10px;border-radius:8px;font:12px system-ui}
+    button{margin-right:6px}
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <strong>Scene:</strong>
+    <button data-s="pbr">PBR</button>
+    <button data-s="toon">Toon</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ---- Shared geometry "truth" (immutable) ----
+    const sharedGeom = new THREE.TorusKnotGeometry(1, 0.35, 256, 32);
+    // If you ever mutate attributes here, it will affect both scenes.
+
+    // ---- Renderer/camera (single renderer; we just swap scenes) ----
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+
+    const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 100);
+    camera.position.set(3, 2, 5);
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    function onResize(){
+      const w = innerWidth, h = innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    addEventListener('resize', onResize);
+
+    // ---- Scene A: PBR look ----
+    const scenePBR = new THREE.Scene();
+    scenePBR.background = new THREE.Color(0x202025);
+    const ambA = new THREE.AmbientLight(0xffffff, 0.25);
+    const dirA = new THREE.DirectionalLight(0xffffff, 2); dirA.position.set(3,4,2); dirA.castShadow = true;
+    scenePBR.add(ambA, dirA, new THREE.GridHelper(10, 10));
+
+    const matPBR = new THREE.MeshStandardMaterial({ color: 0x7aa2ff, roughness: 0.35, metalness: 0.6 });
+    const meshPBR = new THREE.Mesh(sharedGeom, matPBR);
+    meshPBR.castShadow = meshPBR.receiveShadow = true;
+    scenePBR.add(meshPBR);
+
+    // Optional env map for PBR
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scenePBR.environment = new THREE.TextureLoader().load(
+      'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
+      tex => { scenePBR.environment = pmrem.fromEquirectangular(tex).texture; tex.dispose(); }
+    );
+
+    // ---- Scene B: Toon look ----
+    const sceneToon = new THREE.Scene();
+    sceneToon.background = new THREE.Color(0x1b1b1f);
+    const ambB = new THREE.AmbientLight(0xffffff, 0.25);
+    const dirB = new THREE.DirectionalLight(0xffffff, 2); dirB.position.set(-2,3,2);
+    sceneToon.add(ambB, dirB);
+
+    const matToon = new THREE.MeshToonMaterial({ color: 0xff8a65 });
+    const meshToon = new THREE.Mesh(sharedGeom, matToon);
+    sceneToon.add(meshToon);
+
+    // ---- Switcher & warm-up ----
+    let active = scenePBR;
+    function useScene(s){
+      active = (s === 'toon') ? sceneToon : scenePBR;
+      // Precompile this scene's shaders to avoid hitch on first frame.
+      renderer.compile(active, camera);
+    }
+    document.getElementById('ui').addEventListener('click', e=>{
+      const s = e.target.dataset.s;
+      if (s) useScene(s);
+    });
+
+    // ---- Animate ----
+    onResize();
+    (function animate(){
+      requestAnimationFrame(animate);
+      meshPBR.rotation.y += 0.01;
+      meshToon.rotation.y += 0.01;
+      renderer.render(active, camera);
+    })();
+
+    // ---- Cleanup helpers ----
+    function disposeMaterial(m){
+      m.dispose();
+      for (const k in m) if (m[k]?.isTexture) m[k].dispose?.();
+    }
+    // When disposing a scene, DO NOT dispose the shared geometry here.
+    // Remove meshes, dispose materials/textures only.
+    function disposeScene(scene){
+      scene.traverse(o=>{
+        if (o.isMesh){
+          if (Array.isArray(o.material)) o.material.forEach(disposeMaterial);
+          else disposeMaterial(o.material);
+          // o.geometry.dispose(); // <-- DON'T: it's shared!
+        }
+      });
+    }
+    // When the app truly ends and no one uses sharedGeom:
+    // sharedGeom.dispose();
+    // pmrem.dispose();
+  </script>
+</body>
+</html>

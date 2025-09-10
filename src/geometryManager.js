@@ -12,8 +12,8 @@ class GeometryManager {
 
         this.geometryFactory = new GeometryFactory(genomicService);
 
-        this.linesGroup = new THREE.Group();
-        this.edgesGroup = new THREE.Group();
+        this.nodeMeshesGroup = new THREE.Group();
+        this.edgeMeshesGroup = new THREE.Group();
 
         this.geometryData = null;
     }
@@ -22,11 +22,43 @@ class GeometryManager {
 
         this.geometryData = this.geometryFactory.createGeometryData(json);
 
-        this.linesGroup.clear();
-        this.edgesGroup.clear();
+        this.nodeMeshesGroup.clear();
+        this.edgeMeshesGroup.clear();
 
         this.#createNodeMeshes(look);
+
         this.#createEdgeMeshes(look);
+    }
+
+    createAllSceneNodeMeshes(scenes, lookManager, nodeGeometries){
+        for (const [ sceneName, scene] of scenes.entries()){
+            const look = lookManager.looks.get(sceneName)
+
+            for (const [nodeName, data] of nodeGeometries) {
+                const context = { type: 'node', nodeName };
+                const mesh = look.createMesh(data.geometry, context)
+
+                // Used during raycast.intersections to help calculate the "t" parameter
+                // for a line. We treat lines as one-dimensional parametric lines.
+                mesh.userData.arcLengthTable = buildArcLengthTable(mesh)
+                scene.add(mesh);
+            }
+        }
+    }
+
+    createAllSceneEdgeMeshes(scenes, lookManager, edgeGeometries){
+        for (const [ sceneName, scene] of scenes.entries()){
+            const look = lookManager.looks.get(sceneName)
+
+            for (const [edgeKey, data] of edgeGeometries) {
+
+                const { startNode, endNode } = data;
+                const context = { type: 'edge', startNode, endNode, edgeKey };
+
+                const mesh = look.createMesh(data.geometry, context);
+                scene.add(mesh);
+            }
+        }
     }
 
     #createNodeMeshes(look) {
@@ -38,7 +70,7 @@ class GeometryManager {
             // for a line. We treat lines as one-dimensional parametric lines.
             mesh.userData.arcLengthTable = buildArcLengthTable(mesh)
 
-            this.linesGroup.add(mesh);
+            this.nodeMeshesGroup.add(mesh);
         }
     }
 
@@ -49,23 +81,21 @@ class GeometryManager {
             const context = { type: 'edge', startNode, endNode, edgeKey };
 
             const mesh = look.createMesh(data.geometry, context);
-            this.edgesGroup.add(mesh);
+            this.edgeMeshesGroup.add(mesh);
         }
     }
-
+    
     getSpline(nodeName) {
         return this.geometryFactory.getSpline(nodeName);
     }
 
     getLine(nodeName){
-
-        const line = this.linesGroup.children.find(child => child.userData.nodeName === nodeName)
-        return line
+        return this.nodeMeshesGroup.children.find(child => child.userData.nodeName === nodeName)
     }
 
     addToScene(scene) {
-        scene.add(this.linesGroup);
-        scene.add(this.edgesGroup);
+        scene.add(this.nodeMeshesGroup);
+        scene.add(this.edgeMeshesGroup);
     }
 
     /**
@@ -74,12 +104,12 @@ class GeometryManager {
      */
     clear() {
         // Remove from scene
-        this.linesGroup.parent?.remove(this.linesGroup);
-        this.edgesGroup.parent?.remove(this.edgesGroup);
+        this.nodeMeshesGroup.parent?.remove(this.nodeMeshesGroup);
+        this.edgeMeshesGroup.parent?.remove(this.edgeMeshesGroup);
 
         // Clear the groups
-        this.linesGroup.clear();
-        this.edgesGroup.clear();
+        this.nodeMeshesGroup.clear();
+        this.edgeMeshesGroup.clear();
 
         // Clear the geometry data
         this.geometryData = null;
@@ -98,11 +128,11 @@ class GeometryManager {
         this.geometryFactory.dispose();
 
         // Remove from scene
-        this.linesGroup.parent?.remove(this.linesGroup);
-        this.edgesGroup.parent?.remove(this.edgesGroup);
+        this.nodeMeshesGroup.parent?.remove(this.nodeMeshesGroup);
+        this.edgeMeshesGroup.parent?.remove(this.edgeMeshesGroup);
 
         // Dispose of all geometries and materials
-        for (const group of [this.linesGroup, this.edgesGroup]) {
+        for (const group of [this.nodeMeshesGroup, this.edgeMeshesGroup]) {
             group.traverse((object) => {
                 if (object.geometry) {
                     object.geometry.dispose();

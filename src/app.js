@@ -189,7 +189,7 @@ class App {
 
         if (true === this.raycastService.isEnabled) {
 
-            const all = [ ...this.geometryManager.linesGroup.children, ...this.geometryManager.edgesGroup.children ];
+            const all = [ ...this.geometryManager.nodeMeshesGroup.children, ...this.geometryManager.edgeMeshesGroup.children ];
             const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
 
             this.handleIntersection(intersections)
@@ -310,11 +310,11 @@ class App {
         this.assemblyWidget.configure()
 
         const look = this.lookManager.getLook(this.sceneManager.getActiveSceneName())
-
         this.geometryManager.createGeometry(json, look)
 
         const scene = this.sceneManager.getActiveScene()
-        scene.add(this.geometryManager.linesGroup, this.geometryManager.edgesGroup)
+        scene.add(this.geometryManager.nodeMeshesGroup, this.geometryManager.edgeMeshesGroup)
+
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
 
         scene.add(this.raycastService.setupVisualFeedback())
