@@ -112,7 +112,7 @@ class AssemblyWidget {
 
     emphasizeAssembly(assembly) {
         let nodeSet, edgeSet;
-        
+
         if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
             // Use spine features data
             const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures;
@@ -125,7 +125,7 @@ class AssemblyWidget {
             nodeSet = new Set([...nodes]);
             edgeSet = new Set([...edges]);
         }
-        
+
         eventBus.publish('assembly:emphasis', { assembly, nodeSet, edgeSet });
     }
 
@@ -206,19 +206,19 @@ class AssemblyWidget {
     onSwitchChange(event) {
         const isChecked = event.target.checked;
         console.log('Switch toggled:', isChecked);
-        
+
         // Toggle between the two emphasis modes
         if (isChecked) {
             this.emphasisMode = AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS;
         } else {
             this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS;
         }
-        
+
         console.log('Emphasis mode changed to:', this.emphasisMode);
-        
+
         // Update the label text
         this.updateModeLabel();
-        
+
         // If there's a currently selected assembly, re-emphasize it with the new mode
         if (this.selectedAssemblies.size > 0) {
             const selectedAssembly = [...this.selectedAssemblies][0];
@@ -249,7 +249,7 @@ class AssemblyWidget {
         this.listGroup.innerHTML = '';
         this.allAssemblyItems.clear();
 
-        for (const [assembly, {color}] of this.genomicService.assemblyPayload.entries()) {
+        for (const [assembly, color] of this.genomicService.assemblyColors.entries()) {
             const item = this.createListItem(assembly, color);
             this.listGroup.appendChild(item);
             this.allAssemblyItems.set(assembly, item);

@@ -48,26 +48,6 @@
   display: none;
 }
 
-.assembly-widget__button_container {
-  z-index: 1000;
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin-left: 2rem;
-  margin-top: 10rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.assembly-widget__button_container .assembly-widget__button {
-  transition: transform 0.2s ease;
-}
-.assembly-widget__button_container .assembly-widget__button:hover {
-  transform: scale(1.2);
-}
-.assembly-widget__button_container .assembly-widget__button .assembly-widget__icon {
-  font-size: 2rem;
-}
 .assembly-widget__card {
   z-index: 1000;
   position: absolute;
@@ -129,6 +109,18 @@
   color: #495057;
 }
 
+.widget-container {
+  z-index: 1000;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-left: 2rem;
+  margin-top: 10rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .widget-service__button-container {
   display: flex;
   flex-direction: column;
@@ -164,6 +156,7 @@
   transform: translateY(0);
   background: rgba(73, 80, 87, 0.05);
 }
+
 .graph-tooltip {
   position: absolute;
   background: #FFFFFF;

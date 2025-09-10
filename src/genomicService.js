@@ -8,7 +8,7 @@ class GenomicService {
 
     constructor() {
         this.metadata = new Map()
-        this.assemblyPayload = new Map()
+        this.assemblyColors = new Map()
         this.nodeAssemblyStats = new Map()
         this.assemblySet = new Set()
         this.assemblyWalkMap = new Map()
@@ -85,7 +85,7 @@ class GenomicService {
 
         let i = 0;
         for (const assemblyKey of this.assemblySet) {
-            this.assemblyPayload.set(assemblyKey, { color:uniqueColorsRandomized[ i ] });
+            this.assemblyColors.set(assemblyKey, uniqueColorsRandomized[ i ]);
             i++;
         }
 
@@ -110,7 +110,7 @@ class GenomicService {
     }
 
     getAssemblyColor(assembly) {
-        return this.assemblyPayload.get(assembly).color;
+        return this.assemblyColors.get(assembly);
     }
 
     getNodeNameSetWithAssembly(assembly) {
@@ -136,7 +136,7 @@ class GenomicService {
 
         this.metadata.clear()
 
-        this.assemblyPayload.clear()
+        this.assemblyColors.clear()
 
         this.nodeAssemblyStats.clear()
 
