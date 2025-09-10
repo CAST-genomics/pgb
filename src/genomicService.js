@@ -3,6 +3,7 @@ import LocusInput from "./locusInput.js"
 import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
+import pangenomeResourceService from "./pangenomeResourceService.js"
 
 class GenomicService {
 
@@ -37,12 +38,10 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            const metadata =  { assemblySet, sequence: sequences[nodeName] }
-            this.nodeMetadata.set(nodeName, metadata);
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName] });
 
         }
 
-        // Build assembly set
         this.assemblySet = new Set()
         for (const [ key, { assemblySet }] of this.nodeMetadata) {
             for (const item of assemblySet){

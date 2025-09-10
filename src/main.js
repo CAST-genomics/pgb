@@ -15,8 +15,9 @@ import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
 import Look from './look.js'
-import './styles/app.scss'
+import pangenomeResourceService from "./pangenomeResourceService.js"
 import {rubinColors} from "./utils/color.js"
+import './styles/app.scss'
 
 let app
 let locusInput
@@ -26,6 +27,8 @@ let annotationRenderService
 let assemblyWidget
 let widgetService
 document.addEventListener("DOMContentLoaded", async (event) => {
+
+    await pangenomeResourceService.initialize()
 
     await materialService.initialize()
 
@@ -50,7 +53,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     const gear = document.getElementById('pgb-widget-container')
     const assemblyWidgetContainer = document.getElementById('pgb-gear-card')
     assemblyWidget = new AssemblyWidget(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService);
-    
+
     // Initialize WidgetService to replace the gear with buttons
     widgetService = new WidgetService(gear, assemblyWidget);
 
