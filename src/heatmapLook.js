@@ -10,7 +10,7 @@ import {getAppleCrayonColorByName, getRandomAppleCrayonColor} from "./utils/colo
 import { assemblyWidget } from "./main.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 
-class AssemblyVisualizationLook extends Look {
+class HeatmapLook extends Look {
 
     static ANIMATION_SPEED = 0.5;
 
@@ -33,7 +33,7 @@ class AssemblyVisualizationLook extends Look {
         this.restoreUnsub = null;
     }
 
-    static createAssemblyVisualizationLook(name, config) {
+    static createHeatmapLookLook(name, config) {
 
         const factoryConfig =
             {
@@ -42,13 +42,13 @@ class AssemblyVisualizationLook extends Look {
                         edgeArrowAnimation:
                             {
                                 type: 'uvOffset',
-                                speed: AssemblyVisualizationLook.ANIMATION_SPEED,
+                                speed: HeatmapLook.ANIMATION_SPEED,
                                 enabled: true
                             }
                     }
             };
 
-        return new AssemblyVisualizationLook(name, {...factoryConfig, ...config });
+        return new HeatmapLook(name, {...factoryConfig, ...config });
     }
 
     /**
@@ -112,6 +112,7 @@ class AssemblyVisualizationLook extends Look {
         }
 
         const material = new LineMaterial({
+            // color: getAppleCrayonColorByName('aqua'),
             color: getAppleCrayonColorByName('ocean'),
             linewidth: Look.NODE_LINE_WIDTH,
             worldUnits: true,
@@ -130,7 +131,7 @@ class AssemblyVisualizationLook extends Look {
 
     getAssemblyMaterial(assembly, nodeName) {
 
-        const cacheKey = `${this.constructor.name}:${nodeName}:assembly:${assembly}`;
+        const cacheKey = `${this.constructor.name}:${nodeName}assembly:${assembly}`;
 
         // Check if we already have this material cached
         if (this.materialCache.has(cacheKey)) {
@@ -459,4 +460,4 @@ class AssemblyVisualizationLook extends Look {
     }
 }
 
-export default AssemblyVisualizationLook;
+export default HeatmapLook;

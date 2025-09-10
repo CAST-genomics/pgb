@@ -11,10 +11,10 @@ import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
 import LookManager from './lookManager.js'
 import AssemblyVisualizationLook from './assemblyVisualizationLook.js'
+import HeatmapLook from "./heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
-import Look from './look.js'
 import pangenomeResourceService from "./pangenomeResourceService.js"
 import {rubinColors} from "./utils/color.js"
 import './styles/app.scss'
@@ -57,26 +57,26 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     // Initialize WidgetService to replace the gear with buttons
     widgetService = new WidgetService(gear, assemblyWidget);
 
-
-    // Scene and Look managers
+    // Scene Manager
     const sceneManager = new SceneManager()
-    // sceneManager.createScene('assemblyVisualizationScene', new THREE.Color(0xffffff))
     sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
-    sceneManager.createScene('genomeFrequencyScene', new THREE.Color(0xffffff))
-
-    // Looks
-    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', {
-        genomicService,
-        geometryManager
-    })
-    assemblyVisualizationLook.setAnimationEnabled(false)
+    sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
 
     // Look Manager
     const lookManager = new LookManager()
+
+    // AssemblyVisualizationLook
+    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager })
+    assemblyVisualizationLook.setAnimationEnabled(false)
     lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
-    sceneManager.setActiveScene('assemblyVisualizationScene')
-    lookManager.activateLook('assemblyVisualizationScene')
+    // HeatmapLook
+    const heatmapLook = HeatmapLook.createHeatmapLookLook('heatmapLook', { genomicService, geometryManager })
+    heatmapLook.setAnimationEnabled(true)
+    lookManager.setLook('heatmapScene', heatmapLook);
+
+    sceneManager.setActiveScene('heatmapScene')
+    lookManager.activateLook('heatmapScene')
 
     const pangenomeService = new PangenomeService()
 
