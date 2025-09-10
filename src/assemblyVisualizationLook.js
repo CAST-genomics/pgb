@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import ParametricLine from './parametricLine.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import Look from './look.js';
-import { colorRampArrowMaterialFactory } from './materialService.js';
+import {colorRampArrowMaterialFactory, MATERIAL_TYPES} from './materialService.js';
 import materialService from './materialService.js';
 import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
@@ -286,7 +286,9 @@ class AssemblyVisualizationLook extends Look {
      */
     updateBehavior(deltaTime, scene) {
 
-        if (!this.edgeArrowAnimationState.enabled) return;
+        if (!this.edgeArrowAnimationState.enabled) {
+            return;
+        }
 
         const behavior = this.behaviors.edgeArrowAnimation;
 
@@ -329,12 +331,21 @@ class AssemblyVisualizationLook extends Look {
         const uvOffset = new THREE.Vector2(this.edgeArrowAnimationState.uvOffset, 0);
 
         let edgeCount = 0;
-        edgeMeshesGroup.traverse((object) => {
-            if (object.userData?.type === 'edge' && object.material && object.material.uniforms) {
-                if (object.material.uniforms.uvOffset) {
-                    object.material.uniforms.uvOffset.value.copy(uvOffset);
-                    edgeCount++;
+        edgeMeshesGroup.traverse(object => {
+
+            if (object.material){
+
+                if (MATERIAL_TYPES.DEEMPHASIS !== object.material.materialType) {
+
+                    if (object.userData?.type === 'edge' && object.material.uniforms) {
+                        if (object.material.uniforms.uvOffset) {
+                            object.material.uniforms.uvOffset.value.copy(uvOffset);
+                            edgeCount++;
+                        }
+                    }
+
                 }
+
             }
         });
 

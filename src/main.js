@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     // AssemblyVisualizationLook
     const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager })
-    assemblyVisualizationLook.setAnimationEnabled(false)
+    assemblyVisualizationLook.setAnimationEnabled(true)
     sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
     // HeatmapLook
