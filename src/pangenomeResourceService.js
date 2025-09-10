@@ -219,6 +219,117 @@ class PangenomeResourceService {
     }
 
     /**
+     * Calculate percentage representation of superpopulations for a given list of assemblies
+     * @param {string[]} assemblyNames - Array of assembly names to analyze
+     * @param {string} version - 'v1' or 'v2'
+     * @returns {Object} Object with superpopulation percentages and counts
+     */
+    getSuperpopulationRepresentation(assemblyNames, version = 'v2') {
+        if (!this.isInitialized) {
+            console.warn('PangenomeResourceService not initialized. Call initialize() first.');
+            return null;
+        }
+
+        const metadata = this.getMetadata(version, 'nonGrouped');
+        if (!metadata) {
+            return null;
+        }
+
+        // Count assemblies by superpopulation
+        const superpopulationCounts = {};
+        const totalAssemblies = assemblyNames.length;
+        
+        if (totalAssemblies === 0) {
+            return {
+                percentages: {},
+                counts: {},
+                totalAssemblies: 0,
+                summary: 'No assemblies provided'
+            };
+        }
+
+        // Initialize counts for all superpopulations
+        const allSuperpopulations = this.getSuperpopulations(version);
+        allSuperpopulations.forEach(sp => {
+            superpopulationCounts[sp] = 0;
+        });
+
+        // Count assemblies in the provided list
+        let validAssemblies = 0;
+        assemblyNames.forEach(assemblyName => {
+            const assemblyDetails = metadata[assemblyName];
+            if (assemblyDetails && assemblyDetails.superpopulation) {
+                const superpopulation = assemblyDetails.superpopulation;
+                if (superpopulationCounts.hasOwnProperty(superpopulation)) {
+                    superpopulationCounts[superpopulation]++;
+                    validAssemblies++;
+                }
+            }
+        });
+
+        // Calculate percentages
+        const percentages = {};
+        const counts = {};
+        
+        Object.keys(superpopulationCounts).forEach(superpopulation => {
+            const count = superpopulationCounts[superpopulation];
+            counts[superpopulation] = count;
+            percentages[superpopulation] = validAssemblies > 0 ? (count / validAssemblies) * 100 : 0;
+        });
+
+        return {
+            percentages,
+            counts,
+            totalAssemblies,
+            validAssemblies,
+            invalidAssemblies: totalAssemblies - validAssemblies,
+            summary: `${validAssemblies} valid assemblies analyzed (${totalAssemblies - validAssemblies} invalid/not found)`
+        };
+    }
+
+    /**
+     * Calculate what percentage of total superpopulation diversity is represented by a node
+     * @param {string[]} assemblyNames - Array of assembly names associated with the node
+     * @param {string} version - 'v1' or 'v2'
+     * @returns {number} Percentage (0-100) of total superpopulation diversity represented
+     */
+    getNodeSuperpopulationDiversityPercentage(assemblyNames, version = 'v2') {
+        if (!this.isInitialized) {
+            console.warn('PangenomeResourceService not initialized. Call initialize() first.');
+            return 0;
+        }
+
+        const metadata = this.getMetadata(version, 'nonGrouped');
+        if (!metadata) {
+            return 0;
+        }
+
+        // Get all superpopulations in the entire dataset
+        const allSuperpopulations = this.getSuperpopulations(version);
+        const totalSuperpopulations = allSuperpopulations.length;
+        
+        if (totalSuperpopulations === 0) {
+            return 0;
+        }
+
+        // Get unique superpopulations represented by this node's assemblies
+        const nodeSuperpopulations = new Set();
+        
+        assemblyNames.forEach(assemblyName => {
+            const assemblyDetails = metadata[assemblyName];
+            if (assemblyDetails && assemblyDetails.superpopulation) {
+                nodeSuperpopulations.add(assemblyDetails.superpopulation);
+            }
+        });
+
+        // Calculate percentage of total superpopulation diversity
+        const representedSuperpopulations = nodeSuperpopulations.size;
+        const diversityPercentage = (representedSuperpopulations / totalSuperpopulations) * 100;
+
+        return Math.round(diversityPercentage * 100) / 100; // Round to 2 decimal places
+    }
+
+    /**
      * Get cache statistics
      * @returns {Object} Cache statistics
      */
