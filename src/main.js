@@ -75,8 +75,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     heatmapLook.setAnimationEnabled(true)
     lookManager.setLook('heatmapScene', heatmapLook);
 
-    sceneManager.setActiveScene('heatmapScene')
-    lookManager.activateLook('heatmapScene')
+    sceneManager.setActiveScene('assemblyVisualizationScene')
+    lookManager.activateLook('assemblyVisualizationScene')
 
     const pangenomeService = new PangenomeService()
 

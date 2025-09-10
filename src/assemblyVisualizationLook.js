@@ -66,9 +66,7 @@ class AssemblyVisualizationLook extends Look {
         mesh.userData = {
             nodeName,
             geometryKey: `node:${nodeName}`,
-            lookName: this.name,
             type: 'node',
-            originalMaterial: material // Store original material for emphasis/deemphasis
         };
 
         return mesh;
@@ -94,9 +92,7 @@ class AssemblyVisualizationLook extends Look {
                 nodeNameStart: startNode,
                 nodeNameEnd: endNode,
                 geometryKey: edgeKey,
-                lookName: this.name,
                 type: 'edge',
-                originalMaterial: material // Store original material for emphasis/deemphasis
             };
 
         return mesh;
@@ -128,7 +124,7 @@ class AssemblyVisualizationLook extends Look {
         return material;
     }
 
-    getAssemblyMaterial(assembly, nodeName) {
+    getNodeEmphasisMaterial(assembly, nodeName) {
 
         const cacheKey = `${this.constructor.name}:${nodeName}:assembly:${assembly}`;
 
@@ -246,18 +242,18 @@ class AssemblyVisualizationLook extends Look {
     applyEmphasisState(mesh, emphasisState, assembly) {
         if (!mesh.userData) return;
 
-        const { type, originalMaterial } = mesh.userData;
+        const { type } = mesh.userData;
 
         if (emphasisState === 'deemphasized') {
             if (type === 'node') {
-                mesh.material = materialService.createNodeLineDeemphasisMaterial(mesh.userData.nodeName);
+                mesh.material = materialService.getNodeDeemphasisMaterial(mesh.userData.nodeName);
             } else if (type === 'edge') {
                 mesh.material = materialService.getEdgeDeemphasisMaterial();
             }
         } else if (emphasisState === 'emphasized') {
 
             if (type === 'node') {
-                mesh.material = this.getAssemblyMaterial(assembly, mesh.userData.nodeName);
+                mesh.material = this.getNodeEmphasisMaterial(assembly, mesh.userData.nodeName);
             } else if (type === 'edge') {
                 mesh.material = materialService.getEdgeEmphasisMaterial(this.genomicService.getAssemblyColor(assembly));
             }
@@ -276,9 +272,6 @@ class AssemblyVisualizationLook extends Look {
 
         } else {
             console.warn('DANGER! Should not get here')
-            if (originalMaterial) {
-                mesh.material = originalMaterial;
-            }
         }
 
         // Immediately update resolution for LineMaterials to fix raycasting issues
@@ -441,20 +434,12 @@ class AssemblyVisualizationLook extends Look {
     }
 
     dispose() {
-        this.deactivate(); // Ensure we unsubscribe before disposing
 
-        // Unregister all cached materials from the resolution service
-        for (const material of this.materialCache.values()) {
-            lineMaterialResolutionService.unregisterMaterial(material);
-        }
-
-        // Clear the material cache
-        this.materialCache.clear();
+        super.dispose()
 
         // Dispose of MaterialService cached materials
         materialService.dispose();
 
-        super.dispose();
         this.emphasisStates.clear();
     }
 }

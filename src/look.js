@@ -1,3 +1,6 @@
+import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
+import GeometryFactory from "./geometryFactory.js"
+
 /**
  * Base Look class that provides generic material and behavior management.
  * Subclasses implement specific mesh factory methods for their domain.
@@ -12,7 +15,6 @@ class Look {
     static NODE_LINE_WIDTH = 16;
     static NODE_LINE_DEEMPHASIS_WIDTH = 16;
 
-
     constructor(name, config) {
         this.name = name;
         this.behaviors = config.behaviors || {};
@@ -22,6 +24,19 @@ class Look {
 
         // Material cache to avoid creating duplicate materials
         this.materialCache = new Map();
+
+    }
+
+    getZOffset(objectId) {
+
+        if (objectId.startsWith('node:')) {
+            return GeometryFactory.NODE_LINE_Z_OFFSET;
+        } else if (objectId.startsWith('edge:')) {
+            return GeometryFactory.EDGE_LINE_Z_OFFSET;
+        } else {
+            console.error(`ERROR: object ID ${ objectId } is not valid.`)
+            return GeometryFactory.NODE_LINE_Z_OFFSET;
+        }
 
     }
 
@@ -81,7 +96,16 @@ class Look {
     }
 
     dispose() {
-        this.materialCache.clear()
+
+        this.deactivate(); // Ensure we unsubscribe before disposing
+
+        // Unregister all cached materials from the resolution service
+        for (const material of this.materialCache.values()) {
+            lineMaterialResolutionService.unregisterMaterial(material);
+        }
+
+        // Clear the material cache
+        this.materialCache.clear();
     }
 }
 

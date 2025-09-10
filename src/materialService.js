@@ -43,7 +43,7 @@ class MaterialService {
         return colorRampArrowMaterialFactory(color, color, this.getTexture('arrow-white'), 1, MATERIAL_TYPES.EMPHASIS);
     }
 
-    createNodeLineDeemphasisMaterial(nodeName) {
+    getNodeDeemphasisMaterial(nodeName) {
         const cacheKey = `${nodeName}:deemphasis`;
 
         // Check if we already have this material cached
