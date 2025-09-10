@@ -1,7 +1,9 @@
 import * as THREE from 'three';
-import eventBus from './utils/eventBus.js';
 import ParametricLine from "./parametricLine.js"
 import {app} from "./main.js"
+import Look from "./look.js"
+import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
+import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 
 class RayCastService {
 
@@ -32,12 +34,10 @@ class RayCastService {
         this.isMouseDown = false;
     }
 
-
     configureRaycaster(raycaster, threshold) {
         raycaster.params.Line2 = {};
         raycaster.params.Line2.threshold = threshold;
     }
-
 
     setupEventListeners(container) {
         this.container = container;
@@ -149,6 +149,10 @@ class RayCastService {
     }
 
     updateRaycaster(camera) {
+
+        const worldSize = getWorldDistanceFromPixelDistance(camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
+        lineMaterialResolutionService.updateAllLineWidths(worldSize)
+
         this.raycaster.setFromCamera(this.pointer, camera);
     }
 

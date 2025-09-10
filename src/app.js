@@ -3,14 +3,13 @@ import CameraManager from './cameraManager.js'
 import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
-import {loadPath, prettyPrint, getWorldDistanceFromPixelDistance} from './utils/utils.js'
+import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
 import {calculateBasicStats, calculatePercentiles, prettyPrintPercentiles} from "./utils/stats.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
-import Look from "./look.js"
 
 class App {
 
@@ -188,12 +187,7 @@ class App {
 
     animate() {
 
-        const worldSize = getWorldDistanceFromPixelDistance(this.cameraManager.camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
-        lineMaterialResolutionService.updateAllLineWidths(worldSize)
-
         if (true === this.raycastService.isEnabled) {
-
-            // this.raycastService.updateLine2Threshold(this.cameraManager.camera)
 
             const all = [ ...this.geometryManager.linesGroup.children, ...this.geometryManager.edgesGroup.children ];
             const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
