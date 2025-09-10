@@ -4,7 +4,6 @@ import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import Look from './look.js';
 import { colorRampArrowMaterialFactory } from './materialService.js';
 import materialService from './materialService.js';
-import GeometryFactory from "./geometryFactory.js"
 import {getAppleCrayonColorByName, getRandomAppleCrayonColor} from "./utils/color.js"
 import { assemblyWidget } from "./main.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'

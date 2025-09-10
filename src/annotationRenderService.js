@@ -1,6 +1,6 @@
 import {app} from "./main.js"
 import eventBus from "./utils/eventBus.js"
-import {colorToRGBString, getAppleCrayonColorByName, getRandomPastelAppleCrayonColor} from "./utils/color.js"
+import {colorToRGBString, getAppleCrayonColorByName} from "./utils/color.js"
 import { getLineXYZWithTrackBasepair, buildBpIndex, buildNodeEndpointMap, makeNodeRecordMap, getTrackParameterWithLineParameter } from "./utils/annotationTrackUtils.js"
 
 class AnnotationRenderService {

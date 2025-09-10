@@ -1,4 +1,4 @@
-import {app, locusInput} from "./main.js"
+import {locusInput} from "./main.js"
 import LocusInput from "./locusInput.js"
 import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"

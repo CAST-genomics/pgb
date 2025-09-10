@@ -1,4 +1,3 @@
-import * as THREE from 'three'
 import App from './app.js'
 import RayCastService from './raycastService.js'
 import LocusInput from './locusInput.js'

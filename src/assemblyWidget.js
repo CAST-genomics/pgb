@@ -1,8 +1,6 @@
 import { Draggable } from './utils/draggable.js';
 import { colorToRGBString } from './utils/color.js';
 import eventBus from './utils/eventBus.js';
-import { app } from "./main.js";
-import genomicService from "./genomicService.js"
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import LineFactory, {adaptiveSplineDivisions, fixedSplineDivisions} from './lineFactory.js';
 import {prettyPrint} from "./utils/utils.js"
-import {calculateBasicStats, calculatePercentiles} from "./utils/stats.js"
 
 class GeometryFactory {
 

@@ -6,7 +6,7 @@ import { colorRampArrowMaterialFactory } from './materialService.js';
 import materialService from './materialService.js';
 import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
-import {getAppleCrayonColorByName, getRandomAppleCrayonColor} from "./utils/color.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
 import { assemblyWidget } from "./main.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 

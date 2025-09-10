@@ -7,7 +7,6 @@ import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
-import {calculateBasicStats, calculatePercentiles, prettyPrintPercentiles} from "./utils/stats.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
 
