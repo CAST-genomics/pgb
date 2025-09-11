@@ -1,13 +1,14 @@
+import * as THREE from 'three'
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import GeometryFactory from "./geometryFactory.js"
+import ParametricLine from "./parametricLine.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
+import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
+import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 
-/**
- * Base Look class that provides generic material and behavior management.
- * Subclasses implement specific mesh factory methods for their domain.
- */
 class Look {
 
-    // pixel unite
+    // pixel units
     static NODE_LINE_WIDTH_PIXELS = 2*2;
     static NODE_LINE_DEEMPHASIS_WIDTH_PIXELS = 2*2;
 
@@ -40,10 +41,6 @@ class Look {
 
     }
 
-    /**
-     * Update animation state (called each frame)
-     * Base implementation does nothing - subclasses override for specific animation
-     */
     updateBehavior(deltaTime, scene) {
         // Base class has no animation by default
         // Subclasses override this method for specific animation behaviors
@@ -60,11 +57,83 @@ class Look {
     }
 
     createNodeMesh(geometry, context) {
-        throw new Error('createNodeMesh() must be implemented by subclass');
+
+        const {nodeName} = context
+
+        const material = this.getNodeMaterial(nodeName);
+
+        const mesh = new ParametricLine(geometry, material);
+
+        // Set up user data
+        mesh.userData = {
+            nodeName,
+            geometryKey: `node:${nodeName}`,
+            type: 'node',
+        };
+
+        return mesh;
+    }
+
+    getNodeMaterial(nodeName) {
+
+        const cacheKey = `${this.constructor.name}:${nodeName}:normal`;
+
+        // Check if we already have this material cached
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey);
+        }
+
+        const material = new LineMaterial({
+            color: this.getNodeColor(),
+            linewidth: Look.NODE_LINE_WIDTH,
+            worldUnits: true,
+            opacity: 1,
+            transparent: true
+        });
+
+        // Register with resolution service for automatic resolution updates
+        lineMaterialResolutionService.registerMaterial(material);
+
+        // Cache the material
+        this.materialCache.set(cacheKey, material);
+
+        return material;
+    }
+
+    getNodeColor() {
+        const str = 'getNodeColor() must be implemented by subclass'
+        console.error(str)
+        throw new Error(str);
     }
 
     createEdgeMesh(geometry, context) {
-        throw new Error('createEdgeMesh() must be implemented by subclass');
+
+        const { startNode, endNode, edgeKey } = context;
+
+        const [ startColor, endColor ] = this.getEdgeColors()
+        const material = this.getEdgeMaterial(startColor, endColor)
+
+        const mesh = new THREE.Mesh(geometry, material);
+
+        mesh.userData =
+            {
+                nodeNameStart: startNode,
+                nodeNameEnd: endNode,
+                geometryKey: edgeKey,
+                type: 'edge',
+            };
+
+        return mesh;
+    }
+
+    getEdgeMaterial(startColor, endColor) {
+        return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
+    }
+
+    getEdgeColors() {
+        const str = 'getEdgeColors() must be implemented by subclass'
+        console.error(str)
+        throw new Error(str);
     }
 
     /**

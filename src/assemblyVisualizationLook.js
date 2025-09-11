@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import ParametricLine from './parametricLine.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import Look from './look.js';
-import {colorRampArrowMaterialFactory, MATERIAL_TYPES} from './materialService.js';
+import {MATERIAL_TYPES} from './materialService.js';
 import materialService from './materialService.js';
 import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
@@ -52,77 +51,14 @@ class AssemblyVisualizationLook extends Look {
         return new AssemblyVisualizationLook(name, {...factoryConfig, ...config });
     }
 
-    /**
-     * Create a node mesh from geometry
-     */
-    createNodeMesh(geometry, context) {
-
-        const {nodeName} = context
-
-        const material = this.getNodeMaterial(nodeName);
-
-        const mesh = new ParametricLine(geometry, material);
-
-        // Set up user data
-        mesh.userData = {
-            nodeName,
-            geometryKey: `node:${nodeName}`,
-            type: 'node',
-        };
-
-        return mesh;
+    getNodeColor() {
+        return getAppleCrayonColorByName('ocean')
     }
 
-    /**
-     * Create an edge mesh from geometry
-     */
-    createEdgeMesh(geometry, context) {
-
-        const { startNode, endNode, edgeKey } = context;
-
-        // const startColor = this.genomicService.getAssemblyColor(`${startNode}`)
-        // const endColor = this.genomicService.getAssemblyColor(`${endNode}`)
+    getEdgeColors() {
         const startColor = getAppleCrayonColorByName('steel')
         const endColor = getAppleCrayonColorByName('steel')
-        const material = this.getEdgeMaterial(startColor, endColor)
-
-        const mesh = new THREE.Mesh(geometry, material);
-
-        mesh.userData =
-            {
-                nodeNameStart: startNode,
-                nodeNameEnd: endNode,
-                geometryKey: edgeKey,
-                type: 'edge',
-            };
-
-        return mesh;
-    }
-
-    getNodeMaterial(nodeName) {
-
-        const cacheKey = `${this.constructor.name}:${nodeName}:normal`;
-
-        // Check if we already have this material cached
-        if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey);
-        }
-
-        const material = new LineMaterial({
-            color: getAppleCrayonColorByName('ocean'),
-            linewidth: Look.NODE_LINE_WIDTH,
-            worldUnits: true,
-            opacity: 1,
-            transparent: true
-        });
-
-        // Register with resolution service for automatic resolution updates
-        lineMaterialResolutionService.registerMaterial(material);
-
-        // Cache the material
-        this.materialCache.set(cacheKey, material);
-
-        return material;
+        return [ startColor, endColor ]
     }
 
     getNodeEmphasisMaterial(assembly, nodeName) {
@@ -149,10 +85,6 @@ class AssemblyVisualizationLook extends Look {
         this.materialCache.set(cacheKey, material);
 
         return material;
-    }
-
-    getEdgeMaterial(startColor, endColor) {
-        return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
     }
 
     setNodeAndEdgeEmphasis(assembly, nodeSet, edgeSet) {
@@ -194,46 +126,6 @@ class AssemblyVisualizationLook extends Look {
         this.#updateEdgeEmphasis(edgeSet, 'normal', undefined);
 
         this.#updateGeometryPositions();
-    }
-
-    /**
-     * Override getZOffset to handle both nodes and edges with different Z-offsets
-     */
-    getZOffset(objectId) {
-
-        if (objectId.startsWith('node:')) {
-            // Node emphasis behavior
-            const nodeName = objectId.replace('node:', '');
-            const state = this.emphasisStates.get(nodeName) || 'normal';
-            switch (state) {
-                case 'deemphasized':
-                    return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
-                case 'emphasized':
-                    return GeometryFactory.NODE_LINE_Z_OFFSET;
-                case 'normal':
-                    return GeometryFactory.NODE_LINE_Z_OFFSET;
-                default:
-                    console.error(`getZOffset: object ${ objectId } has invalid emphasis state`);
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
-            }
-        } else if (objectId.startsWith('edge:')) {
-
-            const state = this.emphasisStates.get(objectId) || 'normal';
-            switch (state) {
-                case 'deemphasized':
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET - 4;
-                case 'emphasized':
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
-                case 'normal':
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
-                default:
-                    console.error(`getZOffset: object ${ objectId } has invalid emphasis state`);
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
-            }
-        }
-
-        // Fallback to parent implementation
-        return super.getZOffset(objectId);
     }
 
     setEmphasisState(nodeName, state) {
@@ -281,9 +173,43 @@ class AssemblyVisualizationLook extends Look {
         }
     }
 
-    /**
-     * Override updateAnimation to update arrow texture animation
-     */
+    getZOffset(objectId) {
+
+        if (objectId.startsWith('node:')) {
+            // Node emphasis behavior
+            const nodeName = objectId.replace('node:', '');
+            const state = this.emphasisStates.get(nodeName) || 'normal';
+            switch (state) {
+                case 'deemphasized':
+                    return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
+                case 'emphasized':
+                    return GeometryFactory.NODE_LINE_Z_OFFSET;
+                case 'normal':
+                    return GeometryFactory.NODE_LINE_Z_OFFSET;
+                default:
+                    console.error(`getZOffset: object ${ objectId } has invalid emphasis state`);
+                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
+            }
+        } else if (objectId.startsWith('edge:')) {
+
+            const state = this.emphasisStates.get(objectId) || 'normal';
+            switch (state) {
+                case 'deemphasized':
+                    return GeometryFactory.EDGE_LINE_Z_OFFSET - 4;
+                case 'emphasized':
+                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
+                case 'normal':
+                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
+                default:
+                    console.error(`getZOffset: object ${ objectId } has invalid emphasis state`);
+                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
+            }
+        }
+
+        // Fallback to parent implementation
+        return super.getZOffset(objectId);
+    }
+
     updateBehavior(deltaTime, scene) {
 
         if (!this.edgeArrowAnimationState.enabled) {
@@ -318,11 +244,6 @@ class AssemblyVisualizationLook extends Look {
         const str = onlySelectedAssembles.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
         return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
     }
-
-    // createNodeTooltipContent(nodeObject) {
-    //     const { nodeName } = nodeObject.userData;
-    //     return `<div><strong>Node:</strong> ${nodeName}</div>`
-    // }
 
     #updateEdgeAnimation(edgeMeshesGroup) {
 

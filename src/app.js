@@ -51,19 +51,7 @@ class App {
     setActiveScene(sceneName){
         this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
     }
-
-    switchScene(sceneName) {
-
-        if (!this.sceneManager.hasScene(sceneName)) {
-            console.error(`Scene '${sceneName}' not found`)
-            return false
-        }
-
-        this.setActiveScene(sceneName)
-
-        return true
-    }
-
+    
     animate() {
 
         const scene = this.sceneManager.getActiveScene()
