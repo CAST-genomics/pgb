@@ -1,3 +1,4 @@
+import Look from "./look.js"
 import {getRandomVibrantAppleCrayonColor} from "./utils/color.js"
 
 class HelloLook extends Look {
@@ -15,6 +16,9 @@ class HelloLook extends Look {
         return [ startColor, endColor ]
     }
 
+    static createHelloLook(name, config) {
+        return new HelloLook(name, config);
+    }
 }
 
 export default HelloLook

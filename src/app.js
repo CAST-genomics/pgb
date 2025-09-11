@@ -51,7 +51,7 @@ class App {
     setActiveScene(sceneName){
         this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
     }
-    
+
     animate() {
 
         const scene = this.sceneManager.getActiveScene()
@@ -156,7 +156,7 @@ class App {
 
         this.geometryManager.createGeometry(json)
 
-        this.setActiveScene('assemblyVisualizationScene')
+        this.setActiveScene('helloScene')
 
         this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.sceneManager.lookManager)
 

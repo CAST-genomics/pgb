@@ -106,7 +106,7 @@ class Look {
     getNodeColor() {
         const str = 'getNodeColor() must be implemented by subclass'
         console.error(str)
-        throw new Error(str);
+        return null
     }
 
     createEdgeMesh(geometry, context) {
@@ -136,7 +136,7 @@ class Look {
     getEdgeColors() {
         const str = 'getEdgeColors() must be implemented by subclass'
         console.error(str)
-        throw new Error(str);
+        return []
     }
 
     /**
