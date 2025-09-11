@@ -1,7 +1,7 @@
 import Look from "./look.js"
 import {getRandomVibrantAppleCrayonColor} from "./utils/color.js"
 
-class HelloLook extends Look {
+class HeatmapLook extends Look {
     constructor(name, config) {
         super(name, config)
     }
@@ -16,9 +16,9 @@ class HelloLook extends Look {
         return [ startColor, endColor ]
     }
 
-    static createHelloLook(name, config) {
-        return new HelloLook(name, config);
+    static createHeatmapLook(name, config) {
+        return new HeatmapLook(name, config);
     }
 }
 
-export default HelloLook
+export default HeatmapLook

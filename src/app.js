@@ -50,6 +50,8 @@ class App {
 
     setActiveScene(sceneName){
         this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
+        const scene = this.sceneManager.getActiveScene()
+        scene.add(this.raycastService.setupVisualFeedback())
     }
 
     animate() {
@@ -156,7 +158,7 @@ class App {
 
         this.geometryManager.createGeometry(json)
 
-        this.setActiveScene('helloScene')
+        this.setActiveScene('heatmapScene')
 
         this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.sceneManager.lookManager)
 
@@ -164,8 +166,6 @@ class App {
 
         const scene = this.sceneManager.getActiveScene()
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
-
-        scene.add(this.raycastService.setupVisualFeedback())
 
         this.assemblyWidget.configure()
 

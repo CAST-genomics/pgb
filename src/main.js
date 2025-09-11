@@ -10,7 +10,7 @@ import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
 import LookManager from './lookManager.js'
 import AssemblyVisualizationLook from './assemblyVisualizationLook.js'
-import HelloLook from "./helloLook.js"
+import HeatmapLook from "./heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
@@ -56,10 +56,10 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
-    // Hello Look
-    const helloLook = HelloLook.createHelloLook('heatmapLook', { genomicService, geometryManager })
-    sceneManager.createScene('helloScene', rubinColors.rubinIvory)
-    sceneManager.lookManager.setLook('helloScene', helloLook);
+    // Heatmap Look
+    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', {genomicService, geometryManager})
+    sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
+    sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 
     const pangenomeService = new PangenomeService()
 
