@@ -16,11 +16,7 @@ class AssemblyVisualizationLook extends Look {
     constructor(name, config) {
         super(name, config);
 
-        this.emphasisStates = new Map();
-
-        this.genomicService = config.genomicService;
-        this.geometryManager = config.geometryManager;
-        this.sceneManager = config.sceneManager;
+        this.sceneManager = config.sceneManager
 
         this.edgeArrowAnimationState =
             {
@@ -28,7 +24,8 @@ class AssemblyVisualizationLook extends Look {
                 enabled: config.behaviors?.edgeArrowAnimation?.enabled ?? false
             };
 
-        // Event subscription references - will be set up when activated
+        this.emphasisStates = new Map();
+
         this.deemphasizeUnsub = null;
         this.restoreUnsub = null;
     }

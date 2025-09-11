@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import GeometryFactory from "./geometryFactory.js"
 import ParametricLine from "./parametricLine.js"
-import {getAppleCrayonColorByName} from "./utils/color.js"
 import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 
@@ -17,7 +16,11 @@ class Look {
     static NODE_LINE_DEEMPHASIS_WIDTH = 16;
 
     constructor(name, config) {
-        this.name = name;
+        this.name = name
+
+        this.genomicService = config.genomicService
+        this.geometryManager = config.geometryManager
+
         this.behaviors = config.behaviors || {};
         this.zOffset = config.zOffset || 0;
 
@@ -152,16 +155,11 @@ class Look {
         this.isActive = false;
     }
 
-    /**
-     * Generate tooltip content for a node
-     * Base implementation returns null - subclasses override to provide custom content
-     * @param {Object} nodeObject - The node object with userData
-     * @returns {string|null} HTML content for the tooltip, or null if no tooltip should be shown
-     */
     createNodeTooltipContent(nodeObject) {
-        // Base class provides no tooltip content by default
-        // Subclasses override this method to provide custom node tooltip content
-        return null;
+        const { nodeName } = nodeObject.userData;
+        const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
+        const str = assemblies.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
+        return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
     }
 
     dispose() {
