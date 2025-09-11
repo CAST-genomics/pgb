@@ -87,7 +87,7 @@ class Look {
         }
 
         const material = new LineMaterial({
-            color: this.getNodeColor(),
+            color: this.getNodeColor(nodeName),
             linewidth: Look.NODE_LINE_WIDTH,
             worldUnits: true,
             opacity: 1,
@@ -103,7 +103,7 @@ class Look {
         return material;
     }
 
-    getNodeColor() {
+    getNodeColor(nodeName) {
         const str = 'getNodeColor() must be implemented by subclass'
         console.error(str)
         return null
@@ -113,7 +113,7 @@ class Look {
 
         const { startNode, endNode, edgeKey } = context;
 
-        const [ startColor, endColor ] = this.getEdgeColors()
+        const [ startColor, endColor ] = this.getEdgeColors(startNode, endNode, edgeKey)
         const material = this.getEdgeMaterial(startColor, endColor)
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -133,7 +133,7 @@ class Look {
         return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
     }
 
-    getEdgeColors() {
+    getEdgeColors(startNode, endNode, edgeKey) {
         const str = 'getEdgeColors() must be implemented by subclass'
         console.error(str)
         return []

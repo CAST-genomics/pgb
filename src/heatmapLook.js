@@ -1,18 +1,24 @@
 import Look from "./look.js"
-import {getRandomVibrantAppleCrayonColor} from "./utils/color.js"
+import {colorComplements, getRandomVibrantAppleCrayonColor, lerpAppleCrayonColors} from "./utils/color.js"
 
 class HeatmapLook extends Look {
     constructor(name, config) {
         super(name, config)
     }
 
-    getNodeColor() {
-        return getRandomVibrantAppleCrayonColor()
+    getNodeColor(nodeName) {
+        const {superPopulationPercentage } = this.genomicService.nodeMetadata.get(nodeName)
+        const lerped = lerpAppleCrayonColors(colorComplements.get('aqua'), 'aqua', superPopulationPercentage)
+        return lerped
     }
 
-    getEdgeColors() {
-        const startColor = getRandomVibrantAppleCrayonColor()
-        const endColor = getRandomVibrantAppleCrayonColor()
+    getEdgeColors(startNode, endNode, edgeKey) {
+        const {superPopulationPercentage:spp0 } = this.genomicService.nodeMetadata.get(startNode)
+        const {superPopulationPercentage:spp1 } = this.genomicService.nodeMetadata.get(endNode)
+
+        const startColor = lerpAppleCrayonColors(colorComplements.get('aqua'), 'aqua', spp0)
+        const endColor = lerpAppleCrayonColors(colorComplements.get('aqua'), 'aqua', spp1)
+
         return [ startColor, endColor ]
     }
 

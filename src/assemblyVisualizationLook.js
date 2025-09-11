@@ -48,11 +48,11 @@ class AssemblyVisualizationLook extends Look {
         return new AssemblyVisualizationLook(name, {...factoryConfig, ...config });
     }
 
-    getNodeColor() {
+    getNodeColor(nodeName) {
         return getAppleCrayonColorByName('ocean')
     }
 
-    getEdgeColors() {
+    getEdgeColors(startNode, endNode, edgeKey) {
         const startColor = getAppleCrayonColorByName('steel')
         const endColor = getAppleCrayonColorByName('steel')
         return [ startColor, endColor ]
