@@ -331,6 +331,75 @@ class PangenomeResource {
     }
 
     /**
+     * Generate HTML snippet showing superpopulations and populations for a list of assemblies
+     * @param {string[]} assemblyNames - Array of assembly names to analyze
+     * @param {string} version - 'v1' or 'v2'
+     * @returns {string} HTML snippet with superpopulation and population breakdown
+     */
+    getAncestryBreakdownHTML(assemblyNames, version = 'v2') {
+        if (!this.isInitialized) {
+            console.warn('PangenomeResource not initialized. Call initialize() first.');
+            return '<div>Service not initialized</div>';
+        }
+
+        const metadata = this.getMetadata(version, 'nonGrouped');
+        if (!metadata) {
+            return '<div>Metadata not available</div>';
+        }
+
+        // Group assemblies by superpopulation and population
+        const ancestryGroups = {};
+        
+        assemblyNames.forEach(assemblyName => {
+            const assemblyDetails = metadata[assemblyName];
+            if (assemblyDetails && assemblyDetails.superpopulation && assemblyDetails.population) {
+                const superpop = assemblyDetails.superpopulation;
+                const population = assemblyDetails.population;
+                
+                if (!ancestryGroups[superpop]) {
+                    ancestryGroups[superpop] = {};
+                }
+                if (!ancestryGroups[superpop][population]) {
+                    ancestryGroups[superpop][population] = [];
+                }
+                ancestryGroups[superpop][population].push(assemblyName);
+            }
+        });
+
+        // Generate HTML
+        let html = '<div class="ancestry-breakdown">';
+        
+        if (Object.keys(ancestryGroups).length === 0) {
+            html += '<div>No ancestry data available for these assemblies</div>';
+        } else {
+            // Sort superpopulations for consistent display
+            const sortedSuperpops = Object.keys(ancestryGroups).sort();
+            
+            sortedSuperpops.forEach(superpop => {
+                html += `<div class="superpopulation-section">`;
+                html += `<h4 class="superpopulation-title">${superpop}</h4>`;
+                
+                const populations = ancestryGroups[superpop];
+                const sortedPopulations = Object.keys(populations).sort();
+                
+                html += '<ul class="population-list">';
+                sortedPopulations.forEach(population => {
+                    const assemblies = populations[population];
+                    html += `<li class="population-item">`;
+                    html += `<span class="population-name">${population}</span> `;
+                    html += `<span class="assembly-count">(${assemblies.length} assemblies)</span>`;
+                    html += '</li>';
+                });
+                html += '</ul>';
+                html += '</div>';
+            });
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    /**
      * Get cache statistics
      * @returns {Object} Cache statistics
      */

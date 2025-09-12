@@ -233,7 +233,7 @@ class AssemblyVisualizationLook extends Look {
         return this.edgeArrowAnimationState.enabled;
     }
 
-    createNodeTooltipContent(nodeObject) {
+    _createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData;
         const nativeAssemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
         const set = new Set([ ...nativeAssemblies ])

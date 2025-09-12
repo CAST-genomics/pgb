@@ -4,6 +4,7 @@ import GeometryFactory from "./geometryFactory.js"
 import ParametricLine from "./parametricLine.js"
 import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
+import GenomicService from "./genomicService.js"
 
 class Look {
 
@@ -158,7 +159,8 @@ class Look {
     createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData;
         const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
-        const str = assemblies.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
+        const raw = GenomicService.getRayAssemblyNames(assemblies)
+        const str = raw.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
         return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
     }
 
