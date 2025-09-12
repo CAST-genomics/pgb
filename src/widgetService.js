@@ -38,22 +38,14 @@ class WidgetService {
 
     onAssemblyButtonClick(event) {
         event.stopPropagation();
-        // Toggle the assembly widget visibility
-        if (this.assemblyWidget) {
-            // Call the existing gear click handler logic
-            this.assemblyWidget.onGearClick(event);
-        }
+        this.assemblyWidget.onGearClick(event);
+        app.setActiveScene('assemblyVisualizationScene', true)
     }
 
     onMetadataButtonClick(event) {
         event.stopPropagation();
-        console.log('Metadata button clicked - functionality not yet implemented');
-        if ('heatmapScene' === app.sceneManager.getActiveSceneName()) {
-            app.setActiveScene('assemblyVisualizationScene')
-        } else {
-            app.setActiveScene('heatmapScene')
-        }
-
+        this.assemblyWidget.hideCard();
+        app.setActiveScene('heatmapScene', true)
     }
 
     destroy() {

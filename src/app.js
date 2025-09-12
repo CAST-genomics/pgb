@@ -48,10 +48,19 @@ class App {
         })
     }
 
-    setActiveScene(sceneName){
+    setActiveScene(sceneName, doPauseAnimation = false){
+
+        if (doPauseAnimation) {
+            this.stopAnimation()
+        }
+
         this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
         const scene = this.sceneManager.getActiveScene()
         scene.add(this.raycastService.setupVisualFeedback())
+
+        if (doPauseAnimation) {
+            this.startAnimation()
+        }
     }
 
     animate() {
