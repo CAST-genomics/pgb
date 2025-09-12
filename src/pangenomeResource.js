@@ -1,6 +1,6 @@
 /**
  * PangenomeResource - Singleton service for managing assembly metadata files
- * 
+ *
  * This service loads, organizes, and hosts the files in public/assembly_metadata.
  * Key organizational structure:
  * - grouped vs non-grouped metadata
@@ -15,7 +15,7 @@ class PangenomeResource {
         this.metadataCache = new Map();
         this.isInitialized = false;
         this.basePath = '/assembly_metadata/';
-        
+
         // File structure mapping
         this.fileMap = {
             v1: {
@@ -42,13 +42,13 @@ class PangenomeResource {
 
         try {
             const loadPromises = [];
-            
+
             // Load all versions and types
             for (const version of ['v1', 'v2']) {
                 for (const type of ['grouped', 'nonGrouped']) {
                     const fileName = this.fileMap[version][type];
                     const cacheKey = `${version}_${type}`;
-                    
+
                     loadPromises.push(
                         this.loadMetadataFile(fileName, cacheKey)
                     );
@@ -76,7 +76,7 @@ class PangenomeResource {
             if (!response.ok) {
                 throw new Error(`Failed to load ${fileName}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             this.metadataCache.set(cacheKey, data);
             console.log(`Loaded ${fileName} successfully`);
@@ -238,7 +238,7 @@ class PangenomeResource {
         // Count assemblies by superpopulation
         const superpopulationCounts = {};
         const totalAssemblies = assemblyNames.length;
-        
+
         if (totalAssemblies === 0) {
             return {
                 percentages: {},
@@ -270,7 +270,7 @@ class PangenomeResource {
         // Calculate percentages
         const percentages = {};
         const counts = {};
-        
+
         Object.keys(superpopulationCounts).forEach(superpopulation => {
             const count = superpopulationCounts[superpopulation];
             counts[superpopulation] = count;
@@ -307,14 +307,14 @@ class PangenomeResource {
         // Get all superpopulations in the entire dataset
         const allSuperpopulations = this.getSuperpopulations(version);
         const totalSuperpopulations = allSuperpopulations.length;
-        
+
         if (totalSuperpopulations === 0) {
             return 0;
         }
 
         // Get unique superpopulations represented by this node's assemblies
         const nodeSuperpopulations = new Set();
-        
+
         assemblyNames.forEach(assemblyName => {
             const assemblyDetails = metadata[assemblyName];
             if (assemblyDetails && assemblyDetails.superpopulation) {
@@ -324,9 +324,10 @@ class PangenomeResource {
 
         // Calculate percentage of total superpopulation diversity
         const representedSuperpopulations = nodeSuperpopulations.size;
-        const diversityPercentage = (representedSuperpopulations / totalSuperpopulations) * 100;
+        const percentage = representedSuperpopulations / totalSuperpopulations
+        console.log(`Node Superpopulation Diversity. ${ representedSuperpopulations } / ${ totalSuperpopulations } = ${ percentage }`)
 
-        return Math.round(diversityPercentage * 100) / 100; // Round to 2 decimal places
+        return percentage
     }
 
     /**

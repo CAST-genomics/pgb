@@ -39,10 +39,9 @@ class GenomicService {
             }
 
             const assemblyNames = assembly.map(({ assembly_name }) => assembly_name)
-            let superPopulationPercentage = pangenomeResource.getNodeSuperpopulationDiversityPercentage(assemblyNames, locusInput.version)
-            superPopulationPercentage /= 100
+            const superPopulationPercentage = pangenomeResource.getNodeSuperpopulationDiversityPercentage(assemblyNames, locusInput.version)
 
-            this.nodeMetadata.set(nodeName, { assemblySet, superPopulationPercentage, sequence: sequences[nodeName] });
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], superPopulationPercentage });
 
         }
 
