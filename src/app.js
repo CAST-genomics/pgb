@@ -5,7 +5,7 @@ import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
-import { annotationRenderService } from "./main.js"
+import { annotationRenderService, widgetService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
@@ -168,6 +168,7 @@ class App {
         this.geometryManager.createGeometry(json)
 
         this.setActiveScene('heatmapScene')
+        widgetService.setButtonActive('metadata')
 
         this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.sceneManager.lookManager)
 

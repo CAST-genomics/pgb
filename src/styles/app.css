@@ -156,6 +156,10 @@
   transform: translateY(0);
   background: rgba(73, 80, 87, 0.05);
 }
+.widget-service__button--active {
+  border-color: #495057;
+  background: rgba(73, 80, 87, 0.05);
+}
 
 .graph-tooltip {
   position: absolute;

@@ -6,6 +6,7 @@ class WidgetService {
         this.assemblyWidget = assemblyWidget;
         this.assemblyButton = null;
         this.metadataButton = null;
+        this.activeButton = null; // Track which button is currently active
 
         this.initializeButtons();
     }
@@ -36,14 +37,65 @@ class WidgetService {
         this.containerElement.appendChild(buttonContainer);
     }
 
+    setActiveButton(button) {
+        // Remove active class from currently active button
+        if (this.activeButton) {
+            this.activeButton.classList.remove('widget-service__button--active');
+        }
+        
+        // Set new active button
+        this.activeButton = button;
+        if (button) {
+            button.classList.add('widget-service__button--active');
+        }
+    }
+
+    getActiveButton() {
+        return this.activeButton;
+    }
+
+    getActiveButtonType() {
+        if (this.activeButton === this.assemblyButton) {
+            return 'assembly';
+        } else if (this.activeButton === this.metadataButton) {
+            return 'metadata';
+        }
+        return null;
+    }
+
+    setButtonActive(buttonType) {
+        let targetButton = null;
+        
+        switch (buttonType.toLowerCase()) {
+            case 'assembly':
+                targetButton = this.assemblyButton;
+                break;
+            case 'metadata':
+                targetButton = this.metadataButton;
+                break;
+            case 'none':
+            case null:
+            case undefined:
+                targetButton = null;
+                break;
+            default:
+                console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'metadata', or 'none'`);
+                return;
+        }
+        
+        this.setActiveButton(targetButton);
+    }
+
     onAssemblyButtonClick(event) {
         event.stopPropagation();
+        this.setActiveButton(this.assemblyButton);
         this.assemblyWidget.onGearClick(event);
         app.setActiveScene('assemblyVisualizationScene', true)
     }
 
     onMetadataButtonClick(event) {
         event.stopPropagation();
+        this.setActiveButton(this.metadataButton);
         this.assemblyWidget.hideCard();
         app.setActiveScene('heatmapScene', true)
     }
@@ -55,6 +107,7 @@ class WidgetService {
         if (this.metadataButton) {
             this.metadataButton.removeEventListener('click', this.onMetadataButtonClick.bind(this));
         }
+        this.activeButton = null;
     }
 }
 
