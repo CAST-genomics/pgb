@@ -1,3 +1,5 @@
+import {getPopulationName, getSuperpopulationName} from "./utils/pangenomeUtils.js"
+
 /**
  * PangenomeResource - Singleton service for managing assembly metadata files
  *
@@ -349,13 +351,13 @@ class PangenomeResource {
 
         // Group assemblies by superpopulation and population
         const ancestryGroups = {};
-        
+
         assemblyNames.forEach(assemblyName => {
             const assemblyDetails = metadata[assemblyName];
             if (assemblyDetails && assemblyDetails.superpopulation && assemblyDetails.population) {
                 const superpop = assemblyDetails.superpopulation;
                 const population = assemblyDetails.population;
-                
+
                 if (!ancestryGroups[superpop]) {
                     ancestryGroups[superpop] = {};
                 }
@@ -368,25 +370,25 @@ class PangenomeResource {
 
         // Generate HTML
         let html = '<div class="ancestry-breakdown">';
-        
+
         if (Object.keys(ancestryGroups).length === 0) {
             html += '<div>No ancestry data available for these assemblies</div>';
         } else {
             // Sort superpopulations for consistent display
             const sortedSuperpops = Object.keys(ancestryGroups).sort();
-            
+
             sortedSuperpops.forEach(superpop => {
                 html += `<div class="superpopulation-section">`;
-                html += `<h4 class="superpopulation-title">${superpop}</h4>`;
-                
+                html += `<h4 class="superpopulation-title">${ getSuperpopulationName(superpop) }</h4>`;
+
                 const populations = ancestryGroups[superpop];
                 const sortedPopulations = Object.keys(populations).sort();
-                
+
                 html += '<ul class="population-list">';
                 sortedPopulations.forEach(population => {
                     const assemblies = populations[population];
                     html += `<li class="population-item">`;
-                    html += `<span class="population-name">${population}</span> `;
+                    html += `<span class="population-name">${ getPopulationName(population) }</span> `;
                     html += `<span class="assembly-count">(${assemblies.length} assemblies)</span>`;
                     html += '</li>';
                 });
@@ -394,7 +396,7 @@ class PangenomeResource {
                 html += '</div>';
             });
         }
-        
+
         html += '</div>';
         return html;
     }
