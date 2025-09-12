@@ -10,7 +10,7 @@ class HeatmapLook extends Look {
 
     getNodeColor(nodeName) {
         const {superPopulationPercentage } = this.genomicService.nodeMetadata.get(nodeName)
-        const lerped = lerpAppleCrayonColors(colorComplements.get('aqua'), 'aqua', superPopulationPercentage)
+        const lerped = lerpAppleCrayonColors('aqua', colorComplements.get('aqua'), superPopulationPercentage)
         return lerped
     }
 
@@ -18,8 +18,8 @@ class HeatmapLook extends Look {
         const {superPopulationPercentage:spp0 } = this.genomicService.nodeMetadata.get(startNode)
         const {superPopulationPercentage:spp1 } = this.genomicService.nodeMetadata.get(endNode)
 
-        const startColor = lerpAppleCrayonColors(colorComplements.get('aqua'), 'aqua', spp0)
-        const endColor = lerpAppleCrayonColors(colorComplements.get('aqua'), 'aqua', spp1)
+        const startColor = lerpAppleCrayonColors('aqua', colorComplements.get('aqua'), spp0)
+        const endColor = lerpAppleCrayonColors('aqua', colorComplements.get('aqua'), spp1)
 
         return [ startColor, endColor ]
     }
