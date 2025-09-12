@@ -1,15 +1,15 @@
 /**
- * PangenomeResourceService - Singleton service for managing assembly metadata files
+ * PangenomeResource - Singleton service for managing assembly metadata files
  * 
  * This service loads, organizes, and hosts the files in public/assembly_metadata.
  * Key organizational structure:
  * - grouped vs non-grouped metadata
  * - v1 vs v2 versions
  */
-class PangenomeResourceService {
+class PangenomeResource {
     constructor() {
-        if (PangenomeResourceService.instance) {
-            return PangenomeResourceService.instance;
+        if (PangenomeResource.instance) {
+            return PangenomeResource.instance;
         }
 
         this.metadataCache = new Map();
@@ -28,7 +28,7 @@ class PangenomeResourceService {
             }
         };
 
-        PangenomeResourceService.instance = this;
+        PangenomeResource.instance = this;
     }
 
     /**
@@ -57,9 +57,9 @@ class PangenomeResourceService {
 
             await Promise.all(loadPromises);
             this.isInitialized = true;
-            console.log('PangenomeResourceService initialized successfully');
+            console.log('PangenomeResource initialized successfully');
         } catch (error) {
-            console.error('Failed to initialize PangenomeResourceService:', error);
+            console.error('Failed to initialize PangenomeResource:', error);
             throw error;
         }
     }
@@ -94,7 +94,7 @@ class PangenomeResourceService {
      */
     getMetadata(version, type) {
         if (!this.isInitialized) {
-            console.warn('PangenomeResourceService not initialized. Call initialize() first.');
+            console.warn('PangenomeResource not initialized. Call initialize() first.');
             return null;
         }
 
@@ -226,7 +226,7 @@ class PangenomeResourceService {
      */
     getSuperpopulationRepresentation(assemblyNames, version = 'v2') {
         if (!this.isInitialized) {
-            console.warn('PangenomeResourceService not initialized. Call initialize() first.');
+            console.warn('PangenomeResource not initialized. Call initialize() first.');
             return null;
         }
 
@@ -295,7 +295,7 @@ class PangenomeResourceService {
      */
     getNodeSuperpopulationDiversityPercentage(assemblyNames, version = 'v2') {
         if (!this.isInitialized) {
-            console.warn('PangenomeResourceService not initialized. Call initialize() first.');
+            console.warn('PangenomeResource not initialized. Call initialize() first.');
             return 0;
         }
 
@@ -343,5 +343,5 @@ class PangenomeResourceService {
 }
 
 // Create and export singleton instance
-const pangenomeResourceService = new PangenomeResourceService();
-export default pangenomeResourceService;
+const pangenomeResource = new PangenomeResource();
+export default pangenomeResource;

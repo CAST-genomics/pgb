@@ -3,7 +3,7 @@ import LocusInput from "./locusInput.js"
 import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
-import pangenomeResourceService from "./pangenomeResourceService.js"
+import pangenomeResource from "./pangenomeResource.js"
 
 class GenomicService {
 
@@ -39,7 +39,7 @@ class GenomicService {
             }
 
             const assemblyNames = assembly.map(({ assembly_name }) => assembly_name)
-            let superPopulationPercentage = pangenomeResourceService.getNodeSuperpopulationDiversityPercentage(assemblyNames, locusInput.version)
+            let superPopulationPercentage = pangenomeResource.getNodeSuperpopulationDiversityPercentage(assemblyNames, locusInput.version)
             superPopulationPercentage /= 100
 
             this.nodeMetadata.set(nodeName, { assemblySet, superPopulationPercentage, sequence: sequences[nodeName] });
