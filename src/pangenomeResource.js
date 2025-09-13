@@ -389,7 +389,10 @@ class PangenomeResource {
                     const assemblies = populations[population];
                     html += `<li class="population-item">`;
                     html += `<span class="population-name">${ getPopulationName(population) }</span> `;
-                    html += `<span class="assembly-count">(${assemblies.length} assemblies)</span>`;
+
+                    const str = 1 === assemblies.length ? `assembly` : `assemblies`
+                    html += `<span class="assembly-count">(${assemblies.length} ${str})</span>`;
+
                     html += '</li>';
                 });
                 html += '</ul>';
