@@ -145,7 +145,12 @@ class AssemblyVisualizationLook extends Look {
             if (type === 'node') {
                 mesh.material = this.getNodeEmphasisMaterial(assembly, mesh.userData.nodeName);
             } else if (type === 'edge') {
-                mesh.material = materialService.getEdgeEmphasisMaterial(this.genomicService.getAssemblyColor(assembly));
+
+                const startColor = getAppleCrayonColorByName('magnesium')
+                const endColor = getAppleCrayonColorByName('magnesium')
+                mesh.material = this.getEdgeMaterial(startColor, endColor)
+
+                // mesh.material = materialService.getEdgeEmphasisMaterial(this.genomicService.getAssemblyColor(assembly));
             }
 
         }  else if (emphasisState === 'normal') {
