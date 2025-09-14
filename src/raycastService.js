@@ -1,10 +1,13 @@
 import * as THREE from 'three';
-import eventBus from './utils/eventBus.js';
 import ParametricLine from "./parametricLine.js"
 import {app} from "./main.js"
+import Look from "./look.js"
+import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
+import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 
 class RayCastService {
 
+    static VISUAL_FEEDBACK_PIXELSIZE = 6
     static MOUSE_MOVEMENT_THRESHOLD = 5;
 
     static DIRECT_LINE_INTERSECTION_STRATEGY = 'directLineIntersectionStrategy'
@@ -32,12 +35,10 @@ class RayCastService {
         this.isMouseDown = false;
     }
 
-
     configureRaycaster(raycaster, threshold) {
         raycaster.params.Line2 = {};
         raycaster.params.Line2.threshold = threshold;
     }
-
 
     setupEventListeners(container) {
         this.container = container;
@@ -149,6 +150,15 @@ class RayCastService {
     }
 
     updateRaycaster(camera) {
+
+        let worldSize
+        worldSize = getWorldDistanceFromPixelDistance(camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
+        lineMaterialResolutionService.updateAllLineWidths(worldSize)
+
+        // update radius of the visual feedback sphere
+        worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
+        this.raycastVisualFeedback.scale.set(worldSize, worldSize, worldSize)
+
         this.raycaster.setFromCamera(this.pointer, camera);
     }
 
@@ -170,8 +180,7 @@ class RayCastService {
     createVisualFeeback(color) {
 
         const material = new THREE.MeshBasicMaterial({ color, transparent: true, depthTest: false })
-        // const geometry = new THREE.SphereGeometry(16, 32, 16)
-        const geometry = new THREE.SphereGeometry(24, 32, 16)
+        const geometry = new THREE.SphereGeometry(1, 32, 16)
         const sphere = new THREE.Mesh(geometry, material)
         sphere.name = 'raycastVisualFeedback'
         sphere.visible = false

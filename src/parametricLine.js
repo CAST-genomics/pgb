@@ -73,6 +73,12 @@ class ParametricLine extends Line2 {
         return { t, nodeName, line }
 
     }
+
+    static getLine(nodeName, nodeMeshGroup){
+        return nodeMeshGroup.children.find(child => child.userData.nodeName === nodeName)
+    }
+
+
 }
 
 export default ParametricLine;

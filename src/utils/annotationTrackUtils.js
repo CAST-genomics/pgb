@@ -1,4 +1,6 @@
 // ---------- tiny helpers ----------
+import ParametricLine from "../parametricLine.js"
+
 const clamp01 = x => (x < 0 ? 0 : x > 1 ? 1 : x);
 const d2 = (a, b) => { const dx=a.x-b.x, dy=a.y-b.y, dz=a.z-b.z; return dx*dx+dy*dy+dz*dz; };
 
@@ -32,15 +34,16 @@ function makeNodeRecordMap(bpIndex) {
  * even when the line’s internal t runs the “wrong” way.
  *
  * @param {string[]} walkNodes - node ids in spine/walk order (left→right on the track)
- * @param geometryManager
+ * @param sceneManager
  * @returns {Map<string, {entryT:0|1, exitT:0|1}>}
  */
-function buildNodeEndpointMap(walkNodes, geometryManager) {
+function buildNodeEndpointMap(walkNodes, sceneManager) {
 
     const map = new Map();
 
-    const endpoint = (id, t) => geometryManager.getLine(id).getPoint(t, 'world');
-    const center   = (id)    => geometryManager.getLine(id).getPoint(0.5, 'world');
+    const nodeMeshGroup = sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+    const endpoint = (id, t) => ParametricLine.getLine(id, nodeMeshGroup).getPoint(t, 'world');
+    const center   = (id)    => ParametricLine.getLine(id, nodeMeshGroup).getPoint(0.5, 'world');
 
     for (let i = 0; i < walkNodes.length; i++) {
         const id = walkNodes[i];
@@ -89,7 +92,7 @@ function buildNodeEndpointMap(walkNodes, geometryManager) {
  * Monotonic mapping from track bp to a position on the graph.
  * Internally converts bp → node → u (0..1) → oriented t via (entryT, exitT).
  */
-function getLineXYZWithTrackBasepair(bp, bpIndex, endpointMap, geometryManager) {
+function getLineXYZWithTrackBasepair(bp, bpIndex, endpointMap, sceneManager) {
     const { idx } = bpIndex;
     if (!idx.length) return null;
 
@@ -114,7 +117,8 @@ function getLineXYZWithTrackBasepair(bp, bpIndex, endpointMap, geometryManager) 
     const { entryT = 0, exitT = 1 } = endpointMap.get(n.id) ?? {};
     const t = entryT + u * (exitT - entryT);
 
-    const line = geometryManager.getLine(n.id);
+    const nodeMeshGroup = sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+    const line = ParametricLine.getLine(n.id, nodeMeshGroup);
     const xyz  = line.getPoint(t, 'world')
 
     return { nodeId: n.id, t, xyz, u };

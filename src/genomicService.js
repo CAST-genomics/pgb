@@ -1,21 +1,22 @@
-import {app, locusInput} from "./main.js"
+import {locusInput} from "./main.js"
 import LocusInput from "./locusInput.js"
 import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
+import pangenomeResource from "./pangenomeResource.js"
 
 class GenomicService {
 
     constructor() {
-        this.metadata = new Map()
-        this.assemblyPayload = new Map()
+        this.nodeMetadata = new Map()
+        this.assemblyColors = new Map()
         this.nodeAssemblyStats = new Map()
         this.assemblySet = new Set()
         this.assemblyWalkMap = new Map()
         this.startNode = undefined
     }
 
-    async createMetadata(json, pangenomeService, genomeLibrary, geometryManager, raycastService) {
+    async initialize(json, pangenomeService, genomeLibrary, geometryManager, raycastService) {
 
         const { locus:locusString, node:nodes, sequence:sequences } = json
 
@@ -37,14 +38,15 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            const metadata =  { assemblySet, sequence: sequences[nodeName] }
-            this.metadata.set(nodeName, metadata);
+            const assemblyNames = assembly.map(({ assembly_name }) => assembly_name)
+            const superPopulationPercentage = pangenomeResource.getNodeSuperpopulationDiversityPercentage(assemblyNames, locusInput.version)
+
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], superPopulationPercentage });
 
         }
 
-        // Build assembly set
         this.assemblySet = new Set()
-        for (const [ key, { assemblySet }] of this.metadata) {
+        for (const [ key, { assemblySet }] of this.nodeMetadata) {
             for (const item of assemblySet){
                 this.assemblySet.add(item)
             }
@@ -85,14 +87,14 @@ class GenomicService {
 
         let i = 0;
         for (const assemblyKey of this.assemblySet) {
-            this.assemblyPayload.set(assemblyKey, { color:uniqueColorsRandomized[ i ] });
+            this.assemblyColors.set(assemblyKey, uniqueColorsRandomized[ i ]);
             i++;
         }
 
     }
 
     getAssemblyListForNodeName(nodeName) {
-        const metadata = this.metadata.get(nodeName);
+        const metadata = this.nodeMetadata.get(nodeName);
         if (!metadata) {
             console.error(`GenomicService: Metadata not found for node: ${nodeName}`);
             return null;
@@ -101,7 +103,7 @@ class GenomicService {
     }
 
     getAssemblyForNodeName(nodeName) {
-        const metadata = this.metadata.get(nodeName);
+        const metadata = this.nodeMetadata.get(nodeName);
         if (!metadata) {
             console.error(`GenomicService: Metadata not found for node: ${nodeName}`);
             return null;
@@ -110,14 +112,14 @@ class GenomicService {
     }
 
     getAssemblyColor(assembly) {
-        return this.assemblyPayload.get(assembly).color;
+        return this.assemblyColors.get(assembly);
     }
 
     getNodeNameSetWithAssembly(assembly) {
 
         const nodeNameSet = new Set()
         for (const nodeName of this.getNodeNameSet()) {
-            const assemblies = [ ...this.metadata.get(nodeName).assemblySet ]
+            const assemblies = [ ...this.nodeMetadata.get(nodeName).assemblySet ]
             if (new Set([ ...assemblies]).has(assembly)) {
                 nodeNameSet.add (nodeName)
             }
@@ -127,16 +129,16 @@ class GenomicService {
     }
 
     getNodeNameSet() {
-        return new Set(this.metadata.keys());
+        return new Set(this.nodeMetadata.keys());
     }
 
     clear() {
 
         this.startNode = undefined
 
-        this.metadata.clear()
+        this.nodeMetadata.clear()
 
-        this.assemblyPayload.clear()
+        this.assemblyColors.clear()
 
         this.nodeAssemblyStats.clear()
 
@@ -146,6 +148,12 @@ class GenomicService {
 
     }
 
+    //
+    static getRayAssemblyNames(assemblyKeys){
+        const raw = assemblyKeys.map(tripleKey => tripleKey.split('#')[ 0 ])
+        const set = new Set(raw)
+        return [ ...set ]
+    }
     static tripleKey(a) {
         return `${a.assembly_name}#${a.haplotype}#${a.sequence_id}`
     }

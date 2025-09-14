@@ -420,6 +420,35 @@ function getHeatmapColorViaColorInterpolation(percentage, lowColor = 'licorice',
     return interpolatedColor;
 }
 
+/**
+ * Returns a lerped color between two Apple crayon color names
+ * @param {string} colorName1 - First Apple crayon color name
+ * @param {string} colorName2 - Second Apple crayon color name
+ * @param {number} t - Lerp factor between 0 and 1 (0 = colorName1, 1 = colorName2)
+ * @returns {THREE.Color|undefined} A THREE.Color object representing the lerped color, or undefined if either color name is invalid
+ */
+function lerpAppleCrayonColors(colorName1, colorName2, t) {
+    // Clamp t between 0 and 1
+    const clampedT = Math.max(0, Math.min(1, t));
+
+    // Get the two colors
+    const color1 = getAppleCrayonColorByName(colorName1);
+    const color2 = getAppleCrayonColorByName(colorName2);
+
+    // Check if both colors exist
+    if (!color1) {
+        console.warn(`Apple crayon color '${colorName1}' not found`);
+        return undefined;
+    }
+    if (!color2) {
+        console.warn(`Apple crayon color '${colorName2}' not found`);
+        return undefined;
+    }
+
+    // Lerp between the two colors
+    return color1.clone().lerp(color2, clampedT);
+}
+
 export {
     rubinColors,
     colors32Distinct,
@@ -434,5 +463,7 @@ export {
     generateUniqueColors,
     colorToRGBString,
     getHeatmapColorHSLLightnessVariation,
-    getHeatmapColorViaColorInterpolation
+    getHeatmapColorViaColorInterpolation,
+    lerpAppleCrayonColors,
+    colorComplements
 };

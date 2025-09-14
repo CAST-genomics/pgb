@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 
 class SceneManager {
-    constructor() {
+    constructor(lookManager) {
+        this.lookManager = lookManager
         this.scenes = new Map()
         this.activeSceneName = null
     }
@@ -21,9 +22,9 @@ class SceneManager {
         const scene = new THREE.Scene()
         scene.name = sceneName
         scene.background = backgroundColor
-        
+
         this.scenes.set(sceneName, scene)
-        
+
         // Set as active if this is the first scene
         if (this.activeSceneName === null) {
             this.activeSceneName = sceneName
@@ -60,15 +61,23 @@ class SceneManager {
     /**
      * Set the active scene
      * @param {string} sceneName - Name of the scene to activate
+     * @param renderer
+     * @param camera
      * @returns {boolean} True if successful, false if scene doesn't exist
      */
-    setActiveScene(sceneName) {
+    setActiveScene(sceneName, renderer, camera) {
         if (!this.scenes.has(sceneName)) {
             console.error(`Scene '${sceneName}' not found`)
             return false
         }
-        
+
         this.activeSceneName = sceneName
+        const scene = this.getScene(sceneName)
+
+        this.lookManager.activateLook(sceneName)
+
+        renderer.compile(scene, camera);
+
         return true
     }
 
@@ -87,6 +96,16 @@ class SceneManager {
      */
     hasScene(sceneName) {
         return this.scenes.has(sceneName)
+    }
+
+    addToAllScenes(items) {
+
+        for (const scene of this.scenes.values()) {
+            for (const item of items) {
+                scene.add(item)
+            }
+        }
+
     }
 
     /**
@@ -108,11 +127,14 @@ class SceneManager {
 
         // Update active scene if this was the active one
         if (this.activeSceneName === sceneName) {
-            this.activeSceneName = this.scenes.size > 0 ? 
+            this.activeSceneName = this.scenes.size > 0 ?
                 Array.from(this.scenes.keys())[0] : null
         }
     }
 
+    getActiveLook(){
+        return this.lookManager.getLook(this.getActiveSceneName())
+    }
     /**
      * Dispose of all scenes and resources
      */
@@ -242,4 +264,4 @@ class SceneManager {
     }
 }
 
-export default SceneManager 
+export default SceneManager

@@ -1,20 +1,27 @@
-/**
- * Base Look class that provides generic material and behavior management.
- * Subclasses implement specific mesh factory methods for their domain.
- */
+import * as THREE from 'three'
+import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
+import GeometryFactory from "./geometryFactory.js"
+import ParametricLine from "./parametricLine.js"
+import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
+import {LineMaterial} from "three/addons/lines/LineMaterial.js"
+import GenomicService from "./genomicService.js"
+
 class Look {
 
-    // pixel unite
-    static NODE_LINE_WIDTH_PIXELS = 2;
-    static NODE_LINE_DEEMPHASIS_WIDTH_PIXELS = 2;
+    // pixel units
+    static NODE_LINE_WIDTH_PIXELS = 2*2;
+    static NODE_LINE_DEEMPHASIS_WIDTH_PIXELS = 2*2;
 
     // world units
     static NODE_LINE_WIDTH = 16;
     static NODE_LINE_DEEMPHASIS_WIDTH = 16;
 
-
     constructor(name, config) {
-        this.name = name;
+        this.name = name
+
+        this.genomicService = config.genomicService
+        this.geometryManager = config.geometryManager
+
         this.behaviors = config.behaviors || {};
         this.zOffset = config.zOffset || 0;
 
@@ -25,11 +32,20 @@ class Look {
 
     }
 
-    /**
-     * Update animation state (called each frame)
-     * Base implementation does nothing - subclasses override for specific animation
-     */
-    updateBehavior(deltaTime, geometryManager) {
+    getZOffset(objectId) {
+
+        if (objectId.startsWith('node:')) {
+            return GeometryFactory.NODE_LINE_Z_OFFSET;
+        } else if (objectId.startsWith('edge:')) {
+            return GeometryFactory.EDGE_LINE_Z_OFFSET;
+        } else {
+            console.error(`ERROR: object ID ${ objectId } is not valid.`)
+            return GeometryFactory.NODE_LINE_Z_OFFSET;
+        }
+
+    }
+
+    updateBehavior(deltaTime, scene) {
         // Base class has no animation by default
         // Subclasses override this method for specific animation behaviors
     }
@@ -45,11 +61,83 @@ class Look {
     }
 
     createNodeMesh(geometry, context) {
-        throw new Error('createNodeMesh() must be implemented by subclass');
+
+        const {nodeName} = context
+
+        const material = this.getNodeMaterial(nodeName);
+
+        const mesh = new ParametricLine(geometry, material);
+
+        // Set up user data
+        mesh.userData = {
+            nodeName,
+            geometryKey: `node:${nodeName}`,
+            type: 'node',
+        };
+
+        return mesh;
+    }
+
+    getNodeMaterial(nodeName) {
+
+        const cacheKey = `${this.constructor.name}:${nodeName}:normal`;
+
+        // Check if we already have this material cached
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey);
+        }
+
+        const material = new LineMaterial({
+            color: this.getNodeColor(nodeName),
+            linewidth: Look.NODE_LINE_WIDTH,
+            worldUnits: true,
+            opacity: 1,
+            transparent: true
+        });
+
+        // Register with resolution service for automatic resolution updates
+        lineMaterialResolutionService.registerMaterial(material);
+
+        // Cache the material
+        this.materialCache.set(cacheKey, material);
+
+        return material;
+    }
+
+    getNodeColor(nodeName) {
+        const str = 'getNodeColor() must be implemented by subclass'
+        console.error(str)
+        return null
     }
 
     createEdgeMesh(geometry, context) {
-        throw new Error('createEdgeMesh() must be implemented by subclass');
+
+        const { startNode, endNode, edgeKey } = context;
+
+        const [ startColor, endColor ] = this.getEdgeColors(startNode, endNode, edgeKey)
+        const material = this.getEdgeMaterial(startColor, endColor)
+
+        const mesh = new THREE.Mesh(geometry, material);
+
+        mesh.userData =
+            {
+                nodeNameStart: startNode,
+                nodeNameEnd: endNode,
+                geometryKey: edgeKey,
+                type: 'edge',
+            };
+
+        return mesh;
+    }
+
+    getEdgeMaterial(startColor, endColor) {
+        return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
+    }
+
+    getEdgeColors(startNode, endNode, edgeKey) {
+        const str = 'getEdgeColors() must be implemented by subclass'
+        console.error(str)
+        return []
     }
 
     /**
@@ -68,20 +156,25 @@ class Look {
         this.isActive = false;
     }
 
-    /**
-     * Generate tooltip content for a node
-     * Base implementation returns null - subclasses override to provide custom content
-     * @param {Object} nodeObject - The node object with userData
-     * @returns {string|null} HTML content for the tooltip, or null if no tooltip should be shown
-     */
     createNodeTooltipContent(nodeObject) {
-        // Base class provides no tooltip content by default
-        // Subclasses override this method to provide custom node tooltip content
-        return null;
+        const { nodeName } = nodeObject.userData;
+        const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
+        const raw = GenomicService.getRayAssemblyNames(assemblies)
+        const str = raw.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
+        return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
     }
 
     dispose() {
-        this.materialCache.clear()
+
+        this.deactivate(); // Ensure we unsubscribe before disposing
+
+        // Unregister all cached materials from the resolution service
+        for (const material of this.materialCache.values()) {
+            lineMaterialResolutionService.unregisterMaterial(material);
+        }
+
+        // Clear the material cache
+        this.materialCache.clear();
     }
 }
 

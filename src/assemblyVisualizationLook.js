@@ -1,12 +1,11 @@
 import * as THREE from 'three';
-import ParametricLine from './parametricLine.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import Look from './look.js';
-import { colorRampArrowMaterialFactory } from './materialService.js';
+import {MATERIAL_TYPES} from './materialService.js';
 import materialService from './materialService.js';
 import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
-import {getAppleCrayonColorByName, getRandomAppleCrayonColor} from "./utils/color.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
 import { assemblyWidget } from "./main.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 
@@ -17,10 +16,7 @@ class AssemblyVisualizationLook extends Look {
     constructor(name, config) {
         super(name, config);
 
-        this.emphasisStates = new Map();
-
-        this.genomicService = config.genomicService;
-        this.geometryManager = config.geometryManager;
+        this.sceneManager = config.sceneManager
 
         this.edgeArrowAnimationState =
             {
@@ -28,7 +24,8 @@ class AssemblyVisualizationLook extends Look {
                 enabled: config.behaviors?.edgeArrowAnimation?.enabled ?? false
             };
 
-        // Event subscription references - will be set up when activated
+        this.emphasisStates = new Map();
+
         this.deemphasizeUnsub = null;
         this.restoreUnsub = null;
     }
@@ -51,87 +48,19 @@ class AssemblyVisualizationLook extends Look {
         return new AssemblyVisualizationLook(name, {...factoryConfig, ...config });
     }
 
-    /**
-     * Create a node mesh from geometry
-     */
-    createNodeMesh(geometry, context) {
-
-        const {nodeName} = context
-
-        const material = this.getNodeMaterial(nodeName);
-
-        const mesh = new ParametricLine(geometry, material);
-
-        // Set up user data
-        mesh.userData = {
-            nodeName,
-            geometryKey: `node:${nodeName}`,
-            lookName: this.name,
-            type: 'node',
-            originalMaterial: material // Store original material for emphasis/deemphasis
-        };
-
-        return mesh;
+    getNodeColor(nodeName) {
+        return getAppleCrayonColorByName('ocean')
     }
 
-    /**
-     * Create an edge mesh from geometry
-     */
-    createEdgeMesh(geometry, context) {
-
-        const { startNode, endNode, edgeKey } = context;
-
-        // const startColor = this.genomicService.getAssemblyColor(`${startNode}`)
-        // const endColor = this.genomicService.getAssemblyColor(`${endNode}`)
+    getEdgeColors(startNode, endNode, edgeKey) {
         const startColor = getAppleCrayonColorByName('steel')
         const endColor = getAppleCrayonColorByName('steel')
-        const material = this.getEdgeMaterial(startColor, endColor)
-
-        const mesh = new THREE.Mesh(geometry, material);
-
-        mesh.userData =
-            {
-                nodeNameStart: startNode,
-                nodeNameEnd: endNode,
-                geometryKey: edgeKey,
-                lookName: this.name,
-                type: 'edge',
-                originalMaterial: material // Store original material for emphasis/deemphasis
-            };
-
-        return mesh;
+        return [ startColor, endColor ]
     }
 
-    getNodeMaterial(nodeName) {
+    getNodeEmphasisMaterial(assembly, nodeName) {
 
-        const cacheKey = `${nodeName}:normal`;
-
-        // Check if we already have this material cached
-        if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey);
-        }
-
-        const material = new LineMaterial({
-            // color: getAppleCrayonColorByName('aqua'),
-            color: getAppleCrayonColorByName('ocean'),
-            linewidth: Look.NODE_LINE_WIDTH,
-            worldUnits: true,
-            opacity: 1,
-            transparent: true
-        });
-
-        // Register with resolution service for automatic resolution updates
-        lineMaterialResolutionService.registerMaterial(material);
-
-        // Cache the material
-        this.materialCache.set(cacheKey, material);
-
-        return material;
-    }
-
-    getAssemblyMaterial(assembly, nodeName) {
-
-        const cacheKey = `${nodeName}assembly:${assembly}`;
+        const cacheKey = `${this.constructor.name}:${nodeName}:assembly:${assembly}`;
 
         // Check if we already have this material cached
         if (this.materialCache.has(cacheKey)) {
@@ -153,10 +82,6 @@ class AssemblyVisualizationLook extends Look {
         this.materialCache.set(cacheKey, material);
 
         return material;
-    }
-
-    getEdgeMaterial(startColor, endColor) {
-        return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
     }
 
     setNodeAndEdgeEmphasis(assembly, nodeSet, edgeSet) {
@@ -200,9 +125,56 @@ class AssemblyVisualizationLook extends Look {
         this.#updateGeometryPositions();
     }
 
-    /**
-     * Override getZOffset to handle both nodes and edges with different Z-offsets
-     */
+    setEmphasisState(nodeName, state) {
+        this.emphasisStates.set(nodeName, state);
+    }
+
+    applyEmphasisState(mesh, emphasisState, assembly) {
+        if (!mesh.userData) return;
+
+        const { type } = mesh.userData;
+
+        if (emphasisState === 'deemphasized') {
+            if (type === 'node') {
+                mesh.material = materialService.getNodeDeemphasisMaterial(mesh.userData.nodeName);
+            } else if (type === 'edge') {
+                mesh.material = materialService.getEdgeDeemphasisMaterial();
+            }
+        } else if (emphasisState === 'emphasized') {
+
+            if (type === 'node') {
+                mesh.material = this.getNodeEmphasisMaterial(assembly, mesh.userData.nodeName);
+            } else if (type === 'edge') {
+
+                const startColor = getAppleCrayonColorByName('magnesium')
+                const endColor = getAppleCrayonColorByName('magnesium')
+                mesh.material = this.getEdgeMaterial(startColor, endColor)
+
+                // mesh.material = materialService.getEdgeEmphasisMaterial(this.genomicService.getAssemblyColor(assembly));
+            }
+
+        }  else if (emphasisState === 'normal') {
+
+            if (type === 'node') {
+                mesh.material = this.getNodeMaterial(mesh.userData.nodeName);
+            } else if (type === 'edge') {
+                // TODO: Handle 'normal' edge material
+                const startColor = getAppleCrayonColorByName('steel')
+                const endColor = getAppleCrayonColorByName('steel')
+                mesh.material = this.getEdgeMaterial(startColor, endColor)
+
+            }
+
+        } else {
+            console.warn('DANGER! Should not get here')
+        }
+
+        // Immediately update resolution for LineMaterials to fix raycasting issues
+        if (mesh.material && mesh.material.resolution) {
+            lineMaterialResolutionService.updateMaterialResolution(mesh.material);
+        }
+    }
+
     getZOffset(objectId) {
 
         if (objectId.startsWith('node:')) {
@@ -240,60 +212,11 @@ class AssemblyVisualizationLook extends Look {
         return super.getZOffset(objectId);
     }
 
-    setEmphasisState(nodeName, state) {
-        this.emphasisStates.set(nodeName, state);
-    }
+    updateBehavior(deltaTime, scene) {
 
-    applyEmphasisState(mesh, emphasisState, assembly) {
-        if (!mesh.userData) return;
-
-        const { type, originalMaterial } = mesh.userData;
-
-        if (emphasisState === 'deemphasized') {
-            if (type === 'node') {
-                mesh.material = materialService.createNodeLineDeemphasisMaterial(mesh.userData.nodeName);
-            } else if (type === 'edge') {
-                mesh.material = materialService.getEdgeDeemphasisMaterial();
-            }
-        } else if (emphasisState === 'emphasized') {
-
-            if (type === 'node') {
-                mesh.material = this.getAssemblyMaterial(assembly, mesh.userData.nodeName);
-            } else if (type === 'edge') {
-                mesh.material = materialService.getEdgeEmphasisMaterial(this.genomicService.getAssemblyColor(assembly));
-            }
-
-        }  else if (emphasisState === 'normal') {
-
-            if (type === 'node') {
-                mesh.material = this.getNodeMaterial(mesh.userData.nodeName);
-            } else if (type === 'edge') {
-                // TODO: Handle 'normal' edge material
-                const startColor = getAppleCrayonColorByName('steel')
-                const endColor = getAppleCrayonColorByName('steel')
-                mesh.material = this.getEdgeMaterial(startColor, endColor)
-
-            }
-
-        } else {
-            console.warn('DANGER! Should not get here')
-            if (originalMaterial) {
-                mesh.material = originalMaterial;
-            }
+        if (!this.edgeArrowAnimationState.enabled) {
+            return;
         }
-
-        // Immediately update resolution for LineMaterials to fix raycasting issues
-        if (mesh.material && mesh.material.resolution) {
-            lineMaterialResolutionService.updateMaterialResolution(mesh.material);
-        }
-    }
-
-    /**
-     * Override updateAnimation to update arrow texture animation
-     */
-    updateBehavior(deltaTime, geometryManager) {
-
-        if (!this.edgeArrowAnimationState.enabled) return;
 
         const behavior = this.behaviors.edgeArrowAnimation;
 
@@ -302,7 +225,8 @@ class AssemblyVisualizationLook extends Look {
             this.edgeArrowAnimationState.uvOffset = (this.edgeArrowAnimationState.uvOffset - speed) % 1.0;
         }
 
-        this.#updateEdgeAnimation(geometryManager.edgesGroup)
+        const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
+        this.#updateEdgeAnimation(edgeMeshGroup)
 
     }
 
@@ -314,7 +238,7 @@ class AssemblyVisualizationLook extends Look {
         return this.edgeArrowAnimationState.enabled;
     }
 
-    createNodeTooltipContent(nodeObject) {
+    _createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData;
         const nativeAssemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
         const set = new Set([ ...nativeAssemblies ])
@@ -323,24 +247,28 @@ class AssemblyVisualizationLook extends Look {
         return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
     }
 
-    // createNodeTooltipContent(nodeObject) {
-    //     const { nodeName } = nodeObject.userData;
-    //     return `<div><strong>Node:</strong> ${nodeName}</div>`
-    // }
-
-    #updateEdgeAnimation(edgesGroup) {
+    #updateEdgeAnimation(edgeMeshesGroup) {
 
         if (!this.edgeArrowAnimationState.enabled) return;
 
         const uvOffset = new THREE.Vector2(this.edgeArrowAnimationState.uvOffset, 0);
 
         let edgeCount = 0;
-        edgesGroup.traverse((object) => {
-            if (object.userData?.type === 'edge' && object.material && object.material.uniforms) {
-                if (object.material.uniforms.uvOffset) {
-                    object.material.uniforms.uvOffset.value.copy(uvOffset);
-                    edgeCount++;
+        edgeMeshesGroup.traverse(object => {
+
+            if (object.material){
+
+                if (MATERIAL_TYPES.DEEMPHASIS !== object.material.materialType) {
+
+                    if (object.userData?.type === 'edge' && object.material.uniforms) {
+                        if (object.material.uniforms.uvOffset) {
+                            object.material.uniforms.uvOffset.value.copy(uvOffset);
+                            edgeCount++;
+                        }
+                    }
+
                 }
+
             }
         });
 
@@ -348,7 +276,8 @@ class AssemblyVisualizationLook extends Look {
 
     #updateEdgeEmphasis(edgeSet, emphasisState, assembly) {
 
-        this.geometryManager.edgesGroup.traverse((object) => {
+        const edgeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('EdgeMeshGroup')
+        edgeMeshGroup.traverse((object) => {
             if (object.userData?.type === 'edge') {
                 if (edgeSet.has(object.userData.geometryKey)) {
                     this.applyEmphasisState(object, emphasisState, assembly);
@@ -360,7 +289,8 @@ class AssemblyVisualizationLook extends Look {
 
     #updateNodeEmphasis(nodeNameSet, emphasisState, assembly) {
 
-        this.geometryManager.linesGroup.traverse((object) => {
+        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        nodeMeshGroup.traverse((object) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
                 this.applyEmphasisState(object, emphasisState, assembly);
             }
@@ -369,8 +299,8 @@ class AssemblyVisualizationLook extends Look {
 
     #updateGeometryPositions() {
 
-        // Update node positions
-        this.geometryManager.linesGroup.traverse((object) => {
+        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        nodeMeshGroup.traverse((object) => {
             if (object.userData?.nodeName) {
                 const nodeName = object.userData.nodeName;
                 const zOffset = this.getZOffset(`node:${nodeName}`);
@@ -396,8 +326,8 @@ class AssemblyVisualizationLook extends Look {
             }
         });
 
-        // Update edge positions
-        this.geometryManager.edgesGroup.traverse((object) => {
+        const edgeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('EdgeMeshGroup')
+        edgeMeshGroup.traverse((object) => {
             if (object.userData?.type === 'edge') {
                 const edgeKey = object.userData.geometryKey;
                 object.position.z = this.getZOffset(edgeKey);
@@ -442,20 +372,12 @@ class AssemblyVisualizationLook extends Look {
     }
 
     dispose() {
-        this.deactivate(); // Ensure we unsubscribe before disposing
 
-        // Unregister all cached materials from the resolution service
-        for (const material of this.materialCache.values()) {
-            lineMaterialResolutionService.unregisterMaterial(material);
-        }
-
-        // Clear the material cache
-        this.materialCache.clear();
+        super.dispose()
 
         // Dispose of MaterialService cached materials
         materialService.dispose();
 
-        super.dispose();
         this.emphasisStates.clear();
     }
 }

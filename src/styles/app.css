@@ -48,26 +48,6 @@
   display: none;
 }
 
-.assembly-widget__button_container {
-  z-index: 1000;
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin-left: 5rem;
-  margin-top: 8rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.assembly-widget__button_container .assembly-widget__button {
-  transition: transform 0.2s ease;
-}
-.assembly-widget__button_container .assembly-widget__button:hover {
-  transform: scale(1.2);
-}
-.assembly-widget__button_container .assembly-widget__button .assembly-widget__icon {
-  font-size: 2rem;
-}
 .assembly-widget__card {
   z-index: 1000;
   position: absolute;
@@ -76,7 +56,7 @@
   margin-left: 5rem;
   margin-top: 12rem;
   min-width: 300px;
-  height: 400px;
+  height: 512px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: opacity 0.2s ease;
   opacity: 0;
@@ -127,6 +107,58 @@
 }
 .assembly-widget__mode-label:hover {
   color: #495057;
+}
+
+.widget-container {
+  z-index: 1000;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-left: 2rem;
+  margin-top: 10rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.widget-service__button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.widget-service__button {
+  background: transparent;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: thin;
+  border-color: transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  min-height: 100px;
+  text-align: center;
+}
+.widget-service__button:hover {
+  transform: translateY(-1px);
+  border-color: #495057;
+}
+.widget-service__button:active {
+  transform: translateY(0);
+  background: rgba(73, 80, 87, 0.05);
+}
+.widget-service__button--active {
+  border-color: #495057;
+  background: rgba(73, 80, 87, 0.05);
 }
 
 .graph-tooltip {
