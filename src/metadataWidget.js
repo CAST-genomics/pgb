@@ -12,6 +12,9 @@ class MetadataWidget {
         this.raycastService = raycastService;
 
         this.draggable = new Draggable(this.metadataWidgetContainer);
+
+        // Track current scene state for toggle functionality
+        this.isHeatmapSceneActive = false;
     }
 
     initializeSuperPopulationButton() {
@@ -19,6 +22,8 @@ class MetadataWidget {
             this.superPopulationButton = this.metadataWidgetContainer.querySelector('#super-population-btn');
             if (this.superPopulationButton) {
                 this.superPopulationButton.addEventListener('click', this.onSuperPopulationClick.bind(this));
+                this.superPopulationButton.textContent = 'Super Population';
+                this.updateButtonState();
                 console.log('Super Population button initialized successfully');
             } else {
                 console.error('Super Population button element not found');
@@ -26,11 +31,31 @@ class MetadataWidget {
         }
     }
 
+    updateButtonState() {
+        if (this.superPopulationButton) {
+            // Apply the same styling as other widget buttons
+            this.superPopulationButton.className = 'widget-service__button';
+            
+            if (this.isHeatmapSceneActive) {
+                this.superPopulationButton.classList.add('widget-service__button--active');
+            } else {
+                this.superPopulationButton.classList.remove('widget-service__button--active');
+            }
+        }
+    }
+
     onSuperPopulationClick(event) {
         event.stopPropagation();
-        console.log('Super Population button clicked');
-        // This will trigger the heatmap scene functionality
-        app.setActiveScene('heatmapScene', true);
+
+        if (this.isHeatmapSceneActive) {
+            app.setActiveScene('assemblyVisualizationScene');
+            this.isHeatmapSceneActive = false;
+        } else {
+            app.setActiveScene('heatmapScene', true);
+            this.isHeatmapSceneActive = true;
+        }
+
+        this.updateButtonState();
     }
 
     showCard() {
