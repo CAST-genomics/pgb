@@ -53,8 +53,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  margin-left: 5rem;
-  margin-top: 12rem;
+  margin-left: 10rem;
+  margin-top: 10rem;
   min-width: 300px;
   height: 512px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -107,6 +107,34 @@
 }
 .assembly-widget__mode-label:hover {
   color: #495057;
+}
+
+.metadata-widget__card {
+  z-index: 1000;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-left: 10rem;
+  margin-top: 10rem;
+  min-width: 300px;
+  height: 200px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(0, 0);
+}
+.metadata-widget__card.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.metadata-widget__card .card-body {
+  height: calc(100% - 60px);
+  padding: 1rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .widget-container {

@@ -167,8 +167,8 @@ class App {
 
         this.geometryManager.createGeometry(json)
 
-        this.setActiveScene('heatmapScene')
-        widgetService.setButtonActive('metadata')
+        this.setActiveScene('assemblyVisualizationScene')
+        // widgetService.setButtonActive('metadata')
 
         this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.sceneManager.lookManager)
 

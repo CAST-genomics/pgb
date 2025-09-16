@@ -1,9 +1,10 @@
 import { app } from "./main.js"
 
 class WidgetService {
-    constructor(containerElement, assemblyWidget) {
+    constructor(containerElement, assemblyWidget, metadataWidget) {
         this.containerElement = containerElement;
         this.assemblyWidget = assemblyWidget;
+        this.metadataWidget = metadataWidget;
         this.assemblyButton = null;
         this.metadataButton = null;
         this.activeButton = null; // Track which button is currently active
@@ -42,7 +43,7 @@ class WidgetService {
         if (this.activeButton) {
             this.activeButton.classList.remove('widget-service__button--active');
         }
-        
+
         // Set new active button
         this.activeButton = button;
         if (button) {
@@ -65,7 +66,7 @@ class WidgetService {
 
     setButtonActive(buttonType) {
         let targetButton = null;
-        
+
         switch (buttonType.toLowerCase()) {
             case 'assembly':
                 targetButton = this.assemblyButton;
@@ -82,13 +83,18 @@ class WidgetService {
                 console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'metadata', or 'none'`);
                 return;
         }
-        
+
         this.setActiveButton(targetButton);
     }
 
     onAssemblyButtonClick(event) {
         event.stopPropagation();
         this.setActiveButton(this.assemblyButton);
+        // Hide metadata widget if it's showing
+        if (this.metadataWidget) {
+            this.metadataWidget.hideCard();
+        }
+        // Toggle assembly widget
         this.assemblyWidget.onGearClick(event);
         app.setActiveScene('assemblyVisualizationScene', true)
     }
@@ -96,8 +102,17 @@ class WidgetService {
     onMetadataButtonClick(event) {
         event.stopPropagation();
         this.setActiveButton(this.metadataButton);
+        // Hide assembly widget if it's showing
         this.assemblyWidget.hideCard();
-        app.setActiveScene('heatmapScene', true)
+        // Toggle metadata widget
+        if (this.metadataWidget) {
+            if (this.metadataWidget.metadataWidgetContainer.classList.contains('show')) {
+                this.metadataWidget.hideCard();
+            } else {
+                this.metadataWidget.showCard();
+            }
+        }
+        // app.setActiveScene('heatmapScene', true)
     }
 
     destroy() {

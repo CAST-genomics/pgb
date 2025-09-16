@@ -1,0 +1,31 @@
+.metadata-widget {
+  &__card {
+    z-index: 1000;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: 10rem;
+    margin-top: 10rem;
+    min-width: 300px;
+    height: 200px; // Smaller height for metadata widget
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(0, 0);
+
+    &.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .card-body {
+      height: calc(100% - 60px); // Account for header height
+      padding: 1rem;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}
