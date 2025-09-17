@@ -1,0 +1,7 @@
+For the frequencies, they are also in the JSON file, you can find them under [assembly_metadata][frequency] of each node. 
+
+frequency of category
+[count of category]/[total count of category in graph]
+
+example: African population
+[number of African assemblies at a node]/[Total number of African assemblies in graph]

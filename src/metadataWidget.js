@@ -1,5 +1,4 @@
 import { Draggable } from './utils/draggable.js';
-import eventBus from './utils/eventBus.js';
 import { app } from "./main.js";
 
 class MetadataWidget {
@@ -15,6 +14,8 @@ class MetadataWidget {
 
         // Track current scene state for toggle functionality
         this.isHeatmapSceneActive = false;
+
+        this.widgetService = null
     }
 
     initializeSuperPopulationButton() {
@@ -31,21 +32,10 @@ class MetadataWidget {
         }
     }
 
-    updateButtonState() {
-        if (this.superPopulationButton) {
-            // Apply the same styling as other widget buttons
-            this.superPopulationButton.className = 'widget-service__button';
-            
-            if (this.isHeatmapSceneActive) {
-                this.superPopulationButton.classList.add('widget-service__button--active');
-            } else {
-                this.superPopulationButton.classList.remove('widget-service__button--active');
-            }
-        }
-    }
-
     onSuperPopulationClick(event) {
         event.stopPropagation();
+
+        this.widgetService.setWidgetInactive('assembly')
 
         if (this.isHeatmapSceneActive) {
             app.setActiveScene('assemblyVisualizationScene');
@@ -56,6 +46,22 @@ class MetadataWidget {
         }
 
         this.updateButtonState();
+    }
+
+    updateButtonState() {
+
+        this.superPopulationButton.className = 'widget-service__button';
+
+        if (this.isHeatmapSceneActive) {
+            this.superPopulationButton.classList.add('widget-service__button--active');
+        } else{
+            this.superPopulationButton.classList.remove('widget-service__button--active');
+        }
+    }
+
+    setInactive(){
+        this.isHeatmapSceneActive = false;
+        this.superPopulationButton.classList.remove('widget-service__button--active');
     }
 
     showCard() {
