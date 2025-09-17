@@ -262,6 +262,10 @@ class AssemblyWidget {
         }
     }
 
+    isActive(){
+        return (this.selectedAssemblies.size > 0)
+    }
+
     setInactive(){
 
         // discard select assemblies

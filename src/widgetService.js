@@ -55,6 +55,11 @@ class WidgetService {
 
         if (this.assemblyWidget.assemblyWidgetContainer.classList.contains('show')) {
             this.assemblyWidget.hideCard();
+
+            if (false === this.assemblyWidget.isActive()) {
+                this.activeButton.classList.remove('widget-service__button--active');
+                this.activeButton = null
+            }
         } else {
             this.assemblyWidget.showCard();
         }
@@ -71,6 +76,12 @@ class WidgetService {
 
         if (this.metadataWidget.metadataWidgetContainer.classList.contains('show')) {
             this.metadataWidget.hideCard();
+
+            if (false === this.metadataWidget.isActive()) {
+                this.activeButton.classList.remove('widget-service__button--active');
+                this.activeButton = null
+            }
+
         } else {
             this.metadataWidget.showCard();
         }
