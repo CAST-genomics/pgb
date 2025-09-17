@@ -351,37 +351,46 @@ class PangenomeResource {
 
         // Group assemblies by superpopulation and population
         const ancestryGroups = {};
+        const superpopulationCounts = {};
 
         assemblyNames.forEach(assemblyName => {
             const assemblyDetails = metadata[assemblyName];
             if (assemblyDetails && assemblyDetails.superpopulation && assemblyDetails.population) {
-                const superpop = assemblyDetails.superpopulation;
-                const population = assemblyDetails.population;
+                const { superpopulation } = assemblyDetails
+                const { population } = assemblyDetails
 
-                if (!ancestryGroups[superpop]) {
-                    ancestryGroups[superpop] = {};
+                if (!ancestryGroups[superpopulation]) {
+                    ancestryGroups[superpopulation] = {};
+                    superpopulationCounts[superpopulation] = 0;
                 }
-                if (!ancestryGroups[superpop][population]) {
-                    ancestryGroups[superpop][population] = [];
+                if (!ancestryGroups[superpopulation][population]) {
+                    ancestryGroups[superpopulation][population] = [];
                 }
-                ancestryGroups[superpop][population].push(assemblyName);
+                ancestryGroups[superpopulation][population].push(assemblyName);
+                superpopulationCounts[superpopulation]++;
             }
         });
 
-        // Generate HTML
+        // Get total superpopulation counts from metadata for frequency calculation
+        const totalSuperpopulationCounts = this.getTotalSuperpopulationCounts(version);
+
         let html = '<div class="ancestry-breakdown">';
 
         if (Object.keys(ancestryGroups).length === 0) {
             html += '<div>No ancestry data available for these assemblies</div>';
         } else {
             // Sort superpopulations for consistent display
-            const sortedSuperpops = Object.keys(ancestryGroups).sort();
+            const superPopulations = Object.keys(ancestryGroups).sort();
 
-            sortedSuperpops.forEach(superpop => {
+            superPopulations.forEach(superpopulation => {
+                const nodeSuperpopulationCount = superpopulationCounts[superpopulation];
+                const totalSuperpopulationCount = totalSuperpopulationCounts[superpopulation] || 0;
+                const frequency = totalSuperpopulationCount > 0 ? ((nodeSuperpopulationCount / totalSuperpopulationCount) * 100).toFixed(1) : '0.0';
+                
                 html += `<div class="superpopulation-section">`;
-                html += `<h4 class="superpopulation-title">${ getSuperpopulationName(superpop) }</h4>`;
+                html += `<h4 class="superpopulation-title">${ getSuperpopulationName(superpopulation) } (${frequency}%)</h4>`;
 
-                const populations = ancestryGroups[superpop];
+                const populations = ancestryGroups[superpopulation];
                 const sortedPopulations = Object.keys(populations).sort();
 
                 html += '<ul class="population-list">';
@@ -402,6 +411,37 @@ class PangenomeResource {
 
         html += '</div>';
         return html;
+    }
+
+    /**
+     * Get total count of assemblies per superpopulation from metadata
+     * @param {string} version - 'v1' or 'v2'
+     * @returns {Object} Object with superpopulation counts
+     */
+    getTotalSuperpopulationCounts(version = 'v2') {
+        if (!this.isInitialized) {
+            console.warn('PangenomeResource not initialized. Call initialize() first.');
+            return {};
+        }
+
+        const groupedMetadata = this.getGroupedMetadata(version);
+        if (!groupedMetadata || !groupedMetadata.ancestry) {
+            return {};
+        }
+
+        const totalCounts = {};
+        const ancestry = groupedMetadata.ancestry;
+
+        // Count total assemblies for each superpopulation
+        Object.keys(ancestry).forEach(superpopulation => {
+            let totalCount = 0;
+            Object.keys(ancestry[superpopulation]).forEach(population => {
+                totalCount += ancestry[superpopulation][population].length;
+            });
+            totalCounts[superpopulation] = totalCount;
+        });
+
+        return totalCounts;
     }
 
     /**

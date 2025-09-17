@@ -1,26 +1,26 @@
 import { Draggable } from './utils/draggable.js';
 import { colorToRGBString } from './utils/color.js';
 import eventBus from './utils/eventBus.js';
+import {app} from "./main.js"
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
     static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
 
-    constructor(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService) {
-        this.gear = gear;
-        // Note: Click handling is now managed by WidgetService
+    constructor(assemblyWidgetContainer, genomicService, geometryManager, raycastService) {
 
         this.assemblyWidgetContainer = assemblyWidgetContainer;
-        this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');
-        this.searchInput = null; // Will be initialized when card is shown
-        this.switchInput = null; // Will be initialized when card is shown
-        this.modeLabel = null; // Will be initialized when card is shown
 
         this.genomicService = genomicService;
 
         this.geometryManager = geometryManager
 
         // raycastService.registerClickHandler(this.raycastClickHandler.bind(this));
+
+        this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');
+        this.searchInput = null; // Will be initialized when card is shown
+        this.switchInput = null; // Will be initialized when card is shown
+        this.modeLabel = null; // Will be initialized when card is shown
 
         this.restoreUnsub = eventBus.subscribe('assembly:normal', data => {
             const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
@@ -31,10 +31,14 @@ class AssemblyWidget {
         })
 
         this.draggable = new Draggable(this.assemblyWidgetContainer);
-        this.selectedAssemblies = new Set()
-        this.allAssemblyItems = new Map(); // Store all items for filtering
-        this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS; // Default to subgraph emphasis
 
+        this.selectedAssemblies = new Set()
+
+        this.allAssemblyItems = new Map()
+
+        this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS
+
+        this.widgetService = null
     }
 
     raycastClickHandler(intersection, event) {
@@ -72,6 +76,9 @@ class AssemblyWidget {
 
     async onAssemblySelectorClick(assembly, event) {
         event.stopPropagation();
+
+        app.setActiveScene('assemblyVisualizationScene', true)
+        this.widgetService.setWidgetInactive('metadata')
 
         if (this.selectedAssemblies.has(assembly)) {
 
@@ -255,24 +262,32 @@ class AssemblyWidget {
         }
     }
 
-    onGearClick(event) {
-        event.stopPropagation();
-        if (this.assemblyWidgetContainer.classList.contains('show')) {
-            this.hideCard();
-        } else {
-            this.showCard();
-        }
+    isActive(){
+        return (this.selectedAssemblies.size > 0)
+    }
+
+    setInactive(){
+
+        // discard select assemblies
+        this.selectedAssemblies.clear();
+
+        // broadcast 'normal'
+        // AssemblyWidget - reset buttons
+        // AssemblyVisLook - reset look to normal
+        const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
+        const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
+        eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+
     }
 
     showCard() {
-        this.assemblyWidgetContainer.style.display = '';
+
+        this.assemblyWidgetContainer.style.display = ''
+
         setTimeout(() => {
             this.assemblyWidgetContainer.classList.add('show');
-            // Initialize search input when card is shown
             this.initializeSearchInput();
-            // Initialize switch input when card is shown
             this.initializeSwitchInput();
-            // Initialize mode label when card is shown
             this.initializeModeLabel();
         }, 0);
     }

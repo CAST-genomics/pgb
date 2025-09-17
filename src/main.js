@@ -5,6 +5,7 @@ import GenomicService from './genomicService.js'
 import SequenceService from './sequenceService.js'
 import GeometryManager from './geometryManager.js'
 import AssemblyWidget from './assemblyWidget.js'
+import MetadataWidget from './metadataWidget.js'
 import WidgetService from './widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
@@ -24,6 +25,7 @@ let defaultGenome
 let sequenceService
 let annotationRenderService
 let assemblyWidget
+let metadataWidget
 let widgetService
 document.addEventListener("DOMContentLoaded", async (event) => {
 
@@ -65,10 +67,13 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const gear = document.getElementById('pgb-widget-container')
     const assemblyWidgetContainer = document.getElementById('pgb-gear-card')
-    assemblyWidget = new AssemblyWidget(gear, assemblyWidgetContainer, genomicService, geometryManager, raycastService);
+    const metadataWidgetContainer = document.getElementById('pgb-metadata-card')
+
+    assemblyWidget = new AssemblyWidget(assemblyWidgetContainer, genomicService, geometryManager, raycastService);
+    metadataWidget = new MetadataWidget(metadataWidgetContainer, genomicService, geometryManager, raycastService);
 
     // Initialize WidgetService to replace the gear with buttons
-    widgetService = new WidgetService(gear, assemblyWidget);
+    widgetService = new WidgetService(gear, assemblyWidget, metadataWidget);
 
     const annotationRenderServiceContainer = document.querySelector('.pgb-gene-annotation-track-container')
     annotationRenderService = new AnnotationRenderService(annotationRenderServiceContainer, genomicService, sceneManager, raycastService)
@@ -96,5 +101,5 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
 })
 
-export { app, locusInput, annotationRenderService, defaultGenome, assemblyWidget, widgetService }
+export { app, locusInput, annotationRenderService, defaultGenome, assemblyWidget, metadataWidget, widgetService }
 
