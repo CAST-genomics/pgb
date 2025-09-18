@@ -4,6 +4,7 @@ import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
 import pangenomeResource from "./pangenomeResource.js"
+import { assemblyMetadataService } from "./assemblyMetadataService.js"
 
 class GenomicService {
 
@@ -16,7 +17,9 @@ class GenomicService {
         this.startNode = undefined
     }
 
-    async initialize(json, pangenomeService, genomeLibrary, geometryManager, raycastService) {
+    async initialize(json, pangenomeService) {
+
+        assemblyMetadataService.loadMetadata(json)
 
         const { locus:locusString, node:nodes, sequence:sequences } = json
 

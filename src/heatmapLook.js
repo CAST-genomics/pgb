@@ -1,7 +1,6 @@
 import Look from "./look.js"
 import {colorComplements, getRandomVibrantAppleCrayonColor, lerpAppleCrayonColors} from "./utils/color.js"
-import pangenomeResource from "./pangenomeResource.js"
-import GenomicService from "./genomicService.js"
+import {assemblyMetadataService } from "./assemblyMetadataService.js"
 
 class HeatmapLook extends Look {
     constructor(name, config) {
@@ -26,13 +25,10 @@ class HeatmapLook extends Look {
 
     createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData;
-        const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
-        const raw = GenomicService.getRayAssemblyNames(assemblies)
 
-        // Get ancestry breakdown HTML from PangenomeResource
-        const ancestryHTML = pangenomeResource.getAncestryBreakdownHTML(raw);
+        const demographicHTML = assemblyMetadataService.getDemographicBreakdownHTML(nodeName);
 
-        return `<div><strong>Node:</strong> ${nodeName}</div>${ancestryHTML}`;
+        return `<div><strong>Node:</strong> ${nodeName}</div>${demographicHTML}`;
     }
 
     static createHeatmapLook(name, config) {

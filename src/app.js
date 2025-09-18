@@ -163,7 +163,7 @@ class App {
 
         this.pangenomeService.loadData(json)
 
-        await this.genomicService.initialize(json, this.pangenomeService, this.genomeLibrary, this.geometryManager, this.raycastService)
+        await this.genomicService.initialize(json, this.pangenomeService)
 
         this.geometryManager.createGeometry(json)
 
