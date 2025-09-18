@@ -69,8 +69,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     const assemblyWidgetContainer = document.getElementById('pgb-gear-card')
     const metadataWidgetContainer = document.getElementById('pgb-metadata-card')
 
-    assemblyWidget = new AssemblyWidget(assemblyWidgetContainer, genomicService, geometryManager, raycastService);
-    metadataWidget = new MetadataWidget(metadataWidgetContainer, genomicService, geometryManager, raycastService);
+    assemblyWidget = new AssemblyWidget(assemblyWidgetContainer, genomicService, geometryManager);
+    metadataWidget = new MetadataWidget(metadataWidgetContainer, genomicService, geometryManager);
 
     // Initialize WidgetService to replace the gear with buttons
     widgetService = new WidgetService(gear, assemblyWidget, metadataWidget);
