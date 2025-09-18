@@ -2,13 +2,12 @@ import { Draggable } from './utils/draggable.js';
 import { app } from "./main.js";
 
 class MetadataWidget {
-    constructor(metadataWidgetContainer, genomicService, geometryManager, raycastService) {
+    constructor(metadataWidgetContainer, genomicService, geometryManager) {
+
         this.metadataWidgetContainer = metadataWidgetContainer;
-        this.superPopulationButton = null; // Will be initialized when card is shown
 
         this.genomicService = genomicService;
         this.geometryManager = geometryManager;
-        this.raycastService = raycastService;
 
         this.draggable = new Draggable(this.metadataWidgetContainer);
 
@@ -16,20 +15,17 @@ class MetadataWidget {
         this.isHeatmapSceneActive = false;
 
         this.widgetService = null
+
+        this.superPopulationButton = null
+        this.initializeSuperPopulationButton()
+
     }
 
     initializeSuperPopulationButton() {
-        if (!this.superPopulationButton) {
-            this.superPopulationButton = this.metadataWidgetContainer.querySelector('#super-population-btn');
-            if (this.superPopulationButton) {
-                this.superPopulationButton.addEventListener('click', this.onSuperPopulationClick.bind(this));
-                this.superPopulationButton.textContent = 'Super Population';
-                this.updateButtonState();
-                console.log('Super Population button initialized successfully');
-            } else {
-                console.error('Super Population button element not found');
-            }
-        }
+        this.superPopulationButton = this.metadataWidgetContainer.querySelector('#super-population-btn');
+        this.superPopulationButton.addEventListener('click', this.onSuperPopulationClick.bind(this));
+        this.superPopulationButton.textContent = 'Super Population';
+        this.updateButtonState();
     }
 
     onSuperPopulationClick(event) {
@@ -49,9 +45,7 @@ class MetadataWidget {
     }
 
     updateButtonState() {
-
         this.superPopulationButton.className = 'widget-service__button';
-
         if (this.isHeatmapSceneActive) {
             this.superPopulationButton.classList.add('widget-service__button--active');
         } else{
@@ -71,8 +65,6 @@ class MetadataWidget {
         this.metadataWidgetContainer.style.display = '';
         setTimeout(() => {
             this.metadataWidgetContainer.classList.add('show');
-            // Initialize super population button when card is shown
-            this.initializeSuperPopulationButton();
         }, 0);
     }
 

@@ -7,15 +7,13 @@ class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
     static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
 
-    constructor(assemblyWidgetContainer, genomicService, geometryManager, raycastService) {
+    constructor(assemblyWidgetContainer, genomicService, geometryManager) {
 
         this.assemblyWidgetContainer = assemblyWidgetContainer;
 
         this.genomicService = genomicService;
 
         this.geometryManager = geometryManager
-
-        // raycastService.registerClickHandler(this.raycastClickHandler.bind(this));
 
         this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');
         this.searchInput = null; // Will be initialized when card is shown
@@ -39,15 +37,6 @@ class AssemblyWidget {
         this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS
 
         this.widgetService = null
-    }
-
-    raycastClickHandler(intersection, event) {
-
-        if (intersection) {
-        } else {
-            this.selectedAssemblies.clear();
-            eventBus.publish('assembly:normal', { nodeNames: this.genomicService.getNodeNameSet(), assemblySet: this.genomicService.assemblySet });
-        }
     }
 
     createListItem(assembly, color) {
