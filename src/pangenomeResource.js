@@ -327,7 +327,7 @@ class PangenomeResource {
         // Calculate percentage of total superpopulation diversity
         const representedSuperpopulations = nodeSuperpopulations.size;
         const percentage = representedSuperpopulations / totalSuperpopulations
-        console.log(`Node Superpopulation Diversity. ${ representedSuperpopulations } / ${ totalSuperpopulations } = ${ percentage }`)
+        // console.log(`Node Superpopulation Diversity. ${ representedSuperpopulations } / ${ totalSuperpopulations } = ${ percentage }`)
 
         return percentage
     }
@@ -386,7 +386,7 @@ class PangenomeResource {
                 const nodeSuperpopulationCount = superpopulationCounts[superpopulation];
                 const totalSuperpopulationCount = totalSuperpopulationCounts[superpopulation] || 0;
                 const frequency = totalSuperpopulationCount > 0 ? ((nodeSuperpopulationCount / totalSuperpopulationCount) * 100).toFixed(1) : '0.0';
-                
+
                 html += `<div class="superpopulation-section">`;
                 html += `<h4 class="superpopulation-title">${ getSuperpopulationName(superpopulation) } (${frequency}%)</h4>`;
 

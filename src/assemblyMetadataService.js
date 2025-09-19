@@ -1,3 +1,5 @@
+import { getSuperpopulationName, getPopulationName } from './utils/pangenomeUtils.js';
+
 /**
  * AssemblyMetadataService - Manages and provides access to assembly metadata
  * for genomic nodes, including demographic breakdowns and percentage calculations.
@@ -41,12 +43,15 @@ class AssemblyMetadataService {
 
         for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
             if (nodeData.assembly_metadata) {
+                const nodeTotalAssemblies = this.calculateTotalAssemblies(nodeData.assembly_metadata.count);
+                
                 this.metadata.set(nodeId, {
                     count: nodeData.assembly_metadata.count || {},
                     frequency: nodeData.assembly_metadata.frequency || {},
-                    totalAssemblies: this.calculateTotalAssemblies(nodeData.assembly_metadata.count)
+                    totalAssemblies: nodeTotalAssemblies
                 });
-                this.totalAssemblies += this.calculateTotalAssemblies(nodeData.assembly_metadata.count);
+                
+                this.totalAssemblies += nodeTotalAssemblies;
             }
         }
 
@@ -120,6 +125,34 @@ class AssemblyMetadataService {
         }
 
         return percentages;
+    }
+
+    /**
+     * Get superpopulation frequencies for a given node
+     * @param {string} nodeId - The node identifier
+     * @returns {Object|null} Object with superpopulation frequencies or null if not found
+     */
+    getSuperPopulationFrequencies(nodeId) {
+        const nodeData = this.metadata.get(nodeId);
+        if (!nodeData?.frequency?.superpopulation) {
+            return null;
+        }
+
+        return { ...nodeData.frequency.superpopulation };
+    }
+
+    /**
+     * Get population frequencies for a given node
+     * @param {string} nodeId - The node identifier
+     * @returns {Object|null} Object with population frequencies or null if not found
+     */
+    getPopulationFrequencies(nodeId) {
+        const nodeData = this.metadata.get(nodeId);
+        if (!nodeData?.frequency?.population) {
+            return null;
+        }
+
+        return { ...nodeData.frequency.population };
     }
 
     /**
@@ -294,7 +327,7 @@ class AssemblyMetadataService {
 
     /**
      * Generate HTML snippet showing demographic breakdown for a node
-     * Similar to PangenomeResource.getAncestryBreakdownHTML but works with node-based metadata
+     * Simple presentation of frequency values as percentages with hierarchical organization
      * @param {string} nodeId - The node identifier
      * @returns {string} HTML snippet with demographic breakdown
      */
@@ -304,61 +337,49 @@ class AssemblyMetadataService {
             return '<div>No metadata available for this node</div>';
         }
 
-        const superpopCounts = nodeData.count.superpopulation || {};
-        const popCounts = nodeData.count.population || {};
-        const totalAssemblies = nodeData.totalAssemblies;
+        const superpopFrequencies = nodeData.frequency.superpopulation || {};
+        const popFrequencies = nodeData.frequency.population || {};
 
-        if (totalAssemblies === 0) {
-            return '<div>No assembly data available for this node</div>';
+        if (Object.keys(superpopFrequencies).length === 0) {
+            return '<div>No demographic data available for this node</div>';
         }
 
         let html = '<div class="demographic-breakdown">';
 
         // Group populations by superpopulation
         const superpopGroups = {};
-        for (const [population, count] of Object.entries(popCounts)) {
-            // Find which superpopulation this population belongs to
-            const superpop = this.findSuperpopulationForPopulation(population, superpopCounts);
+        for (const [population, frequency] of Object.entries(popFrequencies)) {
+            const superpop = this.findSuperpopulationForPopulation(population);
             if (superpop) {
                 if (!superpopGroups[superpop]) {
                     superpopGroups[superpop] = {};
                 }
-                superpopGroups[superpop][population] = count;
+                superpopGroups[superpop][population] = frequency;
             }
         }
 
-        if (Object.keys(superpopGroups).length === 0) {
-            html += '<div>No demographic data available for this node</div>';
-        } else {
-            // Sort superpopulations for consistent display
-            const superPopulations = Object.keys(superpopGroups).sort();
+        // Display hierarchical structure
+        for (const [superpop, frequency] of Object.entries(superpopFrequencies)) {
+            const percentage = (frequency * 100).toFixed(1);
+            
+            // Skip superpopulations with 0% frequency
+            if (frequency === 0 || frequency === null || frequency === undefined || isNaN(frequency)) {
+                continue;
+            }
+            
+            html += `<div class="superpopulation-section">`;
+            html += `<h4 class="superpopulation-title">${getSuperpopulationName(superpop)} ${percentage}%</h4>`;
 
-            superPopulations.forEach(superpopulation => {
-                const superpopCount = superpopCounts[superpopulation] || 0;
-                const superpopPercentage = ((superpopCount / totalAssemblies) * 100).toFixed(1);
-                
-                html += `<div class="superpopulation-section">`;
-                html += `<h4 class="superpopulation-title">${this.getSuperpopulationDisplayName(superpopulation)} (${superpopPercentage}%)</h4>`;
-
-                const populations = superpopGroups[superpopulation];
-                const sortedPopulations = Object.keys(populations).sort();
-
+            // Show constituent populations if they exist
+            if (superpopGroups[superpop] && Object.keys(superpopGroups[superpop]).length > 0) {
                 html += '<ul class="population-list">';
-                sortedPopulations.forEach(population => {
-                    const count = populations[population];
-                    const percentage = ((count / totalAssemblies) * 100).toFixed(1);
-                    html += `<li class="population-item">`;
-                    html += `<span class="population-name">${this.getPopulationDisplayName(population)}</span> `;
-                    html += `<span class="population-percentage">(${percentage}%)</span> `;
-                    
-                    const str = count === 1 ? 'assembly' : 'assemblies';
-                    html += `<span class="assembly-count">(${count} ${str})</span>`;
-
-                    html += '</li>';
-                });
+                for (const [population, popFrequency] of Object.entries(superpopGroups[superpop])) {
+                    const popPercentage = (popFrequency * 100).toFixed(1);
+                    html += `<li class="population-item">${getPopulationName(population)}: ${popPercentage}%</li>`;
+                }
                 html += '</ul>';
-                html += '</div>';
-            });
+            }
+            html += '</div>';
         }
 
         html += '</div>';
@@ -366,14 +387,11 @@ class AssemblyMetadataService {
     }
 
     /**
-     * Find which superpopulation a population belongs to based on the data structure
+     * Find which superpopulation a population belongs to
      * @param {string} population - The population code
-     * @param {Object} superpopCounts - The superpopulation counts
      * @returns {string|null} The superpopulation code or null if not found
      */
-    findSuperpopulationForPopulation(population, superpopCounts) {
-        // This is a simplified mapping - in a real implementation, you might want
-        // to maintain a more sophisticated mapping or use the original metadata structure
+    findSuperpopulationForPopulation(population) {
         const populationToSuperpop = {
             // Ad Mixed American populations
             'CLM': 'AMR', 'PUR': 'AMR', 'PEL': 'AMR',
@@ -391,51 +409,6 @@ class AssemblyMetadataService {
         return populationToSuperpop[population] || null;
     }
 
-    /**
-     * Get display name for superpopulation
-     * @param {string} superpopulation - The superpopulation code
-     * @returns {string} Human-readable name
-     */
-    getSuperpopulationDisplayName(superpopulation) {
-        const names = {
-            'AMR': 'Ad Mixed American',
-            'AFR': 'African',
-            'EAS': 'East Asian', 
-            'SAS': 'South Asian',
-            'N/A': 'Not Available'
-        };
-        return names[superpopulation] || superpopulation;
-    }
-
-    /**
-     * Get display name for population
-     * @param {string} population - The population code
-     * @returns {string} Human-readable name
-     */
-    getPopulationDisplayName(population) {
-        const names = {
-            // Ad Mixed American populations
-            'CLM': 'Colombian',
-            'PUR': 'Puerto Rican', 
-            'PEL': 'Peruvian',
-            // African populations
-            'ACB': 'African Caribbean Barbadian',
-            'GWD': 'Gambian in Western Division',
-            'ESN': 'Esan in Nigeria',
-            'MSL': 'Mende in Sierra Leone',
-            'YRI': 'Yoruba in Ibadan, Nigeria',
-            'ASW': 'African Ancestry in Southwest US',
-            'MKK': 'Maasai in Kinyawa, Kenya',
-            // East Asian populations
-            'CHS': 'Han Chinese South',
-            'KHV': 'Kinh in Ho Chi Minh City, Vietnam',
-            // South Asian populations
-            'PJL': 'Punjabi in Lahore, Pakistan',
-            // Not Available
-            'N/A': 'Not Available'
-        };
-        return names[population] || population;
-    }
 }
 
 // Create and export the singleton instance
