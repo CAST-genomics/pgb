@@ -62,15 +62,14 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const pangenomeService = new PangenomeService()
 
-    const gear = document.getElementById('pgb-widget-container')
     const assemblyWidgetContainer = document.getElementById('pgb-gear-card')
-    const metadataWidgetContainer = document.getElementById('pgb-metadata-card')
-
     assemblyWidget = new AssemblyWidget(assemblyWidgetContainer, genomicService, geometryManager);
+
+    const metadataWidgetContainer = document.getElementById('pgb-metadata-card')
     metadataWidget = new MetadataWidget(metadataWidgetContainer, genomicService, geometryManager);
 
-    // Initialize WidgetService to replace the gear with buttons
-    widgetService = new WidgetService(gear, assemblyWidget, metadataWidget);
+    const gear = document.getElementById('pgb-widget-container')
+    widgetService = new WidgetService(gear, assemblyWidget);
 
     const annotationRenderServiceContainer = document.querySelector('.pgb-gene-annotation-track-container')
     annotationRenderService = new AnnotationRenderService(annotationRenderServiceContainer, genomicService, sceneManager, raycastService)

@@ -1,25 +1,27 @@
-import { app } from "./main.js"
+import { app } from "../main.js"
 
 class WidgetService {
+
     constructor(containerElement, assemblyWidget) {
 
         this.containerElement = containerElement;
+
         this.assemblyWidget = assemblyWidget;
+        this.assemblyWidget.widgetService = this
 
         this.assemblyButton = null;
         this.metadataButton = null;
-
-        this.activeButton = null
+        this.activeButton = null;
 
         this.createButtons();
     }
 
     createButtons() {
-
+        // Create the round-rect container
         const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'widget-service__button-container';
         this.containerElement.innerHTML = '';
         this.containerElement.appendChild(buttonContainer);
+        buttonContainer.className = 'widget-service__button-container';
 
         this.assemblyButton = document.createElement('button');
         buttonContainer.appendChild(this.assemblyButton);
@@ -37,42 +39,6 @@ class WidgetService {
 
     }
 
-    onAssemblyButtonClick(event) {
-
-        event.stopPropagation();
-
-        app.setActiveScene('assemblyVisualizationScene', true)
-
-        this.assemblyWidget.onGearClick(event);
-
-        this.setActiveButton(this.assemblyButton);
-
-    }
-
-    onMetadataButtonClick(event) {
-
-        event.stopPropagation();
-
-        app.setActiveScene('heatmapScene', true)
-
-        this.setActiveButton(this.metadataButton);
-
-        this.assemblyWidget.hideCard();
-
-    }
-
-    setActiveButton(button) {
-
-        if (this.activeButton) {
-            this.activeButton.classList.remove('widget-service__button--active');
-        }
-
-        this.activeButton = button;
-        if (button) {
-            button.classList.add('widget-service__button--active');
-        }
-    }
-
     reset(){
 
         if (this.activeButton) {
@@ -84,40 +50,64 @@ class WidgetService {
         this.assemblyWidget.configure()
     }
 
-    getActiveButton() {
-        return this.activeButton;
-    }
+    onAssemblyButtonClick(event) {
 
-    getActiveButtonType() {
-        if (this.activeButton === this.assemblyButton) {
-            return 'assembly';
-        } else if (this.activeButton === this.metadataButton) {
-            return 'metadata';
+        event.stopPropagation();
+
+        this.setActiveButton(this.assemblyButton);
+
+        if (this.assemblyWidget.assemblyWidgetContainer.classList.contains('show')) {
+
+            this.assemblyWidget.hideCard();
+
+            this.activeButton.classList.remove('widget-service__button--active');
+            this.activeButton = null
+        } else {
+            this.assemblyWidget.showCard();
         }
-        return null;
+
     }
 
-    setButtonActive(buttonType) {
-        let targetButton = null;
+    onMetadataButtonClick(event) {
+
+        event.stopPropagation()
+
+        this.assemblyWidget.hideCard()
+        app.setActiveScene('heatmapScene', true)
+
+        this.setActiveButton(this.metadataButton);
+
+    }
+
+    setActiveButton(button) {
+
+        if (this.activeButton) {
+            this.activeButton.classList.remove('widget-service__button--active');
+        }
+
+        this.activeButton = button;
+        button.classList.add('widget-service__button--active')
+
+    }
+
+    setWidgetInactive(buttonType, doPublish = true) {
 
         switch (buttonType.toLowerCase()) {
             case 'assembly':
-                targetButton = this.assemblyButton;
+                this.assemblyWidget.setInactive(doPublish)
                 break;
             case 'metadata':
-                targetButton = this.metadataButton;
+                this.metadataWidget.setInactive(doPublish)
                 break;
             case 'none':
-            case null:
-            case undefined:
-                targetButton = null;
+                this.assemblyWidget.setInactive(doPublish)
+                this.metadataWidget.setInactive(doPublish)
                 break;
             default:
                 console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'metadata', or 'none'`);
                 return;
         }
 
-        this.setActiveButton(targetButton);
     }
 
     destroy() {

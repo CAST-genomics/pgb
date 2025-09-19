@@ -165,6 +165,8 @@ class App {
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
+        this.widgetService.reset()
+
         this.geometryManager.createGeometry(json)
 
         this.setActiveScene('assemblyVisualizationScene')
@@ -175,8 +177,6 @@ class App {
 
         const scene = this.sceneManager.getActiveScene()
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
-
-        this.widgetService.reset()
 
         this.startAnimation()
     }

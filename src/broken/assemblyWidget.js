@@ -1,6 +1,7 @@
 import { Draggable } from './utils/draggable.js';
 import { colorToRGBString } from './utils/color.js';
 import eventBus from './utils/eventBus.js';
+import {app} from "./main.js"
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
@@ -9,13 +10,12 @@ class AssemblyWidget {
     constructor(assemblyWidgetContainer, genomicService, geometryManager) {
 
         this.assemblyWidgetContainer = assemblyWidgetContainer;
-        this.draggable = new Draggable(this.assemblyWidgetContainer);
 
         this.genomicService = genomicService;
+
         this.geometryManager = geometryManager
 
         this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');
-
         this.searchInput = null; // Will be initialized when card is shown
         this.switchInput = null; // Will be initialized when card is shown
         this.modeLabel = null; // Will be initialized when card is shown
@@ -28,31 +28,15 @@ class AssemblyWidget {
             }
         })
 
+        this.draggable = new Draggable(this.assemblyWidgetContainer);
+
         this.selectedAssemblies = new Set()
-        this.allAssemblyItems = new Map(); // Store all items for filtering
 
-        this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS; // Default to subgraph emphasis
+        this.allAssemblyItems = new Map()
 
-    }
+        this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS
 
-    configure() {
-        this.populateList()
-    }
-
-    populateList() {
-
-        for (const item of this.listGroup.querySelectorAll('.list-group-item')) {
-            this.cleanupListItem(item);
-        }
-
-        this.listGroup.innerHTML = '';
-        this.allAssemblyItems.clear();
-
-        for (const [assembly, color] of this.genomicService.assemblyColors.entries()) {
-            const item = this.createListItem(assembly, color);
-            this.listGroup.appendChild(item);
-            this.allAssemblyItems.set(assembly, item);
-        }
+        this.widgetService = null
     }
 
     createListItem(assembly, color) {
@@ -81,6 +65,9 @@ class AssemblyWidget {
 
     async onAssemblySelectorClick(assembly, event) {
         event.stopPropagation();
+
+        app.setActiveScene('assemblyVisualizationScene', true)
+        this.widgetService.setWidgetInactive('metadata')
 
         if (this.selectedAssemblies.has(assembly)) {
 
@@ -244,24 +231,54 @@ class AssemblyWidget {
 
     }
 
-    onGearClick(event) {
-        event.stopPropagation();
-        if (this.assemblyWidgetContainer.classList.contains('show')) {
-            this.hideCard();
-        } else {
-            this.showCard();
+    configure() {
+        this.populateList()
+    }
+
+    populateList() {
+
+        for (const item of this.listGroup.querySelectorAll('.list-group-item')) {
+            this.cleanupListItem(item);
+        }
+
+        this.listGroup.innerHTML = '';
+        this.allAssemblyItems.clear();
+
+        for (const [assembly, color] of this.genomicService.assemblyColors.entries()) {
+            const item = this.createListItem(assembly, color);
+            this.listGroup.appendChild(item);
+            this.allAssemblyItems.set(assembly, item);
         }
     }
 
+    isActive(){
+        return (this.selectedAssemblies.size > 0)
+    }
+
+    setInactive(doPublish = true){
+
+        // discard select assemblies
+        this.selectedAssemblies.clear();
+
+        if (true === doPublish) {
+            // broadcast 'normal'
+            // AssemblyWidget - reset buttons
+            // AssemblyVisLook - reset look to normal
+            const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
+            const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
+            eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+        }
+
+    }
+
     showCard() {
-        this.assemblyWidgetContainer.style.display = '';
+
+        this.assemblyWidgetContainer.style.display = ''
+
         setTimeout(() => {
             this.assemblyWidgetContainer.classList.add('show');
-            // Initialize search input when card is shown
             this.initializeSearchInput();
-            // Initialize switch input when card is shown
             this.initializeSwitchInput();
-            // Initialize mode label when card is shown
             this.initializeModeLabel();
         }, 0);
     }
