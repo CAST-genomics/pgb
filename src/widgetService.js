@@ -1,4 +1,3 @@
-import { app } from "./main.js"
 
 class WidgetService {
 
@@ -16,10 +15,10 @@ class WidgetService {
         this.metadataButton = null;
         this.activeButton = null;
 
-        this.initializeButtons();
+        this.createButtons();
     }
 
-    initializeButtons() {
+    createButtons() {
         // Create the round-rect container
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'widget-service__button-container';
@@ -43,6 +42,21 @@ class WidgetService {
         // Replace the existing gear button container
         this.containerElement.innerHTML = '';
         this.containerElement.appendChild(buttonContainer);
+    }
+
+    reset(){
+
+        if (this.activeButton) {
+            this.activeButton.classList.remove('widget-service__button--active');
+            this.activeButton = null
+        }
+
+        this.metadataWidget.setInactive(false)
+        this.metadataWidget.hideCard()
+
+        this.assemblyWidget.hideCard()
+        this.assemblyWidget.setInactive(false)
+        this.assemblyWidget.configure()
     }
 
     onAssemblyButtonClick(event) {
@@ -99,18 +113,18 @@ class WidgetService {
 
     }
 
-    setWidgetInactive(buttonType) {
+    setWidgetInactive(buttonType, doPublish = true) {
 
         switch (buttonType.toLowerCase()) {
             case 'assembly':
-                this.assemblyWidget.setInactive()
+                this.assemblyWidget.setInactive(doPublish)
                 break;
             case 'metadata':
-                this.metadataWidget.setInactive()
+                this.metadataWidget.setInactive(doPublish)
                 break;
             case 'none':
-                this.assemblyWidget.setInactive()
-                this.metadataWidget.setInactive()
+                this.assemblyWidget.setInactive(doPublish)
+                this.metadataWidget.setInactive(doPublish)
                 break;
             default:
                 console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'metadata', or 'none'`);

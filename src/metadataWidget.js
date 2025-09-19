@@ -56,7 +56,8 @@ class MetadataWidget {
     isActive(){
         return (true === this.isHeatmapSceneActive)
     }
-    setInactive(){
+
+    setInactive(doPublish = true){
         this.isHeatmapSceneActive = false;
         this.superPopulationButton.classList.remove('widget-service__button--active');
     }

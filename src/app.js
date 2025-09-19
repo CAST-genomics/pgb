@@ -12,7 +12,7 @@ import materialService from './materialService.js'
 
 class App {
 
-    constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager) {
+    constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager) {
         this.container = container
 
         this.renderer = RendererFactory.createRenderer(container)
@@ -22,7 +22,7 @@ class App {
         this.pangenomeService = pangenomeService
         this.genomicService = genomicService
         this.geometryManager = geometryManager
-        this.assemblyWidget = assemblyWidget
+        this.widgetService = widgetService
         this.genomeLibrary = genomeLibrary
         this.sceneManager = sceneManager
 
@@ -176,7 +176,7 @@ class App {
         const scene = this.sceneManager.getActiveScene()
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
 
-        this.assemblyWidget.configure()
+        this.widgetService.reset()
 
         this.startAnimation()
     }

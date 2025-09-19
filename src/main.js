@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     annotationRenderService = new AnnotationRenderService(annotationRenderServiceContainer, genomicService, sceneManager, raycastService)
 
     const frustumSize = 5
-    app = new App(threeJSContainer, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager)
+    app = new App(threeJSContainer, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager)
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 

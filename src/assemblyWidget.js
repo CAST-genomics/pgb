@@ -255,17 +255,19 @@ class AssemblyWidget {
         return (this.selectedAssemblies.size > 0)
     }
 
-    setInactive(){
+    setInactive(doPublish = true){
 
         // discard select assemblies
         this.selectedAssemblies.clear();
 
-        // broadcast 'normal'
-        // AssemblyWidget - reset buttons
-        // AssemblyVisLook - reset look to normal
-        const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-        const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-        eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+        if (true === doPublish) {
+            // broadcast 'normal'
+            // AssemblyWidget - reset buttons
+            // AssemblyVisLook - reset look to normal
+            const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
+            const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
+            eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+        }
 
     }
 
