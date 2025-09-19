@@ -15,7 +15,6 @@ import HeatmapLook from "./heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
-import pangenomeResource from "./pangenomeResource.js"
 import {rubinColors} from "./utils/color.js"
 import './styles/app.scss'
 
@@ -28,8 +27,6 @@ let assemblyWidget
 let metadataWidget
 let widgetService
 document.addEventListener("DOMContentLoaded", async (event) => {
-
-    await pangenomeResource.initialize()
 
     await materialService.initialize()
 

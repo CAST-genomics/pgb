@@ -3,7 +3,6 @@ import LocusInput from "./locusInput.js"
 import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
-import pangenomeResource from "./pangenomeResource.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 
 class GenomicService {
