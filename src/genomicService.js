@@ -41,12 +41,10 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            const result = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
+            const frequencies = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
 
-            const superPopulationFrequencies = (Object.values(result).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(result).length)
-            console.log(`Super Population Frequencies ${ superPopulationFrequencies }`)
-
-            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], superPopulationFrequencies });
+            const aggregateSuperpopulationFrequency = (Object.values(frequencies).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(frequencies).length)
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], aggregateSuperpopulationFrequency });
 
         }
 

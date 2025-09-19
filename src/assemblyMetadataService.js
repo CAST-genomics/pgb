@@ -13,7 +13,7 @@ class AssemblyMetadataService {
 
         this.metadata = new Map(); // nodeId -> metadata object
         this.totalAssemblies = 0; // Total count across all nodes
-        
+
         AssemblyMetadataService.instance = this;
     }
 
@@ -44,13 +44,13 @@ class AssemblyMetadataService {
         for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
             if (nodeData.assembly_metadata) {
                 const nodeTotalAssemblies = this.calculateTotalAssemblies(nodeData.assembly_metadata.count);
-                
+
                 this.metadata.set(nodeId, {
                     count: nodeData.assembly_metadata.count || {},
                     frequency: nodeData.assembly_metadata.frequency || {},
                     totalAssemblies: nodeTotalAssemblies
                 });
-                
+
                 this.totalAssemblies += nodeTotalAssemblies;
             }
         }
@@ -65,7 +65,7 @@ class AssemblyMetadataService {
      */
     calculateTotalAssemblies(countData) {
         if (!countData?.sex) return 0;
-        
+
         // Sum up all sex counts (should be the same as any other category)
         return Object.values(countData.sex).reduce((sum, count) => sum + count, 0);
     }
@@ -210,7 +210,7 @@ class AssemblyMetadataService {
     getMetadataSummary() {
         const nodesWithMetadata = this.getAllNodesWithMetadata();
         const totalNodes = nodesWithMetadata.length;
-        
+
         if (totalNodes === 0) {
             return {
                 totalNodes: 0,
@@ -361,14 +361,14 @@ class AssemblyMetadataService {
         // Display hierarchical structure
         for (const [superpop, frequency] of Object.entries(superpopFrequencies)) {
             const percentage = (frequency * 100).toFixed(1);
-            
+
             // Skip superpopulations with 0% frequency
             if (frequency === 0 || frequency === null || frequency === undefined || isNaN(frequency)) {
                 continue;
             }
-            
+
             html += `<div class="superpopulation-section">`;
-            html += `<h4 class="superpopulation-title">${getSuperpopulationName(superpop)} ${percentage}%</h4>`;
+            html += `<h5 class="superpopulation-title">${getSuperpopulationName(superpop)} ${percentage}%</h5>`;
 
             // Show constituent populations if they exist
             if (superpopGroups[superpop] && Object.keys(superpopGroups[superpop]).length > 0) {
@@ -395,8 +395,8 @@ class AssemblyMetadataService {
         const populationToSuperpop = {
             // Ad Mixed American populations
             'CLM': 'AMR', 'PUR': 'AMR', 'PEL': 'AMR',
-            // African populations  
-            'ACB': 'AFR', 'GWD': 'AFR', 'ESN': 'AFR', 'MSL': 'AFR', 
+            // African populations
+            'ACB': 'AFR', 'GWD': 'AFR', 'ESN': 'AFR', 'MSL': 'AFR',
             'YRI': 'AFR', 'ASW': 'AFR', 'MKK': 'AFR',
             // East Asian populations
             'CHS': 'EAS', 'KHV': 'EAS',

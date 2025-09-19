@@ -421,6 +421,67 @@ function getHeatmapColorViaColorInterpolation(percentage, lowColor = 'licorice',
 }
 
 /**
+ * Generates a heatmap color by interpolating between two colors in HSL color space
+ * This provides more perceptually uniform color transitions compared to RGB interpolation
+ * @param {string|THREE.Color} lowColor - Name of the color or THREE.Color object for low percentages, defaults to 'licorice'
+ * @param {string|THREE.Color} highColor - Name of the color or THREE.Color object for high percentages, defaults to 'maraschino'
+ * @param {number} percentage - Percentage value between 0 and 1
+ * @returns {THREE.Color} A THREE.Color object representing the interpolated heatmap color
+ */
+function getHeatmapColorHSLInterpolation(lowColor = 'licorice', highColor = 'maraschino', percentage) {
+    // Clamp percentage between 0 and 1
+    const clampedPercentage = Math.max(0, Math.min(1, percentage));
+
+    // Helper function to get THREE.Color from either string name or THREE.Color object
+    const getColor = (colorInput) => {
+        if (colorInput instanceof THREE.Color) {
+            return colorInput.clone();
+        } else if (typeof colorInput === 'string') {
+            return getAppleCrayonColorByName(colorInput);
+        } else {
+            console.warn(`Invalid color input: ${colorInput}, using fallback`);
+            return null;
+        }
+    };
+
+    // Get the two colors to interpolate between
+    const lowColorObj = getColor(lowColor);
+    const highColorObj = getColor(highColor);
+
+    if (!lowColorObj || !highColorObj) {
+        console.warn(`Invalid color inputs, using fallback colors`);
+        const fallbackLow = getAppleCrayonColorByName('licorice') || new THREE.Color(0x000000);
+        const fallbackHigh = getAppleCrayonColorByName('maraschino') || new THREE.Color(0xFF2101);
+        return fallbackLow.clone().lerp(fallbackHigh, clampedPercentage);
+    }
+
+    // Get HSL values for both colors
+    const lowHSL = {};
+    const highHSL = {};
+    lowColorObj.getHSL(lowHSL);
+    highColorObj.getHSL(highHSL);
+
+    // Handle hue interpolation (account for the circular nature of hue)
+    let hueDiff = highHSL.h - lowHSL.h;
+    if (hueDiff > 0.5) {
+        hueDiff -= 1.0; // Take the shorter path around the color wheel
+    } else if (hueDiff < -0.5) {
+        hueDiff += 1.0; // Take the shorter path around the color wheel
+    }
+
+    // Interpolate each HSL component
+    const h = (lowHSL.h + hueDiff * clampedPercentage) % 1.0;
+    const s = lowHSL.s + (highHSL.s - lowHSL.s) * clampedPercentage;
+    const l = lowHSL.l + (highHSL.l - lowHSL.l) * clampedPercentage;
+
+    // Create and return the interpolated color
+    const interpolatedColor = new THREE.Color();
+    interpolatedColor.setHSL(h, s, l);
+
+    return interpolatedColor;
+}
+
+/**
  * Returns a lerped color between two Apple crayon color names
  * @param {string} colorName1 - First Apple crayon color name
  * @param {string} colorName2 - Second Apple crayon color name
@@ -464,6 +525,7 @@ export {
     colorToRGBString,
     getHeatmapColorHSLLightnessVariation,
     getHeatmapColorViaColorInterpolation,
+    getHeatmapColorHSLInterpolation,
     lerpAppleCrayonColors,
     colorComplements
 };

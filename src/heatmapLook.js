@@ -1,5 +1,5 @@
 import Look from "./look.js"
-import {colorComplements, getRandomVibrantAppleCrayonColor, lerpAppleCrayonColors} from "./utils/color.js"
+import {colorComplements, getRandomVibrantAppleCrayonColor, lerpAppleCrayonColors, getHeatmapColorHSLInterpolation} from "./utils/color.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
 
 class HeatmapLook extends Look {
@@ -8,17 +8,17 @@ class HeatmapLook extends Look {
     }
 
     getNodeColor(nodeName) {
-        const {superPopulationFrequencies } = this.genomicService.nodeMetadata.get(nodeName)
-        const lerped = lerpAppleCrayonColors('aqua', colorComplements.get('aqua'), superPopulationFrequencies)
+        const {aggregateSuperpopulationFrequency } = this.genomicService.nodeMetadata.get(nodeName)
+        const lerped = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), aggregateSuperpopulationFrequency)
         return lerped
     }
 
     getEdgeColors(startNode, endNode, edgeKey) {
-        const {superPopulationFrequencies:spf0 } = this.genomicService.nodeMetadata.get(startNode)
-        const {superPopulationFrequencies:spf1 } = this.genomicService.nodeMetadata.get(endNode)
+        const {aggregateSuperpopulationFrequency:f0 } = this.genomicService.nodeMetadata.get(startNode)
+        const {aggregateSuperpopulationFrequency:f1 } = this.genomicService.nodeMetadata.get(endNode)
 
-        const startColor = lerpAppleCrayonColors('aqua', colorComplements.get('aqua'), spf0)
-        const endColor = lerpAppleCrayonColors('aqua', colorComplements.get('aqua'), spf1)
+        const startColor = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), f0)
+        const endColor = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), f1)
 
         return [ startColor, endColor ]
     }
