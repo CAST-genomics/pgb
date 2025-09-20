@@ -41,11 +41,17 @@ class WidgetService {
 
         event.stopPropagation();
 
-        app.setActiveScene('assemblyVisualizationScene', true)
-
-        this.assemblyWidget.onGearClick(event);
-
-        this.setActiveButton(this.assemblyButton);
+        // Toggle behavior: if assembly button is already active, deactivate it
+        if (this.activeButton === this.assemblyButton) {
+            // Inactive state: deactivate button and hide card
+            this.assemblyWidget.hideCard();
+            this.setActiveButton(null);
+        } else {
+            // Active state: switch to assembly visualization scene and show gear
+            app.setActiveScene('assemblyVisualizationScene', true);
+            this.assemblyWidget.onGearClick(event);
+            this.setActiveButton(this.assemblyButton);
+        }
 
     }
 
@@ -53,11 +59,18 @@ class WidgetService {
 
         event.stopPropagation();
 
-        app.setActiveScene('heatmapScene', true)
-
-        this.setActiveButton(this.metadataButton);
-
-        this.assemblyWidget.hideCard();
+        // Toggle behavior: if metadata button is already active, deactivate it
+        if (this.activeButton === this.metadataButton) {
+            // Inactive state: switch to assembly visualization scene
+            app.setActiveScene('assemblyVisualizationScene', true);
+            this.assemblyWidget.hideCard();
+            this.setActiveButton(null);
+        } else {
+            // Active state: switch to heatmap scene
+            app.setActiveScene('heatmapScene', true);
+            this.assemblyWidget.hideCard();
+            this.setActiveButton(this.metadataButton);
+        }
 
     }
 
