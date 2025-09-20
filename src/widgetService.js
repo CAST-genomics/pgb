@@ -25,14 +25,14 @@ class WidgetService {
         buttonContainer.appendChild(this.assemblyButton);
 
         this.assemblyButton.className = 'widget-service__button widget-service__button--assembly';
-        this.assemblyButton.textContent = 'ASSEMBLY';
+        this.assemblyButton.textContent = 'Assembly';
         this.assemblyButton.addEventListener('click', this.onAssemblyButtonClick.bind(this));
 
         this.metadataButton = document.createElement('button');
         buttonContainer.appendChild(this.metadataButton);
 
         this.metadataButton.className = 'widget-service__button widget-service__button--metadata';
-        this.metadataButton.innerHTML = 'SUPER<br>POPULATION';
+        this.metadataButton.innerHTML = 'Super<br>Population';
         this.metadataButton.addEventListener('click', this.onMetadataButtonClick.bind(this));
 
     }

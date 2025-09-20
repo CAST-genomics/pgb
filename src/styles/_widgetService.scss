@@ -46,7 +46,8 @@
     font-weight: 500;
     color: #495057;
     text-align: center;
-
+    font-variant-caps: small-caps;
+    
     &:hover {
       transform: translateY(-1px);
       border-color: #495057;
