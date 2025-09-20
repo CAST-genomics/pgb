@@ -27,8 +27,9 @@ class HeatmapLook extends Look {
         const { nodeName } = nodeObject.userData;
 
         const demographicHTML = assemblyMetadataService.getDemographicBreakdownHTML(nodeName);
+        return demographicHTML;
 
-        return `<div><strong>Node:</strong> ${nodeName}</div>${demographicHTML}`;
+        // return `<div><strong>Node:</strong> ${nodeName}</div>${demographicHTML}`;
     }
 
     static createHeatmapLook(name, config) {
