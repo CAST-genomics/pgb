@@ -255,6 +255,8 @@ class AssemblyWidget {
 
     showCard() {
         this.assemblyWidgetContainer.style.display = '';
+        this.assemblyWidgetContainer.style.top = '0px'
+        this.assemblyWidgetContainer.style.left = '0px'
         setTimeout(() => {
             this.assemblyWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
