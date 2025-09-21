@@ -337,10 +337,10 @@ class AssemblyMetadataService {
             return '<div>No metadata available for this node</div>';
         }
 
-        const superpopFrequencies = nodeData.frequency.superpopulation || {};
+        const superPopFrequencies = nodeData.frequency.superpopulation || {};
         const popFrequencies = nodeData.frequency.population || {};
 
-        if (Object.keys(superpopFrequencies).length === 0) {
+        if (Object.keys(superPopFrequencies).length === 0) {
             return '<div>No demographic data available for this node</div>';
         }
 
@@ -358,24 +358,24 @@ class AssemblyMetadataService {
             }
         }
 
-        // Display hierarchical structure
-        for (const [superpop, frequency] of Object.entries(superpopFrequencies)) {
-            const percentage = (frequency * 100).toFixed(1);
+        // Display hierarchical structure - sort superpopulations by frequency (highest to lowest)
+        const sortedSuperPops = Object.entries(superPopFrequencies)
+            .filter(([_, frequency]) => frequency !== 0 && frequency !== null && frequency !== undefined && !isNaN(frequency))
+            .sort(([, a], [, b]) => b - a); // Sort by frequency descending
 
-            // Skip superpopulations with 0% frequency
-            if (frequency === 0 || frequency === null || frequency === undefined || isNaN(frequency)) {
-                continue;
-            }
-
+        for (const [superPop, superPopFrequency] of sortedSuperPops) {
             html += `<div class="superpopulation-section">`;
-            html += `<h5 class="superpopulation-title">${getSuperpopulationName(superpop)} ${percentage}%</h5>`;
 
-            // Show constituent populations if they exist
-            if (superpopGroups[superpop] && Object.keys(superpopGroups[superpop]).length > 0) {
+            html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${formatNumber(100 * superPopFrequency)}%</span></h5>`;
+
+            // Show constituent populations if they exist - sort by frequency (highest to lowest)
+            if (superpopGroups[superPop] && Object.keys(superpopGroups[superPop]).length > 0) {
                 html += '<ul class="population-list">';
-                for (const [population, popFrequency] of Object.entries(superpopGroups[superpop])) {
-                    const popPercentage = (popFrequency * 100).toFixed(1);
-                    html += `<li class="population-item">${getPopulationName(population)}: ${popPercentage}%</li>`;
+                const sortedPopulations = Object.entries(superpopGroups[superPop])
+                    .sort(([, a], [, b]) => b - a); // Sort by frequency descending
+                
+                for (const [population, popFrequency] of sortedPopulations) {
+                    html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${formatNumber(100 * popFrequency)}%</span></li>`;
                 }
                 html += '</ul>';
             }
@@ -409,6 +409,11 @@ class AssemblyMetadataService {
         return populationToSuperpop[population] || null;
     }
 
+}
+
+function formatNumber(num) {
+    const str = num.toFixed(1);         // always returns "123.0", "123.5", etc.
+    return str.endsWith('.0') ? str.slice(0, -2) : str;
 }
 
 // Create and export the singleton instance

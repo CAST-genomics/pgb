@@ -20,6 +20,18 @@
       font-size: 0.9rem;
       color: #212529;
       padding-bottom: 0.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .title-text {
+        flex: 1;
+      }
+
+      .title-percentage {
+        font-weight: 600;
+        color: #495057;
+      }
     }
 
     .population-list {
@@ -31,9 +43,21 @@
         margin-bottom: 0.25rem;
         font-size: 0.8rem;
         color: #6c757d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
 
         &:last-child {
           margin-bottom: 0;
+        }
+
+        .item-text {
+          flex: 1;
+        }
+
+        .item-percentage {
+          font-weight: 500;
+          color: #495057;
         }
       }
     }
