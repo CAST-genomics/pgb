@@ -58,9 +58,9 @@ class AnnotationRenderService {
 
         const { assembly } = data
 
-        this.assembly = assembly
+        this.assembly = assembly.name
 
-        const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures
+        const { spine } = this.genomicService.assemblyWalkMap.get(this.assembly).spineFeatures
         const { nodes, edges } = spine
 
         this.bpIndex = buildBpIndex(spine);
@@ -85,7 +85,7 @@ class AnnotationRenderService {
             this.splineParameterMap.set(node.id, {startParam, endParam})
         }
 
-        const [ genomeId, haplotype, sequence_id ] = assembly.split('#')
+        const [ genomeId, haplotype, sequence_id ] = this.assembly.split('#')
         const result = await app.genomeLibrary.getGenomePayload(genomeId)
 
         if (undefined === result) {

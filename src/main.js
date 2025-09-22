@@ -44,17 +44,17 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     // Scene Manager and Look Manager
     const sceneManager = new SceneManager(new LookManager())
 
+    const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
+
     // AssemblyVisualizationLook
-    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager })
+    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
     sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
     // Heatmap Look
-    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', {genomicService, geometryManager})
+    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', {genomicService, geometryManager, assemblyWidget})
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
-
-    const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
 
     widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget);
 

@@ -218,7 +218,10 @@
   margin-bottom: 0;
 }
 .demographic-breakdown .superpopulation-section .superpopulation-title {
-  margin: 0 0 0.5rem 0;
+  margin-top: 0;
+  margin-right: 0;
+  margin-bottom: 0.125rem;
+  margin-left: 0;
   font-size: 0.9rem;
   padding-bottom: 0.125rem;
   display: flex;
@@ -232,6 +235,7 @@
   margin: 0;
   padding-left: 1.25rem;
   list-style-type: disc;
+  min-width: fit-content;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item {
   margin-bottom: 0.125rem;
@@ -239,13 +243,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-width: fit-content;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item:last-child {
   margin-bottom: 0;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item .item-text {
-  flex: 1;
+  flex: 0 1 auto;
+  margin-right: 0.75rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
+.demographic-breakdown .superpopulation-section .population-list .population-item .item-percentage {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .look-tooltip {
   padding: 0.75rem;
   font-size: 0.875rem;
