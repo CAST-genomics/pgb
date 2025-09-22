@@ -56,7 +56,13 @@ class App {
 
         this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
         const scene = this.sceneManager.getActiveScene()
-        scene.add(this.raycastService.setupVisualFeedback())
+
+        // Only add visual feedback if it's not already present
+        const existingVisualFeedback = scene.getObjectByName(this.raycastService.getVisualFeedbackName())
+        if (!existingVisualFeedback) {
+            console.log(`Add RaycastService Visual Feedback to Scene ${ this.sceneManager.getActiveSceneName() }`)
+            scene.add(this.raycastService.setupVisualFeedback())
+        }
 
         if (doPauseAnimation) {
             this.startAnimation()

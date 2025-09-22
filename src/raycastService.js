@@ -7,6 +7,7 @@ import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 
 class RayCastService {
 
+    static VISUAL_FEEDBACK_NAME = 'VisualFeedback'
     static VISUAL_FEEDBACK_PIXELSIZE = 6
     static MOUSE_MOVEMENT_THRESHOLD = 5;
 
@@ -182,10 +183,14 @@ class RayCastService {
         const material = new THREE.MeshBasicMaterial({ color, transparent: true, depthTest: false })
         const geometry = new THREE.SphereGeometry(1, 32, 16)
         const sphere = new THREE.Mesh(geometry, material)
-        sphere.name = 'raycastVisualFeedback'
+        sphere.name = RayCastService.VISUAL_FEEDBACK_NAME
         sphere.visible = false
         sphere.renderOrder = 10
         return sphere
+    }
+
+    getVisualFeedbackName(){
+        return RayCastService.VISUAL_FEEDBACK_NAME
     }
 
     showVisualFeedback(pointOnLine, visualFeedbackColor) {
