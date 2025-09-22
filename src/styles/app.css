@@ -220,8 +220,7 @@
 .demographic-breakdown .superpopulation-section .superpopulation-title {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
-  color: #212529;
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.125rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -229,19 +228,14 @@
 .demographic-breakdown .superpopulation-section .superpopulation-title .title-text {
   flex: 1;
 }
-.demographic-breakdown .superpopulation-section .superpopulation-title .title-percentage {
-  font-weight: 600;
-  color: #495057;
-}
 .demographic-breakdown .superpopulation-section .population-list {
   margin: 0;
   padding-left: 1.25rem;
   list-style-type: disc;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
   font-size: 0.8rem;
-  color: #6c757d;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -252,11 +246,6 @@
 .demographic-breakdown .superpopulation-section .population-list .population-item .item-text {
   flex: 1;
 }
-.demographic-breakdown .superpopulation-section .population-list .population-item .item-percentage {
-  font-weight: 500;
-  color: #495057;
-}
-
 .look-tooltip {
   padding: 0.75rem;
   font-size: 0.875rem;

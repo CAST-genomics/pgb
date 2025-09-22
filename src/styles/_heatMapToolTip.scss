@@ -2,13 +2,16 @@
 // Used by AssemblyMetadataService.getDemographicBreakdownHTML()
 
 .demographic-breakdown {
+
   padding: 0.75rem;
+
   font-size: 0.875rem;
   font-variant-caps: small-caps;
   line-height: 1.4;
   color: #495057;
 
   .superpopulation-section {
+
     margin-bottom: 1rem;
 
     &:last-child {
@@ -16,10 +19,12 @@
     }
 
     .superpopulation-title {
-      margin: 0 0 0.5rem 0;
+      margin-top: 0;
+      margin-right: 0;
+      margin-bottom: 0.125rem;
+      margin-left: 0;
       font-size: 0.9rem;
-      color: #212529;
-      padding-bottom: 0.25rem;
+      padding-bottom: 0.125rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -29,8 +34,6 @@
       }
 
       .title-percentage {
-        font-weight: 600;
-        color: #495057;
       }
     }
 
@@ -38,26 +41,30 @@
       margin: 0;
       padding-left: 1.25rem;
       list-style-type: disc;
+      min-width: fit-content;
 
       .population-item {
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.125rem;
         font-size: 0.8rem;
-        color: #6c757d;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        min-width: fit-content;
 
         &:last-child {
           margin-bottom: 0;
         }
 
         .item-text {
-          flex: 1;
+          flex: 0 1 auto;
+          margin-right: 0.75rem;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
 
         .item-percentage {
-          font-weight: 500;
-          color: #495057;
+          flex: 0 0 auto;
+          white-space: nowrap;
         }
       }
     }

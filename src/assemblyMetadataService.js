@@ -412,6 +412,9 @@ class AssemblyMetadataService {
 }
 
 function formatNumber(num) {
+    if (num < 0.1){
+        return '< 0.1'
+    }
     const str = num.toFixed(1);         // always returns "123.0", "123.5", etc.
     return str.endsWith('.0') ? str.slice(0, -2) : str;
 }
