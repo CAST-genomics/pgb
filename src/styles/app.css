@@ -298,4 +298,46 @@
   color: transparent;
 }
 
+.edge-tooltip {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #495057;
+}
+.edge-tooltip .edge-section {
+  margin-bottom: 1rem;
+}
+.edge-tooltip .edge-section:last-child {
+  margin-bottom: 0;
+}
+.edge-tooltip .edge-section .edge-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #212529;
+  padding-bottom: 0.25rem;
+  font-weight: 600;
+}
+.edge-tooltip .edge-section .edge-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+.edge-tooltip .edge-section .edge-details-table .edge-detail-row .edge-detail-label {
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  font-size: 0.8rem;
+  color: #212529;
+  font-weight: 500;
+  text-align: left;
+  vertical-align: top;
+  width: 30%;
+}
+.edge-tooltip .edge-section .edge-details-table .edge-detail-row .edge-detail-value {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-align: left;
+  vertical-align: top;
+  width: 70%;
+}
+
 /*# sourceMappingURL=app.css.map */
