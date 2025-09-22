@@ -334,7 +334,7 @@ class AssemblyVisualizationLook extends Look {
         // Subscribe to assembly interaction events
         this.deemphasizeUnsub = eventBus.subscribe('assembly:emphasis', data => {
             const { assembly, nodeSet, edgeSet } = data
-            this.setNodeAndEdgeEmphasis(assembly, nodeSet, edgeSet);
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet);
         });
 
         this.restoreUnsub = eventBus.subscribe('assembly:normal', data => {

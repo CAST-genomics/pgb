@@ -5,6 +5,7 @@ import ParametricLine from "./parametricLine.js"
 import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import GenomicService from "./genomicService.js"
+import indexedFasta from "./igvCore/genome/indexedFasta.js"
 
 class Look {
 
@@ -21,6 +22,7 @@ class Look {
 
         this.genomicService = config.genomicService
         this.geometryManager = config.geometryManager
+        this.assemblyWidget = config.assemblyWidget; // Access to assembly widget for selected assembly info
 
         this.behaviors = config.behaviors || {};
         this.zOffset = config.zOffset || 0;
@@ -160,12 +162,28 @@ class Look {
         const { nodeName } = nodeObject.userData;
         const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
         const raw = GenomicService.getRayAssemblyNames(assemblies)
-        
+
+        // Get selected assembly info if available
+        const selectedAssembly = this.assemblyWidget?.selectedAssembly;
+
         // Create table rows with 4 columns
         const tableRows = [];
         for (let i = 0; i < raw.length; i += 4) {
             const row = raw.slice(i, i + 4);
-            let cells = row.map(assembly => `<td class="assembly-cell">${assembly}</td>`).join('');
+            let cells = row.map(assembly => {
+
+                let isSelected
+                if (selectedAssembly) {
+                    const rawAssemblyName = selectedAssembly.name.split('#')[ 0 ]
+                    isSelected = selectedAssembly && assembly === rawAssemblyName
+                } else {
+                    isSelected = false
+                }
+
+                const colorStyle = true === isSelected ? `style="color: ${selectedAssembly.color}; font-weight: bold;"` : ''
+
+                return `<td class="assembly-cell" ${colorStyle}>${assembly}</td>`;
+            }).join('');
             // Pad with empty cells if needed
             while (row.length < 4) {
                 cells += '<td class="assembly-cell empty"></td>';
@@ -173,7 +191,7 @@ class Look {
             }
             tableRows.push(`<tr>${cells}</tr>`);
         }
-        
+
         return `<div class="look-tooltip">
             <div class="node-section">
                 <!-- <div class="node-title">Node: ${nodeName}</div> -->

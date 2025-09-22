@@ -75,6 +75,8 @@
 .assembly-widget__card .card-body .assembly-widget__list-container {
   height: calc(100% - 70px);
   overflow-y: auto;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 .assembly-widget__genome-selector {
   width: 24px;
@@ -216,10 +218,12 @@
   margin-bottom: 0;
 }
 .demographic-breakdown .superpopulation-section .superpopulation-title {
-  margin: 0 0 0.5rem 0;
+  margin-top: 0;
+  margin-right: 0;
+  margin-bottom: 0.125rem;
+  margin-left: 0;
   font-size: 0.9rem;
-  color: #212529;
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.125rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -227,38 +231,37 @@
 .demographic-breakdown .superpopulation-section .superpopulation-title .title-text {
   flex: 1;
 }
-.demographic-breakdown .superpopulation-section .superpopulation-title .title-percentage {
-  font-weight: 600;
-  color: #495057;
-}
 .demographic-breakdown .superpopulation-section .population-list {
   margin: 0;
   padding-left: 1.25rem;
   list-style-type: disc;
+  min-width: fit-content;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
   font-size: 0.8rem;
-  color: #6c757d;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-width: fit-content;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item:last-child {
   margin-bottom: 0;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item .item-text {
-  flex: 1;
+  flex: 0 1 auto;
+  margin-right: 0.75rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 .demographic-breakdown .superpopulation-section .population-list .population-item .item-percentage {
-  font-weight: 500;
-  color: #495057;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .look-tooltip {
   padding: 0.75rem;
   font-size: 0.875rem;
-  font-variant-caps: small-caps;
   line-height: 1.4;
   color: #495057;
 }
@@ -273,13 +276,11 @@
   font-size: 0.9rem;
   color: #212529;
   padding-bottom: 0.25rem;
-  font-weight: 600;
 }
 .look-tooltip .node-section .assembly-table-container .assembly-table-title {
   margin: 0 0 0.5rem 0;
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   color: #212529;
-  font-weight: 500;
 }
 .look-tooltip .node-section .assembly-table-container .assembly-table {
   width: 100%;
@@ -287,9 +288,11 @@
   margin: 0;
 }
 .look-tooltip .node-section .assembly-table-container .assembly-table .assembly-cell {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  color: #6c757d;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.8rem;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: #212529;
   text-align: left;
   border: none;
   vertical-align: top;

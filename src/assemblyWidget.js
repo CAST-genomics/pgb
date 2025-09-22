@@ -28,7 +28,7 @@ class AssemblyWidget {
             }
         })
 
-        this.selectedAssemblies = new Set()
+        this.selectedAssembly = null; // Track selected assembly as { name, color } object
         this.allAssemblyItems = new Map(); // Store all items for filtering
 
         this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS; // Default to subgraph emphasis
@@ -82,21 +82,16 @@ class AssemblyWidget {
     async onAssemblySelectorClick(assembly, event) {
         event.stopPropagation();
 
-        if (this.selectedAssemblies.has(assembly)) {
-
+        if (this.selectedAssembly && this.selectedAssembly.name === assembly) {
             // Deselect current assembly selector
-            this.selectedAssemblies.delete(assembly);
+            this.selectedAssembly = null;
 
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
             const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
             eventBus.publish('assembly:normal', { nodeSet, edgeSet })
         } else {
-
-            // Deselect previous assembly selector. Select new assembly selector
-            if (this.selectedAssemblies.size > 0) {
-                const previousAssembly = [...this.selectedAssemblies][0];
-                this.selectedAssemblies.delete(previousAssembly);
-
+            // Deselect previous assembly selector if one exists
+            if (this.selectedAssembly !== null) {
                 const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
                 const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
                 eventBus.publish('assembly:normal', { nodeSet, edgeSet })
@@ -104,37 +99,36 @@ class AssemblyWidget {
 
             console.log(`selected ${ assembly }`)
 
-            // Select new genome
-            this.selectedAssemblies.add(assembly);
+            // Select new genome and store its name and color
+            this.selectedAssembly =
+                {
+                    name: assembly,
+                    color: colorToRGBString(this.genomicService.assemblyColors.get(assembly))
+                };
             event.target.style.border = '2px solid #000';
             event.target.style.transform = 'scale(1.5)'
 
-            // const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures
-            // const { nodes, edges } = spine
-            // const nodeSet = new Set([ ...(nodes.map(({ id }) => id)) ])
-            // const edgeSet = new Set([ ...edges ])
-
-            this.emphasizeAssembly(assembly);
+            this.emphasizeAssembly(this.selectedAssembly);
         }
     }
 
-    emphasizeAssembly(assembly) {
+    emphasizeAssembly(selectedAssembly) {
         let nodeSet, edgeSet;
 
         if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
             // Use spine features data
-            const { spine } = this.genomicService.assemblyWalkMap.get(assembly).spineFeatures;
+            const { spine } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).spineFeatures;
             const { nodes, edges } = spine;
             nodeSet = new Set([...(nodes.map(({ id }) => id))]);
             edgeSet = new Set([...edges]);
         } else {
             // Use assembly subgraph data (default)
-            const { nodes, edges } = this.genomicService.assemblyWalkMap.get(assembly).assemblySubgraph;
+            const { nodes, edges } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).assemblySubgraph;
             nodeSet = new Set([...nodes]);
             edgeSet = new Set([...edges]);
         }
 
-        eventBus.publish('assembly:emphasis', { assembly, nodeSet, edgeSet });
+        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, edgeSet });
     }
 
     initializeSearchInput() {
@@ -228,9 +222,8 @@ class AssemblyWidget {
         this.updateModeLabel();
 
         // If there's a currently selected assembly, re-emphasize it with the new mode
-        if (this.selectedAssemblies.size > 0) {
-            const selectedAssembly = [...this.selectedAssemblies][0];
-            this.emphasizeAssembly(selectedAssembly);
+        if (this.selectedAssembly !== null) {
+            this.emphasizeAssembly(this.selectedAssembly.name);
         }
     }
 
