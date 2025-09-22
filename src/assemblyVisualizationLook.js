@@ -6,7 +6,6 @@ import materialService from './materialService.js';
 import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
-import { assemblyWidget } from "./main.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 
 class AssemblyVisualizationLook extends Look {
@@ -236,15 +235,6 @@ class AssemblyVisualizationLook extends Look {
 
     isAnimationEnabled() {
         return this.edgeArrowAnimationState.enabled;
-    }
-
-    _createNodeTooltipContent(nodeObject) {
-        const { nodeName } = nodeObject.userData;
-        const nativeAssemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
-        const set = new Set([ ...nativeAssemblies ])
-        const onlySelectedAssembles = [ ...set].filter(assembly => assemblyWidget.selectedAssemblies.has(assembly))
-        const str = onlySelectedAssembles.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
-        return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
     }
 
     #updateEdgeAnimation(edgeMeshesGroup) {

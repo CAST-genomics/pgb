@@ -1,0 +1,54 @@
+// Look Tooltip Styles
+// Used by Look.createNodeTooltipContent()
+
+.look-tooltip {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-variant-caps: small-caps;
+  line-height: 1.4;
+  color: #495057;
+
+  .node-section {
+    margin-bottom: 1rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .node-title {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.9rem;
+      color: #212529;
+      padding-bottom: 0.25rem;
+      font-weight: 600;
+    }
+
+    .assembly-table-container {
+      .assembly-table-title {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.95rem;
+        color: #212529;
+        font-weight: 500;
+      }
+
+      .assembly-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+
+        .assembly-cell {
+          padding: 0.25rem 0.5rem;
+          font-size: 0.75rem;
+          color: #6c757d;
+          text-align: left;
+          border: none;
+          vertical-align: top;
+
+          &.empty {
+            color: transparent;
+          }
+        }
+      }
+    }
+  }
+}

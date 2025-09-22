@@ -3,7 +3,7 @@ import LocusInput from "./locusInput.js"
 import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
-import pangenomeResource from "./pangenomeResource.js"
+import { assemblyMetadataService } from "./assemblyMetadataService.js"
 
 class GenomicService {
 
@@ -16,7 +16,9 @@ class GenomicService {
         this.startNode = undefined
     }
 
-    async initialize(json, pangenomeService, genomeLibrary, geometryManager, raycastService) {
+    async initialize(json, pangenomeService) {
+
+        assemblyMetadataService.loadMetadata(json)
 
         const { locus:locusString, node:nodes, sequence:sequences } = json
 
@@ -38,10 +40,10 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            const assemblyNames = assembly.map(({ assembly_name }) => assembly_name)
-            const superPopulationPercentage = pangenomeResource.getNodeSuperpopulationDiversityPercentage(assemblyNames, locusInput.version)
+            const frequencies = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
 
-            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], superPopulationPercentage });
+            const aggregateSuperpopulationFrequency = (Object.values(frequencies).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(frequencies).length)
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], aggregateSuperpopulationFrequency });
 
         }
 

@@ -1,89 +1,75 @@
 import { app } from "./main.js"
 
 class WidgetService {
-
-    constructor(containerElement, assemblyWidget, metadataWidget) {
+    constructor(containerElement, assemblyWidget) {
 
         this.containerElement = containerElement;
-
         this.assemblyWidget = assemblyWidget;
-        this.assemblyWidget.widgetService = this
-
-        this.metadataWidget = metadataWidget;
-        this.metadataWidget.widgetService = this
 
         this.assemblyButton = null;
         this.metadataButton = null;
-        this.activeButton = null;
 
-        this.initializeButtons();
+        this.activeButton = null
+
+        this.createButtons();
     }
 
-    initializeButtons() {
-        // Create the round-rect container
+    createButtons() {
+
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'widget-service__button-container';
+        this.containerElement.innerHTML = '';
+        this.containerElement.appendChild(buttonContainer);
 
-        // Create Assembly button
         this.assemblyButton = document.createElement('button');
+        buttonContainer.appendChild(this.assemblyButton);
+
         this.assemblyButton.className = 'widget-service__button widget-service__button--assembly';
         this.assemblyButton.textContent = 'Assembly';
         this.assemblyButton.addEventListener('click', this.onAssemblyButtonClick.bind(this));
 
-        // Create Metadata button
         this.metadataButton = document.createElement('button');
-        this.metadataButton.className = 'widget-service__button widget-service__button--metadata';
-        this.metadataButton.textContent = 'Metadata';
-        this.metadataButton.addEventListener('click', this.onMetadataButtonClick.bind(this));
-
-        // Append buttons to container
-        buttonContainer.appendChild(this.assemblyButton);
         buttonContainer.appendChild(this.metadataButton);
 
-        // Replace the existing gear button container
-        this.containerElement.innerHTML = '';
-        this.containerElement.appendChild(buttonContainer);
+        this.metadataButton.className = 'widget-service__button widget-service__button--metadata';
+        this.metadataButton.innerHTML = 'Super<br>Population';
+        this.metadataButton.addEventListener('click', this.onMetadataButtonClick.bind(this));
+
     }
 
     onAssemblyButtonClick(event) {
 
         event.stopPropagation();
 
-        this.setActiveButton(this.assemblyButton);
-
-        this.metadataWidget.hideCard()
-
-        if (this.assemblyWidget.assemblyWidgetContainer.classList.contains('show')) {
+        // Toggle behavior: if assembly button is already active, deactivate it
+        if (this.activeButton === this.assemblyButton) {
+            // Inactive state: deactivate button and hide card
             this.assemblyWidget.hideCard();
-
-            if (false === this.assemblyWidget.isActive()) {
-                this.activeButton.classList.remove('widget-service__button--active');
-                this.activeButton = null
-            }
+            this.setActiveButton(null);
         } else {
-            this.assemblyWidget.showCard();
+            // Active state: switch to assembly visualization scene and show gear
+            app.setActiveScene('assemblyVisualizationScene', true);
+            this.assemblyWidget.onGearClick(event);
+            this.setActiveButton(this.assemblyButton);
         }
 
     }
 
     onMetadataButtonClick(event) {
 
-        event.stopPropagation()
+        event.stopPropagation();
 
-        this.setActiveButton(this.metadataButton);
-
-        this.assemblyWidget.hideCard()
-
-        if (this.metadataWidget.metadataWidgetContainer.classList.contains('show')) {
-            this.metadataWidget.hideCard();
-
-            if (false === this.metadataWidget.isActive()) {
-                this.activeButton.classList.remove('widget-service__button--active');
-                this.activeButton = null
-            }
-
+        // Toggle behavior: if metadata button is already active, deactivate it
+        if (this.activeButton === this.metadataButton) {
+            // Inactive state: switch to assembly visualization scene
+            app.setActiveScene('assemblyVisualizationScene', true);
+            this.assemblyWidget.hideCard();
+            this.setActiveButton(null);
         } else {
-            this.metadataWidget.showCard();
+            // Active state: switch to heatmap scene
+            app.setActiveScene('heatmapScene', true);
+            this.assemblyWidget.hideCard();
+            this.setActiveButton(this.metadataButton);
         }
 
     }
@@ -95,28 +81,56 @@ class WidgetService {
         }
 
         this.activeButton = button;
-        button.classList.add('widget-service__button--active')
-
+        if (button) {
+            button.classList.add('widget-service__button--active');
+        }
     }
 
-    setWidgetInactive(buttonType) {
+    reset(){
+
+        if (this.activeButton) {
+            this.activeButton.classList.remove('widget-service__button--active');
+            this.activeButton = null
+        }
+
+        this.assemblyWidget.hideCard()
+        this.assemblyWidget.configure()
+    }
+
+    getActiveButton() {
+        return this.activeButton;
+    }
+
+    getActiveButtonType() {
+        if (this.activeButton === this.assemblyButton) {
+            return 'assembly';
+        } else if (this.activeButton === this.metadataButton) {
+            return 'metadata';
+        }
+        return null;
+    }
+
+    setButtonActive(buttonType) {
+        let targetButton = null;
 
         switch (buttonType.toLowerCase()) {
             case 'assembly':
-                this.assemblyWidget.setInactive()
+                targetButton = this.assemblyButton;
                 break;
             case 'metadata':
-                this.metadataWidget.setInactive()
+                targetButton = this.metadataButton;
                 break;
             case 'none':
-                this.assemblyWidget.setInactive()
-                this.metadataWidget.setInactive()
+            case null:
+            case undefined:
+                targetButton = null;
                 break;
             default:
                 console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'metadata', or 'none'`);
                 return;
         }
 
+        this.setActiveButton(targetButton);
     }
 
     destroy() {

@@ -4,13 +4,11 @@
     position: absolute;
     background: colors.$snow;
     color: colors.$licorice;
-    padding: 8px 12px;
     border-radius: 4px;
-    font-size: 12px;
-    font-family: monospace;
+    //font-family: monospace;
     pointer-events: none;
     z-index: 1000;
     display: none;
     white-space: nowrap;
     border: 1px solid colors.$magnesium;
-} 
+}

@@ -12,7 +12,7 @@ import materialService from './materialService.js'
 
 class App {
 
-    constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, assemblyWidget, genomeLibrary, sceneManager) {
+    constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager) {
         this.container = container
 
         this.renderer = RendererFactory.createRenderer(container)
@@ -22,7 +22,7 @@ class App {
         this.pangenomeService = pangenomeService
         this.genomicService = genomicService
         this.geometryManager = geometryManager
-        this.assemblyWidget = assemblyWidget
+        this.widgetService = widgetService
         this.genomeLibrary = genomeLibrary
         this.sceneManager = sceneManager
 
@@ -163,7 +163,9 @@ class App {
 
         this.pangenomeService.loadData(json)
 
-        await this.genomicService.initialize(json, this.pangenomeService, this.genomeLibrary, this.geometryManager, this.raycastService)
+        await this.genomicService.initialize(json, this.pangenomeService)
+
+        this.widgetService.reset()
 
         this.geometryManager.createGeometry(json)
 
@@ -175,8 +177,6 @@ class App {
 
         const scene = this.sceneManager.getActiveScene()
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
-
-        this.assemblyWidget.configure()
 
         this.startAnimation()
     }
@@ -292,9 +292,25 @@ class App {
                 // Default edge tooltip content
                 const { nodeNameStart, nodeNameEnd, geometryKey } = object.userData;
                 content = `
-                <div><strong>Key:</strong> ${geometryKey}</div>
-                <div><strong>Start Node:</strong> ${nodeNameStart}</div>
-                <div><strong>End Node:</strong> ${nodeNameEnd}</div>`;
+                <div class="edge-tooltip">
+                    <div class="edge-section">
+                        <div class="edge-title">Edge Details</div>
+                        <table class="edge-details-table">
+                            <tr class="edge-detail-row">
+                                <td class="edge-detail-label">Key:</td>
+                                <td class="edge-detail-value">${geometryKey}</td>
+                            </tr>
+                            <tr class="edge-detail-row">
+                                <td class="edge-detail-label">Start Node:</td>
+                                <td class="edge-detail-value">${nodeNameStart}</td>
+                            </tr>
+                            <tr class="edge-detail-row">
+                                <td class="edge-detail-label">End Node:</td>
+                                <td class="edge-detail-value">${nodeNameEnd}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>`;
             } else if (type === 'node') {
                 // Only use custom tooltip content if the look is active
                 if (look && look.isActive) {

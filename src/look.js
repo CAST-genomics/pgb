@@ -160,8 +160,31 @@ class Look {
         const { nodeName } = nodeObject.userData;
         const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
         const raw = GenomicService.getRayAssemblyNames(assemblies)
-        const str = raw.map(assembly => `<div><strong>Assembly:</strong> ${assembly}</div>`)
-        return `<div><strong>Node:</strong> ${nodeName}</div>${ str.join('') }`
+        
+        // Create table rows with 4 columns
+        const tableRows = [];
+        for (let i = 0; i < raw.length; i += 4) {
+            const row = raw.slice(i, i + 4);
+            let cells = row.map(assembly => `<td class="assembly-cell">${assembly}</td>`).join('');
+            // Pad with empty cells if needed
+            while (row.length < 4) {
+                cells += '<td class="assembly-cell empty"></td>';
+                row.push('');
+            }
+            tableRows.push(`<tr>${cells}</tr>`);
+        }
+        
+        return `<div class="look-tooltip">
+            <div class="node-section">
+                <!-- <div class="node-title">Node: ${nodeName}</div> -->
+                <div class="assembly-table-container">
+                    <div class="assembly-table-title">Assemblies</div>
+                    <table class="assembly-table">
+                        ${tableRows.join('')}
+                    </table>
+                </div>
+            </div>
+        </div>`
     }
 
     dispose() {

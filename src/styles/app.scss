@@ -3,4 +3,7 @@
 @use 'assemblyWidget';
 @use 'metadataWidget';
 @use 'widgetService';
-@use 'graphTooltip';
+@use 'toolTipContainer';
+@use 'heatMapToolTip';
+@use 'lookToolTip';
+@use 'edgeToolTip';
