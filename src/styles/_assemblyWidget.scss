@@ -19,6 +19,12 @@
       pointer-events: auto;
     }
 
+    .card-header {
+      .card-title {
+        //font-variant-caps: small-caps;
+      }
+    }
+
     .card-body {
       height: calc(100% - 120px);
       padding: 0;
@@ -27,6 +33,10 @@
       .assembly-widget__list-container {
         height: calc(100% - 70px); // Account for search box height
         overflow-y: auto;
+
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums slashed-zero;
+
       }
     }
   }

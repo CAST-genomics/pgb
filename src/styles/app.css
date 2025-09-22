@@ -75,6 +75,8 @@
 .assembly-widget__card .card-body .assembly-widget__list-container {
   height: calc(100% - 70px);
   overflow-y: auto;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 .assembly-widget__genome-selector {
   width: 24px;
