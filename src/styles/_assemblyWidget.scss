@@ -19,12 +19,6 @@
       pointer-events: auto;
     }
 
-    .card-header {
-      .card-title {
-        //font-variant-caps: small-caps;
-      }
-    }
-
     .card-body {
       height: calc(100% - 120px);
       padding: 0;
@@ -81,5 +75,16 @@
     &:hover {
       color: #495057;
     }
+  }
+
+  &__assembly-name {
+    font-weight: 500;
+    // color: #212529;
+  }
+
+  &__assembly-haplotype {
+    font-size: 0.875rem;
+    font-weight: 400;
+    // color: #6c757d;
   }
 }

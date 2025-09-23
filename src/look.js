@@ -5,7 +5,6 @@ import ParametricLine from "./parametricLine.js"
 import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import GenomicService from "./genomicService.js"
-import indexedFasta from "./igvCore/genome/indexedFasta.js"
 
 class Look {
 
@@ -161,21 +160,40 @@ class Look {
     createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData;
         const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
-        const raw = GenomicService.getRayAssemblyNames(assemblies)
 
-        // Get selected assembly info if available
+        // Group assemblies by assembly name, then sort within each group by haplotype
+        const assemblyGroups = {};
+        assemblies.forEach(assembly => {
+            const parts = assembly.split('#');
+            const assemblyName = parts[0];
+            if (!assemblyGroups[assemblyName]) {
+                assemblyGroups[assemblyName] = [];
+            }
+            assemblyGroups[assemblyName].push(assembly);
+        });
+
+        // Sort each group by haplotype and flatten into a single array
+        const sortedAssemblies = Object.keys(assemblyGroups)
+            .sort() // Sort assembly names alphabetically
+            .flatMap(assemblyName => 
+                assemblyGroups[assemblyName].sort((a, b) => {
+                    const haplotypeA = a.split('#')[1];
+                    const haplotypeB = b.split('#')[1];
+                    return haplotypeA.localeCompare(haplotypeB);
+                })
+            );
+
         const selectedAssembly = this.assemblyWidget?.selectedAssembly;
 
         // Create table rows with 4 columns
         const tableRows = [];
-        for (let i = 0; i < raw.length; i += 4) {
-            const row = raw.slice(i, i + 4);
+        for (let i = 0; i < sortedAssemblies.length; i += 4) {
+            const row = sortedAssemblies.slice(i, i + 4);
             let cells = row.map(assembly => {
 
                 let isSelected
                 if (selectedAssembly) {
-                    const rawAssemblyName = selectedAssembly.name.split('#')[ 0 ]
-                    isSelected = selectedAssembly && assembly === rawAssemblyName
+                    isSelected = selectedAssembly && assembly === selectedAssembly.name
                 } else {
                     isSelected = false
                 }
@@ -184,6 +202,7 @@ class Look {
 
                 return `<td class="assembly-cell" ${colorStyle}>${assembly}</td>`;
             }).join('');
+
             // Pad with empty cells if needed
             while (row.length < 4) {
                 cells += '<td class="assembly-cell empty"></td>';

@@ -1,6 +1,7 @@
 import { Draggable } from './utils/draggable.js';
 import { colorToRGBString } from './utils/color.js';
 import eventBus from './utils/eventBus.js';
+import GenomicService from "./genomicService.js"
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
@@ -61,6 +62,8 @@ class AssemblyWidget {
 
         // assembly selector
         const assemblySelector = document.createElement('div');
+        container.appendChild(assemblySelector);
+
         assemblySelector.className = 'assembly-widget__genome-selector';
         assemblySelector.style.backgroundColor = colorToRGBString(color);
         assemblySelector.dataset.assembly = assembly;  // Use data attribute instead of direct property
@@ -68,13 +71,26 @@ class AssemblyWidget {
         const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, assembly);
         assemblySelector.onAssemblySelectorClick = onAssemblySelectorClick;
         assemblySelector.addEventListener('click', onAssemblySelectorClick);
-        container.appendChild(assemblySelector);
 
+        // assembly name and haplotype container
+        const labelContainer = document.createElement('div');
+        container.appendChild(labelContainer);
+        labelContainer.className = 'flex-grow-1 d-flex justify-content-end align-items-center gap-2';
+
+        const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(assembly);
+        
         // assembly name
-        const label = document.createElement('span');
-        label.className = 'flex-grow-1';
-        label.textContent = assembly;
-        container.appendChild(label);
+        const nameLabel = document.createElement('span');
+        labelContainer.appendChild(nameLabel);
+        nameLabel.textContent = assemblyName;
+        nameLabel.className = 'assembly-widget__assembly-name';
+        
+        // haplotype
+        const haplotypeLabel = document.createElement('span');
+        labelContainer.appendChild(haplotypeLabel);
+        haplotypeLabel.textContent = haplotype;
+        haplotypeLabel.className = 'assembly-widget__assembly-haplotype';
+
 
         return container;
     }

@@ -37,12 +37,15 @@
         margin: 0;
 
         .assembly-cell {
-          padding: 0.125rem 0.25rem;
+          padding-top: 0.0625rem;
+          padding-right: 0.25rem;
+          padding-bottom: 0.0625rem;
+          padding-left: 0.25rem;
           font-size: 0.80rem;
           font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
           font-variant-numeric: tabular-nums slashed-zero;
           color: #212529;
-          text-align: left;
+          text-align: right;
           border: none;
           vertical-align: top;
 
