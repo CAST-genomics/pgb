@@ -175,7 +175,7 @@ class Look {
         // Sort each group by haplotype and flatten into a single array
         const sortedAssemblies = Object.keys(assemblyGroups)
             .sort() // Sort assembly names alphabetically
-            .flatMap(assemblyName => 
+            .flatMap(assemblyName =>
                 assemblyGroups[assemblyName].sort((a, b) => {
                     const haplotypeA = a.split('#')[1];
                     const haplotypeB = b.split('#')[1];
@@ -200,7 +200,11 @@ class Look {
 
                 const colorStyle = true === isSelected ? `style="color: ${selectedAssembly.color}; font-weight: bold;"` : ''
 
-                return `<td class="assembly-cell" ${colorStyle}>${assembly}</td>`;
+                const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(assembly);
+
+                // HG00438&thinsp;&middot;&thinsp;h2
+                const str = `${assemblyName}&middot;hap${haplotype}`
+                return `<td class="assembly-cell" ${colorStyle}>${str}</td>`;
             }).join('');
 
             // Pad with empty cells if needed

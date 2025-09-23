@@ -78,17 +78,17 @@ class AssemblyWidget {
         labelContainer.className = 'flex-grow-1 d-flex justify-content-end align-items-center gap-2';
 
         const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(assembly);
-        
+
         // assembly name
         const nameLabel = document.createElement('span');
         labelContainer.appendChild(nameLabel);
         nameLabel.textContent = assemblyName;
         nameLabel.className = 'assembly-widget__assembly-name';
-        
+
         // haplotype
         const haplotypeLabel = document.createElement('span');
         labelContainer.appendChild(haplotypeLabel);
-        haplotypeLabel.textContent = haplotype;
+        haplotypeLabel.textContent = `hap${haplotype}`;
         haplotypeLabel.className = 'assembly-widget__assembly-haplotype';
 
 

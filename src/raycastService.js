@@ -203,7 +203,11 @@ class RayCastService {
     }
 
     clearVisualFeedback() {
-        this.raycastVisualFeedback.visible = false;
+
+        if (this.raycastVisualFeedback){
+            this.raycastVisualFeedback.visible = false;
+        }
+
     }
 
     handleIntersection(geometryManager, intersection, intersectionStrategy) {

@@ -157,7 +157,7 @@ class GenomicService {
     static presentationAssemblyLabel(assemblyKey) {
 
         const [ assembly_name, haplotype, sequence_id ] = assemblyKey.split('#')
-        return [ `${assembly_name}`, `hap ${ haplotype }` ]
+        return [ `${assembly_name}`, `${ haplotype }` ]
     }
 
 }
