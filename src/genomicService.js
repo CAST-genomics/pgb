@@ -150,14 +150,14 @@ class GenomicService {
 
     }
 
-    //
-    static getRayAssemblyNames(assemblyKeys){
-        const raw = assemblyKeys.map(tripleKey => tripleKey.split('#')[ 0 ])
-        const set = new Set(raw)
-        return [ ...set ]
-    }
     static tripleKey(a) {
         return `${a.assembly_name}#${a.haplotype}#${a.sequence_id}`
+    }
+
+    static presentationAssemblyLabel(assemblyKey) {
+
+        const [ assembly_name, haplotype, sequence_id ] = assemblyKey.split('#')
+        return [ `${assembly_name}`, `${ haplotype }` ]
     }
 
 }
