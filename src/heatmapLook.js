@@ -1,13 +1,11 @@
 import Look from "./look.js"
-import {colorComplements, getRandomVibrantAppleCrayonColor, lerpAppleCrayonColors, getHeatmapColorHSLInterpolation} from "./utils/color.js"
+import {colorComplements, getHeatmapColorHSLInterpolation} from "./utils/color.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
 import eventBus from "./utils/eventBus.js"
-import materialService from "./materialService.js"
 
 class HeatmapLook extends Look {
     constructor(name, config) {
         super(name, config)
-        this.interpolant = null
     }
 
     getNodeColor(nodeName) {
@@ -43,7 +41,26 @@ class HeatmapLook extends Look {
         });
 
         this.superpopSelectUnsub = eventBus.subscribe('superpopulation:selected', data => {
-            console.log('Heatmap received superpopulation button selection')
+
+            const { superpopulation:superpop } = data
+            const { acronym, name } = superpop
+
+            const nodeColorLUT = new Map()
+            for (const nodeName of [...this.geometryManager.geometryFactory.getNodeNameSet()]){
+
+                const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
+                const { superpopulation } = frequency
+                const superpopulationFrequency = superpopulation[ acronym ]
+                const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), superpopulationFrequency)
+
+                const key = Look.getCacheKey(nodeName)
+                const material = this.materialCache.get(key)
+                material.color.copy(color)
+                material.needsUpdate = true
+
+            }
+
+
         });
     }
 

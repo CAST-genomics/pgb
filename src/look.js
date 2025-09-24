@@ -81,7 +81,7 @@ class Look {
 
     getNodeMaterial(nodeName) {
 
-        const cacheKey = `${this.constructor.name}:${nodeName}:normal`;
+        const cacheKey = Look.getCacheKey(nodeName);
 
         // Check if we already have this material cached
         if (this.materialCache.has(cacheKey)) {
@@ -109,6 +109,22 @@ class Look {
         const str = 'getNodeColor() must be implemented by subclass'
         console.error(str)
         return null
+    }
+
+    /**
+     * Updates the color of all cached node materials
+     * This method iterates through the material cache and updates each material's color
+     * The updated colors will be reflected in the Three.js scene automatically
+     * @param {THREE.Color} color - Three.js Color object to apply to all node materials
+     */
+    updateNodeMaterialColors(color) {
+        for (const [cacheKey, material] of this.materialCache.entries()) {
+            // Only update materials that are for nodes (not edges)
+            if (cacheKey.includes(':normal') && material instanceof LineMaterial) {
+                material.color.copy(color);
+                material.needsUpdate = true; // Ensure Three.js updates the material
+            }
+        }
     }
 
     createEdgeMesh(geometry, context) {
@@ -241,6 +257,11 @@ class Look {
         // Clear the material cache
         this.materialCache.clear();
     }
+
+    static getCacheKey(nodeName) {
+        return `${this.constructor.name}:${nodeName}:normal`;
+    }
+
 }
 
 export default Look;
