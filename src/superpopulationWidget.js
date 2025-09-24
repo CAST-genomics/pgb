@@ -60,36 +60,31 @@ class SuperpopulationWidget {
 
     createListItem(superpopulation) {
         const container = document.createElement('div');
-        container.className = 'list-group-item d-flex align-items-center gap-3';
+        container.className = 'superpopulation-widget__button-container';
 
-        // Superpopulation selector (colored circle)
-        const superpopulationSelector = document.createElement('div');
-        container.appendChild(superpopulationSelector);
+        // Superpopulation button
+        const superpopulationButton = document.createElement('button');
+        container.appendChild(superpopulationButton);
 
-        superpopulationSelector.className = 'superpopulation-widget__superpopulation-selector';
-        superpopulationSelector.style.backgroundColor = superpopulation.color;
-        superpopulationSelector.dataset.superpopulation = superpopulation.name;
-        superpopulationSelector.dataset.acronym = superpopulation.acronym;
+        superpopulationButton.className = 'superpopulation-widget__button';
+        superpopulationButton.textContent = superpopulation.name;
+        superpopulationButton.dataset.superpopulation = superpopulation.name;
+        superpopulationButton.dataset.acronym = superpopulation.acronym;
 
-        const onSuperpopulationSelectorClick = this.onSuperpopulationSelectorClick.bind(this, superpopulation);
-        superpopulationSelector.onSuperpopulationSelectorClick = onSuperpopulationSelectorClick;
-        superpopulationSelector.addEventListener('click', onSuperpopulationSelectorClick);
-
-        // Superpopulation name
-        const nameLabel = document.createElement('span');
-        container.appendChild(nameLabel);
-        nameLabel.textContent = superpopulation.name;
-        nameLabel.className = 'superpopulation-widget__superpopulation-name flex-grow-1';
+        const onSuperpopulationButtonClick = this.onSuperpopulationButtonClick.bind(this, superpopulation);
+        superpopulationButton.onSuperpopulationButtonClick = onSuperpopulationButtonClick;
+        superpopulationButton.addEventListener('click', onSuperpopulationButtonClick);
 
         return container;
     }
 
-    onSuperpopulationSelectorClick(superpopulation, event) {
+    onSuperpopulationButtonClick(superpopulation, event) {
         event.stopPropagation();
 
         if (this.selectedSuperpopulation && this.selectedSuperpopulation.name === superpopulation.name) {
 
-            event.target.style.border = '2px solid transparent';
+            event.target.style.border = '1px solid #dee2e6';
+            event.target.style.backgroundColor = '#ffffff';
             event.target.style.transform = 'scale(1)';
 
             const deselectedSuperpopulation = this.selectedSuperpopulation;
@@ -100,15 +95,17 @@ class SuperpopulationWidget {
         } else {
 
             if (this.selectedSuperpopulation !== null) {
-                const previousSelector = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
-                if (previousSelector) {
-                    previousSelector.style.border = '2px solid transparent';
-                    previousSelector.style.transform = 'scale(1)';
+                const previousButton = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
+                if (previousButton) {
+                    previousButton.style.border = '1px solid #dee2e6';
+                    previousButton.style.backgroundColor = '#ffffff';
+                    previousButton.style.transform = 'scale(1)';
                 }
             }
 
-            event.target.style.border = '2px solid #000';
-            event.target.style.transform = 'scale(1.5)';
+            event.target.style.border = '2px solid #0d6efd';
+            event.target.style.backgroundColor = '#e7f1ff';
+            event.target.style.transform = 'scale(1.02)';
 
             this.selectedSuperpopulation = superpopulation;
 
@@ -120,18 +117,10 @@ class SuperpopulationWidget {
     }
 
     cleanupListItem(item) {
-        const superpopulationSelector = item.querySelector('.superpopulation-widget__superpopulation-selector');
-        if (superpopulationSelector && superpopulationSelector.onSuperpopulationSelectorClick) {
-            superpopulationSelector.removeEventListener('click', superpopulationSelector.onSuperpopulationSelectorClick);
-            delete superpopulationSelector.onSuperpopulationSelectorClick;
-        }
-    }
-
-    toggleCard() {
-        if (this.superpopulationWidgetContainer.classList.contains('show')) {
-            this.hideCard();
-        } else {
-            this.showCard();
+        const superpopulationButton = item.querySelector('.superpopulation-widget__button');
+        if (superpopulationButton && superpopulationButton.onSuperpopulationButtonClick) {
+            superpopulationButton.removeEventListener('click', superpopulationButton.onSuperpopulationButtonClick);
+            delete superpopulationButton.onSuperpopulationButtonClick;
         }
     }
 
@@ -157,10 +146,11 @@ class SuperpopulationWidget {
 
     reset() {
         if (this.selectedSuperpopulation) {
-            const selector = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
-            if (selector) {
-                selector.style.border = '2px solid transparent';
-                selector.style.transform = 'scale(1)';
+            const button = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
+            if (button) {
+                button.style.border = '1px solid #dee2e6';
+                button.style.backgroundColor = '#ffffff';
+                button.style.transform = 'scale(1)';
             }
             this.selectedSuperpopulation = null;
         }

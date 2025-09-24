@@ -154,7 +154,7 @@
   margin-left: 10rem;
   margin-top: 10rem;
   min-width: 300px;
-  height: 400px;
+  min-height: fit-content;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: opacity 0.2s ease;
   opacity: 0;
@@ -176,21 +176,31 @@
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums slashed-zero;
 }
-.superpopulation-widget__superpopulation-selector {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+.superpopulation-widget__button-container {
+  margin-left: 1rem;
+  margin-right: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.superpopulation-widget__button {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 2px solid transparent;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #495057;
+  text-align: left;
+  background-color: #ffffff;
 }
-.superpopulation-widget__superpopulation-selector:hover {
-  transform: scale(1.5);
+.superpopulation-widget__button:hover {
+  background-color: #f8f9fa;
+  border-color: #adb5bd;
 }
-.superpopulation-widget__superpopulation-name {
-  font-weight: 500;
-  font-size: 1rem;
-  color: #212529;
+.superpopulation-widget__button:active {
+  background-color: #e9ecef;
 }
 
 .widget-container {

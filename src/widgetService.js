@@ -42,7 +42,9 @@ class WidgetService {
 
         event.stopPropagation();
 
+        // Hide and reset superpopulation widget when switching to assembly
         this.superpopulationWidget.hideCard();
+        this.superpopulationWidget.reset();
 
         if (this.activeButton === this.assemblyButton) {
             console.log('hide widget - assembly')
@@ -61,7 +63,9 @@ class WidgetService {
 
         event.stopPropagation();
 
+        // Hide and reset assembly widget when switching to superpopulation
         this.assemblyWidget.hideCard();
+        this.assemblyWidget.reset();
 
         if (this.activeButton === this.superpopulationButton) {
             console.log('hide widget - superpopulation')
