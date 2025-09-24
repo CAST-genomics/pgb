@@ -1,13 +1,14 @@
 import { app } from "./main.js"
 
 class WidgetService {
-    constructor(containerElement, assemblyWidget) {
+    constructor(containerElement, assemblyWidget, superpopulationWidget) {
 
         this.containerElement = containerElement;
         this.assemblyWidget = assemblyWidget;
+        this.superpopulationWidget = superpopulationWidget;
 
         this.assemblyButton = null;
-        this.metadataButton = null;
+        this.superpopulationButton = null;
 
         this.activeButton = null
 
@@ -28,12 +29,12 @@ class WidgetService {
         this.assemblyButton.textContent = 'Assembly';
         this.assemblyButton.addEventListener('click', this.onAssemblyButtonClick.bind(this));
 
-        this.metadataButton = document.createElement('button');
-        buttonContainer.appendChild(this.metadataButton);
+        this.superpopulationButton = document.createElement('button');
+        buttonContainer.appendChild(this.superpopulationButton);
 
-        this.metadataButton.className = 'widget-service__button widget-service__button--metadata';
-        this.metadataButton.innerHTML = 'Super<br>Population';
-        this.metadataButton.addEventListener('click', this.onMetadataButtonClick.bind(this));
+        this.superpopulationButton.className = 'widget-service__button widget-service__button--superpopulation';
+        this.superpopulationButton.innerHTML = 'Super<br>Population';
+        this.superpopulationButton.addEventListener('click', this.onSuperpopulationButtonClick.bind(this));
 
     }
 
@@ -41,7 +42,8 @@ class WidgetService {
 
         event.stopPropagation();
 
-        // Toggle behavior: if assembly button is already active, deactivate it
+        this.superpopulationWidget.hideCard();
+
         if (this.activeButton === this.assemblyButton) {
             console.log('hide widget - assembly')
             this.assemblyWidget.hideCard();
@@ -59,23 +61,25 @@ class WidgetService {
 
     }
 
-    onMetadataButtonClick(event) {
+    onSuperpopulationButtonClick(event) {
 
         event.stopPropagation();
 
         this.assemblyWidget.hideCard();
 
-        if ('assemblyVisualizationScene' !== app.sceneManager.getActiveSceneName()){
-            console.log('assemblyVisualizationScene now active')
-            app.setActiveScene('assemblyVisualizationScene', true);
-        }
-
-        if (this.activeButton === this.metadataButton) {
-            // app.setActiveScene('assemblyVisualizationScene', true);
+        if (this.activeButton === this.superpopulationButton) {
+            console.log('hide widget - superpopulation')
+            this.superpopulationWidget.hideCard();
             this.setActiveButton(null);
         } else {
-            // app.setActiveScene('heatmapScene', true);
-            this.setActiveButton(this.metadataButton);
+            console.log('show widget - superpopulation')
+            if ('assemblyVisualizationScene' !== app.sceneManager.getActiveSceneName()){
+                console.log('assemblyVisualizationScene now active')
+                app.setActiveScene('assemblyVisualizationScene', true);
+            }
+
+            this.superpopulationWidget.showCard();
+            this.setActiveButton(this.superpopulationButton);
         }
 
     }
@@ -101,6 +105,9 @@ class WidgetService {
 
         this.assemblyWidget.hideCard()
         this.assemblyWidget.configure()
+
+        this.superpopulationWidget.hideCard()
+        this.superpopulationWidget.reset()
     }
 
     getActiveButton() {
@@ -112,6 +119,8 @@ class WidgetService {
             return 'assembly';
         } else if (this.activeButton === this.metadataButton) {
             return 'metadata';
+        } else if (this.activeButton === this.superpopulationButton) {
+            return 'superpopulation';
         }
         return null;
     }
@@ -126,13 +135,16 @@ class WidgetService {
             case 'metadata':
                 targetButton = this.metadataButton;
                 break;
+            case 'superpopulation':
+                targetButton = this.superpopulationButton;
+                break;
             case 'none':
             case null:
             case undefined:
                 targetButton = null;
                 break;
             default:
-                console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'metadata', or 'none'`);
+                console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'metadata', 'superpopulation', or 'none'`);
                 return;
         }
 
@@ -143,8 +155,8 @@ class WidgetService {
         if (this.assemblyButton) {
             this.assemblyButton.removeEventListener('click', this.onAssemblyButtonClick.bind(this));
         }
-        if (this.metadataButton) {
-            this.metadataButton.removeEventListener('click', this.onMetadataButtonClick.bind(this));
+        if (this.superpopulationButton) {
+            this.superpopulationButton.removeEventListener('click', this.onSuperpopulationButtonClick.bind(this));
         }
         this.activeButton = null;
     }
