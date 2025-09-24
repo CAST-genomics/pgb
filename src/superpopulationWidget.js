@@ -89,13 +89,13 @@ class SuperpopulationWidget {
 
         if (this.selectedSuperpopulation && this.selectedSuperpopulation.name === superpopulation.name) {
 
-            const deselectedSuperpopulation = this.selectedSuperpopulation;
-            this.selectedSuperpopulation = null;
-
             event.target.style.border = '2px solid transparent';
             event.target.style.transform = 'scale(1)';
 
-            // app.setActiveScene('assemblyVisualizationScene', true);
+            const deselectedSuperpopulation = this.selectedSuperpopulation;
+            this.selectedSuperpopulation = null;
+
+            app.setActiveScene('assemblyVisualizationScene', true);
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
         } else {
 
@@ -107,14 +107,14 @@ class SuperpopulationWidget {
                 }
             }
 
-            this.selectedSuperpopulation = superpopulation;
-
             event.target.style.border = '2px solid #000';
             event.target.style.transform = 'scale(1.5)';
 
+            this.selectedSuperpopulation = superpopulation;
+
             console.log(`Selected superpopulation: ${superpopulation.name}`);
 
-            // app.setActiveScene('heatmapScene', true);
+            app.setActiveScene('heatmapScene', true);
             eventBus.publish('superpopulation:selected', { superpopulation, acronym: superpopulation.acronym });
         }
     }
