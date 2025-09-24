@@ -297,7 +297,7 @@
 }
 .look-tooltip .node-section .assembly-table-container .assembly-table .assembly-cell {
   padding-right: 0.5rem;
-  padding-left: 0.5rem;
+  padding-bottom: 0.25rem;
   font-size: 0.8rem;
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums slashed-zero;
