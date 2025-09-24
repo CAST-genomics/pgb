@@ -1,5 +1,7 @@
 import { Draggable } from './utils/draggable.js';
 import eventBus from './utils/eventBus.js';
+import { getAllSuperpopulationNames } from './utils/pangenomeUtils.js';
+import {app} from "./main.js"
 
 class SuperpopulationWidget {
     constructor(superpopulationWidgetContainer) {
@@ -7,19 +9,33 @@ class SuperpopulationWidget {
         this.draggable = new Draggable(this.superpopulationWidgetContainer);
 
         this.listGroup = this.superpopulationWidgetContainer.querySelector('.list-group');
-        
-        this.selectedPopulation = null;
-        this.allPopulationItems = new Map();
 
-        // Population data based on the mockup
-        this.populations = [
-            { name: 'African', color: '#FF6B6B' },
-            { name: 'South Asian', color: '#4ECDC4' },
-            { name: 'East Asian', color: '#45B7D1' },
-            { name: 'Ad Mixed American', color: '#96CEB4' }
-        ];
+        this.selectedSuperpopulation = null;
+        this.allSuperpopulationItems = new Map();
+
+        // Get superpopulation data from pangenomeUtils
+        this.superpopulations = this.initializeSuperpopulations();
 
         this.configure();
+    }
+
+    initializeSuperpopulations() {
+        const superpopulationData = getAllSuperpopulationNames();
+
+        // Color mapping for each superpopulation
+        const colorMap = {
+            'AMR': '#96CEB4', // Ad Mixed American - light green
+            'AFR': '#FF6B6B', // African - red
+            'EAS': '#45B7D1', // East Asian - blue
+            'SAS': '#4ECDC4', // South Asian - teal
+            'N/A': '#D3D3D3'  // Not Available - light gray
+        };
+
+        return superpopulationData.map(item => ({
+            acronym: item.acronym,
+            name: item.name,
+            color: colorMap[item.acronym] || '#D3D3D3'
+        }));
     }
 
     configure() {
@@ -33,78 +49,81 @@ class SuperpopulationWidget {
         }
 
         this.listGroup.innerHTML = '';
-        this.allPopulationItems.clear();
+        this.allSuperpopulationItems.clear();
 
-        for (const population of this.populations) {
-            const item = this.createListItem(population);
+        for (const superpopulation of this.superpopulations) {
+            const item = this.createListItem(superpopulation);
             this.listGroup.appendChild(item);
-            this.allPopulationItems.set(population.name, item);
+            this.allSuperpopulationItems.set(superpopulation.name, item);
         }
     }
 
-    createListItem(population) {
+    createListItem(superpopulation) {
         const container = document.createElement('div');
         container.className = 'list-group-item d-flex align-items-center gap-3';
 
-        // Population selector (colored circle)
-        const populationSelector = document.createElement('div');
-        container.appendChild(populationSelector);
+        // Superpopulation selector (colored circle)
+        const superpopulationSelector = document.createElement('div');
+        container.appendChild(superpopulationSelector);
 
-        populationSelector.className = 'superpopulation-widget__population-selector';
-        populationSelector.style.backgroundColor = population.color;
-        populationSelector.dataset.population = population.name;
+        superpopulationSelector.className = 'superpopulation-widget__superpopulation-selector';
+        superpopulationSelector.style.backgroundColor = superpopulation.color;
+        superpopulationSelector.dataset.superpopulation = superpopulation.name;
+        superpopulationSelector.dataset.acronym = superpopulation.acronym;
 
-        const onPopulationSelectorClick = this.onPopulationSelectorClick.bind(this, population);
-        populationSelector.onPopulationSelectorClick = onPopulationSelectorClick;
-        populationSelector.addEventListener('click', onPopulationSelectorClick);
+        const onSuperpopulationSelectorClick = this.onSuperpopulationSelectorClick.bind(this, superpopulation);
+        superpopulationSelector.onSuperpopulationSelectorClick = onSuperpopulationSelectorClick;
+        superpopulationSelector.addEventListener('click', onSuperpopulationSelectorClick);
 
-        // Population name
+        // Superpopulation name
         const nameLabel = document.createElement('span');
         container.appendChild(nameLabel);
-        nameLabel.textContent = population.name;
-        nameLabel.className = 'superpopulation-widget__population-name flex-grow-1';
+        nameLabel.textContent = superpopulation.name;
+        nameLabel.className = 'superpopulation-widget__superpopulation-name flex-grow-1';
 
         return container;
     }
 
-    onPopulationSelectorClick(population, event) {
+    onSuperpopulationSelectorClick(superpopulation, event) {
         event.stopPropagation();
 
-        if (this.selectedPopulation && this.selectedPopulation.name === population.name) {
-            // Deselect current population
-            this.selectedPopulation = null;
+        if (this.selectedSuperpopulation && this.selectedSuperpopulation.name === superpopulation.name) {
+
+            const deselectedSuperpopulation = this.selectedSuperpopulation;
+            this.selectedSuperpopulation = null;
+
             event.target.style.border = '2px solid transparent';
             event.target.style.transform = 'scale(1)';
-            
-            // Publish deselection event
-            eventBus.publish('superpopulation:deselected', { population });
+
+            // app.setActiveScene('assemblyVisualizationScene', true);
+            eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
         } else {
-            // Deselect previous population if one exists
-            if (this.selectedPopulation !== null) {
-                const previousSelector = this.listGroup.querySelector(`[data-population="${this.selectedPopulation.name}"]`);
+
+            if (this.selectedSuperpopulation !== null) {
+                const previousSelector = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
                 if (previousSelector) {
                     previousSelector.style.border = '2px solid transparent';
                     previousSelector.style.transform = 'scale(1)';
                 }
             }
 
-            console.log(`Selected population: ${population.name}`);
+            this.selectedSuperpopulation = superpopulation;
 
-            // Select new population
-            this.selectedPopulation = population;
             event.target.style.border = '2px solid #000';
             event.target.style.transform = 'scale(1.5)';
 
-            // Publish selection event
-            eventBus.publish('superpopulation:selected', { population });
+            console.log(`Selected superpopulation: ${superpopulation.name}`);
+
+            // app.setActiveScene('heatmapScene', true);
+            eventBus.publish('superpopulation:selected', { superpopulation, acronym: superpopulation.acronym });
         }
     }
 
     cleanupListItem(item) {
-        const populationSelector = item.querySelector('.superpopulation-widget__population-selector');
-        if (populationSelector && populationSelector.onPopulationSelectorClick) {
-            populationSelector.removeEventListener('click', populationSelector.onPopulationSelectorClick);
-            delete populationSelector.onPopulationSelectorClick;
+        const superpopulationSelector = item.querySelector('.superpopulation-widget__superpopulation-selector');
+        if (superpopulationSelector && superpopulationSelector.onSuperpopulationSelectorClick) {
+            superpopulationSelector.removeEventListener('click', superpopulationSelector.onSuperpopulationSelectorClick);
+            delete superpopulationSelector.onSuperpopulationSelectorClick;
         }
     }
 
@@ -132,18 +151,18 @@ class SuperpopulationWidget {
         }, 200);
     }
 
-    getSelectedPopulation() {
-        return this.selectedPopulation;
+    getSelectedSuperpopulation() {
+        return this.selectedSuperpopulation;
     }
 
     reset() {
-        if (this.selectedPopulation) {
-            const selector = this.listGroup.querySelector(`[data-population="${this.selectedPopulation.name}"]`);
+        if (this.selectedSuperpopulation) {
+            const selector = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
             if (selector) {
                 selector.style.border = '2px solid transparent';
                 selector.style.transform = 'scale(1)';
             }
-            this.selectedPopulation = null;
+            this.selectedSuperpopulation = null;
         }
     }
 

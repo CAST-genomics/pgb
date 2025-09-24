@@ -50,11 +50,7 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget- assembly')
-            if ('assemblyVisualizationScene' !== app.sceneManager.getActiveSceneName()){
-                console.log('assemblyVisualizationScene now active')
-                app.setActiveScene('assemblyVisualizationScene', true);
-            }
-
+            app.setActiveScene('assemblyVisualizationScene', true);
             this.assemblyWidget.showCard();
             this.setActiveButton(this.assemblyButton);
         }
@@ -73,11 +69,7 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget - superpopulation')
-            if ('assemblyVisualizationScene' !== app.sceneManager.getActiveSceneName()){
-                console.log('assemblyVisualizationScene now active')
-                app.setActiveScene('assemblyVisualizationScene', true);
-            }
-
+            app.setActiveScene('assemblyVisualizationScene', true);
             this.superpopulationWidget.showCard();
             this.setActiveButton(this.superpopulationButton);
         }

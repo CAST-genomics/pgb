@@ -146,6 +146,53 @@
   justify-content: center;
 }
 
+.superpopulation-widget__card {
+  z-index: 1000;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-left: 10rem;
+  margin-top: 10rem;
+  min-width: 300px;
+  height: 400px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(0, 0);
+}
+.superpopulation-widget__card.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.superpopulation-widget__card .card-body {
+  height: calc(100% - 60px);
+  padding: 0;
+  overflow: hidden;
+}
+.superpopulation-widget__card .card-body .superpopulation-widget__list-container {
+  height: 100%;
+  overflow-y: auto;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+.superpopulation-widget__superpopulation-selector {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+.superpopulation-widget__superpopulation-selector:hover {
+  transform: scale(1.5);
+}
+.superpopulation-widget__superpopulation-name {
+  font-weight: 500;
+  font-size: 1rem;
+  color: #212529;
+}
+
 .widget-container {
   z-index: 1000;
   position: absolute;
