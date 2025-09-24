@@ -253,8 +253,8 @@ class AssemblyWidget {
 
     }
 
-    onGearClick(event) {
-        event.stopPropagation();
+    toggleCard() {
+
         if (this.assemblyWidgetContainer.classList.contains('show')) {
             this.hideCard();
         } else {

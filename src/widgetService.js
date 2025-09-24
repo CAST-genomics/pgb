@@ -43,13 +43,17 @@ class WidgetService {
 
         // Toggle behavior: if assembly button is already active, deactivate it
         if (this.activeButton === this.assemblyButton) {
-            // Inactive state: deactivate button and hide card
+            console.log('hide widget - assembly')
             this.assemblyWidget.hideCard();
             this.setActiveButton(null);
         } else {
-            // Active state: switch to assembly visualization scene and show gear
-            app.setActiveScene('assemblyVisualizationScene', true);
-            this.assemblyWidget.onGearClick(event);
+            console.log('show widget- assembly')
+            if ('assemblyVisualizationScene' !== app.sceneManager.getActiveSceneName()){
+                console.log('assemblyVisualizationScene now active')
+                app.setActiveScene('assemblyVisualizationScene', true);
+            }
+
+            this.assemblyWidget.showCard();
             this.setActiveButton(this.assemblyButton);
         }
 
@@ -59,16 +63,18 @@ class WidgetService {
 
         event.stopPropagation();
 
-        // Toggle behavior: if metadata button is already active, deactivate it
-        if (this.activeButton === this.metadataButton) {
-            // Inactive state: switch to assembly visualization scene
+        this.assemblyWidget.hideCard();
+
+        if ('assemblyVisualizationScene' !== app.sceneManager.getActiveSceneName()){
+            console.log('assemblyVisualizationScene now active')
             app.setActiveScene('assemblyVisualizationScene', true);
-            this.assemblyWidget.hideCard();
+        }
+
+        if (this.activeButton === this.metadataButton) {
+            // app.setActiveScene('assemblyVisualizationScene', true);
             this.setActiveButton(null);
         } else {
-            // Active state: switch to heatmap scene
-            app.setActiveScene('heatmapScene', true);
-            this.assemblyWidget.hideCard();
+            // app.setActiveScene('heatmapScene', true);
             this.setActiveButton(this.metadataButton);
         }
 
