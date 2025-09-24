@@ -37,6 +37,9 @@ class GeometryManager {
                 mesh.userData.arcLengthTable = buildArcLengthTable(mesh)
                 group.add(mesh);
             }
+
+            const cache = lookManager.getLook(sceneName).materialCache
+            console.log(`For scene ${ sceneName }, created ${ group.children.length } node meshes with ${ cache.size } materials in the look cache`)
         }
     }
 

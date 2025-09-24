@@ -29,7 +29,7 @@ class GenomicService {
         console.log(`locus length ${ prettyPrint(this.locus.endBP - this.locus.startBP) }`)
 
         this.startNode = undefined
-        for (const [nodeName, { assembly }] of Object.entries(nodes)) {
+        for (const [nodeName, { assembly, assembly_metadata }] of Object.entries(nodes)) {
 
             if (undefined === this.startNode) {
                 this.startNode = nodeName
@@ -43,7 +43,7 @@ class GenomicService {
             const frequencies = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
 
             const aggregateSuperpopulationFrequency = (Object.values(frequencies).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(frequencies).length)
-            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], aggregateSuperpopulationFrequency });
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], aggregateSuperpopulationFrequency, frequency: assembly_metadata.frequency });
 
         }
 

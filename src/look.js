@@ -147,6 +147,7 @@ class Look {
      */
     activate() {
         this.isActive = true;
+        console.log(`${this.constructor.name} is now active`)
     }
 
     /**
