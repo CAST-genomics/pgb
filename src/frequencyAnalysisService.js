@@ -1,4 +1,5 @@
 import { calculatePercentiles, normalizeDataset, calculateDistributionStats } from "./utils/stats.js"
+import {getAllSuperpopulationNames} from "./utils/pangenomeUtils.js"
 
 /**
  * Service for analyzing frequency distributions across genomic nodes
@@ -19,14 +20,14 @@ class FrequencyAnalysisService {
         console.log('FrequencyAnalysisService: Analyzing global frequency distributions...')
 
         // Initialize analysis for each superpopulation
-        const superpopulations = ['AMR', 'AFR', 'EAS', 'SAS', 'N/A']
+        const superpopulationAcronyms = getAllSuperpopulationNames().map(({ acronym }) => acronym)
         const frequencyData = new Map()
 
         // Collect all frequency values for each superpopulation
         for (const [nodeName, metadata] of nodeMetadata) {
             const { frequency } = metadata
             if (frequency && frequency.superpopulation) {
-                for (const superpop of superpopulations) {
+                for (const superpop of superpopulationAcronyms) {
                     if (!frequencyData.has(superpop)) {
                         frequencyData.set(superpop, [])
                     }
