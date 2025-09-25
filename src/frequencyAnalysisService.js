@@ -140,49 +140,13 @@ class FrequencyAnalysisService {
     }
 
     /**
-     * Get enhanced frequency value for a specific node and frequency key (backward compatibility)
-     * @param {string} nodeName - Node identifier
-     * @param {string} frequencyKey - Frequency key code
-     * @param {string} method - Scaling method ('auto', 'percentile', 'log', 'sqrt', 'quantile')
-     * @param {Object} nodeMetadata - Node metadata containing frequency data
-     * @returns {number} Enhanced frequency value (0-1)
-     */
-    getEnhancedFrequency(nodeName, frequencyKey, method = 'auto', nodeMetadata = null) {
-        const analysis = this.globalAnalysis.get(frequencyKey)
-        if (!analysis) {
-            console.warn(`FrequencyAnalysisService: No analysis found for ${frequencyKey}`)
-            return undefined
-        }
-
-        // Get the raw frequency for this node
-        const nodeFreq = this.getNodeFrequency(nodeName, frequencyKey, nodeMetadata)
-        if (nodeFreq === null) {
-            return undefined
-        }
-
-        // Determine scaling method
-        const scalingMethod = method === 'auto' ? this.scalingMethods.get(frequencyKey) : method
-
-        // Get the normalized value
-        const nodeIndex = analysis.rawFrequencies.indexOf(nodeFreq)
-        if (nodeIndex === -1) {
-            console.warn(`FrequencyAnalysisService: Node frequency not found in analysis for ${nodeName}`)
-            return undefined
-        }
-
-        return analysis.normalizedValues[scalingMethod][nodeIndex]
-    }
-
-    /**
      * Get enhanced frequency value for any frequency type and key
-     * @param {string} nodeName - Node identifier
      * @param {string} frequencyKey - Frequency key (e.g., 'AFR', 'AMR', 'male', 'female')
      * @param {string} frequencyType - Type of frequency ('superpopulation', 'population', 'sex')
-     * @param {string} method - Scaling method ('auto', 'percentile', 'log', 'sqrt', 'quantile')
      * @param {Object} nodeMetadata - Node metadata containing frequency data
      * @returns {number} Enhanced frequency value (0-1)
      */
-    getEnhancedFrequencyGeneric(nodeName, frequencyKey, frequencyType, method = 'auto', nodeMetadata = null) {
+    getEnhancedFrequency(frequencyKey, frequencyType, nodeMetadata = null) {
         const analysis = this.globalAnalysis.get(frequencyKey)
         if (!analysis) {
             console.warn(`FrequencyAnalysisService: No analysis found for ${frequencyKey}`)
@@ -190,49 +154,32 @@ class FrequencyAnalysisService {
         }
 
         // Get the raw frequency for this node
-        const nodeFreq = this.getNodeFrequencyGeneric(nodeName, frequencyKey, frequencyType, nodeMetadata)
+        const nodeFreq = this.getNodeFrequency(frequencyKey, frequencyType, nodeMetadata)
         if (nodeFreq === null) {
             return undefined
         }
 
-        // Determine scaling method
-        const scalingMethod = method === 'auto' ? this.scalingMethods.get(frequencyKey) : method
+        // Use the pre-computed optimal scaling method
+        const scalingMethod = this.scalingMethods.get(frequencyKey)
 
         // Get the normalized value
         const nodeIndex = analysis.rawFrequencies.indexOf(nodeFreq)
         if (nodeIndex === -1) {
-            console.warn(`FrequencyAnalysisService: Node frequency not found in analysis for ${nodeName}`)
+            console.warn(`FrequencyAnalysisService: Node frequency not found in analysis`)
             return undefined
         }
 
         return analysis.normalizedValues[scalingMethod][nodeIndex]
-    }
-
-    /**
-     * Get the raw frequency for a specific node and frequency key (backward compatibility)
-     * @param {string} nodeName - Node identifier
-     * @param {string} frequencyKey - Frequency key code
-     * @param {Object} nodeMetadata - Node metadata containing frequency data
-     * @returns {number|null} Raw frequency value
-     */
-    getNodeFrequency(nodeName, frequencyKey, nodeMetadata = null) {
-        if (!nodeMetadata || !nodeMetadata.frequency || !nodeMetadata.frequency.superpopulation) {
-            return null
-        }
-
-        const freq = nodeMetadata.frequency.superpopulation[frequencyKey]
-        return freq !== undefined && freq !== null ? freq : null
     }
 
     /**
      * Get the raw frequency for any frequency type and key
-     * @param {string} nodeName - Node identifier
      * @param {string} frequencyKey - Frequency key (e.g., 'AFR', 'AMR', 'male', 'female')
      * @param {string} frequencyType - Type of frequency ('superpopulation', 'population', 'sex')
      * @param {Object} nodeMetadata - Node metadata containing frequency data
      * @returns {number|null} Raw frequency value
      */
-    getNodeFrequencyGeneric(nodeName, frequencyKey, frequencyType, nodeMetadata = null) {
+    getNodeFrequency(frequencyKey, frequencyType, nodeMetadata = null) {
         if (!nodeMetadata || !nodeMetadata.frequency || !nodeMetadata.frequency[frequencyType]) {
             return null
         }

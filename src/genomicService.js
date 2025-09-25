@@ -145,38 +145,6 @@ class GenomicService {
         return new Set(this.nodeMetadata.keys());
     }
 
-    /**
-     * Get enhanced frequency value for a specific node and superpopulation
-     * @param {string} nodeName - Node identifier
-     * @param {string} superpopulation - Superpopulation code
-     * @param {string} method - Scaling method ('auto', 'percentile', 'log', 'sqrt', 'quantile')
-     * @returns {number} Enhanced frequency value (0-1)
-     */
-    getEnhancedFrequency(nodeName, superpopulation, method = 'auto') {
-        const metadata = this.nodeMetadata.get(nodeName);
-        if (!metadata || !metadata.frequency || !metadata.frequency.superpopulation) {
-            console.warn(`GenomicService: No frequency data found for node ${nodeName}`);
-            return undefined
-        }
-
-        const rawFrequency = metadata.frequency.superpopulation[superpopulation];
-        if (rawFrequency === undefined || rawFrequency === null) {
-            console.warn(`GenomicService: No frequency data found for ${superpopulation} in node ${nodeName}`);
-            return undefined
-        }
-
-        return frequencyAnalysisService.getEnhancedFrequency(nodeName, superpopulation, method, metadata);
-    }
-
-    /**
-     * Get scaling information for a superpopulation
-     * @param {string} superpopulation - Superpopulation code
-     * @returns {Object|null} Scaling information
-     */
-    getScalingInfo(superpopulation) {
-        return frequencyAnalysisService.getScalingInfo(superpopulation);
-    }
-
     clear() {
 
         this.startNode = undefined

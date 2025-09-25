@@ -44,19 +44,19 @@ export function analyzeCustomFrequencies(nodeMetadata) {
  */
 export function getEnhancedFrequencies(nodeName, nodeMetadata) {
     // Superpopulation frequencies
-    const enhancedAFR = frequencyAnalysisService.getEnhancedFrequency(nodeName, 'AFR', 'auto', nodeMetadata)
-    const enhancedAMR = frequencyAnalysisService.getEnhancedFrequency(nodeName, 'AMR', 'auto', nodeMetadata)
+    const enhancedAFR = frequencyAnalysisService.getEnhancedFrequencyGeneric('AFR', 'superpopulation', nodeMetadata)
+    const enhancedAMR = frequencyAnalysisService.getEnhancedFrequencyGeneric('AMR', 'superpopulation', nodeMetadata)
     
     // Sex frequencies
-    const enhancedMale = frequencyAnalysisService.getEnhancedFrequencyGeneric(nodeName, 'male', 'sex', 'auto', nodeMetadata)
-    const enhancedFemale = frequencyAnalysisService.getEnhancedFrequencyGeneric(nodeName, 'female', 'sex', 'auto', nodeMetadata)
+    const enhancedMale = frequencyAnalysisService.getEnhancedFrequencyGeneric('male', 'sex', nodeMetadata)
+    const enhancedFemale = frequencyAnalysisService.getEnhancedFrequencyGeneric('female', 'sex', nodeMetadata)
     
     // Population frequencies
-    const enhancedACB = frequencyAnalysisService.getEnhancedFrequencyGeneric(nodeName, 'ACB', 'population', 'auto', nodeMetadata)
-    const enhancedGWD = frequencyAnalysisService.getEnhancedFrequencyGeneric(nodeName, 'GWD', 'population', 'auto', nodeMetadata)
+    const enhancedACB = frequencyAnalysisService.getEnhancedFrequencyGeneric('ACB', 'population', nodeMetadata)
+    const enhancedGWD = frequencyAnalysisService.getEnhancedFrequencyGeneric('GWD', 'population', nodeMetadata)
     
     // Custom frequency types
-    const enhancedDisease = frequencyAnalysisService.getEnhancedFrequencyGeneric(nodeName, 'diabetes', 'disease', 'auto', nodeMetadata)
+    const enhancedDisease = frequencyAnalysisService.getEnhancedFrequencyGeneric('diabetes', 'disease', nodeMetadata)
     
     return {
         superpopulations: { AFR: enhancedAFR, AMR: enhancedAMR },

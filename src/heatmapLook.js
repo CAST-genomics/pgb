@@ -2,6 +2,7 @@ import Look from "./look.js"
 import {colorComplements, getHeatmapColorHSLInterpolation} from "./utils/color.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
 import eventBus from "./utils/eventBus.js"
+import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
 
 class HeatmapLook extends Look {
     constructor(name, config) {
@@ -40,40 +41,59 @@ class HeatmapLook extends Look {
     activate() {
         super.activate();
 
+        // Handle deselection events for both superpopulation and population
         this.superpopDeselectUnsub = eventBus.subscribe('superpopulation:deselected', data => {
             console.log('Heatmap received superpopulation button deselection')
         });
 
+        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
+            console.log('Heatmap received population button deselection')
+        });
+
+        // Handle selection events for both superpopulation and population with shared handler
         this.superpopSelectUnsub = eventBus.subscribe('superpopulation:selected', data => {
+            this.handleSelectionEvent(data, 'superpopulation');
+        });
 
-            const { acronym } = data
+        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
+            this.handleSelectionEvent(data, 'population');
+        });
+    }
 
-            for (const nodeName of [...this.geometryManager.geometryFactory.getNodeNameSet()]){
+    handleSelectionEvent(data, eventType) {
+        const { acronym } = data
 
-                const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
+        for (const nodeName of [...this.geometryManager.geometryFactory.getNodeNameSet()]){
+
+            const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
+
+            let rawFrequency
+            let enhancedFrequency
+            if (eventType === 'superpopulation') {
                 const { superpopulation } = frequency
-                const rawSuperpopulationFrequency = superpopulation[ acronym ]
-
-                const enhancedFrequency = this.genomicService.getEnhancedFrequency(nodeName, acronym)
-
-                let frequencyToUse
-                if (undefined === enhancedFrequency) {
-                    frequencyToUse = rawSuperpopulationFrequency
-                } else {
-                    frequencyToUse = enhancedFrequency
-                }
-
-                const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
-
-                const key = Look.getCacheKey(nodeName)
-                const material = this.materialCache.get(key)
-                material.color.copy(color)
-                material.needsUpdate = true
-
+                rawFrequency = superpopulation[ acronym ]
+            } else if (eventType === 'population') {
+                const { population } = frequency
+                rawFrequency = population[ acronym ]
+                enhancedFrequency = frequencyAnalysisService.getEnhancedFrequency(acronym, eventType, this.genomicService.nodeMetadata.get(nodeName))
             }
 
 
-        });
+            let frequencyToUse
+            if (undefined === enhancedFrequency) {
+                frequencyToUse = rawFrequency
+            } else {
+                frequencyToUse = enhancedFrequency
+            }
+
+            const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
+
+            const key = Look.getCacheKey(nodeName)
+            const material = this.materialCache.get(key)
+            material.color.copy(color)
+            material.needsUpdate = true
+
+        }
     }
 
     deactivate() {
@@ -84,9 +104,19 @@ class HeatmapLook extends Look {
             this.superpopDeselectUnsub = null;
         }
 
+        if (this.popDeselectUnsub) {
+            this.popDeselectUnsub();
+            this.popDeselectUnsub = null;
+        }
+
         if (this.superpopSelectUnsub) {
             this.superpopSelectUnsub();
             this.superpopSelectUnsub = null;
+        }
+
+        if (this.popSelectUnsub) {
+            this.popSelectUnsub();
+            this.popSelectUnsub = null;
         }
     }
 
