@@ -21,7 +21,7 @@ export const POPULATION_NAMES = new Map([
     ['CLM', 'Colombian'],
     ['PUR', 'Puerto Rican'],
     ['PEL', 'Peruvian'],
-    
+
     // African populations
     ['ACB', 'African Caribbean Barbadian'],
     ['GWD', 'Gambian in Western Division'],
@@ -30,14 +30,14 @@ export const POPULATION_NAMES = new Map([
     ['YRI', 'Yoruba in Ibadan, Nigeria'],
     ['ASW', 'African Ancestry in Southwest US'],
     ['MKK', 'Maasai in Kinyawa, Kenya'],
-    
+
     // East Asian populations
     ['CHS', 'Han Chinese South'],
     ['KHV', 'Kinh in Ho Chi Minh City, Vietnam'],
-    
+
     // South Asian populations
     ['PJL', 'Punjabi in Lahore, Pakistan'],
-    
+
     // Not Available
     ['N/A', 'Not Available']
 ]);
@@ -65,10 +65,7 @@ export function getPopulationName(acronym) {
  * @returns {Array} Array of objects with {acronym, name} properties
  */
 export function getAllSuperpopulationNames() {
-    return Array.from(SUPERPOPULATION_NAMES.entries()).map(([acronym, name]) => ({
-        acronym,
-        name
-    }));
+    return Array.from(SUPERPOPULATION_NAMES.entries()).map(([acronym, name]) => ({ acronym, name }));
 }
 
 /**
@@ -94,7 +91,7 @@ export function getPopulationsBySuperpopulation() {
         'SAS': ['PJL'],
         'N/A': ['N/A']
     };
-    
+
     const result = {};
     Object.entries(populationsBySuperpop).forEach(([superpop, populations]) => {
         result[superpop] = populations.map(pop => ({
@@ -102,6 +99,6 @@ export function getPopulationsBySuperpopulation() {
             name: getPopulationName(pop)
         }));
     });
-    
+
     return result;
 }

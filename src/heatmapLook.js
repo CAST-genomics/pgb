@@ -42,10 +42,8 @@ class HeatmapLook extends Look {
 
         this.superpopSelectUnsub = eventBus.subscribe('superpopulation:selected', data => {
 
-            const { superpopulation:superpop } = data
-            const { acronym, name } = superpop
+            const { acronym } = data
 
-            const nodeColorLUT = new Map()
             for (const nodeName of [...this.geometryManager.geometryFactory.getNodeNameSet()]){
 
                 const { frequency } = this.genomicService.nodeMetadata.get(nodeName)

@@ -13,29 +13,9 @@ class SuperpopulationWidget {
         this.selectedSuperpopulation = null;
         this.allSuperpopulationItems = new Map();
 
-        // Get superpopulation data from pangenomeUtils
-        this.superpopulations = this.initializeSuperpopulations();
+        this.superpopulations = getAllSuperpopulationNames()
 
         this.configure();
-    }
-
-    initializeSuperpopulations() {
-        const superpopulationData = getAllSuperpopulationNames();
-
-        // Color mapping for each superpopulation
-        const colorMap = {
-            'AMR': '#96CEB4', // Ad Mixed American - light green
-            'AFR': '#FF6B6B', // African - red
-            'EAS': '#45B7D1', // East Asian - blue
-            'SAS': '#4ECDC4', // South Asian - teal
-            'N/A': '#D3D3D3'  // Not Available - light gray
-        };
-
-        return superpopulationData.map(item => ({
-            acronym: item.acronym,
-            name: item.name,
-            color: colorMap[item.acronym] || '#D3D3D3'
-        }));
     }
 
     configure() {
@@ -112,7 +92,7 @@ class SuperpopulationWidget {
             console.log(`Selected superpopulation: ${superpopulation.name}`);
 
             app.setActiveScene('heatmapScene', true);
-            eventBus.publish('superpopulation:selected', { superpopulation, acronym: superpopulation.acronym });
+            eventBus.publish('superpopulation:selected', { acronym: superpopulation.acronym });
         }
     }
 

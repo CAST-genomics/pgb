@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     // AssemblyVisualizationLook
     const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
+    assemblyVisualizationLook.setAnimationEnabled(false)
     sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
