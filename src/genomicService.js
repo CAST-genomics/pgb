@@ -4,6 +4,7 @@ import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { frequencyAnalysisService } from "./frequencyAnalysisService.js"
+import {getAllSuperpopulationNames,getAllPopulationNames} from "./utils/pangenomeUtils.js"
 
 class GenomicService {
 
@@ -54,7 +55,8 @@ class GenomicService {
 
         // Perform statistical analysis on frequency distributions
         console.log('GenomicService: Performing statistical analysis on frequency distributions...')
-        frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata)
+        frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata, 'superpopulation', getAllSuperpopulationNames().map(({acronym}) => acronym))
+        frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata, 'population', getAllPopulationNames().map(({acronym}) => acronym))
 
         this.assemblySet = new Set()
         for (const [ key, { assemblySet }] of this.nodeMetadata) {

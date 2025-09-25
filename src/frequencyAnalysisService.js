@@ -1,70 +1,80 @@
 import { calculatePercentiles, normalizeDataset, calculateDistributionStats } from "./utils/stats.js"
-import {getAllSuperpopulationNames} from "./utils/pangenomeUtils.js"
 
 /**
- * Service for analyzing frequency distributions across genomic nodes
+ * Service for analyzing frequency distributions across any dataset with associated ranges
  * Provides statistical analysis and adaptive scaling for heatmap visualizations
  */
 class FrequencyAnalysisService {
     constructor() {
-        this.globalAnalysis = new Map() // superpopulation -> analysis results
+        this.globalAnalysis = new Map() // frequencyKey -> analysis results
         this.nodeAnalysis = new Map()   // nodeName -> analysis results
-        this.scalingMethods = new Map() // superpopulation -> optimal scaling method
+        this.scalingMethods = new Map() // frequencyKey -> optimal scaling method
+        this.analysisResults = new Map() // frequencyType -> { keys: [...], analyses: Map<key, analysis> }
     }
 
     /**
-     * Analyze frequency distributions for all superpopulations across all nodes
+     * Analyze frequency distributions for a single frequency type
      * @param {Object} nodeMetadata - Map of nodeName -> metadata containing frequencies
+     * @param {string} frequencyType - Type of frequency to analyze (e.g., 'superpopulation', 'population', 'sex')
+     * @param {Array} frequencyKeys - Array of keys to analyze within the frequency type
      */
-    analyzeGlobalDistributions(nodeMetadata) {
-        console.log('FrequencyAnalysisService: Analyzing global frequency distributions...')
+    analyzeGlobalDistributions(nodeMetadata, frequencyType, frequencyKeys) {
+        console.log(`FrequencyAnalysisService: Analyzing ${frequencyType} frequency distributions...`)
 
-        // Initialize analysis for each superpopulation
-        const superpopulationAcronyms = getAllSuperpopulationNames().map(({ acronym }) => acronym)
         const frequencyData = new Map()
+        const analyses = new Map()
 
-        // Collect all frequency values for each superpopulation
+        // Collect all frequency values for each key
         for (const [nodeName, metadata] of nodeMetadata) {
             const { frequency } = metadata
-            if (frequency && frequency.superpopulation) {
-                for (const superpop of superpopulationAcronyms) {
-                    if (!frequencyData.has(superpop)) {
-                        frequencyData.set(superpop, [])
+            if (frequency && frequency[frequencyType]) {
+                for (const key of frequencyKeys) {
+                    if (!frequencyData.has(key)) {
+                        frequencyData.set(key, [])
                     }
-                    const freq = frequency.superpopulation[superpop]
+                    const freq = frequency[frequencyType][key]
                     if (freq !== undefined && freq !== null) {
-                        frequencyData.get(superpop).push(freq)
+                        frequencyData.get(key).push(freq)
                     }
                 }
             }
         }
 
-        // Analyze each superpopulation's distribution
-        for (const [superpop, frequencies] of frequencyData) {
-            if (frequencies.length === 0) continue
+        // Analyze each key's distribution
+        for (const [key, freqValues] of frequencyData) {
+            if (freqValues.length === 0) continue
 
-            const analysis = this.analyzeDistribution(frequencies, superpop)
-            this.globalAnalysis.set(superpop, analysis)
+            const analysis = this.analyzeDistribution(freqValues, key)
+            analyses.set(key, analysis)
+
+            // Also store in global analysis for backward compatibility
+            this.globalAnalysis.set(key, analysis)
 
             // Determine optimal scaling method
             const optimalMethod = this.determineOptimalScaling(analysis)
-            this.scalingMethods.set(superpop, optimalMethod)
+            this.scalingMethods.set(key, optimalMethod)
 
-            console.log(`FrequencyAnalysisService: ${superpop} - ${frequencies.length} nodes, method: ${optimalMethod}`)
+            console.log(`FrequencyAnalysisService: ${key} - ${freqValues.length} nodes, method: ${optimalMethod}`)
         }
+
+        // Store results by frequency type for later use
+        this.analysisResults.set(frequencyType, {
+            keys: frequencyKeys,
+            analyses: analyses
+        })
     }
 
     /**
      * Analyze a single frequency distribution
      * @param {number[]} rawFrequencies - Array of frequency values
-     * @param {string} superpopulation - Superpopulation name for context
+     * @param {string} frequencyKey - Frequency key name for context
      * @returns {Object} Complete statistical analysis
      */
-    analyzeDistribution(rawFrequencies, superpopulation) {
+    analyzeDistribution(rawFrequencies, frequencyKey) {
 
         const payload =
             {
-                superpopulation,
+                frequencyKey,
                 rawFrequencies,
                 distributionStats:calculateDistributionStats(rawFrequencies) ,
                 normalizedValues:
@@ -130,28 +140,28 @@ class FrequencyAnalysisService {
     }
 
     /**
-     * Get enhanced frequency value for a specific node and superpopulation
+     * Get enhanced frequency value for a specific node and frequency key (backward compatibility)
      * @param {string} nodeName - Node identifier
-     * @param {string} superpopulation - Superpopulation code
+     * @param {string} frequencyKey - Frequency key code
      * @param {string} method - Scaling method ('auto', 'percentile', 'log', 'sqrt', 'quantile')
      * @param {Object} nodeMetadata - Node metadata containing frequency data
      * @returns {number} Enhanced frequency value (0-1)
      */
-    getEnhancedFrequency(nodeName, superpopulation, method = 'auto', nodeMetadata = null) {
-        const analysis = this.globalAnalysis.get(superpopulation)
+    getEnhancedFrequency(nodeName, frequencyKey, method = 'auto', nodeMetadata = null) {
+        const analysis = this.globalAnalysis.get(frequencyKey)
         if (!analysis) {
-            console.warn(`FrequencyAnalysisService: No analysis found for ${superpopulation}`)
+            console.warn(`FrequencyAnalysisService: No analysis found for ${frequencyKey}`)
             return undefined
         }
 
         // Get the raw frequency for this node
-        const nodeFreq = this.getNodeFrequency(nodeName, superpopulation, nodeMetadata)
+        const nodeFreq = this.getNodeFrequency(nodeName, frequencyKey, nodeMetadata)
         if (nodeFreq === null) {
             return undefined
         }
 
         // Determine scaling method
-        const scalingMethod = method === 'auto' ? this.scalingMethods.get(superpopulation) : method
+        const scalingMethod = method === 'auto' ? this.scalingMethods.get(frequencyKey) : method
 
         // Get the normalized value
         const nodeIndex = analysis.rawFrequencies.indexOf(nodeFreq)
@@ -164,47 +174,99 @@ class FrequencyAnalysisService {
     }
 
     /**
-     * Get the raw frequency for a specific node and superpopulation
+     * Get enhanced frequency value for any frequency type and key
      * @param {string} nodeName - Node identifier
-     * @param {string} superpopulation - Superpopulation code
+     * @param {string} frequencyKey - Frequency key (e.g., 'AFR', 'AMR', 'male', 'female')
+     * @param {string} frequencyType - Type of frequency ('superpopulation', 'population', 'sex')
+     * @param {string} method - Scaling method ('auto', 'percentile', 'log', 'sqrt', 'quantile')
+     * @param {Object} nodeMetadata - Node metadata containing frequency data
+     * @returns {number} Enhanced frequency value (0-1)
+     */
+    getEnhancedFrequencyGeneric(nodeName, frequencyKey, frequencyType, method = 'auto', nodeMetadata = null) {
+        const analysis = this.globalAnalysis.get(frequencyKey)
+        if (!analysis) {
+            console.warn(`FrequencyAnalysisService: No analysis found for ${frequencyKey}`)
+            return undefined
+        }
+
+        // Get the raw frequency for this node
+        const nodeFreq = this.getNodeFrequencyGeneric(nodeName, frequencyKey, frequencyType, nodeMetadata)
+        if (nodeFreq === null) {
+            return undefined
+        }
+
+        // Determine scaling method
+        const scalingMethod = method === 'auto' ? this.scalingMethods.get(frequencyKey) : method
+
+        // Get the normalized value
+        const nodeIndex = analysis.rawFrequencies.indexOf(nodeFreq)
+        if (nodeIndex === -1) {
+            console.warn(`FrequencyAnalysisService: Node frequency not found in analysis for ${nodeName}`)
+            return undefined
+        }
+
+        return analysis.normalizedValues[scalingMethod][nodeIndex]
+    }
+
+    /**
+     * Get the raw frequency for a specific node and frequency key (backward compatibility)
+     * @param {string} nodeName - Node identifier
+     * @param {string} frequencyKey - Frequency key code
      * @param {Object} nodeMetadata - Node metadata containing frequency data
      * @returns {number|null} Raw frequency value
      */
-    getNodeFrequency(nodeName, superpopulation, nodeMetadata = null) {
+    getNodeFrequency(nodeName, frequencyKey, nodeMetadata = null) {
         if (!nodeMetadata || !nodeMetadata.frequency || !nodeMetadata.frequency.superpopulation) {
             return null
         }
 
-        const freq = nodeMetadata.frequency.superpopulation[superpopulation]
+        const freq = nodeMetadata.frequency.superpopulation[frequencyKey]
         return freq !== undefined && freq !== null ? freq : null
     }
 
     /**
-     * Get analysis results for a specific superpopulation
-     * @param {string} superpopulation - Superpopulation code
-     * @returns {Object|null} Analysis results
+     * Get the raw frequency for any frequency type and key
+     * @param {string} nodeName - Node identifier
+     * @param {string} frequencyKey - Frequency key (e.g., 'AFR', 'AMR', 'male', 'female')
+     * @param {string} frequencyType - Type of frequency ('superpopulation', 'population', 'sex')
+     * @param {Object} nodeMetadata - Node metadata containing frequency data
+     * @returns {number|null} Raw frequency value
      */
-    getSuperpopulationAnalysis(superpopulation) {
-        return this.globalAnalysis.get(superpopulation) || null
+    getNodeFrequencyGeneric(nodeName, frequencyKey, frequencyType, nodeMetadata = null) {
+        if (!nodeMetadata || !nodeMetadata.frequency || !nodeMetadata.frequency[frequencyType]) {
+            return null
+        }
+
+        const freq = nodeMetadata.frequency[frequencyType][frequencyKey]
+        return freq !== undefined && freq !== null ? freq : null
     }
 
     /**
-     * Get all available scaling methods for a superpopulation
-     * @param {string} superpopulation - Superpopulation code
+     * Get analysis results for a specific frequency key
+     * @param {string} frequencyKey - Frequency key code
+     * @returns {Object|null} Analysis results
+     */
+    getFrequencyKeyAnalysis(frequencyKey) {
+        return this.globalAnalysis.get(frequencyKey) || null
+    }
+
+    /**
+     * Get all available scaling methods for any frequency key
+     * @param {string} frequencyKey - Frequency key code
      * @returns {string[]} Available scaling methods
      */
-    getAvailableScalingMethods(superpopulation) {
+    getAvailableScalingMethods(frequencyKey) {
         return ['percentile', 'log', 'sqrt', 'quantile']
     }
 
     /**
      * Get scaling method information for display
-     * @param {string} superpopulation - Superpopulation code
+     * @param {string} frequencyKey - Frequency key code
      * @returns {Object} Scaling method info
      */
-    getScalingInfo(superpopulation) {
-        const analysis = this.globalAnalysis.get(superpopulation)
-        const method = this.scalingMethods.get(superpopulation)
+    getScalingInfo(frequencyKey) {
+        const analysis = this.globalAnalysis.get(frequencyKey)
+        const method = this.scalingMethods.get(frequencyKey)
 
         if (!analysis) return null
 
@@ -218,12 +280,60 @@ class FrequencyAnalysisService {
     }
 
     /**
+     * Get analysis results for a specific frequency type
+     * @param {string} frequencyType - Type of frequency (e.g., 'superpopulation', 'population', 'sex')
+     * @returns {Object|null} Analysis results with keys and analyses
+     */
+    getAnalysisResults(frequencyType) {
+        return this.analysisResults.get(frequencyType) || null
+    }
+
+    /**
+     * Get all available frequency types that have been analyzed
+     * @returns {Array} Array of frequency type strings
+     */
+    getAnalyzedFrequencyTypes() {
+        return Array.from(this.analysisResults.keys())
+    }
+
+    /**
+     * Get keys for a specific frequency type
+     * @param {string} frequencyType - Type of frequency
+     * @returns {Array} Array of keys for this frequency type
+     */
+    getFrequencyKeys(frequencyType) {
+        const results = this.analysisResults.get(frequencyType)
+        return results ? results.keys : []
+    }
+
+    /**
+     * Get analysis for a specific key within a frequency type
+     * @param {string} frequencyType - Type of frequency
+     * @param {string} key - Specific key within that type
+     * @returns {Object|null} Analysis results for the specific key
+     */
+    getKeyAnalysis(frequencyType, key) {
+        const results = this.analysisResults.get(frequencyType)
+        return results ? results.analyses.get(key) : null
+    }
+
+    /**
+     * Check if a frequency type has been analyzed
+     * @param {string} frequencyType - Type of frequency
+     * @returns {boolean} True if analyzed, false otherwise
+     */
+    hasAnalysis(frequencyType) {
+        return this.analysisResults.has(frequencyType)
+    }
+
+    /**
      * Clear all analysis data
      */
     clear() {
         this.globalAnalysis.clear()
         this.nodeAnalysis.clear()
         this.scalingMethods.clear()
+        this.analysisResults.clear()
     }
 }
 
