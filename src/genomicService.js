@@ -3,6 +3,7 @@ import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
+import { frequencyAnalysisService } from "./frequencyAnalysisService.js"
 
 class GenomicService {
 
@@ -42,9 +43,18 @@ class GenomicService {
             const frequencies = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
 
             const aggregateSuperpopulationFrequency = (Object.values(frequencies).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(frequencies).length)
-            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], aggregateSuperpopulationFrequency, frequency: assembly_metadata.frequency });
+            this.nodeMetadata.set(nodeName, { 
+                assemblySet, 
+                sequence: sequences[nodeName], 
+                aggregateSuperpopulationFrequency, 
+                frequency: assembly_metadata.frequency 
+            });
 
         }
+
+        // Perform statistical analysis on frequency distributions
+        console.log('GenomicService: Performing statistical analysis on frequency distributions...')
+        frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata)
 
         this.assemblySet = new Set()
         for (const [ key, { assemblySet }] of this.nodeMetadata) {
@@ -133,6 +143,38 @@ class GenomicService {
         return new Set(this.nodeMetadata.keys());
     }
 
+    /**
+     * Get enhanced frequency value for a specific node and superpopulation
+     * @param {string} nodeName - Node identifier
+     * @param {string} superpopulation - Superpopulation code
+     * @param {string} method - Scaling method ('auto', 'percentile', 'log', 'sqrt', 'quantile')
+     * @returns {number} Enhanced frequency value (0-1)
+     */
+    getEnhancedFrequency(nodeName, superpopulation, method = 'auto') {
+        const metadata = this.nodeMetadata.get(nodeName);
+        if (!metadata || !metadata.frequency || !metadata.frequency.superpopulation) {
+            console.warn(`GenomicService: No frequency data found for node ${nodeName}`);
+            return 0;
+        }
+
+        const rawFrequency = metadata.frequency.superpopulation[superpopulation];
+        if (rawFrequency === undefined || rawFrequency === null) {
+            console.warn(`GenomicService: No frequency data found for ${superpopulation} in node ${nodeName}`);
+            return 0;
+        }
+
+        return frequencyAnalysisService.getEnhancedFrequency(nodeName, superpopulation, method, metadata);
+    }
+
+    /**
+     * Get scaling information for a superpopulation
+     * @param {string} superpopulation - Superpopulation code
+     * @returns {Object|null} Scaling information
+     */
+    getScalingInfo(superpopulation) {
+        return frequencyAnalysisService.getScalingInfo(superpopulation);
+    }
+
     clear() {
 
         this.startNode = undefined
@@ -146,6 +188,9 @@ class GenomicService {
         this.assemblySet.clear()
 
         this.assemblyWalkMap.clear()
+
+        // Clear frequency analysis
+        frequencyAnalysisService.clear()
 
     }
 

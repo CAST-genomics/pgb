@@ -10,6 +10,9 @@ class HeatmapLook extends Look {
 
     getNodeColor(nodeName) {
         const {aggregateSuperpopulationFrequency, frequency } = this.genomicService.nodeMetadata.get(nodeName)
+        
+        // For now, use the original aggregate frequency
+        // TODO: Implement enhanced aggregate frequency calculation
         return getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), aggregateSuperpopulationFrequency)
     }
 
@@ -28,6 +31,7 @@ class HeatmapLook extends Look {
         const { nodeName } = nodeObject.userData;
         return assemblyMetadataService.getDemographicBreakdownHTML(nodeName)
     }
+
 
     static createHeatmapLook(name, config) {
         return new HeatmapLook(name, config);
@@ -48,8 +52,13 @@ class HeatmapLook extends Look {
 
                 const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
                 const { superpopulation } = frequency
-                const superpopulationFrequency = superpopulation[ acronym ]
-                const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), superpopulationFrequency)
+                const rawSuperpopulationFrequency = superpopulation[ acronym ]
+                
+                // Use enhanced frequency if available
+                const enhancedFrequency = this.genomicService.getEnhancedFrequency(nodeName, acronym)
+                const frequencyToUse = enhancedFrequency !== 0 ? enhancedFrequency : rawSuperpopulationFrequency
+                
+                const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
 
                 const key = Look.getCacheKey(nodeName)
                 const material = this.materialCache.get(key)
