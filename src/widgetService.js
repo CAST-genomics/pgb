@@ -73,7 +73,13 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget - superpopulation')
-            app.setActiveScene('assemblyVisualizationScene', true);
+
+            if (null === this.superpopulationWidget.selectedSuperpopulation){
+                app.setActiveScene('assemblyVisualizationScene', true)
+            } else {
+                app.setActiveScene('heatmapScene', true)
+            }
+
             this.superpopulationWidget.showCard();
             this.setActiveButton(this.superpopulationButton);
         }
