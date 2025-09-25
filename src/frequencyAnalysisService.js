@@ -56,36 +56,34 @@ class FrequencyAnalysisService {
 
     /**
      * Analyze a single frequency distribution
-     * @param {number[]} frequencies - Array of frequency values
+     * @param {number[]} rawFrequencies - Array of frequency values
      * @param {string} superpopulation - Superpopulation name for context
      * @returns {Object} Complete statistical analysis
      */
-    analyzeDistribution(frequencies, superpopulation) {
-        const distributionStats = calculateDistributionStats(frequencies)
+    analyzeDistribution(rawFrequencies, superpopulation) {
 
-        // Calculate normalized values using different methods
-        const normalizedPercentile = normalizeDataset(frequencies, 'percentile')
-        const normalizedLog = normalizeDataset(frequencies, 'log')
-        const normalizedSqrt = normalizeDataset(frequencies, 'sqrt')
-        const normalizedQuantile = normalizeDataset(frequencies, 'quantile')
+        const payload =
+            {
+                superpopulation,
+                rawFrequencies,
+                distributionStats:calculateDistributionStats(rawFrequencies) ,
+                normalizedValues:
+                    {
+                        percentile: normalizeDataset(rawFrequencies, 'percentile'),
+                        log: normalizeDataset(rawFrequencies, 'log'),
+                        sqrt: normalizeDataset(rawFrequencies, 'sqrt'),
+                        quantile: normalizeDataset(rawFrequencies, 'quantile')
+                    },
+                dataRange:
+                    {
+                        min: Math.min(...rawFrequencies),
+                        max: Math.max(...rawFrequencies),
+                        range: Math.max(...rawFrequencies) - Math.min(...rawFrequencies)
+                    },
+                effectiveRange: this.calculateEffectiveRange(rawFrequencies)
+            }
 
-        return {
-            superpopulation,
-            rawFrequencies: frequencies,
-            distributionStats,
-            normalizedValues: {
-                percentile: normalizedPercentile,
-                log: normalizedLog,
-                sqrt: normalizedSqrt,
-                quantile: normalizedQuantile
-            },
-            dataRange: {
-                min: Math.min(...frequencies),
-                max: Math.max(...frequencies),
-                range: Math.max(...frequencies) - Math.min(...frequencies)
-            },
-            effectiveRange: this.calculateEffectiveRange(frequencies)
-        }
+        return payload
     }
 
     /**
@@ -127,12 +125,8 @@ class FrequencyAnalysisService {
      * @returns {Object} Effective min, max, and range
      */
     calculateEffectiveRange(frequencies) {
-        const percentiles = calculatePercentiles(frequencies, [5, 95])
-        return {
-            min: percentiles.p5,
-            max: percentiles.p95,
-            range: percentiles.p95 - percentiles.p5
-        }
+        const { p5, p95 } = calculatePercentiles(frequencies, [5, 95])
+        return { min: p5, max: p95, range: p95 - p5 }
     }
 
     /**
@@ -147,23 +141,23 @@ class FrequencyAnalysisService {
         const analysis = this.globalAnalysis.get(superpopulation)
         if (!analysis) {
             console.warn(`FrequencyAnalysisService: No analysis found for ${superpopulation}`)
-            return 0
+            return undefined
         }
 
         // Get the raw frequency for this node
         const nodeFreq = this.getNodeFrequency(nodeName, superpopulation, nodeMetadata)
-        if (nodeFreq === null) return 0
+        if (nodeFreq === null) {
+            return undefined
+        }
 
         // Determine scaling method
-        const scalingMethod = method === 'auto'
-            ? this.scalingMethods.get(superpopulation)
-            : method
+        const scalingMethod = method === 'auto' ? this.scalingMethods.get(superpopulation) : method
 
         // Get the normalized value
         const nodeIndex = analysis.rawFrequencies.indexOf(nodeFreq)
         if (nodeIndex === -1) {
             console.warn(`FrequencyAnalysisService: Node frequency not found in analysis for ${nodeName}`)
-            return 0
+            return undefined
         }
 
         return analysis.normalizedValues[scalingMethod][nodeIndex]

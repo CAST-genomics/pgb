@@ -43,11 +43,11 @@ class GenomicService {
             const frequencies = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
 
             const aggregateSuperpopulationFrequency = (Object.values(frequencies).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(frequencies).length)
-            this.nodeMetadata.set(nodeName, { 
-                assemblySet, 
-                sequence: sequences[nodeName], 
-                aggregateSuperpopulationFrequency, 
-                frequency: assembly_metadata.frequency 
+            this.nodeMetadata.set(nodeName, {
+                assemblySet,
+                sequence: sequences[nodeName],
+                aggregateSuperpopulationFrequency,
+                frequency: assembly_metadata.frequency
             });
 
         }
@@ -154,13 +154,13 @@ class GenomicService {
         const metadata = this.nodeMetadata.get(nodeName);
         if (!metadata || !metadata.frequency || !metadata.frequency.superpopulation) {
             console.warn(`GenomicService: No frequency data found for node ${nodeName}`);
-            return 0;
+            return undefined
         }
 
         const rawFrequency = metadata.frequency.superpopulation[superpopulation];
         if (rawFrequency === undefined || rawFrequency === null) {
             console.warn(`GenomicService: No frequency data found for ${superpopulation} in node ${nodeName}`);
-            return 0;
+            return undefined
         }
 
         return frequencyAnalysisService.getEnhancedFrequency(nodeName, superpopulation, method, metadata);
@@ -189,7 +189,6 @@ class GenomicService {
 
         this.assemblyWalkMap.clear()
 
-        // Clear frequency analysis
         frequencyAnalysisService.clear()
 
     }
