@@ -1,8 +1,8 @@
 import Look from "./look.js"
-import {colorComplements, getAppleCrayonColorByName, getHeatmapColorHSLInterpolation} from "./utils/color.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
-import eventBus from "./utils/eventBus.js"
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
+import {frequencyToColorContinuous, frequencyToColorDiscrete} from "./utils/tufteHeatmapColors.js"
+import eventBus from "./utils/eventBus.js"
 
 class HeatmapLook extends Look {
 
@@ -45,7 +45,9 @@ class HeatmapLook extends Look {
                 frequencyToUse = enhancedFrequency
             }
 
-            const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
+            // const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
+
+            const color = frequencyToColorDiscrete(frequencyToUse)
 
             const key = Look.getCacheKey(nodeName)
             const material = this.materialCache.get(key)
