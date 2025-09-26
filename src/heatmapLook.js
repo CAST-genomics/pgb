@@ -1,8 +1,9 @@
 import Look from "./look.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
-import {frequencyToColorContinuous, frequencyToColorDiscrete} from "./utils/tufteHeatmapColors.js"
+import {frequencyToColorContinuous, frequencyToColorDiscrete} from "./utils/colorramps/tufteHeatmapColors.js"
 import eventBus from "./utils/eventBus.js"
+import {viridisColor, infernoColor, cividisColor} from "./utils/colorramps/viridis_inferno_cividis_color_ramps.js"
 
 class HeatmapLook extends Look {
 
@@ -46,8 +47,8 @@ class HeatmapLook extends Look {
             }
 
             // const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
-
             const color = frequencyToColorDiscrete(frequencyToUse)
+            // const color = cividisColor(frequencyToUse)
 
             const key = Look.getCacheKey(nodeName)
             const material = this.materialCache.get(key)
