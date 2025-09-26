@@ -47,8 +47,8 @@ class HeatmapLook extends Look {
             }
 
             // const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
-            const color = frequencyToColorDiscrete(frequencyToUse)
-            // const color = cividisColor(frequencyToUse)
+            // const color = frequencyToColorDiscrete(frequencyToUse)
+            const color = frequencyToColorContinuous(frequencyToUse)
 
             const key = Look.getCacheKey(nodeName)
             const material = this.materialCache.get(key)

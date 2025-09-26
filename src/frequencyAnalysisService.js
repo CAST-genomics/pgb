@@ -146,7 +146,7 @@ class FrequencyAnalysisService {
      * @param {Object} nodeMetadata - Node metadata containing frequency data
      * @returns {number} Enhanced frequency value (0-1)
      */
-    getEnhancedFrequency(frequencyKey, frequencyType, nodeMetadata = null) {
+    getEnhancedFrequency(frequencyKey, frequencyType, nodeMetadata) {
         const analysis = this.globalAnalysis.get(frequencyKey)
         if (!analysis) {
             console.warn(`FrequencyAnalysisService: No analysis found for ${frequencyKey}`)
@@ -170,6 +170,33 @@ class FrequencyAnalysisService {
         }
 
         return analysis.normalizedValues[scalingMethod][nodeIndex]
+    }
+
+    /**
+     * Get all enhanced frequencies for a given frequency type and node
+     * @param {string} frequencyType - Type of frequency ('superpopulation', 'population', 'sex')
+     * @param {Object} nodeMetadata - Node metadata containing frequency data
+     * @returns {Object} Object with frequency keys as properties and enhanced values as values
+     */
+    getEnhancedFrequenciesForType(frequencyType, nodeMetadata) {
+        if (!nodeMetadata || !nodeMetadata.frequency || !nodeMetadata.frequency[frequencyType]) {
+            return {}
+        }
+
+        const result = {}
+        const rawFrequencies = nodeMetadata.frequency[frequencyType]
+
+        // Get all keys for this frequency type
+        const frequencyKeys = this.getFrequencyKeys(frequencyType)
+        
+        for (const key of frequencyKeys) {
+            const enhancedValue = this.getEnhancedFrequency(key, frequencyType, nodeMetadata)
+            if (enhancedValue !== undefined) {
+                result[key] = enhancedValue
+            }
+        }
+
+        return result
     }
 
     /**

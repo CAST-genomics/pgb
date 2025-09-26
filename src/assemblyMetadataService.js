@@ -1,4 +1,5 @@
 import { getSuperpopulationName, getPopulationName } from './utils/pangenomeUtils.js';
+import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
 
 /**
  * AssemblyMetadataService - Manages and provides access to assembly metadata
@@ -332,13 +333,13 @@ class AssemblyMetadataService {
      * @returns {string} HTML snippet with demographic breakdown
      */
     getDemographicBreakdownHTML(nodeId) {
-        const nodeData = this.metadata.get(nodeId);
-        if (!nodeData) {
+        const nodeMetadata = this.metadata.get(nodeId);
+        if (!nodeMetadata) {
             return '<div>No metadata available for this node</div>';
         }
 
-        const superPopFrequencies = nodeData.frequency.superpopulation || {};
-        const popFrequencies = nodeData.frequency.population || {};
+        const superPopFrequencies = frequencyAnalysisService.getEnhancedFrequenciesForType('superpopulation', nodeMetadata)
+        const popFrequencies = frequencyAnalysisService.getEnhancedFrequenciesForType('population', nodeMetadata)
 
         if (Object.keys(superPopFrequencies).length === 0) {
             return '<div>No demographic data available for this node</div>';
@@ -346,7 +347,6 @@ class AssemblyMetadataService {
 
         let html = '<div class="demographic-breakdown">';
 
-        // Group populations by superpopulation
         const superpopGroups = {};
         for (const [population, frequency] of Object.entries(popFrequencies)) {
             const superpop = this.findSuperpopulationForPopulation(population);
@@ -358,11 +358,7 @@ class AssemblyMetadataService {
             }
         }
 
-        // Display hierarchical structure - sort superpopulations by frequency (highest to lowest)
-        const sortedSuperPops = Object.entries(superPopFrequencies)
-            .filter(([_, frequency]) => frequency !== 0 && frequency !== null && frequency !== undefined && !isNaN(frequency))
-            .sort(([, a], [, b]) => b - a); // Sort by frequency descending
-
+        const sortedSuperPops = Object.entries(superPopFrequencies).sort(([, a], [, b]) => b - a)
         for (const [superPop, superPopFrequency] of sortedSuperPops) {
 
             if ('N/A' === superPop){
@@ -372,21 +368,19 @@ class AssemblyMetadataService {
             html += `<div class="superpopulation-section">`;
             html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${formatNumber(superPopFrequency)}</span></h5>`;
 
-            // Show constituent populations if they exist - sort by frequency (highest to lowest)
-            if (superpopGroups[superPop] && Object.keys(superpopGroups[superPop]).length > 0) {
-                html += '<ul class="population-list">';
-                const sortedPopulations = Object.entries(superpopGroups[superPop])
-                    .sort(([, a], [, b]) => b - a); // Sort by frequency descending
+            html += '<ul class="population-list">';
 
-                for (const [population, popFrequency] of sortedPopulations) {
-                    html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${formatNumber(popFrequency)}</span></li>`;
-                }
-                html += '</ul>';
+            const sortedPopulations = Object.entries(superpopGroups[superPop]).sort(([, a], [, b]) => b - a)
+            for (const [population, popFrequency] of sortedPopulations) {
+                html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${formatNumber(popFrequency)}</span></li>`;
             }
+            html += '</ul>';
+
             html += '</div>';
         }
 
-        html += '</div>';
+        html += '</div>'
+
         return html;
     }
 
