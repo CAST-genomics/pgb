@@ -19,7 +19,7 @@ class FrequencyAnalysisService {
      * @param {Array} frequencyKeys - Array of keys to analyze within the frequency type
      */
     analyzeGlobalDistributions(nodeMetadata, frequencyType, frequencyKeys) {
-        console.log(`FrequencyAnalysisService: Analyzing ${frequencyType} frequency distributions...`)
+        // console.log(`FrequencyAnalysisService: Analyzing ${frequencyType} frequency distributions...`)
 
         const frequencyData = new Map()
         const analyses = new Map()
@@ -54,7 +54,7 @@ class FrequencyAnalysisService {
             const optimalMethod = this.determineOptimalScaling(analysis)
             this.scalingMethods.set(key, optimalMethod)
 
-            console.log(`FrequencyAnalysisService: ${key} - ${freqValues.length} nodes, method: ${optimalMethod}`)
+            // console.log(`FrequencyAnalysisService: ${key} - ${freqValues.length} nodes, method: ${optimalMethod}`)
         }
 
         // Store results by frequency type for later use

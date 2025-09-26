@@ -1,63 +1,22 @@
 import Look from "./look.js"
-import {colorComplements, getHeatmapColorHSLInterpolation} from "./utils/color.js"
+import {colorComplements, getAppleCrayonColorByName, getHeatmapColorHSLInterpolation} from "./utils/color.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
 import eventBus from "./utils/eventBus.js"
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
 
 class HeatmapLook extends Look {
+
     constructor(name, config) {
         super(name, config)
     }
-
-    getNodeColor(nodeName) {
-        const {aggregateSuperpopulationFrequency, frequency } = this.genomicService.nodeMetadata.get(nodeName)
-
-        // For now, use the original aggregate frequency
-        // TODO: Implement enhanced aggregate frequency calculation
-        return getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), aggregateSuperpopulationFrequency)
-    }
-
-    getEdgeColors(startNode, endNode, edgeKey) {
-
-        const {aggregateSuperpopulationFrequency:spf0, frequency:f0 } = this.genomicService.nodeMetadata.get(startNode)
-        const startColor = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), spf0)
-
-        const {aggregateSuperpopulationFrequency:spf1, frequency:f1 } = this.genomicService.nodeMetadata.get(endNode)
-        const endColor = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), spf1)
-
-        return [ startColor, endColor ]
-    }
-
-    createNodeTooltipContent(nodeObject) {
-        const { nodeName } = nodeObject.userData;
-        return assemblyMetadataService.getDemographicBreakdownHTML(nodeName)
-    }
-
 
     static createHeatmapLook(name, config) {
         return new HeatmapLook(name, config);
     }
 
-    activate() {
-        super.activate();
-
-        // Handle deselection events for both superpopulation and population
-        this.superpopDeselectUnsub = eventBus.subscribe('superpopulation:deselected', data => {
-            console.log('Heatmap received superpopulation button deselection')
-        });
-
-        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
-            console.log('Heatmap received population button deselection')
-        });
-
-        // Handle selection events for both superpopulation and population with shared handler
-        this.superpopSelectUnsub = eventBus.subscribe('superpopulation:selected', data => {
-            this.handleSelectionEvent(data, 'superpopulation');
-        });
-
-        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
-            this.handleSelectionEvent(data, 'population');
-        });
+    createNodeTooltipContent(nodeObject) {
+        const { nodeName } = nodeObject.userData;
+        return assemblyMetadataService.getDemographicBreakdownHTML(nodeName)
     }
 
     handleSelectionEvent(data, eventType) {
@@ -94,6 +53,28 @@ class HeatmapLook extends Look {
             material.needsUpdate = true
 
         }
+    }
+
+    activate() {
+        super.activate();
+
+        // Handle deselection events for both superpopulation and population
+        this.superpopDeselectUnsub = eventBus.subscribe('superpopulation:deselected', data => {
+            console.log('Heatmap received superpopulation button deselection')
+        });
+
+        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
+            console.log('Heatmap received population button deselection')
+        });
+
+        // Handle selection events for both superpopulation and population with shared handler
+        this.superpopSelectUnsub = eventBus.subscribe('superpopulation:selected', data => {
+            this.handleSelectionEvent(data, 'superpopulation');
+        });
+
+        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
+            this.handleSelectionEvent(data, 'population');
+        });
     }
 
     deactivate() {

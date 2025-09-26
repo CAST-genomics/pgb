@@ -41,20 +41,10 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            const frequencies = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
-
-            const aggregateSuperpopulationFrequency = (Object.values(frequencies).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(frequencies).length)
-            this.nodeMetadata.set(nodeName, {
-                assemblySet,
-                sequence: sequences[nodeName],
-                aggregateSuperpopulationFrequency,
-                frequency: assembly_metadata.frequency
-            });
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], frequency: assembly_metadata.frequency });
 
         }
 
-        // Perform statistical analysis on frequency distributions
-        console.log('GenomicService: Performing statistical analysis on frequency distributions...')
         frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata, 'superpopulation', getAllSuperpopulationNames().map(({acronym}) => acronym))
         frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata, 'population', getAllPopulationNames().map(({acronym}) => acronym))
 

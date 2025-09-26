@@ -5,8 +5,12 @@ import ParametricLine from "./parametricLine.js"
 import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import GenomicService from "./genomicService.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
 
 class Look {
+
+    static DEFAULT_NODE_COLOR_NAME = 'ocean'
+    static DEFAULT_EDGE_COLOR_NAME = 'steel'
 
     // pixel units
     static NODE_LINE_WIDTH_PIXELS = 2*2;
@@ -106,9 +110,7 @@ class Look {
     }
 
     getNodeColor(nodeName) {
-        const str = 'getNodeColor() must be implemented by subclass'
-        console.error(str)
-        return null
+        return getAppleCrayonColorByName(Look.DEFAULT_NODE_COLOR_NAME)
     }
 
     createEdgeMesh(geometry, context) {
@@ -136,9 +138,9 @@ class Look {
     }
 
     getEdgeColors(startNode, endNode, edgeKey) {
-        const str = 'getEdgeColors() must be implemented by subclass'
-        console.error(str)
-        return []
+        const startColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
+        const endColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
+        return [ startColor, endColor ]
     }
 
     /**

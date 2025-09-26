@@ -64,19 +64,18 @@ export function getPopulationName(acronym) {
  * Get all superpopulation names as an array of objects with acronym and name
  * @returns {Array} Array of objects with {acronym, name} properties
  */
-export function getAllSuperpopulationNames() {
-    return Array.from(SUPERPOPULATION_NAMES.entries()).map(([acronym, name]) => ({ acronym, name }));
+export function getAllSuperpopulationNames(ignoreNA = true) {
+    const list = Array.from(SUPERPOPULATION_NAMES.entries()).map(([acronym, name]) => ({ acronym, name }))
+    return true === ignoreNA ? list.filter(item => 'N/A' !== item.acronym) : list
 }
 
 /**
  * Get all population names as an array of objects with acronym and name
  * @returns {Array} Array of objects with {acronym, name} properties
  */
-export function getAllPopulationNames() {
-    return Array.from(POPULATION_NAMES.entries()).map(([acronym, name]) => ({
-        acronym,
-        name
-    }));
+export function getAllPopulationNames(ignoreNA = true) {
+    const list = Array.from(POPULATION_NAMES.entries()).map(([acronym, name]) => ({ acronym, name }))
+    return true === ignoreNA ? list.filter(item => 'N/A' !== item.acronym) : list
 }
 
 /**
