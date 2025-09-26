@@ -5,7 +5,7 @@ import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
-import { annotationRenderService, widgetService } from "./main.js"
+import { annotationRenderService } from "./main.js"
 import {getAppleCrayonColorByName} from "./utils/color.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
@@ -50,22 +50,26 @@ class App {
 
     setActiveScene(sceneName, doPauseAnimation = false){
 
-        if (doPauseAnimation) {
-            this.stopAnimation()
-        }
+        if (sceneName !== this.sceneManager.getActiveSceneName()) {
 
-        this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
-        const scene = this.sceneManager.getActiveScene()
+            if (doPauseAnimation) {
+                this.stopAnimation()
+            }
 
-        // Only add visual feedback if it's not already present
-        const existingVisualFeedback = scene.getObjectByName(this.raycastService.getVisualFeedbackName())
-        if (!existingVisualFeedback) {
-            console.log(`Add RaycastService Visual Feedback to Scene ${ this.sceneManager.getActiveSceneName() }`)
-            scene.add(this.raycastService.setupVisualFeedback())
-        }
+            this.sceneManager.setActiveScene(sceneName, this.renderer, this.cameraManager.camera)
+            const scene = this.sceneManager.getActiveScene()
 
-        if (doPauseAnimation) {
-            this.startAnimation()
+            // Only add visual feedback if it's not already present
+            const existingVisualFeedback = scene.getObjectByName(this.raycastService.getVisualFeedbackName())
+            if (!existingVisualFeedback) {
+                console.log(`Add RaycastService Visual Feedback to Scene ${this.sceneManager.getActiveSceneName()}`)
+                scene.add(this.raycastService.setupVisualFeedback())
+            }
+
+            if (doPauseAnimation) {
+                this.startAnimation()
+            }
+
         }
     }
 
@@ -365,8 +369,10 @@ class App {
 
         materialService.lineMaterialCache.clear()
 
-        const look = this.sceneManager.getActiveLook()
-        look.materialCache.clear()
+        if (true === this.sceneManager.isActive()) {
+            const look = this.sceneManager.getActiveLook()
+            look.materialCache.clear()
+        }
 
         this.sceneManager.clearAllScenes()
 

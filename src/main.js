@@ -5,6 +5,8 @@ import GenomicService from './genomicService.js'
 import SequenceService from './sequenceService.js'
 import GeometryManager from './geometryManager.js'
 import AssemblyWidget from './assemblyWidget.js'
+import SuperpopulationWidget from './superpopulationWidget.js'
+import PopulationWidget from './populationWidget.js'
 import WidgetService from './widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
@@ -45,9 +47,12 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     const sceneManager = new SceneManager(new LookManager())
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
+    const superpopulationWidget = new SuperpopulationWidget(document.getElementById('pgb-superpopulation-card'));
+    const populationWidget = new PopulationWidget(document.getElementById('pgb-population-card'));
 
     // AssemblyVisualizationLook
     const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
+    assemblyVisualizationLook.setAnimationEnabled(false)
     sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
@@ -56,7 +61,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 
-    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget);
+    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, superpopulationWidget, populationWidget);
 
     annotationRenderService = new AnnotationRenderService(document.querySelector('.pgb-gene-annotation-track-container'), genomicService, sceneManager, raycastService)
 

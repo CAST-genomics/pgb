@@ -5,8 +5,12 @@ import ParametricLine from "./parametricLine.js"
 import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import GenomicService from "./genomicService.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
 
 class Look {
+
+    static DEFAULT_NODE_COLOR_NAME = 'ocean'
+    static DEFAULT_EDGE_COLOR_NAME = 'steel'
 
     // pixel units
     static NODE_LINE_WIDTH_PIXELS = 2*2;
@@ -81,7 +85,7 @@ class Look {
 
     getNodeMaterial(nodeName) {
 
-        const cacheKey = `${this.constructor.name}:${nodeName}:normal`;
+        const cacheKey = Look.getCacheKey(nodeName);
 
         // Check if we already have this material cached
         if (this.materialCache.has(cacheKey)) {
@@ -106,9 +110,7 @@ class Look {
     }
 
     getNodeColor(nodeName) {
-        const str = 'getNodeColor() must be implemented by subclass'
-        console.error(str)
-        return null
+        return getAppleCrayonColorByName(Look.DEFAULT_NODE_COLOR_NAME)
     }
 
     createEdgeMesh(geometry, context) {
@@ -136,9 +138,9 @@ class Look {
     }
 
     getEdgeColors(startNode, endNode, edgeKey) {
-        const str = 'getEdgeColors() must be implemented by subclass'
-        console.error(str)
-        return []
+        const startColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
+        const endColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
+        return [ startColor, endColor ]
     }
 
     /**
@@ -147,6 +149,7 @@ class Look {
      */
     activate() {
         this.isActive = true;
+        console.log(`${this.constructor.name} is now active`)
     }
 
     /**
@@ -240,6 +243,11 @@ class Look {
         // Clear the material cache
         this.materialCache.clear();
     }
+
+    static getCacheKey(nodeName) {
+        return `${this.constructor.name}:${nodeName}:normal`;
+    }
+
 }
 
 export default Look;

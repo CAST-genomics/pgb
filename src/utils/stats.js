@@ -71,7 +71,7 @@ function calculatePercentiles(values, percentiles = [10, 25, 50, 75, 90, 95]) {
     percentiles.forEach((p, i) => {
         const currentPercentile = `p${p}`;
         const currentBoundary = percentileBoundaries[currentPercentile];
-        
+
         let bucketValues;
         if (i === 0) {
             // First percentile: values <= currentBoundary
@@ -298,18 +298,18 @@ function prettyPrintPercentiles(percentileResults, originalValues, title = "Perc
     Object.entries(percentileResults).forEach(([percentile, bucket]) => {
         const bucketCount = bucket.values.length;
         const bucketPercentage = ((bucketCount / totalCount) * 100).toFixed(1);
-        
+
         output += `${percentile}:\n`;
         output += `  Count: ${bucketCount} (${bucketPercentage}%)\n`;
         output += `  Min: ${bucket.min}\n`;
         output += `  Max: ${bucket.max}\n`;
         output += `  Range: ${bucket.max - bucket.min}\n`;
-        
+
         if (bucketCount > 0) {
             const bucketMean = bucket.values.reduce((sum, val) => sum + val, 0) / bucketCount;
             output += `  Mean: ${bucketMean.toFixed(2)}\n`;
         }
-        
+
         output += `  Values: [${bucket.values.slice(0, 5).join(', ')}${bucketCount > 5 ? `, ... (${bucketCount - 5} more)` : ''}]\n`;
         output += `\n`;
     });
@@ -317,4 +317,4 @@ function prettyPrintPercentiles(percentileResults, originalValues, title = "Perc
     return output;
 }
 
-export { calculateBasicStats, calculatePercentiles, calculateSkewness, calculateKurtosis, prettyPrintPercentiles }
+export { calculateDistributionStats, normalizeDataset, calculateBasicStats, calculatePercentiles, calculateSkewness, calculateKurtosis, prettyPrintPercentiles }

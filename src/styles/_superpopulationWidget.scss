@@ -1,0 +1,68 @@
+.superpopulation-widget {
+  &__card {
+    z-index: 1000;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: 10rem;
+    margin-top: 10rem;
+    min-width: 300px;
+    min-height: fit-content;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(0, 0);
+
+    &.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .card-body {
+      height: calc(100% - 60px);
+      padding: 0;
+      overflow: hidden;
+
+      .superpopulation-widget__list-container {
+        height: 100%;
+        overflow-y: auto;
+
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums slashed-zero;
+      }
+    }
+  }
+
+  &__button-container {
+
+    margin-left: 1rem;
+    margin-right: 1rem;
+
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  &__button {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: #495057;
+    text-align: left;
+    background-color: #ffffff;
+
+    &:hover {
+      background-color: #f8f9fa;
+      border-color: #adb5bd;
+    }
+
+    &:active {
+      background-color: #e9ecef;
+    }
+  }
+}

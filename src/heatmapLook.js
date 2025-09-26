@@ -1,40 +1,112 @@
 import Look from "./look.js"
-import {colorComplements, getRandomVibrantAppleCrayonColor, lerpAppleCrayonColors, getHeatmapColorHSLInterpolation} from "./utils/color.js"
+import {colorComplements, getAppleCrayonColorByName, getHeatmapColorHSLInterpolation} from "./utils/color.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
+import eventBus from "./utils/eventBus.js"
+import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
 
 class HeatmapLook extends Look {
+
     constructor(name, config) {
         super(name, config)
-    }
-
-    getNodeColor(nodeName) {
-        const {aggregateSuperpopulationFrequency } = this.genomicService.nodeMetadata.get(nodeName)
-        const lerped = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), aggregateSuperpopulationFrequency)
-        return lerped
-    }
-
-    getEdgeColors(startNode, endNode, edgeKey) {
-        const {aggregateSuperpopulationFrequency:f0 } = this.genomicService.nodeMetadata.get(startNode)
-        const {aggregateSuperpopulationFrequency:f1 } = this.genomicService.nodeMetadata.get(endNode)
-
-        const startColor = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), f0)
-        const endColor = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), f1)
-
-        return [ startColor, endColor ]
-    }
-
-    createNodeTooltipContent(nodeObject) {
-        const { nodeName } = nodeObject.userData;
-
-        const demographicHTML = assemblyMetadataService.getDemographicBreakdownHTML(nodeName);
-        return demographicHTML;
-
-        // return `<div><strong>Node:</strong> ${nodeName}</div>${demographicHTML}`;
     }
 
     static createHeatmapLook(name, config) {
         return new HeatmapLook(name, config);
     }
+
+    createNodeTooltipContent(nodeObject) {
+        const { nodeName } = nodeObject.userData;
+        return assemblyMetadataService.getDemographicBreakdownHTML(nodeName)
+    }
+
+    handleSelectionEvent(data, eventType) {
+        const { acronym } = data
+
+        for (const nodeName of [...this.geometryManager.geometryFactory.getNodeNameSet()]){
+
+            const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
+
+            let rawFrequency
+            let enhancedFrequency
+            if (eventType === 'superpopulation') {
+                const { superpopulation } = frequency
+                rawFrequency = superpopulation[ acronym ]
+            } else if (eventType === 'population') {
+                const { population } = frequency
+                rawFrequency = population[ acronym ]
+                enhancedFrequency = frequencyAnalysisService.getEnhancedFrequency(acronym, eventType, this.genomicService.nodeMetadata.get(nodeName))
+            }
+
+
+            let frequencyToUse
+            if (undefined === enhancedFrequency) {
+                frequencyToUse = rawFrequency
+            } else {
+                frequencyToUse = enhancedFrequency
+            }
+
+            const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
+
+            const key = Look.getCacheKey(nodeName)
+            const material = this.materialCache.get(key)
+            material.color.copy(color)
+            material.needsUpdate = true
+
+        }
+    }
+
+    activate() {
+        super.activate();
+
+        // Handle deselection events for both superpopulation and population
+        this.superpopDeselectUnsub = eventBus.subscribe('superpopulation:deselected', data => {
+            console.log('Heatmap received superpopulation button deselection')
+        });
+
+        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
+            console.log('Heatmap received population button deselection')
+        });
+
+        // Handle selection events for both superpopulation and population with shared handler
+        this.superpopSelectUnsub = eventBus.subscribe('superpopulation:selected', data => {
+            this.handleSelectionEvent(data, 'superpopulation');
+        });
+
+        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
+            this.handleSelectionEvent(data, 'population');
+        });
+    }
+
+    deactivate() {
+        super.deactivate();
+
+        if (this.superpopDeselectUnsub) {
+            this.superpopDeselectUnsub();
+            this.superpopDeselectUnsub = null;
+        }
+
+        if (this.popDeselectUnsub) {
+            this.popDeselectUnsub();
+            this.popDeselectUnsub = null;
+        }
+
+        if (this.superpopSelectUnsub) {
+            this.superpopSelectUnsub();
+            this.superpopSelectUnsub = null;
+        }
+
+        if (this.popSelectUnsub) {
+            this.popSelectUnsub();
+            this.popSelectUnsub = null;
+        }
+    }
+
+    dispose() {
+
+        super.dispose()
+
+    }
+
 }
 
 export default HeatmapLook

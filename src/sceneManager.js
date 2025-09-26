@@ -7,6 +7,10 @@ class SceneManager {
         this.activeSceneName = null
     }
 
+    isActive(){
+        return null !== this.activeSceneName
+    }
+
     /**
      * Create a new scene with the given name and background color
      * @param {string} sceneName - Unique identifier for the scene
@@ -14,6 +18,7 @@ class SceneManager {
      * @returns {THREE.Scene} The created scene
      */
     createScene(sceneName, backgroundColor = new THREE.Color(0xffffff)) {
+
         if (this.scenes.has(sceneName)) {
             console.warn(`Scene '${sceneName}' already exists. Overwriting.`)
             this.disposeScene(sceneName)
@@ -26,9 +31,9 @@ class SceneManager {
         this.scenes.set(sceneName, scene)
 
         // Set as active if this is the first scene
-        if (this.activeSceneName === null) {
-            this.activeSceneName = sceneName
-        }
+        // if (this.activeSceneName === null) {
+        //     this.activeSceneName = sceneName
+        // }
 
         return scene
     }

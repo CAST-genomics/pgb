@@ -1,9 +1,10 @@
-import {locusInput} from "./main.js"
 import LocusInput from "./locusInput.js"
 import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
 import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
+import { frequencyAnalysisService } from "./frequencyAnalysisService.js"
+import {getAllSuperpopulationNames,getAllPopulationNames} from "./utils/pangenomeUtils.js"
 
 class GenomicService {
 
@@ -29,7 +30,7 @@ class GenomicService {
         console.log(`locus length ${ prettyPrint(this.locus.endBP - this.locus.startBP) }`)
 
         this.startNode = undefined
-        for (const [nodeName, { assembly }] of Object.entries(nodes)) {
+        for (const [nodeName, { assembly, assembly_metadata }] of Object.entries(nodes)) {
 
             if (undefined === this.startNode) {
                 this.startNode = nodeName
@@ -40,12 +41,12 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            const frequencies = assemblyMetadataService.getSuperPopulationFrequencies(nodeName)
-
-            const aggregateSuperpopulationFrequency = (Object.values(frequencies).reduce((accumulator, currentValue) => accumulator + currentValue, 0))/ (Object.values(frequencies).length)
-            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], aggregateSuperpopulationFrequency });
+            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], frequency: assembly_metadata.frequency });
 
         }
+
+        frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata, 'superpopulation', getAllSuperpopulationNames().map(({acronym}) => acronym))
+        frequencyAnalysisService.analyzeGlobalDistributions(this.nodeMetadata, 'population', getAllPopulationNames().map(({acronym}) => acronym))
 
         this.assemblySet = new Set()
         for (const [ key, { assemblySet }] of this.nodeMetadata) {
@@ -147,6 +148,8 @@ class GenomicService {
         this.assemblySet.clear()
 
         this.assemblyWalkMap.clear()
+
+        frequencyAnalysisService.clear()
 
     }
 

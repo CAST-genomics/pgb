@@ -253,15 +253,6 @@ class AssemblyWidget {
 
     }
 
-    onGearClick(event) {
-        event.stopPropagation();
-        if (this.assemblyWidgetContainer.classList.contains('show')) {
-            this.hideCard();
-        } else {
-            this.showCard();
-        }
-    }
-
     showCard() {
         this.assemblyWidgetContainer.style.display = '';
         this.assemblyWidgetContainer.style.top = '0px'
@@ -287,6 +278,16 @@ class AssemblyWidget {
                 this.filterAssemblies(''); // Show all items
             }
         }, 200);
+    }
+
+    reset() {
+        // Clear any selected assembly
+        if (this.selectedAssembly) {
+            const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
+            const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
+            eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+            this.selectedAssembly = null;
+        }
     }
 
     destroy() {

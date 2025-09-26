@@ -21,7 +21,7 @@ class GeometryFactory {
         const bbox = this.#calculateBoundingBox(json);
 
         // pretty print the bbox
-        console.log(`bbox: ${ prettyPrint(bbox.x.min) } ${ prettyPrint(bbox.x.max) } ${ prettyPrint(bbox.y.min) } ${ prettyPrint(bbox.y.max) }`)
+        // console.log(`bbox: ${ prettyPrint(bbox.x.min) } ${ prettyPrint(bbox.x.max) } ${ prettyPrint(bbox.y.min) } ${ prettyPrint(bbox.y.max) }`)
 
         this.#createSplines(bbox, json.node);
 
@@ -40,7 +40,8 @@ class GeometryFactory {
         const edgeCount = `${ prettyPrint(this.getEdgeNameSet().size) }`
         const nodeXYZCount = `${ prettyPrint(GeometryFactory.getTotalLine2Points(this.geometryCache)) }`
 
-        console.log(`created: nodes ${ nodeCount } nodeXYZ ${ nodeXYZCount } edges ${ edgeCount }`)
+        // console.log(`created: nodes ${ nodeCount } nodeXYZ ${ nodeXYZCount } edges ${ edgeCount }`)
+        console.log(`created: nodes ${ nodeCount } edges ${ edgeCount }`)
 
         return result;
     }
