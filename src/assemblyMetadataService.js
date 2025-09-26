@@ -364,18 +364,22 @@ class AssemblyMetadataService {
             .sort(([, a], [, b]) => b - a); // Sort by frequency descending
 
         for (const [superPop, superPopFrequency] of sortedSuperPops) {
-            html += `<div class="superpopulation-section">`;
 
-            html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${formatNumber(100 * superPopFrequency)}%</span></h5>`;
+            if ('N/A' === superPop){
+                continue
+            }
+
+            html += `<div class="superpopulation-section">`;
+            html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${formatNumber(superPopFrequency)}</span></h5>`;
 
             // Show constituent populations if they exist - sort by frequency (highest to lowest)
             if (superpopGroups[superPop] && Object.keys(superpopGroups[superPop]).length > 0) {
                 html += '<ul class="population-list">';
                 const sortedPopulations = Object.entries(superpopGroups[superPop])
                     .sort(([, a], [, b]) => b - a); // Sort by frequency descending
-                
+
                 for (const [population, popFrequency] of sortedPopulations) {
-                    html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${formatNumber(100 * popFrequency)}%</span></li>`;
+                    html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${formatNumber(popFrequency)}</span></li>`;
                 }
                 html += '</ul>';
             }
@@ -411,12 +415,22 @@ class AssemblyMetadataService {
 
 }
 
-function formatNumber(num) {
-    if (num < 0.1){
-        return '< 0.1'
+function formatNumber(frequency) {
+
+    if (0 === frequency) {
+        return 'none'
     }
-    const str = num.toFixed(1);         // always returns "123.0", "123.5", etc.
-    return str.endsWith('.0') ? str.slice(0, -2) : str;
+
+    if (frequency < 0.1){
+        return '< 0.1%'
+    }
+
+    let percent = 100 * frequency
+
+    let str = percent.toFixed(1)
+    str = str.endsWith('.0') ? str.slice(0, -2) : str;
+
+    return `${str}%`
 }
 
 // Create and export the singleton instance
