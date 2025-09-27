@@ -1,16 +1,14 @@
 import { app } from "./main.js"
 
 class WidgetService {
-    constructor(containerElement, assemblyWidget, superpopulationWidget, populationWidget) {
+    constructor(containerElement, assemblyWidget, populationWidget) {
 
         this.containerElement = containerElement;
         this.assemblyWidget = assemblyWidget;
-        this.superpopulationWidget = superpopulationWidget;
         this.populationWidget = populationWidget;
 
         this.assemblyButton = null;
         this.superpopulationButton = null;
-        this.populationButton = null;
 
         this.activeButton = null
 
@@ -35,15 +33,8 @@ class WidgetService {
         buttonContainer.appendChild(this.superpopulationButton);
 
         this.superpopulationButton.className = 'widget-service__button widget-service__button--superpopulation';
-        this.superpopulationButton.innerHTML = 'Super<br>Population';
+        this.superpopulationButton.innerHTML = 'Population';
         this.superpopulationButton.addEventListener('click', this.onSuperpopulationButtonClick.bind(this));
-
-        this.populationButton = document.createElement('button');
-        buttonContainer.appendChild(this.populationButton);
-
-        this.populationButton.className = 'widget-service__button widget-service__button--population';
-        this.populationButton.innerHTML = 'Population';
-        this.populationButton.addEventListener('click', this.onPopulationButtonClick.bind(this));
 
     }
 
@@ -52,8 +43,6 @@ class WidgetService {
         event.stopPropagation();
 
         // Hide and reset other widgets when switching to assembly
-        this.superpopulationWidget.hideCard();
-        this.superpopulationWidget.reset();
         this.populationWidget.hideCard();
         this.populationWidget.reset();
 
@@ -77,53 +66,22 @@ class WidgetService {
         // Hide and reset other widgets when switching to superpopulation
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
-        this.populationWidget.hideCard();
-        this.populationWidget.reset();
 
         if (this.activeButton === this.superpopulationButton) {
             console.log('hide widget - superpopulation')
-            this.superpopulationWidget.hideCard();
+            this.populationWidget.hideCard();
             this.setActiveButton(null);
         } else {
             console.log('show widget - superpopulation')
 
-            if (null === this.superpopulationWidget.selectedSuperpopulation){
-                app.setActiveScene('assemblyVisualizationScene', true)
-            } else {
-                app.setActiveScene('heatmapScene', true)
-            }
-
-            this.superpopulationWidget.showCard();
-            this.setActiveButton(this.superpopulationButton);
-        }
-
-    }
-
-    onPopulationButtonClick(event) {
-
-        event.stopPropagation();
-
-        // Hide and reset other widgets when switching to population
-        this.assemblyWidget.hideCard();
-        this.assemblyWidget.reset();
-        this.superpopulationWidget.hideCard();
-        this.superpopulationWidget.reset();
-
-        if (this.activeButton === this.populationButton) {
-            console.log('hide widget - population')
-            this.populationWidget.hideCard();
-            this.setActiveButton(null);
-        } else {
-            console.log('show widget - population')
-
-            if (null === this.populationWidget.selectedPopulation){
+            if (null === this.populationWidget.selectedSuperpopulation && null === this.populationWidget.selectedPopulation){
                 app.setActiveScene('assemblyVisualizationScene', true)
             } else {
                 app.setActiveScene('heatmapScene', true)
             }
 
             this.populationWidget.showCard();
-            this.setActiveButton(this.populationButton);
+            this.setActiveButton(this.superpopulationButton);
         }
 
     }
@@ -150,52 +108,8 @@ class WidgetService {
         this.assemblyWidget.hideCard()
         this.assemblyWidget.configure()
 
-        this.superpopulationWidget.hideCard()
-        this.superpopulationWidget.reset()
-        
         this.populationWidget.hideCard()
         this.populationWidget.reset()
-    }
-
-    getActiveButton() {
-        return this.activeButton;
-    }
-
-    getActiveButtonType() {
-        if (this.activeButton === this.assemblyButton) {
-            return 'assembly';
-        } else if (this.activeButton === this.superpopulationButton) {
-            return 'superpopulation';
-        } else if (this.activeButton === this.populationButton) {
-            return 'population';
-        }
-        return null;
-    }
-
-    setButtonActive(buttonType) {
-        let targetButton = null;
-
-        switch (buttonType.toLowerCase()) {
-            case 'assembly':
-                targetButton = this.assemblyButton;
-                break;
-            case 'superpopulation':
-                targetButton = this.superpopulationButton;
-                break;
-            case 'population':
-                targetButton = this.populationButton;
-                break;
-            case 'none':
-            case null:
-            case undefined:
-                targetButton = null;
-                break;
-            default:
-                console.warn(`Unknown button type: ${buttonType}. Valid types are 'assembly', 'superpopulation', 'population', or 'none'`);
-                return;
-        }
-
-        this.setActiveButton(targetButton);
     }
 
     destroy() {
@@ -204,9 +118,6 @@ class WidgetService {
         }
         if (this.superpopulationButton) {
             this.superpopulationButton.removeEventListener('click', this.onSuperpopulationButtonClick.bind(this));
-        }
-        if (this.populationButton) {
-            this.populationButton.removeEventListener('click', this.onPopulationButtonClick.bind(this));
         }
         this.activeButton = null;
     }

@@ -63,4 +63,75 @@
       background-color: #e9ecef;
     }
   }
+
+  // New hierarchical styles
+  &__superpopulation-container {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  &__superpopulation-button {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #212529;
+    text-align: left;
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &:hover {
+      background-color: #e9ecef;
+      border-color: #adb5bd;
+    }
+
+    &:active {
+      background-color: #dee2e6;
+    }
+  }
+
+  &__population-container {
+    margin-left: 2rem;
+    margin-right: 1rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  &__population-button {
+    width: 100%;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: #495057;
+    text-align: left;
+    background-color: #ffffff;
+    margin-left: 0.5rem;
+
+    &:hover {
+      background-color: #f8f9fa;
+      border-color: #adb5bd;
+    }
+
+    &:active {
+      background-color: #e9ecef;
+    }
+  }
+
+  &__expand-icon {
+    font-size: 0.7rem;
+    color: #6c757d;
+    transition: transform 0.2s ease;
+  }
 }
