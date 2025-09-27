@@ -189,7 +189,6 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 400;
   font-size: 0.85rem;
   color: #495057;
   text-align: left;
@@ -208,51 +207,29 @@
   margin-top: 0.5rem;
   margin-bottom: 0.25rem;
 }
-.superpopulation-widget__superpopulation-button {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #212529;
-  text-align: left;
-  background-color: #f8f9fa;
-}
-.superpopulation-widget__superpopulation-button:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
-}
-.superpopulation-widget__superpopulation-button:active {
-  background-color: #dee2e6;
-}
 .superpopulation-widget__population-container {
   margin-left: 2rem;
   margin-right: 1rem;
   margin-top: 0.25rem;
   margin-bottom: 0.25rem;
 }
-.superpopulation-widget__population-button {
+.superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button {
   width: 100%;
-  padding: 0.4rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid #dee2e6;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 400;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #495057;
   text-align: left;
   background-color: #ffffff;
-  margin-left: 0.5rem;
 }
-.superpopulation-widget__population-button:hover {
+.superpopulation-widget__superpopulation-button:hover, .superpopulation-widget__population-button:hover {
   background-color: #f8f9fa;
   border-color: #adb5bd;
 }
-.superpopulation-widget__population-button:active {
+.superpopulation-widget__superpopulation-button:active, .superpopulation-widget__population-button:active {
   background-color: #e9ecef;
 }
 
@@ -269,6 +246,7 @@
 }
 
 .widget-service__button-container {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -290,9 +268,8 @@
   transition: all 0.2s ease;
   min-width: 100px;
   min-height: 100px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  font-variant-caps: small-caps;
   color: #495057;
   text-align: center;
 }
