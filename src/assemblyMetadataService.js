@@ -1,4 +1,4 @@
-import { getSuperpopulationName, getPopulationName } from './utils/pangenomeUtils.js';
+import { getSuperpopulationName, getPopulationName, findSuperpopulationForPopulation } from './utils/populationUtils.js';
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
 
 /**
@@ -72,63 +72,6 @@ class AssemblyMetadataService {
     }
 
     /**
-     * Get complete metadata for a specific node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Complete metadata object or null if not found
-     */
-    getNodeMetadata(nodeId) {
-        return this.metadata.get(nodeId) || null;
-    }
-
-    /**
-     * Get percentage breakdown for superpopulations for a given node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with superpopulation percentages or null if not found
-     */
-    getSuperPopulationPercentages(nodeId) {
-        const nodeData = this.metadata.get(nodeId);
-        if (!nodeData?.count?.superpopulation) {
-            return null;
-        }
-
-        const totalAssemblies = nodeData.totalAssemblies;
-        if (totalAssemblies === 0) {
-            return {};
-        }
-
-        const percentages = {};
-        for (const [superpop, count] of Object.entries(nodeData.count.superpopulation)) {
-            percentages[superpop] = (count / totalAssemblies) * 100;
-        }
-
-        return percentages;
-    }
-
-    /**
-     * Get percentage breakdown for populations for a given node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with population percentages or null if not found
-     */
-    getPopulationPercentages(nodeId) {
-        const nodeData = this.metadata.get(nodeId);
-        if (!nodeData?.count?.population) {
-            return null;
-        }
-
-        const totalAssemblies = nodeData.totalAssemblies;
-        if (totalAssemblies === 0) {
-            return {};
-        }
-
-        const percentages = {};
-        for (const [population, count] of Object.entries(nodeData.count.population)) {
-            percentages[population] = (count / totalAssemblies) * 100;
-        }
-
-        return percentages;
-    }
-
-    /**
      * Get superpopulation frequencies for a given node
      * @param {string} nodeId - The node identifier
      * @returns {Object|null} Object with superpopulation frequencies or null if not found
@@ -157,176 +100,6 @@ class AssemblyMetadataService {
     }
 
     /**
-     * Get both superpopulation and population percentages for a node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with both percentage breakdowns or null if not found
-     */
-    getDemographicPercentages(nodeId) {
-        const superpopPercentages = this.getSuperPopulationPercentages(nodeId);
-        const popPercentages = this.getPopulationPercentages(nodeId);
-
-        if (!superpopPercentages && !popPercentages) {
-            return null;
-        }
-
-        return {
-            superpopulation: superpopPercentages,
-            population: popPercentages,
-            totalAssemblies: this.metadata.get(nodeId)?.totalAssemblies || 0
-        };
-    }
-
-    /**
-     * Get raw counts for superpopulations for a given node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with superpopulation counts or null if not found
-     */
-    getSuperPopulationCounts(nodeId) {
-        const nodeData = this.metadata.get(nodeId);
-        return nodeData?.count?.superpopulation || null;
-    }
-
-    /**
-     * Get raw counts for populations for a given node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with population counts or null if not found
-     */
-    getPopulationCounts(nodeId) {
-        const nodeData = this.metadata.get(nodeId);
-        return nodeData?.count?.population || null;
-    }
-
-    /**
-     * Get all nodes that have assembly metadata
-     * @returns {Array<string>} Array of node IDs with metadata
-     */
-    getAllNodesWithMetadata() {
-        return Array.from(this.metadata.keys());
-    }
-
-    /**
-     * Get summary statistics across all nodes
-     * @returns {Object} Summary statistics
-     */
-    getMetadataSummary() {
-        const nodesWithMetadata = this.getAllNodesWithMetadata();
-        const totalNodes = nodesWithMetadata.length;
-
-        if (totalNodes === 0) {
-            return {
-                totalNodes: 0,
-                totalAssemblies: 0,
-                averageAssembliesPerNode: 0
-            };
-        }
-
-        const totalAssemblies = nodesWithMetadata.reduce((sum, nodeId) => {
-            return sum + (this.metadata.get(nodeId)?.totalAssemblies || 0);
-        }, 0);
-
-        return {
-            totalNodes,
-            totalAssemblies,
-            averageAssembliesPerNode: totalAssemblies / totalNodes
-        };
-    }
-
-    /**
-     * Filter nodes based on demographic criteria
-     * @param {Object} criteria - Filter criteria
-     * @param {string} criteria.superpopulation - Minimum percentage threshold for superpopulation
-     * @param {string} criteria.population - Minimum percentage threshold for population
-     * @param {number} criteria.minPercentage - Minimum percentage threshold
-     * @returns {Array<Object>} Array of filtered nodes with their percentages
-     */
-    filterNodesByDemographics(criteria = {}) {
-        const results = [];
-        const minPercentage = criteria.minPercentage || 0;
-
-        for (const nodeId of this.getAllNodesWithMetadata()) {
-            const percentages = this.getDemographicPercentages(nodeId);
-            if (!percentages) continue;
-
-            let matches = true;
-
-            // Check superpopulation criteria
-            if (criteria.superpopulation && percentages.superpopulation) {
-                const superpopPercentage = percentages.superpopulation[criteria.superpopulation] || 0;
-                if (superpopPercentage < minPercentage) {
-                    matches = false;
-                }
-            }
-
-            // Check population criteria
-            if (criteria.population && percentages.population) {
-                const popPercentage = percentages.population[criteria.population] || 0;
-                if (popPercentage < minPercentage) {
-                    matches = false;
-                }
-            }
-
-            if (matches) {
-                results.push({
-                    nodeId,
-                    ...percentages
-                });
-            }
-        }
-
-        return results;
-    }
-
-    /**
-     * Get the most common superpopulation for a node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with the most common superpopulation and its percentage
-     */
-    getMostCommonSuperPopulation(nodeId) {
-        const percentages = this.getSuperPopulationPercentages(nodeId);
-        if (!percentages) return null;
-
-        let maxPercentage = 0;
-        let mostCommon = null;
-
-        for (const [superpop, percentage] of Object.entries(percentages)) {
-            if (percentage > maxPercentage) {
-                maxPercentage = percentage;
-                mostCommon = superpop;
-            }
-        }
-
-        return {
-            superpopulation: mostCommon,
-            percentage: maxPercentage
-        };
-    }
-
-    /**
-     * Get the most common population for a node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with the most common population and its percentage
-     */
-    getMostCommonPopulation(nodeId) {
-        const percentages = this.getPopulationPercentages(nodeId);
-        if (!percentages) return null;
-
-        let maxPercentage = 0;
-        let mostCommon = null;
-
-        for (const [population, percentage] of Object.entries(percentages)) {
-            if (percentage > maxPercentage) {
-                maxPercentage = percentage;
-                mostCommon = population;
-            }
-        }
-
-        return {
-            population: mostCommon,
-            percentage: maxPercentage
-        };
-    }
-
-    /**
      * Generate HTML snippet showing demographic breakdown for a node
      * Simple presentation of frequency values as percentages with hierarchical organization
      * @param {string} nodeId - The node identifier
@@ -338,8 +111,12 @@ class AssemblyMetadataService {
             return '<div>No metadata available for this node</div>';
         }
 
-        const superPopFrequencies = frequencyAnalysisService.getEnhancedFrequenciesForType('superpopulation', nodeMetadata)
-        const popFrequencies = frequencyAnalysisService.getEnhancedFrequenciesForType('population', nodeMetadata)
+        // const superPopFrequencies = frequencyAnalysisService.getEnhancedFrequenciesForType('superpopulation', nodeMetadata)
+        // const popFrequencies = frequencyAnalysisService.getEnhancedFrequenciesForType('population', nodeMetadata)
+
+        const superPopFrequencies = nodeMetadata.frequency.superpopulation || {};
+        const popFrequencies = nodeMetadata.frequency.population || {};
+
 
         if (Object.keys(superPopFrequencies).length === 0) {
             return '<div>No demographic data available for this node</div>';
@@ -349,7 +126,7 @@ class AssemblyMetadataService {
 
         const superpopGroups = {};
         for (const [population, frequency] of Object.entries(popFrequencies)) {
-            const superpop = this.findSuperpopulationForPopulation(population);
+            const superpop = findSuperpopulationForPopulation(population);
             if (superpop) {
                 if (!superpopGroups[superpop]) {
                     superpopGroups[superpop] = {};
@@ -366,13 +143,13 @@ class AssemblyMetadataService {
             }
 
             html += `<div class="superpopulation-section">`;
-            html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${formatNumber(superPopFrequency)}</span></h5>`;
+            html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${ AssemblyMetadataService.formatNumber(superPopFrequency) }</span></h5>`;
 
             html += '<ul class="population-list">';
 
             const sortedPopulations = Object.entries(superpopGroups[superPop]).sort(([, a], [, b]) => b - a)
             for (const [population, popFrequency] of sortedPopulations) {
-                html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${formatNumber(popFrequency)}</span></li>`;
+                html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${ AssemblyMetadataService.formatNumber(popFrequency) }</span></li>`;
             }
             html += '</ul>';
 
@@ -384,47 +161,24 @@ class AssemblyMetadataService {
         return html;
     }
 
-    /**
-     * Find which superpopulation a population belongs to
-     * @param {string} population - The population code
-     * @returns {string|null} The superpopulation code or null if not found
-     */
-    findSuperpopulationForPopulation(population) {
-        const populationToSuperpop = {
-            // Ad Mixed American populations
-            'CLM': 'AMR', 'PUR': 'AMR', 'PEL': 'AMR',
-            // African populations
-            'ACB': 'AFR', 'GWD': 'AFR', 'ESN': 'AFR', 'MSL': 'AFR',
-            'YRI': 'AFR', 'ASW': 'AFR', 'MKK': 'AFR',
-            // East Asian populations
-            'CHS': 'EAS', 'KHV': 'EAS',
-            // South Asian populations
-            'PJL': 'SAS',
-            // Not Available
-            'N/A': 'N/A'
-        };
+    static formatNumber(frequency) {
 
-        return populationToSuperpop[population] || null;
+        if (0 === frequency) {
+            return 'none'
+        }
+
+        if (frequency < 0.1){
+            return '< 0.1%'
+        }
+
+        let percent = 100 * frequency
+
+        let str = percent.toFixed(1)
+        str = str.endsWith('.0') ? str.slice(0, -2) : str;
+
+        return `${str}%`
     }
 
-}
-
-function formatNumber(frequency) {
-
-    if (0 === frequency) {
-        return 'none'
-    }
-
-    if (frequency < 0.1){
-        return '< 0.1%'
-    }
-
-    let percent = 100 * frequency
-
-    let str = percent.toFixed(1)
-    str = str.endsWith('.0') ? str.slice(0, -2) : str;
-
-    return `${str}%`
 }
 
 // Create and export the singleton instance

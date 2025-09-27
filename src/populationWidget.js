@@ -1,6 +1,6 @@
 import { Draggable } from './utils/draggable.js';
 import eventBus from './utils/eventBus.js';
-import { getAllPopulationNames } from './utils/pangenomeUtils.js';
+import { getAllPopulationNames } from './utils/populationUtils.js';
 import {app} from "./main.js"
 
 class PopulationWidget {

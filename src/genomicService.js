@@ -4,7 +4,7 @@ import {colors32Distinct, colors64Distinct} from "./utils/color.js"
 import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { frequencyAnalysisService } from "./frequencyAnalysisService.js"
-import {getAllSuperpopulationNames,getAllPopulationNames} from "./utils/pangenomeUtils.js"
+import {getAllSuperpopulationNames,getAllPopulationNames} from "./utils/populationUtils.js"
 
 class GenomicService {
 

@@ -38,17 +38,16 @@ class HeatmapLook extends Look {
                 enhancedFrequency = frequencyAnalysisService.getEnhancedFrequency(acronym, eventType, this.genomicService.nodeMetadata.get(nodeName))
             }
 
-
-            let frequencyToUse
-            if (undefined === enhancedFrequency) {
-                frequencyToUse = rawFrequency
-            } else {
-                frequencyToUse = enhancedFrequency
-            }
+            // let frequencyToUse
+            // if (undefined === enhancedFrequency) {
+            //     frequencyToUse = rawFrequency
+            // } else {
+            //     frequencyToUse = enhancedFrequency
+            // }
 
             // const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
             // const color = frequencyToColorDiscrete(frequencyToUse)
-            const color = frequencyToColorContinuous(frequencyToUse)
+            const color = frequencyToColorContinuous(rawFrequency)
 
             const key = Look.getCacheKey(nodeName)
             const material = this.materialCache.get(key)

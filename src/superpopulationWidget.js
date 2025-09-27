@@ -1,6 +1,6 @@
 import { Draggable } from './utils/draggable.js';
 import eventBus from './utils/eventBus.js';
-import { getAllSuperpopulationNames } from './utils/pangenomeUtils.js';
+import { getAllSuperpopulationNames } from './utils/populationUtils.js';
 import {app} from "./main.js"
 
 class SuperpopulationWidget {
