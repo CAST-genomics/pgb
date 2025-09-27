@@ -93,43 +93,19 @@ class PopulationWidget {
         event.stopPropagation();
 
         if (this.selectedSuperpopulation && this.selectedSuperpopulation.name === superpopulation.name) {
-
-            event.target.style.border = '1px solid #dee2e6';
-            event.target.style.backgroundColor = '#f8f9fa';
-            event.target.style.transform = 'scale(1)';
-
+            // Deselect current superpopulation
+            event.target.classList.remove('widget-service__button--active');
             const deselectedSuperpopulation = this.selectedSuperpopulation;
             this.selectedSuperpopulation = null;
 
             app.setActiveScene('assemblyVisualizationScene', true);
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
         } else {
+            // Clear all previous selections
+            this.clearAllSelections();
 
-            // Clear previous superpopulation selection
-            if (this.selectedSuperpopulation !== null) {
-                const previousSuperpopulationButton = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
-                if (previousSuperpopulationButton) {
-                    previousSuperpopulationButton.style.border = '1px solid #dee2e6';
-                    previousSuperpopulationButton.style.backgroundColor = '#f8f9fa';
-                    previousSuperpopulationButton.style.transform = 'scale(1)';
-                }
-            }
-
-            // Clear any selected population
-            if (this.selectedPopulation !== null) {
-                const previousPopulationButton = this.listGroup.querySelector(`[data-population="${this.selectedPopulation.name}"]`);
-                if (previousPopulationButton) {
-                    previousPopulationButton.style.border = '1px solid #dee2e6';
-                    previousPopulationButton.style.backgroundColor = '#ffffff';
-                    previousPopulationButton.style.transform = 'scale(1)';
-                }
-                this.selectedPopulation = null;
-            }
-
-            event.target.style.border = '2px solid #0d6efd';
-            event.target.style.backgroundColor = '#e7f1ff';
-            event.target.style.transform = 'scale(1.02)';
-
+            // Select new superpopulation
+            event.target.classList.add('widget-service__button--active');
             this.selectedSuperpopulation = superpopulation;
 
             console.log(`Selected superpopulation: ${superpopulation.name}`);
@@ -143,43 +119,19 @@ class PopulationWidget {
         event.stopPropagation();
 
         if (this.selectedPopulation && this.selectedPopulation.name === population.name) {
-
-            event.target.style.border = '1px solid #dee2e6';
-            event.target.style.backgroundColor = '#ffffff';
-            event.target.style.transform = 'scale(1)';
-
+            // Deselect current population
+            event.target.classList.remove('widget-service__button--active');
             const deselectedPopulation = this.selectedPopulation;
             this.selectedPopulation = null;
 
             app.setActiveScene('assemblyVisualizationScene', true);
             eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
         } else {
+            // Clear all previous selections
+            this.clearAllSelections();
 
-            // Clear previous population selection
-            if (this.selectedPopulation !== null) {
-                const previousPopulationButton = this.listGroup.querySelector(`[data-population="${this.selectedPopulation.name}"]`);
-                if (previousPopulationButton) {
-                    previousPopulationButton.style.border = '1px solid #dee2e6';
-                    previousPopulationButton.style.backgroundColor = '#ffffff';
-                    previousPopulationButton.style.transform = 'scale(1)';
-                }
-            }
-
-            // Clear any selected superpopulation
-            if (this.selectedSuperpopulation !== null) {
-                const previousSuperpopulationButton = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
-                if (previousSuperpopulationButton) {
-                    previousSuperpopulationButton.style.border = '1px solid #dee2e6';
-                    previousSuperpopulationButton.style.backgroundColor = '#f8f9fa';
-                    previousSuperpopulationButton.style.transform = 'scale(1)';
-                }
-                this.selectedSuperpopulation = null;
-            }
-
-            event.target.style.border = '2px solid #0d6efd';
-            event.target.style.backgroundColor = '#e7f1ff';
-            event.target.style.transform = 'scale(1.02)';
-
+            // Select new population
+            event.target.classList.add('widget-service__button--active');
             this.selectedPopulation = population;
 
             console.log(`Selected population: ${population.name}`);
@@ -221,43 +173,20 @@ class PopulationWidget {
         }, 200);
     }
 
+    clearAllSelections() {
+        // Clear all button active states
+        const allButtons = this.listGroup.querySelectorAll('.superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button');
+        allButtons.forEach(button => {
+            button.classList.remove('widget-service__button--active');
+        });
+        
+        // Clear internal state
+        this.selectedSuperpopulation = null;
+        this.selectedPopulation = null;
+    }
+
     reset() {
-        // Reset superpopulation selection
-        if (this.selectedSuperpopulation) {
-            const button = this.listGroup.querySelector(`[data-superpopulation="${this.selectedSuperpopulation.name}"]`);
-            if (button) {
-                button.style.border = '1px solid #dee2e6';
-                button.style.backgroundColor = '#f8f9fa';
-                button.style.transform = 'scale(1)';
-            }
-            this.selectedSuperpopulation = null;
-        }
-
-        // Reset population selection
-        if (this.selectedPopulation) {
-            const button = this.listGroup.querySelector(`[data-population="${this.selectedPopulation.name}"]`);
-            if (button) {
-                button.style.border = '1px solid #dee2e6';
-                button.style.backgroundColor = '#ffffff';
-                button.style.transform = 'scale(1)';
-            }
-            this.selectedPopulation = null;
-        }
-
-        // Also reset any other buttons that might have been styled
-        const allSuperpopulationButtons = this.listGroup.querySelectorAll('.superpopulation-widget__superpopulation-button');
-        allSuperpopulationButtons.forEach(button => {
-            button.style.border = '1px solid #dee2e6';
-            button.style.backgroundColor = '#f8f9fa';
-            button.style.transform = 'scale(1)';
-        });
-
-        const allPopulationButtons = this.listGroup.querySelectorAll('.superpopulation-widget__population-button');
-        allPopulationButtons.forEach(button => {
-            button.style.border = '1px solid #dee2e6';
-            button.style.backgroundColor = '#ffffff';
-            button.style.transform = 'scale(1)';
-        });
+        this.clearAllSelections();
     }
 
     destroy() {
