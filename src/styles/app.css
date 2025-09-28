@@ -222,7 +222,7 @@
 }
 .superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   background-color: #ffffff;
   border-radius: 6px;
   border-style: solid;
@@ -230,7 +230,7 @@
   border-color: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #495057;
   text-align: left;
 }
