@@ -185,21 +185,28 @@
 .superpopulation-widget__button {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #dee2e6;
+  background: transparent;
   border-radius: 6px;
+  border-style: solid;
+  border-width: thin;
+  border-color: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.85rem;
   color: #495057;
   text-align: left;
-  background-color: #ffffff;
 }
 .superpopulation-widget__button:hover {
-  background-color: #f8f9fa;
-  border-color: #adb5bd;
+  transform: translateY(-1px);
+  border-color: #495057;
 }
 .superpopulation-widget__button:active {
-  background-color: #e9ecef;
+  transform: translateY(0);
+  background: rgba(73, 80, 87, 0.05);
+}
+.superpopulation-widget--active {
+  border-color: #495057;
+  background: rgba(73, 80, 87, 0.05);
 }
 .superpopulation-widget__superpopulation-container {
   margin-left: 1rem;
@@ -216,21 +223,24 @@
 .superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #dee2e6;
+  background-color: #ffffff;
   border-radius: 6px;
+  border-style: solid;
+  border-width: thin;
+  border-color: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.85rem;
   color: #495057;
   text-align: left;
-  background-color: #ffffff;
 }
 .superpopulation-widget__superpopulation-button:hover, .superpopulation-widget__population-button:hover {
-  background-color: #f8f9fa;
-  border-color: #adb5bd;
+  transform: translateY(-1px);
+  border-color: #495057;
 }
 .superpopulation-widget__superpopulation-button:active, .superpopulation-widget__population-button:active {
-  background-color: #e9ecef;
+  transform: translateY(0);
+  background: rgba(73, 80, 87, 0.05);
 }
 
 .widget-container {
@@ -258,16 +268,16 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .widget-service__button {
-  background: transparent;
+  min-width: 100px;
+  min-height: 100px;
   padding: 0.75rem 1rem;
+  background: transparent;
   border-radius: 8px;
   border-style: solid;
   border-width: thin;
   border-color: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 100px;
-  min-height: 100px;
   font-size: 0.85rem;
   font-weight: 500;
   color: #495057;

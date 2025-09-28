@@ -44,26 +44,45 @@
   }
 
   &__button {
+
     width: 100%;
     padding: 0.5rem 0.75rem;
-    border: 1px solid #dee2e6;
+
+    background: transparent;
+
+    // original
+    //border: 1px solid #dee2e6;
+    //border-radius: 6px;
+
+    //tweaked widget service
     border-radius: 6px;
+    border-style: solid;
+    border-width: thin;
+    border-color: transparent;
+
     cursor: pointer;
+
     transition: all 0.2s ease;
-    // font-weight: 400;
+
     font-size: 0.85rem;
     color: #495057;
+
     text-align: left;
-    background-color: #ffffff;
 
     &:hover {
-      background-color: #f8f9fa;
-      border-color: #adb5bd;
+      transform: translateY(-1px);
+      border-color: #495057;
     }
 
     &:active {
-      background-color: #e9ecef;
+      transform: translateY(0);
+      background: rgba(73, 80, 87, 0.05);
     }
+  }
+
+  &--active {
+    border-color: #495057;
+    background: rgba(73, 80, 87, 0.05);
   }
 
   // Hierarchical container styles (only for spacing/indentation)
@@ -84,24 +103,35 @@
   // Unified button styles - all buttons look identical
   &__superpopulation-button,
   &__population-button {
+
     width: 100%;
     padding: 0.5rem 0.75rem;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.85rem;
-    color: #495057;
-    text-align: left;
+
     background-color: #ffffff;
 
+    border-radius: 6px;
+    border-style: solid;
+    border-width: thin;
+    border-color: transparent;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+
+    font-size: 0.85rem;
+    color: #495057;
+
+    text-align: left;
+
+
     &:hover {
-      background-color: #f8f9fa;
-      border-color: #adb5bd;
+      transform: translateY(-1px);
+      border-color: #495057;
     }
 
     &:active {
-      background-color: #e9ecef;
+      transform: translateY(0);
+      background: rgba(73, 80, 87, 0.05);
     }
   }
 
