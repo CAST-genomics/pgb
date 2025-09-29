@@ -113,7 +113,7 @@ class App {
         // this.renderer.domElement.style.cursor = 'none';
 
         if (object.userData?.type === 'edge') {
-            this.raycastService.showVisualFeedback(point, new THREE.Color(0x00ff00));
+            this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
             this.showTooltip(object, point, 'edge');
         } else if (object.userData?.type === 'node') {
 
@@ -137,7 +137,7 @@ class App {
     }
 
     handleEdgeIntersection(edgeObject, point) {
-        this.raycastService.showVisualFeedback(point, new THREE.Color(0x00ff00));
+        this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
         this.showTooltip(edgeObject, point, 'edge');
     }
 

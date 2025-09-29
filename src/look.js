@@ -11,8 +11,8 @@ class Look {
 
     static NODE_EMPHASIS_COLOR = '#dc3545'
 
-    static DEFAULT_NODE_COLOR = '#878687'
-    static DEFAULT_NODE_COLOR_THREE_JS = new THREE.Color('#878687')
+    static DEFAULT_NODE_COLOR = getAppleCrayonColorByName('tin', true)
+    static DEFAULT_NODE_COLOR_THREE_JS = getAppleCrayonColorByName('tin')
 
     static DEFAULT_EDGE_COLOR_NAME = 'magnesium'
 

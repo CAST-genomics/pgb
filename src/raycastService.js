@@ -4,9 +4,11 @@ import {app} from "./main.js"
 import Look from "./look.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
 
 class RayCastService {
 
+    static VISUAL_FEEDBACK_NAME_COLOR_THREE_JS = new THREE.Color(0x00ff00)
     static VISUAL_FEEDBACK_NAME = 'VisualFeedback'
     static VISUAL_FEEDBACK_PIXELSIZE = 6
     static MOUSE_MOVEMENT_THRESHOLD = 5;
@@ -174,7 +176,7 @@ class RayCastService {
     }
 
     setupVisualFeedback() {
-        this.raycastVisualFeedback = this.createVisualFeeback(0x00ff00)
+        this.raycastVisualFeedback = this.createVisualFeeback(RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
         return this.raycastVisualFeedback
     }
 
