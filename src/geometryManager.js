@@ -38,8 +38,8 @@ class GeometryManager {
                 group.add(mesh);
             }
 
-            const cache = lookManager.getLook(sceneName).materialCache
-            console.log(`For scene ${ sceneName }, created ${ group.children.length } node meshes with ${ cache.size } materials in the look cache`)
+            const cache = look.materialCache
+            console.log(`Scene ${ sceneName }: ${ group.children.length } node meshes. ${ look.constructor.name } has ${ cache.size } materials in cache`)
         }
     }
 

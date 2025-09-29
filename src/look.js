@@ -241,7 +241,9 @@ class Look {
         }
 
         // Clear the material cache
-        this.materialCache.clear();
+        console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.constructor.size }`)
+        this.materialCache.clear()
+        console.log(`${ this.constructor.name } dispose.  material cache post ${ this.constructor.size }`)
     }
 
     static getCacheKey(nodeName) {
