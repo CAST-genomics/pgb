@@ -2,10 +2,9 @@
 
 .graph-tooltip {
     position: absolute;
-    background: colors.$snow;
+    background: rgba(255, 255, 255, 0.75);
     color: colors.$licorice;
     border-radius: 4px;
-    //font-family: monospace;
     pointer-events: none;
     z-index: 1000;
     display: none;

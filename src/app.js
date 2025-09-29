@@ -10,6 +10,8 @@ import {getAppleCrayonColorByName} from "./utils/color.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
 
+let xxPre = undefined
+let yyPre = undefined
 class App {
 
     constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager) {
@@ -286,12 +288,20 @@ class App {
         if (true === this.isTooltipEnabled){
 
             // Convert 3D world coordinates to screen coordinates
-            const screenPoint = point.clone().project(this.cameraManager.camera);
+            const { x:xx, y:yy } = point.clone().project(this.cameraManager.camera)
 
-            // Convert to CSS coordinates
-            const rect = this.container.getBoundingClientRect();
-            const x = (screenPoint.x + 1) * rect.width / 2;
-            const y = (-screenPoint.y + 1) * rect.height / 2;
+            if (xx === xxPre && yy === yyPre) {
+                return
+            } else {
+                xxPre = xx
+                yyPre = yy
+            }
+
+            const { width, height} = this.container.getBoundingClientRect();
+            const x = Math.floor(( xx + 1) * width  / 2)
+            const y = Math.floor((-yy + 1) * height / 2)
+
+            console.log(`show tooltip xy(${ x }, ${ y })`)
 
             // Get the current look
             const look = this.sceneManager.getActiveLook()
@@ -338,7 +348,6 @@ class App {
 
             this.tooltip.innerHTML = content;
 
-            // Position tooltip
             const deltaX = 24
             const deltaY = 24
             this.tooltip.style.left = `${x + deltaX}px`;
