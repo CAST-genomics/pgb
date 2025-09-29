@@ -42,10 +42,10 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const sequenceService = new SequenceService(threeJSContainer, raycastService, genomicService)
 
-    // Scene Manager and Look Manager
     const sceneManager = new SceneManager(new LookManager())
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
+
     const populationWidget = new PopulationWidget(document.getElementById('pgb-superpopulation-card'));
 
     // AssemblyVisualizationLook
