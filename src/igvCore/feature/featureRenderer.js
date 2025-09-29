@@ -272,7 +272,6 @@ class FeatureRenderer {
                 font: "12px Helvetica"
             }
 
-            console.log("Current font settings:", ctx.font)
             const textMetrics = ctx.measureText(name)
             const xleft = centerX - textMetrics.width / 2
             const xright = centerX + textMetrics.width / 2

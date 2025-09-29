@@ -239,7 +239,7 @@ class AssemblyWidget {
 
         // If there's a currently selected assembly, re-emphasize it with the new mode
         if (this.selectedAssembly !== null) {
-            this.emphasizeAssembly(this.selectedAssembly.name);
+            this.emphasizeAssembly(this.selectedAssembly);
         }
     }
 

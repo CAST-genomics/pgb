@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 
 class SceneManager {
+
     constructor(lookManager) {
         this.lookManager = lookManager
         this.scenes = new Map()
@@ -21,7 +22,7 @@ class SceneManager {
 
         if (this.scenes.has(sceneName)) {
             console.warn(`Scene '${sceneName}' already exists. Overwriting.`)
-            this.disposeScene(sceneName)
+            this.disposeSceneWithName(sceneName)
         }
 
         const scene = new THREE.Scene()
@@ -99,25 +100,15 @@ class SceneManager {
      * @param {string} sceneName - Name of the scene to check
      * @returns {boolean} True if scene exists
      */
-    hasScene(sceneName) {
+    hasSceneWithName(sceneName) {
         return this.scenes.has(sceneName)
-    }
-
-    addToAllScenes(items) {
-
-        for (const scene of this.scenes.values()) {
-            for (const item of items) {
-                scene.add(item)
-            }
-        }
-
     }
 
     /**
      * Dispose of a specific scene and all its resources
      * @param {string} sceneName - Name of the scene to dispose
      */
-    disposeScene(sceneName) {
+    disposeSceneWithName(sceneName) {
         const scene = this.scenes.get(sceneName)
         if (!scene) {
             console.warn(`Scene '${sceneName}' not found for disposal`)
@@ -140,13 +131,14 @@ class SceneManager {
     getActiveLook(){
         return this.lookManager.getLook(this.getActiveSceneName())
     }
+
     /**
      * Dispose of all scenes and resources
      */
     disposeAll() {
         const sceneNames = Array.from(this.scenes.keys())
         for (const sceneName of sceneNames) {
-            this.disposeScene(sceneName)
+            this.disposeSceneWithName(sceneName)
         }
         this.activeSceneName = null
     }
@@ -155,7 +147,7 @@ class SceneManager {
      * Clear all objects from a scene without disposing the scene itself
      * @param {string} sceneName - Name of the scene to clear
      */
-    clearScene(sceneName) {
+    clearSceneWithName(sceneName) {
         const scene = this.scenes.get(sceneName)
         if (!scene) {
             console.warn(`Scene '${sceneName}' not found for clearing`)

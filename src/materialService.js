@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import vertexShader from '../shaders/animated-arrow.vert.glsl';
-import fragmentShader from '../shaders/animated-arrow.frag.glsl';
+import vertexShader from '../shaders/animated-arrow.vert.glsl?raw';
+import fragmentShader from '../shaders/animated-arrow.frag.glsl?raw';
 import { createGradientTexture } from './utils/textureService.js';
 import textureService from './utils/textureService.js';
 import { textures } from './utils/textureLibrary.js';

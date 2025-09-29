@@ -369,10 +369,12 @@ class App {
 
         materialService.lineMaterialCache.clear()
 
-        if (true === this.sceneManager.isActive()) {
-            const look = this.sceneManager.getActiveLook()
-            look.materialCache.clear()
-        }
+        // if (true === this.sceneManager.isActive()) {
+        //     const look = this.sceneManager.getActiveLook()
+        //     look.materialCache.clear()
+        // }
+
+        this.sceneManager.lookManager.clearAllMaterialCaches()
 
         this.sceneManager.clearAllScenes()
 

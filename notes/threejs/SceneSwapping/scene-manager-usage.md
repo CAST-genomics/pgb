@@ -70,7 +70,7 @@ clearCurrentData()
     this.geometryManager.clear()
 
     // Clear the current scene (but keep the scene itself)
-    this.sceneManager.clearScene(this.currentSceneName)
+    this.sceneManager.clearSceneWithName(this.currentSceneName)
 
     // Re-add visual feedback to the cleared scene
     const scene = this.sceneManager.getScene(this.currentSceneName)
@@ -113,13 +113,13 @@ The `SceneManager` automatically handles resource disposal:
 
 ```javascript
 // Dispose of a specific scene
-sceneManager.disposeScene('oldScene')
+sceneManager.disposeSceneWithName('oldScene')
 
 // Dispose of all scenes
 sceneManager.disposeAll()
 
 // Clear objects from a scene without disposing the scene
-sceneManager.clearScene('sceneName')
+sceneManager.clearSceneWithName('sceneName')
 ```
 
 ## Scene Statistics

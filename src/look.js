@@ -9,8 +9,8 @@ import {getAppleCrayonColorByName} from "./utils/color.js"
 
 class Look {
 
-    static DEFAULT_NODE_COLOR_NAME = 'ocean'
-    static DEFAULT_EDGE_COLOR_NAME = 'steel'
+    static DEFAULT_NODE_COLOR_NAME = 'tin'
+    static DEFAULT_EDGE_COLOR_NAME = 'magnesium'
 
     // pixel units
     static NODE_LINE_WIDTH_PIXELS = 2*2;
@@ -241,7 +241,9 @@ class Look {
         }
 
         // Clear the material cache
-        this.materialCache.clear();
+        console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.constructor.size }`)
+        this.materialCache.clear()
+        console.log(`${ this.constructor.name } dispose.  material cache post ${ this.constructor.size }`)
     }
 
     static getCacheKey(nodeName) {

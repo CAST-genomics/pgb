@@ -1,8 +1,9 @@
 import Look from "./look.js"
-import {colorComplements, getAppleCrayonColorByName, getHeatmapColorHSLInterpolation} from "./utils/color.js"
 import {assemblyMetadataService } from "./assemblyMetadataService.js"
-import eventBus from "./utils/eventBus.js"
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
+import {frequencyToColorContinuous, frequencyToColorDiscrete} from "./utils/colorramps/tufteHeatmapColors.js"
+import eventBus from "./utils/eventBus.js"
+import {viridisColor, infernoColor, cividisColor} from "./utils/colorramps/viridis_inferno_cividis_color_ramps.js"
 
 class HeatmapLook extends Look {
 
@@ -37,15 +38,16 @@ class HeatmapLook extends Look {
                 enhancedFrequency = frequencyAnalysisService.getEnhancedFrequency(acronym, eventType, this.genomicService.nodeMetadata.get(nodeName))
             }
 
+            // let frequencyToUse
+            // if (undefined === enhancedFrequency) {
+            //     frequencyToUse = rawFrequency
+            // } else {
+            //     frequencyToUse = enhancedFrequency
+            // }
 
-            let frequencyToUse
-            if (undefined === enhancedFrequency) {
-                frequencyToUse = rawFrequency
-            } else {
-                frequencyToUse = enhancedFrequency
-            }
-
-            const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
+            // const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
+            // const color = frequencyToColorDiscrete(frequencyToUse)
+            const color = frequencyToColorContinuous(rawFrequency)
 
             const key = Look.getCacheKey(nodeName)
             const material = this.materialCache.get(key)

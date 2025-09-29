@@ -65,23 +65,9 @@ class LookManager {
         return this.looks.has(sceneName);
     }
 
-    /**
-     * Get all registered scene names
-     * @returns {string[]} Array of scene names
-     */
-    getSceneNames() {
-        return Array.from(this.looks.keys());
-    }
-
-    /**
-     * Remove a Look for a specific scene
-     * @param {string} sceneName - The name of the scene
-     */
-    removeLook(sceneName) {
-        const look = this.looks.get(sceneName);
-        if (look) {
-            look.dispose();
-            this.looks.delete(sceneName);
+    clearAllMaterialCaches(){
+        for (const [ key, look ] of this.looks) {
+            look.materialCache.clear()
         }
     }
 
@@ -89,9 +75,10 @@ class LookManager {
      * Dispose of all Looks and clear the registry
      */
     dispose() {
-        this.looks.forEach(look => {
+
+        for (const [ key, look ] of this.looks) {
             look.dispose();
-        });
+        }
         this.looks.clear();
     }
 }

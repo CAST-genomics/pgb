@@ -7,7 +7,7 @@
     margin-left: 10rem;
     margin-top: 10rem;
     min-width: 300px;
-    height: 512px; // Fixed height for the card
+    height: 640px; // Fixed height for the card
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: opacity 0.2s ease;
     opacity: 0;
@@ -36,8 +36,8 @@
   }
 
   &__genome-selector {
-    width: 24px;
-    height: 24px;
+    width: 1.25rem;
+    height: 1.25rem;
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -78,13 +78,14 @@
   }
 
   &__assembly-name {
-    font-weight: 500;
+    font-size: 0.85rem;
+    //font-weight: 500;
     // color: #212529;
   }
 
   &__assembly-haplotype {
-    font-size: 0.875rem;
-    font-weight: 400;
+    font-size: 0.85rem;
+    //font-weight: 400;
     // color: #6c757d;
   }
 }

@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite';
-import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
-    plugins: [glsl()],
+    plugins: [],
     build: {
         target: 'es2020',
         assetsDir: 'assets', // Organizes assets in a specific folder in the build output

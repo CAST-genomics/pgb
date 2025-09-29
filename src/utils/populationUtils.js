@@ -101,3 +101,50 @@ export function getPopulationsBySuperpopulation() {
 
     return result;
 }
+
+/**
+ * Get hierarchical population structure for the PopulationWidget
+ * @returns {Array} Array of superpopulation objects with their populations
+ */
+export function getHierarchicalPopulationStructure(ignoreNA = true) {
+    const populationsBySuperpop = getPopulationsBySuperpopulation();
+    const result = [];
+    
+    Object.entries(populationsBySuperpop).forEach(([superpopAcronym, populations]) => {
+        if (ignoreNA && superpopAcronym === 'N/A') {
+            return;
+        }
+        
+        result.push({
+            type: 'superpopulation',
+            acronym: superpopAcronym,
+            name: getSuperpopulationName(superpopAcronym),
+            populations: populations
+        });
+    });
+    
+    return result;
+}
+
+/**
+ * Find which superpopulation a population belongs to
+ * @param {string} population - The population code
+ * @returns {string|null} The superpopulation code or null if not found
+ */
+export function findSuperpopulationForPopulation(population) {
+    const populationToSuperpop = {
+        // Ad Mixed American populations
+        'CLM': 'AMR', 'PUR': 'AMR', 'PEL': 'AMR',
+        // African populations
+        'ACB': 'AFR', 'GWD': 'AFR', 'ESN': 'AFR', 'MSL': 'AFR',
+        'YRI': 'AFR', 'ASW': 'AFR', 'MKK': 'AFR',
+        // East Asian populations
+        'CHS': 'EAS', 'KHV': 'EAS',
+        // South Asian populations
+        'PJL': 'SAS',
+        // Not Available
+        'N/A': 'N/A'
+    };
+
+    return populationToSuperpop[population] || null;
+}
