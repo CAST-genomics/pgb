@@ -9,55 +9,109 @@ import { colors128Distinct } from "./128-distinct-colors.js"
  * A collection of 25 colors used in Apple's classic Mac OS
  */
 const appleCrayonColors = new Map([
-    ['licorice',    new THREE.Color(0x000000)],
-    ['lead',        new THREE.Color(0x1E1E1E)],
-    ['tungsten',    new THREE.Color(0x3A3A3A)],
-    ['iron',        new THREE.Color(0x545453)],
-    ['steel',       new THREE.Color(0x6E6E6E)],
-    ['tin',         new THREE.Color(0x878687)],
-    ['nickel',      new THREE.Color(0x888787)],
-    ['aluminum',    new THREE.Color(0xA09FA0)],
-    ['magnesium',   new THREE.Color(0xB8B8B8)],
-    ['silver',      new THREE.Color(0xD0D0D0)],
-    ['mercury',     new THREE.Color(0xE8E8E8)],
-    ['snow',        new THREE.Color(0xFFFFFF)],
-    ['cayenne',     new THREE.Color(0x891100)],
-    ['mocha',       new THREE.Color(0x894800)],
-    ['asparagus',   new THREE.Color(0x888501)],
-    ['fern',        new THREE.Color(0x458401)],
-    ['clover',      new THREE.Color(0x028401)],
-    ['moss',        new THREE.Color(0x018448)],
-    ['teal',        new THREE.Color(0x008688)],
-    ['ocean',       new THREE.Color(0x004A88)],
-    ['midnight',    new THREE.Color(0x001888)],
-    ['eggplant',    new THREE.Color(0x491A88)],
-    ['plum',        new THREE.Color(0x891E88)],
-    ['maroon',      new THREE.Color(0x891648)],
-    ['maraschino',  new THREE.Color(0xFF2101)],
-    ['tangerine',   new THREE.Color(0xFF8802)],
-    ['lemon',       new THREE.Color(0xFFFA03)],
-    ['lime',        new THREE.Color(0x83F902)],
-    ['spring',      new THREE.Color(0x05F802)],
-    ['sea foam',    new THREE.Color(0x03F987)],
-    ['turquoise',   new THREE.Color(0x00FDFF)],
-    ['aqua',        new THREE.Color(0x008CFF)],
-    ['blueberry',   new THREE.Color(0x002EFF)],
-    ['grape',       new THREE.Color(0x8931FF)],
-    ['magenta',     new THREE.Color(0xFF39FF)],
-    ['strawberry',  new THREE.Color(0xFF2987)],
-    ['salmon',      new THREE.Color(0xFF726E)],
-    ['cantaloupe',  new THREE.Color(0xFFCE6E)],
-    ['banana',      new THREE.Color(0xFFFB6D)],
-    ['honeydew',    new THREE.Color(0xCEFA6E)],
-    ['flora',       new THREE.Color(0x68F96E)],
-    ['spindrift',   new THREE.Color(0x68FBD0)],
-    ['ice',         new THREE.Color(0x68FDFF)],
-    ['sky',         new THREE.Color(0x6ACFFF)],
-    ['orchid',      new THREE.Color(0x6E76FF)],
-    ['lavender',    new THREE.Color(0xD278FF)],
-    ['bubblegum',   new THREE.Color(0xFF7AFF)],
-    ['carnation',   new THREE.Color(0xFF7FD3)]
+    ['licorice',    new THREE.Color('#000000')],
+    ['lead',        new THREE.Color('#1E1E1E')],
+    ['tungsten',    new THREE.Color('#3A3A3A')],
+    ['iron',        new THREE.Color('#545453')],
+    ['steel',       new THREE.Color('#6E6E6E')],
+    ['tin',         new THREE.Color('#878687')],
+    ['nickel',      new THREE.Color('#888787')],
+    ['aluminum',    new THREE.Color('#A09FA0')],
+    ['magnesium',   new THREE.Color('#B8B8B8')],
+    ['silver',      new THREE.Color('#D0D0D0')],
+    ['mercury',     new THREE.Color('#E8E8E8')],
+    ['snow',        new THREE.Color('#FFFFFF')],
+    ['cayenne',     new THREE.Color('#891100')],
+    ['mocha',       new THREE.Color('#894800')],
+    ['asparagus',   new THREE.Color('#888501')],
+    ['fern',        new THREE.Color('#458401')],
+    ['clover',      new THREE.Color('#028401')],
+    ['moss',        new THREE.Color('#018448')],
+    ['teal',        new THREE.Color('#008688')],
+    ['ocean',       new THREE.Color('#004A88')],
+    ['midnight',    new THREE.Color('#001888')],
+    ['eggplant',    new THREE.Color('#491A88')],
+    ['plum',        new THREE.Color('#891E88')],
+    ['maroon',      new THREE.Color('#891648')],
+    ['maraschino',  new THREE.Color('#FF2101')],
+    ['tangerine',   new THREE.Color('#FF8802')],
+    ['lemon',       new THREE.Color('#FFFA03')],
+    ['lime',        new THREE.Color('#83F902')],
+    ['spring',      new THREE.Color('#05F802')],
+    ['sea foam',    new THREE.Color('#03F987')],
+    ['turquoise',   new THREE.Color('#00FDFF')],
+    ['aqua',        new THREE.Color('#008CFF')],
+    ['blueberry',   new THREE.Color('#002EFF')],
+    ['grape',       new THREE.Color('#8931FF')],
+    ['magenta',     new THREE.Color('#FF39FF')],
+    ['strawberry',  new THREE.Color('#FF2987')],
+    ['salmon',      new THREE.Color('#FF726E')],
+    ['cantaloupe',  new THREE.Color('#FFCE6E')],
+    ['banana',      new THREE.Color('#FFFB6D')],
+    ['honeydew',    new THREE.Color('#CEFA6E')],
+    ['flora',       new THREE.Color('#68F96E')],
+    ['spindrift',   new THREE.Color('#68FBD0')],
+    ['ice',         new THREE.Color('#68FDFF')],
+    ['sky',         new THREE.Color('#6ACFFF')],
+    ['orchid',      new THREE.Color('#6E76FF')],
+    ['lavender',    new THREE.Color('#D278FF')],
+    ['bubblegum',   new THREE.Color('#FF7AFF')],
+    ['carnation',   new THREE.Color('#FF7FD3')]
 ]);
+
+/**
+ * Apple Crayon color palette - hex strings only
+ * A collection of 48 hex color strings used in Apple's classic Mac OS
+ */
+const appleCrayonColorsHexStrings = new Map()
+    .set('licorice', '#000000')
+    .set('lead', '#1E1E1E')
+    .set('tungsten', '#3A3A3A')
+    .set('iron', '#545453')
+    .set('steel', '#6E6E6E')
+    .set('tin', '#878687')
+    .set('nickel', '#888787')
+    .set('aluminum', '#A09FA0')
+    .set('magnesium', '#B8B8B8')
+    .set('silver', '#D0D0D0')
+    .set('mercury', '#E8E8E8')
+    .set('snow', '#FFFFFF')
+    .set('cayenne', '#891100')
+    .set('mocha', '#894800')
+    .set('asparagus', '#888501')
+    .set('fern', '#458401')
+    .set('clover', '#028401')
+    .set('moss', '#018448')
+    .set('teal', '#008688')
+    .set('ocean', '#004A88')
+    .set('midnight', '#001888')
+    .set('eggplant', '#491A88')
+    .set('plum', '#891E88')
+    .set('maroon', '#891648')
+    .set('maraschino', '#FF2101')
+    .set('tangerine', '#FF8802')
+    .set('lemon', '#FFFA03')
+    .set('lime', '#83F902')
+    .set('spring', '#05F802')
+    .set('sea foam', '#03F987')
+    .set('turquoise', '#00FDFF')
+    .set('aqua', '#008CFF')
+    .set('blueberry', '#002EFF')
+    .set('grape', '#8931FF')
+    .set('magenta', '#FF39FF')
+    .set('strawberry', '#FF2987')
+    .set('salmon', '#FF726E')
+    .set('cantaloupe', '#FFCE6E')
+    .set('banana', '#FFFB6D')
+    .set('honeydew', '#CEFA6E')
+    .set('flora', '#68F96E')
+    .set('spindrift', '#68FBD0')
+    .set('ice', '#68FDFF')
+    .set('sky', '#6ACFFF')
+    .set('orchid', '#6E76FF')
+    .set('lavender', '#D278FF')
+    .set('bubblegum', '#FF7AFF')
+    .set('carnation', '#FF7FD3');
 
 // Predefined color categories
 const colorCategories = {
@@ -236,9 +290,13 @@ function getRandomGrayAppleCrayonColor(includeSnow = false) {
 /**
  * Returns a color from the Apple Crayon palette by name
  * @param {string} name - The name of the color
+ * @param isHexString
  * @returns {THREE.Color|undefined} A THREE.Color object or undefined if not found
  */
-function getAppleCrayonColorByName(name) {
+function getAppleCrayonColorByName(name, isHexString = false) {
+    if (isHexString) {
+        return appleCrayonColorsHexStrings.get(name)
+    }
     const color = appleCrayonColors.get(name);
     return color ? color.clone() : undefined;
 }
@@ -323,18 +381,6 @@ function generateUniqueColors(N, options = {}) {
     }
 
     return colors;
-}
-
-/**
- * Converts a THREE.Color object to an RGB string in the format "rgb(255, 255, 255)"
- * @param {THREE.Color} color - The THREE.Color object to convert
- * @returns {string} RGB string representation of the color
- */
-function colorToRGBString(color) {
-    const r = Math.round(color.r * 255);
-    const g = Math.round(color.g * 255);
-    const b = Math.round(color.b * 255);
-    return `rgb(${r}, ${g}, ${b})`;
 }
 
 /**
@@ -511,6 +557,8 @@ function lerpAppleCrayonColors(colorName1, colorName2, t) {
 }
 
 export {
+    appleCrayonColors,
+    appleCrayonColorsHexStrings,
     rubinColors,
     colors32Distinct,
     colors64Distinct,
@@ -522,7 +570,6 @@ export {
     getRandomGrayAppleCrayonColor,
     getAppleCrayonColorByName,
     generateUniqueColors,
-    colorToRGBString,
     getHeatmapColorHSLLightnessVariation,
     getHeatmapColorViaColorInterpolation,
     getHeatmapColorHSLInterpolation,

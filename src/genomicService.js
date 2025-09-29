@@ -1,7 +1,5 @@
 import LocusInput from "./locusInput.js"
-import {getPerceptuallyDistinctColors} from "./utils/hsluv-utils.js"
-import {colors32Distinct, colors64Distinct} from "./utils/color.js"
-import {prettyPrint, uniqueRandomGenerator} from "./utils/utils.js"
+import {prettyPrint} from "./utils/utils.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { frequencyAnalysisService } from "./frequencyAnalysisService.js"
 import {getAllSuperpopulationNames,getAllPopulationNames} from "./utils/populationUtils.js"
@@ -10,7 +8,6 @@ class GenomicService {
 
     constructor() {
         this.nodeMetadata = new Map()
-        this.assemblyColors = new Map()
         this.nodeAssemblyStats = new Map()
         this.assemblySet = new Set()
         this.assemblyWalkMap = new Map()
@@ -85,15 +82,6 @@ class GenomicService {
             this.assemblyWalkMap.set(assemblyKey, { spineFeatures: features, assemblySubgraph })
         }
 
-        const uniqueColors = getPerceptuallyDistinctColors(1 + this.assemblySet.size)
-        const uniqueColorsRandomized = Array.from(uniqueRandomGenerator(uniqueColors, uniqueColors.length - 1));
-
-        let i = 0;
-        for (const assemblyKey of this.assemblySet) {
-            this.assemblyColors.set(assemblyKey, uniqueColorsRandomized[ i ]);
-            i++;
-        }
-
     }
 
     getAssemblyListForNodeName(nodeName) {
@@ -112,10 +100,6 @@ class GenomicService {
             return null;
         }
         return metadata.assembly;
-    }
-
-    getAssemblyColor(assembly) {
-        return this.assemblyColors.get(assembly);
     }
 
     getNodeNameSetWithAssembly(assembly) {
@@ -140,8 +124,6 @@ class GenomicService {
         this.startNode = undefined
 
         this.nodeMetadata.clear()
-
-        this.assemblyColors.clear()
 
         this.nodeAssemblyStats.clear()
 

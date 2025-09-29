@@ -1,6 +1,6 @@
 import {app} from "./main.js"
 import eventBus from "./utils/eventBus.js"
-import {colorToRGBString, getAppleCrayonColorByName} from "./utils/color.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
 import { getLineXYZWithTrackBasepair, buildBpIndex, buildNodeEndpointMap, makeNodeRecordMap, getTrackParameterWithLineParameter } from "./utils/annotationTrackUtils.js"
 
 class AnnotationRenderService {
@@ -172,7 +172,7 @@ class AnnotationRenderService {
         const bpPerPixel = bpLength / width
         const pixelPerBP = 1/bpPerPixel
 
-        ctx.fillStyle = colorToRGBString(getAppleCrayonColorByName('aluminum'))
+        ctx.fillStyle = getAppleCrayonColorByName('aluminum', true)
 
         let i= 0
         for (const { bpStart, bpEnd } of nodes){

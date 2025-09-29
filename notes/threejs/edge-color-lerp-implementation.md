@@ -168,7 +168,6 @@ When integrating with the existing codebase:
    - The gradient texture could be generated once and cached
 
 2. **Color Management**
-   - Use the existing color system (e.g., `genomicService.getAssemblyColor()`)
    - Get start color from starting node
    - Get end color from ending node
 
