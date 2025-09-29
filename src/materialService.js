@@ -74,6 +74,13 @@ class MaterialService {
         return textureService.getTexture(name);
     }
 
+    clear(){
+
+        console.log(`MaterialService clear material cache pre ${ this.lineMaterialCache.size }`)
+        this.lineMaterialCache.clear()
+        console.log(`MaterialService clear material cache post ${ this.lineMaterialCache.size }`)
+    }
+
     /**
      * Dispose of all cached LineMaterials and clear the cache
      */
@@ -87,7 +94,6 @@ class MaterialService {
         this.lineMaterialCache.clear();
     }
 }
-
 
 /**
  * Creates a material that blends between two colors using a gradient texture

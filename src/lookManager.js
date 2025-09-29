@@ -67,7 +67,10 @@ class LookManager {
 
     clearAllMaterialCaches(){
         for (const [ key, look ] of this.looks) {
+            console.log(`LookManage - ${ look.constructor.name } dispose.  material cache pre ${ look.materialCache.size }`)
             look.materialCache.clear()
+            console.log(`LookManage - ${ look.constructor.name } dispose.  material cache post ${ look.materialCache.size }`)
+
         }
     }
 

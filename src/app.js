@@ -6,7 +6,6 @@ import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
-import {getAppleCrayonColorByName} from "./utils/color.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
 
@@ -38,8 +37,6 @@ class App {
         this.isTooltipEnabled = undefined
 
         this.tooltip = this.createTooltip();
-
-        this.feedbackColor = getAppleCrayonColorByName('maraschino')
 
         window.addEventListener('resize', () => {
             const { clientWidth, clientHeight } = this.container
@@ -120,16 +117,6 @@ class App {
         } else if (object.userData?.type === 'node') {
 
             const { t, nodeName, line } = this.raycastService.handleIntersection(this.geometryManager, intersections[0], RayCastService.DIRECT_LINE_INTERSECTION_STRATEGY)
-
-            // const { x, y } = point
-            // const exe = `${ prettyPrint(Math.floor(x)) }`
-            // const wye = `${ prettyPrint(Math.floor(y)) }`
-            // // console.log(`xyz(${ exe }, ${ wye }) t ${ t.toFixed(4) }`)
-            //
-            // const { x:_x, y:_y } = line.getPoint(t, 'world')
-            // const _exe = `${ prettyPrint(Math.floor(_x)) }`
-            // const _wye = `${ prettyPrint(Math.floor(_y)) }`
-            // console.log(`intersectionXY (${ exe }, ${ wye }) xyDerivedFromT (${ _exe }, ${ _wye })`)
 
             eventBus.publish('lineIntersection', { t, nodeName, nodeLine:line })
 
@@ -374,9 +361,9 @@ class App {
 
         this.geometryManager.clear()
 
-        lineMaterialResolutionService.materials.clear()
+        lineMaterialResolutionService.clear()
 
-        materialService.lineMaterialCache.clear()
+        materialService.clear()
 
         // if (true === this.sceneManager.isActive()) {
         //     const look = this.sceneManager.getActiveLook()

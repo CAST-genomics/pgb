@@ -30,6 +30,9 @@ class LocusInput {
         this.goButton = this.container.querySelector(`#${ELEMENT_IDS.GO_BUTTON}`);
         this.errorDiv = this.container.querySelector(`#${ELEMENT_IDS.ERROR}`);
         this.versionDropdown = this.container.querySelector(`#${ELEMENT_IDS.VERSION_DROPDOWN}`);
+        
+        // Programmatically select "Version 1" to match this.version = 'v1'
+        this.versionDropdown.value = 'v1';
     }
 
     setupEventListeners() {
@@ -114,29 +117,6 @@ class LocusInput {
         }
     }
 
-    static parsePosition(pos) {
-        try {
-            // Remove commas and convert to number
-            return parseInt(pos.replace(/,/g, ''), 10);
-        } catch {
-            console.error(`Error parsing position: ${pos}`);
-            return null;
-        }
-    }
-
-    static parseLocusString(locusString) {
-        const match = locusString.match(LOCUS_PATTERN.REGION);
-        if (match) {
-            return { chr: match[1], startBP: LocusInput.parsePosition(match[2]), endBP: LocusInput.parsePosition(match[3]) };
-        }
-        return null;
-    }
-
-    static prettyPrintLocus(locus) {
-        const { chr, startBP, endBP } = locus;
-        return `${chr}:${prettyPrint(startBP)}-${prettyPrint(endBP)}`;
-    }
-
     showError(message) {
         console.error(message)
         this.inputElement.classList.add('is-invalid');
@@ -160,6 +140,30 @@ class LocusInput {
 
         await this.sceneManager.handleSearch(url);
     }
+
+    static parsePosition(pos) {
+        try {
+            // Remove commas and convert to number
+            return parseInt(pos.replace(/,/g, ''), 10);
+        } catch {
+            console.error(`Error parsing position: ${pos}`);
+            return null;
+        }
+    }
+
+    static parseLocusString(locusString) {
+        const match = locusString.match(LOCUS_PATTERN.REGION);
+        if (match) {
+            return { chr: match[1], startBP: LocusInput.parsePosition(match[2]), endBP: LocusInput.parsePosition(match[3]) };
+        }
+        return null;
+    }
+
+    static prettyPrintLocus(locus) {
+        const { chr, startBP, endBP } = locus;
+        return `${chr}:${prettyPrint(startBP)}-${prettyPrint(endBP)}`;
+    }
+
 }
 
 export default LocusInput;
