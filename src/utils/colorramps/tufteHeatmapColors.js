@@ -77,9 +77,6 @@ const RED_LAB  = rgbToOklab(...RED);
 
 function frequencyToColorContinuous(frequency) {
 
-    if (0 === frequency) {
-        console.log(`frequencyToColorContinuous(${ frequency })`)
-    }
     const v = Math.min(1, Math.max(0, frequency));
     let L, a, b;
     if (v <= 0.5) {
