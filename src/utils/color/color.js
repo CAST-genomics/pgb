@@ -14,6 +14,23 @@ const rubinColors = {
     rubinBeige:     new THREE.Color('#E8E6DC')
 };
 
+/**
+ * Rubin colors as hex strings lookup table
+ * A collection of hex color strings from Rick Rubin's palette
+ */
+const rubinColorsHexStrings = new Map([
+    ['rubinGray', '#87867F'],
+    ['rubinSlate', '#1F1E1D'],
+    ['rubinDarkGray', '#5E5D59'],
+    ['rubinIvoryMed', '#F0EEE6'],
+    ['rubinIvoryDark', '#E8E6DC'],
+    ['rubinIvory', '#FAF9F6'],
+    ['rubinRiso', '#5E7EDF'],
+    ['rubinCyan', '#44A6E4'],
+    ['rubinClay', '#D97757'],
+    ['rubinBeige', '#E8E6DC']
+]);
+
 // example usage:
 // material.color.copy(rubinColors.rubinClay);
 
@@ -557,6 +574,7 @@ export {
     appleCrayonColors,
     appleCrayonColorsHexStrings,
     rubinColors,
+    rubinColorsHexStrings,
     getComplementaryThreeJSColor,
     getRandomAppleCrayonColor,
     getRandomVibrantAppleCrayonColor,
