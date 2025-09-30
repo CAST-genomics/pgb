@@ -291,7 +291,7 @@ class App {
             const x = Math.floor(( xx + 1) * width  / 2)
             const y = Math.floor((-yy + 1) * height / 2)
 
-            console.log(`show tooltip xy(${ x }, ${ y })`)
+            // console.log(`show tooltip xy(${ x }, ${ y })`)
 
             // Get the current look
             const look = this.sceneManager.getActiveLook()
