@@ -52,7 +52,7 @@ class GenomicService {
             }
         }
 
-        // Build assembly walk map
+        console.log(`assembly set ${ this.assemblySet.size }`)
 
         pangenomeService.setDefaultLocusStartBp(this.locus.startBP)
 
