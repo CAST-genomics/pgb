@@ -1,7 +1,8 @@
 import {app} from "./main.js"
 import eventBus from "./utils/eventBus.js"
-import {colorToRGBString, getAppleCrayonColorByName} from "./utils/color.js"
+import {getAppleCrayonColorByName} from "./utils/color.js"
 import { getLineXYZWithTrackBasepair, buildBpIndex, buildNodeEndpointMap, makeNodeRecordMap, getTrackParameterWithLineParameter } from "./utils/annotationTrackUtils.js"
+import RayCastService from "./raycastService.js"
 
 class AnnotationRenderService {
 
@@ -172,7 +173,7 @@ class AnnotationRenderService {
         const bpPerPixel = bpLength / width
         const pixelPerBP = 1/bpPerPixel
 
-        ctx.fillStyle = colorToRGBString(getAppleCrayonColorByName('aluminum'))
+        ctx.fillStyle = getAppleCrayonColorByName('aluminum', true)
 
         let i= 0
         for (const { bpStart, bpEnd } of nodes){
@@ -296,7 +297,7 @@ class AnnotationRenderService {
          */
 
         // this.raycastService.showVisualFeedback(pointOnLine, parametricLine.material.color)
-        this.raycastService.showVisualFeedback(pointOnLine, app.feedbackColor)
+        this.raycastService.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
     }
 
     clear() {

@@ -12,7 +12,7 @@ export const template = `
             <select class="pgb-locus-input__dropdown form-select" 
                     id="${ELEMENT_IDS.VERSION_DROPDOWN}"
                     aria-label="Version">
-                <option value="v1 selected">Version 1</option>
+                <option value="v1">Version 1</option>
                 <option value="v2">Version 2</option>
             </select>
             <input type="text" 

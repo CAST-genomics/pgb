@@ -1,10 +1,10 @@
 import { Draggable } from './utils/draggable.js';
 import eventBus from './utils/eventBus.js';
-import { getHierarchicalPopulationStructure } from './utils/populationUtils.js';
+import { getHierarchicalPopulationStructureFromData } from './utils/populationUtils.js';
 import {app} from "./main.js"
 
 class PopulationWidget {
-    constructor(populationWidgetContainer) {
+    constructor(populationWidgetContainer, jsonData = null) {
         this.populationWidgetContainer = populationWidgetContainer;
         this.draggable = new Draggable(this.populationWidgetContainer);
 
@@ -15,7 +15,8 @@ class PopulationWidget {
         this.allSuperpopulationItems = new Map();
         this.allPopulationItems = new Map();
 
-        this.hierarchicalData = getHierarchicalPopulationStructure();
+        this.jsonData = jsonData;
+        this.hierarchicalData = jsonData ? getHierarchicalPopulationStructureFromData(jsonData) : [];
 
         this.configure();
     }
@@ -183,6 +184,17 @@ class PopulationWidget {
         // Clear internal state
         this.selectedSuperpopulation = null;
         this.selectedPopulation = null;
+    }
+
+    /**
+     * Update the widget with new data
+     * @param {Object} jsonData - The JSON data containing assembly metadata
+     */
+    updateData(jsonData) {
+        this.jsonData = jsonData;
+        this.hierarchicalData = jsonData ? getHierarchicalPopulationStructureFromData(jsonData) : [];
+        this.clearAllSelections();
+        this.populateList();
     }
 
     reset() {

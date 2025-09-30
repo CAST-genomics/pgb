@@ -9,7 +9,11 @@ import {getAppleCrayonColorByName} from "./utils/color.js"
 
 class Look {
 
-    static DEFAULT_NODE_COLOR_NAME = 'tin'
+    static NODE_EMPHASIS_COLOR = '#dc3545'
+
+    static DEFAULT_NODE_COLOR = getAppleCrayonColorByName('tin', true)
+    static DEFAULT_NODE_COLOR_THREE_JS = getAppleCrayonColorByName('tin')
+
     static DEFAULT_EDGE_COLOR_NAME = 'magnesium'
 
     // pixel units
@@ -110,7 +114,7 @@ class Look {
     }
 
     getNodeColor(nodeName) {
-        return getAppleCrayonColorByName(Look.DEFAULT_NODE_COLOR_NAME)
+        return Look.DEFAULT_NODE_COLOR_THREE_JS
     }
 
     createEdgeMesh(geometry, context) {
@@ -201,7 +205,7 @@ class Look {
                     isSelected = false
                 }
 
-                const colorStyle = true === isSelected ? `style="color: ${selectedAssembly.color}; font-weight: bold;"` : ''
+                const colorStyle = true === isSelected ? `style="color: #dc3545; font-weight: bold;"` : ''
 
                 const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(assembly);
 

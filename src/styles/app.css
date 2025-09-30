@@ -210,8 +210,8 @@
 .superpopulation-widget__superpopulation-container {
   margin-left: 1rem;
   margin-right: 1rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.125rem;
 }
 .superpopulation-widget__superpopulation-container:not(:first-child) {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
@@ -221,12 +221,11 @@
 .superpopulation-widget__population-container {
   margin-left: 2rem;
   margin-right: 1rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
+  margin-top: 0.125rem;
+  margin-bottom: 0.125rem;
 }
 .superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button {
   width: 100%;
-  padding: 0.25rem 0.5rem;
   background-color: #ffffff;
   border-radius: 6px;
   border-style: solid;
@@ -234,7 +233,7 @@
   border-color: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #495057;
   text-align: left;
 }
@@ -302,7 +301,7 @@
 
 .graph-tooltip {
   position: absolute;
-  background: #FFFFFF;
+  background: rgba(255, 255, 255, 0.75);
   color: #000000;
   border-radius: 4px;
   pointer-events: none;
@@ -371,7 +370,7 @@
   padding: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.4;
-  color: #495057;
+  color: #545453;
 }
 .look-tooltip .node-section {
   margin-bottom: 1rem;
@@ -382,13 +381,13 @@
 .look-tooltip .node-section .node-title {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
-  color: #212529;
+  color: #545453;
   padding-bottom: 0.25rem;
 }
 .look-tooltip .node-section .assembly-table-container .assembly-table-title {
   margin: 0 0 0.5rem 0;
   font-size: 1.2rem;
-  color: #212529;
+  color: #545453;
 }
 .look-tooltip .node-section .assembly-table-container .assembly-table {
   width: 100%;
@@ -402,7 +401,7 @@
   font-size: 0.8rem;
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums slashed-zero;
-  color: #212529;
+  color: #545453;
   text-align: right;
   border: none;
   vertical-align: top;

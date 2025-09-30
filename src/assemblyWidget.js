@@ -1,7 +1,7 @@
 import { Draggable } from './utils/draggable.js';
-import { colorToRGBString } from './utils/color.js';
 import eventBus from './utils/eventBus.js';
 import GenomicService from "./genomicService.js"
+import Look from "./look.js"
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
@@ -25,7 +25,9 @@ class AssemblyWidget {
             const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
             for (const selector of selectors) {
                 selector.style.border = '2px solid transparent'
-                selector.style.transform = 'scale(1)' // Reset to normal size
+                selector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
+                // Remove inline transform to allow CSS hover effects to work
+                selector.style.transform = ''
             }
         })
 
@@ -49,14 +51,14 @@ class AssemblyWidget {
         this.listGroup.innerHTML = '';
         this.allAssemblyItems.clear();
 
-        for (const [assembly, color] of this.genomicService.assemblyColors.entries()) {
-            const item = this.createListItem(assembly, color);
+        for (const assemblyKey of this.genomicService.assemblySet){
+            const item = this.createListItem(assemblyKey);
             this.listGroup.appendChild(item);
-            this.allAssemblyItems.set(assembly, item);
+            this.allAssemblyItems.set(assemblyKey, item);
         }
     }
 
-    createListItem(assembly, color) {
+    createListItem(assemblyKey) {
         const container = document.createElement('div');
         container.className = 'list-group-item d-flex align-items-center gap-3';
 
@@ -65,10 +67,10 @@ class AssemblyWidget {
         container.appendChild(assemblySelector);
 
         assemblySelector.className = 'assembly-widget__genome-selector';
-        assemblySelector.style.backgroundColor = colorToRGBString(color);
-        assemblySelector.dataset.assembly = assembly;  // Use data attribute instead of direct property
+        assemblySelector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
+        assemblySelector.dataset.assembly = assemblyKey;  // Use data attribute instead of direct property
 
-        const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, assembly);
+        const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, assemblyKey);
         assemblySelector.onAssemblySelectorClick = onAssemblySelectorClick;
         assemblySelector.addEventListener('click', onAssemblySelectorClick);
 
@@ -77,7 +79,7 @@ class AssemblyWidget {
         container.appendChild(labelContainer);
         labelContainer.className = 'flex-grow-1 d-flex justify-content-end align-items-center gap-2';
 
-        const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(assembly);
+        const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(assemblyKey);
 
         // assembly name
         const nameLabel = document.createElement('span');
@@ -119,9 +121,10 @@ class AssemblyWidget {
             this.selectedAssembly =
                 {
                     name: assembly,
-                    color: colorToRGBString(this.genomicService.assemblyColors.get(assembly))
+                    color: Look.NODE_EMPHASIS_COLOR
                 };
             event.target.style.border = '2px solid #000';
+            event.target.style.backgroundColor = Look.NODE_EMPHASIS_COLOR
             event.target.style.transform = 'scale(1.5)'
 
             this.emphasizeAssembly(this.selectedAssembly);

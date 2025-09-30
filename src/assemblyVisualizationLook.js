@@ -57,7 +57,7 @@ class AssemblyVisualizationLook extends Look {
         }
 
         const material = new LineMaterial({
-            color: this.genomicService.getAssemblyColor(assembly),
+            color: Look.NODE_EMPHASIS_COLOR,
             linewidth: Look.NODE_LINE_WIDTH,
             worldUnits: true,
             opacity: 1,

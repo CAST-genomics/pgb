@@ -34,11 +34,6 @@ class AssemblyMetadataService {
      * @param {Object} jsonData - The JSON data containing node information
      */
     loadMetadata(jsonData) {
-        if (!jsonData?.node) {
-            console.warn('AssemblyMetadataService: No node data found in JSON');
-            return;
-        }
-
         this.metadata.clear();
         this.totalAssemblies = 0;
 
@@ -147,7 +142,12 @@ class AssemblyMetadataService {
 
             html += '<ul class="population-list">';
 
-            const sortedPopulations = Object.entries(superpopGroups[superPop]).sort(([, a], [, b]) => b - a)
+            const superPopGroup = superpopGroups[superPop]
+            if (undefined === superPopGroup) {
+                console.warn(`DANGER - No SuperPopulation Group for ${ superPop }`)
+            }
+
+            const sortedPopulations = Object.entries(superPopGroup).sort(([, a], [, b]) => b - a)
             for (const [population, popFrequency] of sortedPopulations) {
                 html += `<li class="population-item"><span class="item-text">${getPopulationName(population)}</span><span class="item-percentage">${ AssemblyMetadataService.formatNumber(popFrequency) }</span></li>`;
             }

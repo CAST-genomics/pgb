@@ -109,6 +109,13 @@ class LineMaterialResolutionService {
         });
     }
 
+    clear(){
+
+        console.log(`LineMaterialResolutionService clear material cache pre ${ this.materials.size }`)
+        this.materials.clear()
+        console.log(`LineMaterialResolutionService clear material cache post ${ this.materials.size }`)
+    }
+
     /**
      * Dispose of the service and clear all registered materials
      */

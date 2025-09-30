@@ -6,10 +6,11 @@ import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
-import {getAppleCrayonColorByName} from "./utils/color.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
 
+let xxPre = undefined
+let yyPre = undefined
 class App {
 
     constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager) {
@@ -36,8 +37,6 @@ class App {
         this.isTooltipEnabled = undefined
 
         this.tooltip = this.createTooltip();
-
-        this.feedbackColor = getAppleCrayonColorByName('maraschino')
 
         window.addEventListener('resize', () => {
             const { clientWidth, clientHeight } = this.container
@@ -113,21 +112,11 @@ class App {
         // this.renderer.domElement.style.cursor = 'none';
 
         if (object.userData?.type === 'edge') {
-            this.raycastService.showVisualFeedback(point, new THREE.Color(0x00ff00));
+            this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
             this.showTooltip(object, point, 'edge');
         } else if (object.userData?.type === 'node') {
 
             const { t, nodeName, line } = this.raycastService.handleIntersection(this.geometryManager, intersections[0], RayCastService.DIRECT_LINE_INTERSECTION_STRATEGY)
-
-            // const { x, y } = point
-            // const exe = `${ prettyPrint(Math.floor(x)) }`
-            // const wye = `${ prettyPrint(Math.floor(y)) }`
-            // // console.log(`xyz(${ exe }, ${ wye }) t ${ t.toFixed(4) }`)
-            //
-            // const { x:_x, y:_y } = line.getPoint(t, 'world')
-            // const _exe = `${ prettyPrint(Math.floor(_x)) }`
-            // const _wye = `${ prettyPrint(Math.floor(_y)) }`
-            // console.log(`intersectionXY (${ exe }, ${ wye }) xyDerivedFromT (${ _exe }, ${ _wye })`)
 
             eventBus.publish('lineIntersection', { t, nodeName, nodeLine:line })
 
@@ -137,7 +126,7 @@ class App {
     }
 
     handleEdgeIntersection(edgeObject, point) {
-        this.raycastService.showVisualFeedback(point, new THREE.Color(0x00ff00));
+        this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
         this.showTooltip(edgeObject, point, 'edge');
     }
 
@@ -174,6 +163,9 @@ class App {
         this.pangenomeService.loadData(json)
 
         await this.genomicService.initialize(json, this.pangenomeService)
+
+        // Update the population widget with the new data
+        this.widgetService.updatePopulationWidget(json)
 
         this.widgetService.reset()
 
@@ -286,17 +278,25 @@ class App {
         if (true === this.isTooltipEnabled){
 
             // Convert 3D world coordinates to screen coordinates
-            const screenPoint = point.clone().project(this.cameraManager.camera);
+            const { x:xx, y:yy } = point.clone().project(this.cameraManager.camera)
 
-            // Convert to CSS coordinates
-            const rect = this.container.getBoundingClientRect();
-            const x = (screenPoint.x + 1) * rect.width / 2;
-            const y = (-screenPoint.y + 1) * rect.height / 2;
+            if (xx === xxPre && yy === yyPre) {
+                return
+            } else {
+                xxPre = xx
+                yyPre = yy
+            }
+
+            const { width, height} = this.container.getBoundingClientRect();
+            const x = Math.floor(( xx + 1) * width  / 2)
+            const y = Math.floor((-yy + 1) * height / 2)
+
+            console.log(`show tooltip xy(${ x }, ${ y })`)
 
             // Get the current look
             const look = this.sceneManager.getActiveLook()
 
-            // Try to get custom tooltip content from the look for nodes
+            this.tooltip.innerHTML = ''
             let content = '';
             if (type === 'edge') {
                 // Default edge tooltip content
@@ -322,7 +322,7 @@ class App {
                     </div>
                 </div>`;
             } else if (type === 'node') {
-                // Only use custom tooltip content if the look is active
+
                 if (look && look.isActive) {
                     content = look.createNodeTooltipContent(object);
                 }
@@ -338,7 +338,6 @@ class App {
 
             this.tooltip.innerHTML = content;
 
-            // Position tooltip
             const deltaX = 24
             const deltaY = 24
             this.tooltip.style.left = `${x + deltaX}px`;
@@ -349,8 +348,6 @@ class App {
     }
 
     hideTooltip() {
-
-        this.tooltip.innerHTML = ''
 
         if ('none' !== this.tooltip.style.display) {
             this.tooltip.style.display = 'none';
@@ -365,9 +362,9 @@ class App {
 
         this.geometryManager.clear()
 
-        lineMaterialResolutionService.materials.clear()
+        lineMaterialResolutionService.clear()
 
-        materialService.lineMaterialCache.clear()
+        materialService.clear()
 
         // if (true === this.sceneManager.isActive()) {
         //     const look = this.sceneManager.getActiveLook()
