@@ -1,8 +1,5 @@
 // Color utility functions will be added here
 import * as THREE from 'three'
-import { colors32Distinct } from "./32-distinct-colors.js"
-import { colors64Distinct } from "./64-distinct-colors.js"
-import { colors128Distinct } from "./128-distinct-colors.js"
 
 /**
  * Apple Crayon color palette
@@ -560,9 +557,6 @@ export {
     appleCrayonColors,
     appleCrayonColorsHexStrings,
     rubinColors,
-    colors32Distinct,
-    colors64Distinct,
-    colors128Distinct,
     getComplementaryThreeJSColor,
     getRandomAppleCrayonColor,
     getRandomVibrantAppleCrayonColor,

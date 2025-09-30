@@ -15,7 +15,7 @@ import HeatmapLook from "./heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
-import {rubinColors} from "./utils/color.js"
+import {rubinColors} from "./utils/color/color.js"
 import './styles/app.scss'
 
 let app

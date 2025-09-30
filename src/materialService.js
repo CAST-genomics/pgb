@@ -4,7 +4,7 @@ import fragmentShader from '../shaders/animated-arrow.frag.glsl?raw';
 import { createGradientTexture } from './utils/textureService.js';
 import textureService from './utils/textureService.js';
 import { textures } from './utils/textureLibrary.js';
-import {getAppleCrayonColorByName} from "./utils/color.js"
+import {getAppleCrayonColorByName} from "./utils/color/color.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import Look from "./look.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'
