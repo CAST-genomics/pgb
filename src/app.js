@@ -296,7 +296,7 @@ class App {
             // Get the current look
             const look = this.sceneManager.getActiveLook()
 
-            // Try to get custom tooltip content from the look for nodes
+            this.tooltip.innerHTML = ''
             let content = '';
             if (type === 'edge') {
                 // Default edge tooltip content
@@ -322,7 +322,7 @@ class App {
                     </div>
                 </div>`;
             } else if (type === 'node') {
-                // Only use custom tooltip content if the look is active
+
                 if (look && look.isActive) {
                     content = look.createNodeTooltipContent(object);
                 }
@@ -348,8 +348,6 @@ class App {
     }
 
     hideTooltip() {
-
-        this.tooltip.innerHTML = ''
 
         if ('none' !== this.tooltip.style.display) {
             this.tooltip.style.display = 'none';
