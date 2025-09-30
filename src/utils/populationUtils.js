@@ -60,18 +60,6 @@ export const POPULATION_NAMES = new Map([
     // Not Available
     ['N/A', 'Not Available']
 ]);
-
-/**
- * Initialize population and superpopulation lookup tables from JSON data
- * @param {Object} jsonData - The JSON data containing assembly metadata
- * @deprecated This function is now a no-op since we use static LUTs
- */
-export function initializePopulationTables(jsonData) {
-    // Static LUTs are already initialized, no need to rebuild from data
-    console.log(`PopulationUtils: Using static LUTs with ${SUPERPOPULATION_NAMES.size} superpopulations and ${POPULATION_NAMES.size} populations`);
-}
-
-
 /**
  * Get human-readable name for a superpopulation acronym
  * @param {string} acronym - The superpopulation acronym (e.g., 'AMR', 'AFR')
@@ -124,7 +112,7 @@ export function getAllPopulationNames(ignoreNA = true) {
  */
 export function getPopulationsBySuperpopulation() {
     const result = {};
-    
+
     // Build the mapping dynamically from the current data
     for (const [populationAcronym] of POPULATION_NAMES) {
         const superpop = findSuperpopulationForPopulation(populationAcronym);
@@ -149,12 +137,12 @@ export function getPopulationsBySuperpopulation() {
 export function getHierarchicalPopulationStructure(ignoreNA = true) {
     const populationsBySuperpop = getPopulationsBySuperpopulation();
     const result = [];
-    
+
     Object.entries(populationsBySuperpop).forEach(([superpopAcronym, populations]) => {
         if (ignoreNA && superpopAcronym === 'N/A') {
             return;
         }
-        
+
         result.push({
             type: 'superpopulation',
             acronym: superpopAcronym,
@@ -162,7 +150,7 @@ export function getHierarchicalPopulationStructure(ignoreNA = true) {
             populations: populations
         });
     });
-    
+
     return result;
 }
 
@@ -176,25 +164,25 @@ export function getHierarchicalPopulationStructureFromData(jsonData, ignoreNA = 
     // Extract actual populations and superpopulations from the dataset
     const actualPopulations = new Set();
     const actualSuperpopulations = new Set();
-    
+
     // Collect from node assembly_metadata counts
     for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
         if (nodeData.assembly_metadata?.count) {
             const { superpopulation, population } = nodeData.assembly_metadata.count;
-            
+
             if (superpopulation) {
                 Object.keys(superpopulation).forEach(acronym => actualSuperpopulations.add(acronym));
             }
-            
+
             if (population) {
                 Object.keys(population).forEach(acronym => actualPopulations.add(acronym));
             }
         }
     }
-    
+
     // Build hierarchical structure from actual data
     const populationsBySuperpop = {};
-    
+
     for (const populationAcronym of actualPopulations) {
         const superpop = findSuperpopulationForPopulation(populationAcronym);
         if (superpop && actualSuperpopulations.has(superpop)) {
@@ -207,13 +195,13 @@ export function getHierarchicalPopulationStructureFromData(jsonData, ignoreNA = 
             });
         }
     }
-    
+
     const result = [];
     Object.entries(populationsBySuperpop).forEach(([superpopAcronym, populations]) => {
         if (ignoreNA && superpopAcronym === 'N/A') {
             return;
         }
-        
+
         result.push({
             type: 'superpopulation',
             acronym: superpopAcronym,
@@ -221,7 +209,7 @@ export function getHierarchicalPopulationStructureFromData(jsonData, ignoreNA = 
             populations: populations
         });
     });
-    
+
     return result;
 }
 
