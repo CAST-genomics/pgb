@@ -89,9 +89,9 @@
   &__superpopulation-container {
     margin-left: 1rem;
     margin-right: 1rem;
-    margin-top: 0.5rem;
-    margin-bottom: 0.25rem;
-    
+    margin-top: 0.25rem;
+    margin-bottom: 0.125rem;
+
     // Add thin dividing line between superpopulation groups
     &:not(:first-child) {
       border-top: 1px solid rgba(0, 0, 0, 0.08);
@@ -103,8 +103,8 @@
   &__population-container {
     margin-left: 2rem;
     margin-right: 1rem;
-    margin-top: 0.25rem;
-    margin-bottom: 0.25rem;
+    margin-top: 0.125rem;
+    margin-bottom: 0.125rem;
   }
 
   // Unified button styles - all buttons look identical
@@ -112,7 +112,7 @@
   &__population-button {
 
     width: 100%;
-    padding: 0.25rem 0.5rem;
+    //padding: 0.25rem 0.5rem;
 
     background-color: #ffffff;
 
@@ -125,7 +125,7 @@
 
     transition: all 0.2s ease;
 
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: #495057;
 
     text-align: left;

@@ -164,6 +164,9 @@ class App {
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
+        // Update the population widget with the new data
+        this.widgetService.updatePopulationWidget(json)
+
         this.widgetService.reset()
 
         this.geometryManager.createGeometry(json)

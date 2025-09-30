@@ -98,6 +98,14 @@ class WidgetService {
         }
     }
 
+    /**
+     * Update the population widget with new data
+     * @param {Object} jsonData - The JSON data containing assembly metadata
+     */
+    updatePopulationWidget(jsonData) {
+        this.populationWidget.updateData(jsonData);
+    }
+
     reset(){
 
         if (this.activeButton) {
