@@ -14,11 +14,11 @@ import HeatmapLook from "./heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
-import SequenceService from "./sequenceService.js"
+import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import './styles/app.scss'
 
-let sequenceService
+let contextMenuService
 
 let app
 let locusInput
@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const sceneManager = new SceneManager(new LookManager())
 
-    sequenceService = new SequenceService(threeJSContainer, raycastService, genomicService)
+    contextMenuService = new ContextMenuService(threeJSContainer, raycastService, genomicService)
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
 
