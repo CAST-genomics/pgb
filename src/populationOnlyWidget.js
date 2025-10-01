@@ -40,15 +40,8 @@ class PopulationOnlyWidget {
             // But keep the superpopulation reference for the dividing lines
 
             // Always add populations for each superpopulation
-            for (let i = 0; i < superpopulation.populations.length; i++) {
-                const population = superpopulation.populations[i];
+            for (const population of superpopulation.populations) {
                 const populationItem = this.createPopulationItem(population, superpopulation);
-
-                // Mark the first population of each superpopulation group for dividing lines
-                if (i === 0) {
-                    populationItem.setAttribute('data-first-in-group', 'true');
-                }
-
                 this.listGroup.appendChild(populationItem);
                 this.allPopulationItems.set(population.name, populationItem);
             }
