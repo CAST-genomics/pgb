@@ -6,6 +6,7 @@ import materialService, {colorRampArrowMaterialFactory} from "./materialService.
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import GenomicService from "./genomicService.js"
 import {getAppleCrayonColorByName} from "./utils/color/color.js"
+import {prettyPrint} from "./utils/utils.js"
 
 class Look {
 
@@ -165,6 +166,27 @@ class Look {
     }
 
     createNodeTooltipContent(nodeObject) {
+        const { nodeName } = nodeObject.userData
+        const { length } = this.genomicService.nodeMetadata.get(nodeName)
+        const html = `<div class="look-tooltip">
+            <div class="node-section">
+                <table class="node-details-table">
+                    <tr class="node-detail-row">
+                        <td class="node-detail-label">Node:</td>
+                        <td class="node-detail-value">${nodeName}</td>
+                    </tr>
+                    <tr class="node-detail-row">
+                        <td class="node-detail-label">Length:</td>
+                        <td class="node-detail-value">${ prettyPrint(length) } bp</td>
+                    </tr>
+                </table>
+            </div>
+        </div>`
+
+        return html
+    }
+
+    __createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData;
         const assemblies = this.genomicService.getAssemblyListForNodeName(nodeName);
 
