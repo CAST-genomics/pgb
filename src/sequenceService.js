@@ -80,9 +80,13 @@ class SequenceService {
         if (action === 'copy-info') {
             textToCopy = `Sequence:\n${sequence}`;
         } else if (action === 'assemblies') {
-            // Stub callback for assemblies action
-            console.log('Assemblies action clicked for node:', this.currentNodeName);
-            // TODO: Implement assemblies functionality
+            const list = this.genomicService.getAssemblyListForNodeName(this.currentNodeName)
+                .map(item => item.split('#'))
+                .map(item => `Assembly: ${item[0]}  Haplotype: ${item[1]}`)
+                .join('\n');
+
+
+            textToCopy = `${list}`;
         }
 
         if (textToCopy) {
