@@ -25,14 +25,14 @@ class WidgetService {
         this.assemblyButton = document.createElement('button');
         buttonContainer.appendChild(this.assemblyButton);
 
-        this.assemblyButton.className = 'widget-service__button widget-service__button--assembly';
+        this.assemblyButton.className = 'widget-service__button';
         this.assemblyButton.textContent = 'Assembly';
         this.assemblyButton.addEventListener('click', this.onAssemblyButtonClick.bind(this));
 
         this.populationButton = document.createElement('button');
         buttonContainer.appendChild(this.populationButton);
 
-        this.populationButton.className = 'widget-service__button widget-service__button--superpopulation';
+        this.populationButton.className = 'widget-service__button';
         this.populationButton.innerHTML = 'Population';
         this.populationButton.addEventListener('click', this.onPopulationButtonClick.bind(this));
 
@@ -63,16 +63,16 @@ class WidgetService {
 
         event.stopPropagation();
 
-        // Hide and reset other widgets when switching to superpopulation
+        // Hide and reset other widgets when switching to population
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
 
         if (this.activeButton === this.populationButton) {
-            console.log('hide widget - superpopulation')
+            console.log('hide widget - population')
             this.populationWidget.hideCard();
             this.setActiveButton(null);
         } else {
-            console.log('show widget - superpopulation')
+            console.log('show widget - population')
 
             if (null === this.populationWidget.selectedSuperpopulation && null === this.populationWidget.selectedPopulation){
                 app.setActiveScene('assemblyVisualizationScene', true)
