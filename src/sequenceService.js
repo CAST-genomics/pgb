@@ -88,14 +88,14 @@ class SequenceService {
             });
         }
         this.dismissContextMenu();
-
-        app.enableTooltip()
     }
 
     dismissContextMenu() {
         if (this.contextMenu) {
             this.contextMenu.style.display = 'none';
         }
+        // Re-enable tooltip when context menu is dismissed
+        app.enableTooltip();
     }
 
     raycastClickHandler(intersection, event) {

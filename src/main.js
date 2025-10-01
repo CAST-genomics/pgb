@@ -14,14 +14,18 @@ import HeatmapLook from "./heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
+import SequenceService from "./sequenceService.js"
 import {rubinColors} from "./utils/color/color.js"
 import './styles/app.scss'
+
+let sequenceService
 
 let app
 let locusInput
 let defaultGenome
 let annotationRenderService
 let widgetService
+
 document.addEventListener("DOMContentLoaded", async (event) => {
 
     await materialService.initialize()
@@ -40,6 +44,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     const geometryManager = new GeometryManager(genomicService)
 
     const sceneManager = new SceneManager(new LookManager())
+
+    sequenceService = new SequenceService(threeJSContainer, raycastService, genomicService)
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
 
