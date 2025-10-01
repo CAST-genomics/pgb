@@ -343,50 +343,6 @@
   color: #6c757d;
 }
 
-.look-tooltip {
-  padding: 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  color: #545453;
-}
-.look-tooltip .node-section {
-  margin-bottom: 1rem;
-}
-.look-tooltip .node-section:last-child {
-  margin-bottom: 0;
-}
-.look-tooltip .node-section .node-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  color: #545453;
-  padding-bottom: 0.25rem;
-}
-.look-tooltip .node-section .assembly-table-container .assembly-table-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.2rem;
-  color: #545453;
-}
-.look-tooltip .node-section .assembly-table-container .assembly-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0.5rem 0;
-  margin: 0;
-}
-.look-tooltip .node-section .assembly-table-container .assembly-table .assembly-cell {
-  padding-right: 0.5rem;
-  padding-bottom: 0.25rem;
-  font-size: 0.8rem;
-  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-variant-numeric: tabular-nums slashed-zero;
-  color: #545453;
-  text-align: right;
-  border: none;
-  vertical-align: top;
-}
-.look-tooltip .node-section .assembly-table-container .assembly-table .assembly-cell.empty {
-  color: transparent;
-}
-
 .edge-tooltip {
   padding: 0.75rem;
   font-size: 0.875rem;
