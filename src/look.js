@@ -5,7 +5,7 @@ import ParametricLine from "./parametricLine.js"
 import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import GenomicService from "./genomicService.js"
-import {getAppleCrayonColorByName} from "./utils/color.js"
+import {getAppleCrayonColorByName} from "./utils/color/color.js"
 
 class Look {
 

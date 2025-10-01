@@ -1,8 +1,38 @@
 // Color utility functions will be added here
 import * as THREE from 'three'
-import { colors32Distinct } from "./32-distinct-colors.js"
-import { colors64Distinct } from "./64-distinct-colors.js"
-import { colors128Distinct } from "./128-distinct-colors.js"
+
+const rubinColors = {
+    rubinGray:      new THREE.Color('#87867F'),
+    rubinSlate:     new THREE.Color('#1F1E1D'),
+    rubinDarkGray:  new THREE.Color('#5E5D59'),
+    rubinIvoryMed:  new THREE.Color('#F0EEE6'),
+    rubinIvoryDark: new THREE.Color('#E8E6DC'),
+    rubinIvory:     new THREE.Color('#FAF9F6'),
+    rubinRiso:      new THREE.Color('#5E7EDF'),
+    rubinCyan:      new THREE.Color('#44A6E4'),
+    rubinClay:      new THREE.Color('#D97757'),
+    rubinBeige:     new THREE.Color('#E8E6DC')
+};
+
+/**
+ * Rubin colors as hex strings lookup table
+ * A collection of hex color strings from Rick Rubin's palette
+ */
+const rubinColorsHexStrings = new Map([
+    ['rubinGray', '#87867F'],
+    ['rubinSlate', '#1F1E1D'],
+    ['rubinDarkGray', '#5E5D59'],
+    ['rubinIvoryMed', '#F0EEE6'],
+    ['rubinIvoryDark', '#E8E6DC'],
+    ['rubinIvory', '#FAF9F6'],
+    ['rubinRiso', '#5E7EDF'],
+    ['rubinCyan', '#44A6E4'],
+    ['rubinClay', '#D97757'],
+    ['rubinBeige', '#E8E6DC']
+]);
+
+// example usage:
+// material.color.copy(rubinColors.rubinClay);
 
 /**
  * Apple Crayon color palette
@@ -304,22 +334,6 @@ function getAppleCrayonColorByName(name, isHexString = false) {
 // Color Palette drived from Rick Rubin's palette
 // used for "The Way of Code" https://www.thewayofcode.com/
 
-const rubinColors = {
-    rubinGray:      new THREE.Color(0.5294, 0.5255, 0.4980), // #87867F
-    rubinSlate:     new THREE.Color(0.1216, 0.1176, 0.1137), // #1F1E1D
-    rubinDarkGray:  new THREE.Color(0.3686, 0.3647, 0.3490), // #5E5D59
-    rubinIvoryMed:  new THREE.Color(0.9412, 0.9333, 0.9020), // #F0EEE6
-    rubinIvoryDark: new THREE.Color(0.9098, 0.9020, 0.8627), // #E8E6DC
-    rubinIvory:     new THREE.Color(0.9804, 0.9765, 0.9647), // rgb(250, 249, 246)
-    rubinRiso:      new THREE.Color(0.3686, 0.4941, 0.8745), // #5E7EDF
-    rubinCyan:      new THREE.Color(0.2667, 0.6510, 0.8941), // #44A6E4
-    rubinClay:      new THREE.Color(0.8510, 0.4667, 0.3412), // #D97757
-    rubinBeige:     new THREE.Color(0.9098, 0.9020, 0.8627)  // #E8E6DC (same as rubinIvoryDark)
-};
-
-// example usage:
-// material.color.copy(rubinColors.rubinClay);
-
 /**
  * Returns the complementary color for a given THREE.Color object
  * @param {THREE.Color} threeJSColor - The color to find the complement for
@@ -560,9 +574,7 @@ export {
     appleCrayonColors,
     appleCrayonColorsHexStrings,
     rubinColors,
-    colors32Distinct,
-    colors64Distinct,
-    colors128Distinct,
+    rubinColorsHexStrings,
     getComplementaryThreeJSColor,
     getRandomAppleCrayonColor,
     getRandomVibrantAppleCrayonColor,

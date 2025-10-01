@@ -4,7 +4,7 @@ import {app} from "./main.js"
 import Look from "./look.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
-import {colorComplements, getAppleCrayonColorByName, getComplementaryThreeJSColor} from "./utils/color.js"
+import {colorComplements, getAppleCrayonColorByName, getComplementaryThreeJSColor} from "./utils/color/color.js"
 
 class RayCastService {
 

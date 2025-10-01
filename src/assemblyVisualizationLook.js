@@ -5,7 +5,7 @@ import {MATERIAL_TYPES} from './materialService.js';
 import materialService from './materialService.js';
 import GeometryFactory from "./geometryFactory.js"
 import eventBus from "./utils/eventBus.js"
-import {getAppleCrayonColorByName} from "./utils/color.js"
+import {getAppleCrayonColorByName} from "./utils/color/color.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 
 class AssemblyVisualizationLook extends Look {
