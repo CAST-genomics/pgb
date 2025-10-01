@@ -27,6 +27,7 @@ class SequenceService {
         this.contextMenu.innerHTML = `
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li data-action="copy-info" style="padding: 8px 16px; cursor: pointer; pointer-events: auto;">Copy Assembly & Sequence</li>
+                <li data-action="assemblies" style="padding: 8px 16px; cursor: pointer; pointer-events: auto;">Assemblies</li>
             </ul>
         `;
                 container.appendChild(this.contextMenu);
@@ -78,6 +79,10 @@ class SequenceService {
 
         if (action === 'copy-info') {
             textToCopy = `Sequence:\n${sequence}`;
+        } else if (action === 'assemblies') {
+            // Stub callback for assemblies action
+            console.log('Assemblies action clicked for node:', this.currentNodeName);
+            // TODO: Implement assemblies functionality
         }
 
         if (textToCopy) {
