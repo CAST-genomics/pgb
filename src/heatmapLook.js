@@ -16,7 +16,7 @@ class HeatmapLook extends Look {
 
     createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData;
-        return assemblyMetadataService.getDemographicBreakdownHTML(nodeName)
+        return assemblyMetadataService.getPopulationTooltip(nodeName)
     }
 
     handleSelectionEvent(data, eventType) {

@@ -224,11 +224,6 @@
   margin-top: 0.125rem;
   margin-bottom: 0.125rem;
 }
-.superpopulation-widget__population-container[data-first-in-group=true]:not(:first-child) {
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
-}
 .superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button {
   width: 100%;
   background-color: #ffffff;
@@ -316,59 +311,36 @@
   border: 1px solid #B8B8B8;
 }
 
-.demographic-breakdown {
+.population-tooltip {
   padding: 0.75rem;
   font-size: 0.875rem;
-  font-variant-caps: small-caps;
   line-height: 1.4;
   color: #495057;
+  min-width: 200px;
 }
-.demographic-breakdown .superpopulation-section {
-  margin-bottom: 1rem;
-}
-.demographic-breakdown .superpopulation-section:last-child {
-  margin-bottom: 0;
-}
-.demographic-breakdown .superpopulation-section .superpopulation-title {
-  margin-top: 0;
-  margin-right: 0;
-  margin-bottom: 0.125rem;
-  margin-left: 0;
-  font-size: 0.9rem;
-  padding-bottom: 0.125rem;
+.population-tooltip .population-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 0.125rem;
+  padding: 0.125rem 0;
 }
-.demographic-breakdown .superpopulation-section .superpopulation-title .title-text {
+.population-tooltip .population-item:last-child {
+  margin-bottom: 0;
+}
+.population-tooltip .population-item .population-name {
   flex: 1;
-}
-.demographic-breakdown .superpopulation-section .population-list {
-  margin: 0;
-  padding-left: 1.25rem;
-  list-style-type: disc;
-  min-width: fit-content;
-}
-.demographic-breakdown .superpopulation-section .population-list .population-item {
-  margin-bottom: 0.125rem;
+  margin-right: 1rem;
   font-size: 0.8rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-width: fit-content;
-}
-.demographic-breakdown .superpopulation-section .population-list .population-item:last-child {
-  margin-bottom: 0;
-}
-.demographic-breakdown .superpopulation-section .population-list .population-item .item-text {
-  flex: 0 1 auto;
-  margin-right: 0.75rem;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
-.demographic-breakdown .superpopulation-section .population-list .population-item .item-percentage {
+.population-tooltip .population-item .population-percentage {
   flex: 0 0 auto;
+  font-size: 0.8rem;
+  font-weight: 500;
   white-space: nowrap;
+  color: #6c757d;
 }
 
 .look-tooltip {

@@ -161,6 +161,42 @@ class AssemblyMetadataService {
         return html;
     }
 
+    /**
+     * Generate HTML snippet showing population breakdown for a node
+     * Simple presentation of population frequency values as percentages
+     * @param {string} nodeId - The node identifier
+     * @returns {string} HTML snippet with population breakdown
+     */
+    getPopulationTooltip(nodeId) {
+        const nodeMetadata = this.metadata.get(nodeId);
+        if (!nodeMetadata) {
+            return '<div>No metadata available for this node</div>';
+        }
+
+        const popFrequencies = nodeMetadata.frequency.population || {};
+
+        if (Object.keys(popFrequencies).length === 0) {
+            return '<div>No population data available for this node</div>';
+        }
+
+        let html = '<div class="population-tooltip">';
+
+        // Sort populations by frequency (highest first)
+        const sortedPopulations = Object.entries(popFrequencies).sort(([, a], [, b]) => b - a);
+        
+        for (const [population, popFrequency] of sortedPopulations) {
+            if (population === 'N/A') {
+                continue;
+            }
+            
+            html += `<div class="population-item"><span class="population-name">${getPopulationName(population)}</span><span class="population-percentage">${ AssemblyMetadataService.formatNumber(popFrequency) }</span></div>`;
+        }
+
+        html += '</div>';
+
+        return html;
+    }
+
     static formatNumber(frequency) {
 
         if (0 === frequency) {
