@@ -219,10 +219,15 @@
   margin-top: 0.75rem;
 }
 .superpopulation-widget__population-container {
-  margin-left: 2rem;
+  margin-left: 1rem;
   margin-right: 1rem;
   margin-top: 0.125rem;
   margin-bottom: 0.125rem;
+}
+.superpopulation-widget__population-container[data-first-in-group=true]:not(:first-child) {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
 }
 .superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button {
   width: 100%;

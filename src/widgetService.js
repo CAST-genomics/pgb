@@ -8,7 +8,7 @@ class WidgetService {
         this.populationWidget = populationWidget;
 
         this.assemblyButton = null;
-        this.superpopulationButton = null;
+        this.populationButton = null;
 
         this.activeButton = null
 
@@ -29,12 +29,12 @@ class WidgetService {
         this.assemblyButton.textContent = 'Assembly';
         this.assemblyButton.addEventListener('click', this.onAssemblyButtonClick.bind(this));
 
-        this.superpopulationButton = document.createElement('button');
-        buttonContainer.appendChild(this.superpopulationButton);
+        this.populationButton = document.createElement('button');
+        buttonContainer.appendChild(this.populationButton);
 
-        this.superpopulationButton.className = 'widget-service__button widget-service__button--superpopulation';
-        this.superpopulationButton.innerHTML = 'Population';
-        this.superpopulationButton.addEventListener('click', this.onSuperpopulationButtonClick.bind(this));
+        this.populationButton.className = 'widget-service__button widget-service__button--superpopulation';
+        this.populationButton.innerHTML = 'Population';
+        this.populationButton.addEventListener('click', this.onPopulationButtonClick.bind(this));
 
     }
 
@@ -59,7 +59,7 @@ class WidgetService {
 
     }
 
-    onSuperpopulationButtonClick(event) {
+    onPopulationButtonClick(event) {
 
         event.stopPropagation();
 
@@ -67,7 +67,7 @@ class WidgetService {
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
 
-        if (this.activeButton === this.superpopulationButton) {
+        if (this.activeButton === this.populationButton) {
             console.log('hide widget - superpopulation')
             this.populationWidget.hideCard();
             this.setActiveButton(null);
@@ -81,7 +81,7 @@ class WidgetService {
             }
 
             this.populationWidget.showCard();
-            this.setActiveButton(this.superpopulationButton);
+            this.setActiveButton(this.populationButton);
         }
 
     }
@@ -124,8 +124,8 @@ class WidgetService {
         if (this.assemblyButton) {
             this.assemblyButton.removeEventListener('click', this.onAssemblyButtonClick.bind(this));
         }
-        if (this.superpopulationButton) {
-            this.superpopulationButton.removeEventListener('click', this.onSuperpopulationButtonClick.bind(this));
+        if (this.populationButton) {
+            this.populationButton.removeEventListener('click', this.onPopulationButtonClick.bind(this));
         }
         this.activeButton = null;
     }

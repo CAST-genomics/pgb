@@ -36,13 +36,19 @@ class PopulationOnlyWidget {
         this.allPopulationItems.clear();
 
         for (const superpopulation of this.hierarchicalData) {
-            const superpopulationItem = this.createSuperpopulationItem(superpopulation);
-            this.listGroup.appendChild(superpopulationItem);
-            this.allSuperpopulationItems.set(superpopulation.name, superpopulationItem);
+            // Skip creating superpopulation items - only show populations
+            // But keep the superpopulation reference for the dividing lines
 
             // Always add populations for each superpopulation
-            for (const population of superpopulation.populations) {
+            for (let i = 0; i < superpopulation.populations.length; i++) {
+                const population = superpopulation.populations[i];
                 const populationItem = this.createPopulationItem(population, superpopulation);
+
+                // Mark the first population of each superpopulation group for dividing lines
+                if (i === 0) {
+                    populationItem.setAttribute('data-first-in-group', 'true');
+                }
+
                 this.listGroup.appendChild(populationItem);
                 this.allPopulationItems.set(population.name, populationItem);
             }
@@ -145,9 +151,9 @@ class PopulationOnlyWidget {
     cleanupListItem(item) {
         // Clean up superpopulation buttons
         const superpopulationButton = item.querySelector('.superpopulation-widget__superpopulation-button');
-        if (superpopulationButton && superpopulationButton.onSuperpopulationButtonClick) {
-            superpopulationButton.removeEventListener('click', superpopulationButton.onSuperpopulationButtonClick);
-            delete superpopulationButton.onSuperpopulationButtonClick;
+        if (superpopulationButton && superpopulationButton.onPopulationButtonClick) {
+            superpopulationButton.removeEventListener('click', superpopulationButton.onPopulationButtonClick);
+            delete superpopulationButton.onPopulationButtonClick;
         }
 
         // Clean up population buttons
@@ -180,7 +186,7 @@ class PopulationOnlyWidget {
         allButtons.forEach(button => {
             button.classList.remove('widget-service__button--active');
         });
-        
+
         // Clear internal state
         this.selectedSuperpopulation = null;
         this.selectedPopulation = null;

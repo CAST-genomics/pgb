@@ -145,9 +145,9 @@ class PopulationWidget {
     cleanupListItem(item) {
         // Clean up superpopulation buttons
         const superpopulationButton = item.querySelector('.superpopulation-widget__superpopulation-button');
-        if (superpopulationButton && superpopulationButton.onSuperpopulationButtonClick) {
-            superpopulationButton.removeEventListener('click', superpopulationButton.onSuperpopulationButtonClick);
-            delete superpopulationButton.onSuperpopulationButtonClick;
+        if (superpopulationButton && superpopulationButton.onPopulationButtonClick) {
+            superpopulationButton.removeEventListener('click', superpopulationButton.onPopulationButtonClick);
+            delete superpopulationButton.onPopulationButtonClick;
         }
 
         // Clean up population buttons
@@ -180,7 +180,7 @@ class PopulationWidget {
         allButtons.forEach(button => {
             button.classList.remove('widget-service__button--active');
         });
-        
+
         // Clear internal state
         this.selectedSuperpopulation = null;
         this.selectedPopulation = null;
