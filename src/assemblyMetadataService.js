@@ -1,5 +1,6 @@
 import { getSuperpopulationName, getPopulationName, findSuperpopulationForPopulation } from './utils/populationUtils.js';
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
+import eventBus from "./utils/eventBus.js"
 
 /**
  * AssemblyMetadataService - Manages and provides access to assembly metadata
@@ -14,19 +15,22 @@ class AssemblyMetadataService {
 
         this.metadata = new Map(); // nodeId -> metadata object
         this.totalAssemblies = 0; // Total count across all nodes
+        this.selectedPopulation = null;
+
+        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
+            this.handleSelectionEvent(data, 'population');
+        })
+
+        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
+            this.selectedPopulation = null;
+        });
 
         AssemblyMetadataService.instance = this;
     }
 
-    /**
-     * Get the singleton instance
-     * @returns {AssemblyMetadataService} The singleton instance
-     */
-    static getInstance() {
-        if (!AssemblyMetadataService.instance) {
-            AssemblyMetadataService.instance = new AssemblyMetadataService();
-        }
-        return AssemblyMetadataService.instance;
+    handleSelectionEvent(data, eventType) {
+        const { acronym } = data
+        this.selectedPopulation = acronym;
     }
 
     /**
@@ -183,18 +187,33 @@ class AssemblyMetadataService {
 
         // Sort populations by frequency (highest first)
         const sortedPopulations = Object.entries(popFrequencies).sort(([, a], [, b]) => b - a);
-        
+
         for (const [population, popFrequency] of sortedPopulations) {
             if (population === 'N/A') {
                 continue;
             }
+
+            // Check if this population is selected and add highlighting
+            const isSelected = this.selectedPopulation === population;
+            const emphasisStyle = isSelected ? 'style="color: #dc3545; font-weight: bold;"' : '';
             
-            html += `<div class="population-item"><span class="population-name">${getPopulationName(population)}</span><span class="population-percentage">${ AssemblyMetadataService.formatNumber(popFrequency) }</span></div>`;
+            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(population)}</span><span class="population-percentage" ${emphasisStyle}>${ AssemblyMetadataService.formatNumber(popFrequency) }</span></div>`;
         }
 
         html += '</div>';
 
         return html;
+    }
+
+    /**
+     * Get the singleton instance
+     * @returns {AssemblyMetadataService} The singleton instance
+     */
+    static getInstance() {
+        if (!AssemblyMetadataService.instance) {
+            AssemblyMetadataService.instance = new AssemblyMetadataService();
+        }
+        return AssemblyMetadataService.instance;
     }
 
     static formatNumber(frequency) {
