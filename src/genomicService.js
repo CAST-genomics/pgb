@@ -38,7 +38,8 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            this.nodeMetadata.set(nodeName, { length, assemblySet, sequence: sequences[nodeName], frequency: assembly_metadata.frequency });
+            const { frequency, count } = assembly_metadata
+            this.nodeMetadata.set(nodeName, { assemblySet, frequency, count, length, sequence: sequences[nodeName] });
 
         }
 

@@ -172,32 +172,28 @@ class AssemblyMetadataService {
      * @returns {string} HTML snippet with population breakdown
      */
     getPopulationTooltip(nodeId) {
-        const nodeMetadata = this.metadata.get(nodeId);
-        if (!nodeMetadata) {
-            return '<div>No metadata available for this node</div>';
-        }
 
-        const popFrequencies = nodeMetadata.frequency.population || {};
+        let html = '<div class="population-tooltip">'
 
-        if (Object.keys(popFrequencies).length === 0) {
-            return '<div>No population data available for this node</div>';
-        }
+        const { frequency, count } = this.metadata.get(nodeId)
 
-        let html = '<div class="population-tooltip">';
+        const populationCounts = Object.entries(count.population)
+        const populationFrequencies = Object.entries(frequency.population)
 
-        // Sort populations by frequency (highest first)
-        const sortedPopulations = Object.entries(popFrequencies).sort(([, a], [, b]) => b - a);
+        for (let i = 0; i < populationFrequencies.length; i++ ) {
 
-        for (const [population, popFrequency] of sortedPopulations) {
-            if (population === 'N/A') {
+            const [ acronym, frequency ] = populationFrequencies[ i ];
+            const  [_, count ] = populationCounts[ i ];
+
+            if ('N/A' === acronym) {
                 continue;
             }
 
-            // Check if this population is selected and add highlighting
-            const isSelected = this.selectedPopulation === population;
+            const isSelected = this.selectedPopulation === acronym;
             const emphasisStyle = isSelected ? 'style="color: #dc3545; font-weight: bold;"' : '';
-            
-            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(population)}</span><span class="population-percentage" ${emphasisStyle}>${ AssemblyMetadataService.formatNumber(popFrequency) }</span></div>`;
+
+
+            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(acronym)}</span><span class="population-percentage" ${emphasisStyle}>${ count } ${ AssemblyMetadataService.formatNumber(frequency) }</span></div>`;
         }
 
         html += '</div>';
