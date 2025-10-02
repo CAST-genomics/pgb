@@ -10,8 +10,8 @@
 
   .population-item {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 1.25rem;
+    grid-template-columns: 250px 30px 80px;
+    gap: 0.75rem;
     align-items: center;
     margin-bottom: 0.125rem;
     padding: 0.125rem 0;
@@ -22,8 +22,9 @@
 
     .population-name {
       font-size: 0.8rem;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .population-count {
@@ -32,9 +33,6 @@
       white-space: nowrap;
       color: #6c757d;
       text-align: right;
-      min-width: 2rem;
-      margin-left: 0.25rem;
-      margin-right: 1rem;
     }
 
     .population-percentage {
