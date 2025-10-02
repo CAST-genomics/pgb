@@ -30,10 +30,12 @@ let widgetService
 document.addEventListener("DOMContentLoaded", async (event) => {
 
     const release = await showRelease()
-
     if (release){
-        console.log(release)
+        console.log(`Release: ${release}`)
     }
+
+    // Initialize info button popover
+    initializeInfoButton(release)
 
     await materialService.initialize()
 
@@ -96,6 +98,21 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     }
 
 })
+
+function initializeInfoButton(release) {
+    const infoButton = document.getElementById('info-button');
+    if (!infoButton) return;
+
+    const config = {
+        container: 'body',
+        placement: 'bottom',
+        trigger: 'click',
+        title: 'Release Information',
+        content: release ? `Current Release: ${release}` : 'Unable to fetch release information'
+    };
+
+    new bootstrap.Popover(infoButton, config);
+}
 
 export { app, locusInput, annotationRenderService, defaultGenome, widgetService }
 
