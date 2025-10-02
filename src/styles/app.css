@@ -316,11 +316,12 @@
   font-size: 0.875rem;
   line-height: 1.4;
   color: #495057;
-  min-width: 200px;
+  min-width: 300px;
 }
 .population-tooltip .population-item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1.25rem;
   align-items: center;
   margin-bottom: 0.125rem;
   padding: 0.125rem 0;
@@ -329,18 +330,26 @@
   margin-bottom: 0;
 }
 .population-tooltip .population-item .population-name {
-  flex: 1;
-  margin-right: 1rem;
   font-size: 0.8rem;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
-.population-tooltip .population-item .population-percentage {
-  flex: 0 0 auto;
+.population-tooltip .population-item .population-count {
   font-size: 0.8rem;
   font-weight: 500;
   white-space: nowrap;
   color: #6c757d;
+  text-align: right;
+  min-width: 2rem;
+  margin-left: 0.25rem;
+  margin-right: 1rem;
+}
+.population-tooltip .population-item .population-percentage {
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #6c757d;
+  text-align: right;
 }
 
 .edge-tooltip {

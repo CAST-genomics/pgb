@@ -16,6 +16,7 @@ import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
+import {showRelease} from "./utils/utils.js"
 import './styles/app.scss'
 
 let contextMenuService
@@ -27,6 +28,12 @@ let annotationRenderService
 let widgetService
 
 document.addEventListener("DOMContentLoaded", async (event) => {
+
+    const release = await showRelease()
+
+    if (release){
+        console.log(release)
+    }
 
     await materialService.initialize()
 
