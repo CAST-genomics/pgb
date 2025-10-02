@@ -1,5 +1,6 @@
 import { getSuperpopulationName, getPopulationName, findSuperpopulationForPopulation } from './utils/populationUtils.js';
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
+import eventBus from "./utils/eventBus.js"
 
 /**
  * AssemblyMetadataService - Manages and provides access to assembly metadata
@@ -14,19 +15,22 @@ class AssemblyMetadataService {
 
         this.metadata = new Map(); // nodeId -> metadata object
         this.totalAssemblies = 0; // Total count across all nodes
+        this.selectedPopulation = null;
+
+        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
+            this.handleSelectionEvent(data, 'population');
+        })
+
+        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
+            this.selectedPopulation = null;
+        });
 
         AssemblyMetadataService.instance = this;
     }
 
-    /**
-     * Get the singleton instance
-     * @returns {AssemblyMetadataService} The singleton instance
-     */
-    static getInstance() {
-        if (!AssemblyMetadataService.instance) {
-            AssemblyMetadataService.instance = new AssemblyMetadataService();
-        }
-        return AssemblyMetadataService.instance;
+    handleSelectionEvent(data, eventType) {
+        const { acronym } = data
+        this.selectedPopulation = acronym;
     }
 
     /**
@@ -159,6 +163,51 @@ class AssemblyMetadataService {
         html += '</div>'
 
         return html;
+    }
+
+    /**
+     * Generate HTML snippet showing population breakdown for a node
+     * Simple presentation of population frequency values as percentages
+     * @param {string} nodeId - The node identifier
+     * @returns {string} HTML snippet with population breakdown
+     */
+    getPopulationTooltip(nodeId) {
+
+        let html = '<div class="population-tooltip">'
+
+        const { frequency, count } = this.metadata.get(nodeId)
+
+        const populationCounts = Object.entries(count.population)
+        const populationFrequencies = Object.entries(frequency.population)
+
+        for (let i = 0; i < populationFrequencies.length; i++ ) {
+
+            const [ acronym, frequency ] = populationFrequencies[ i ];
+            const  [_, count ] = populationCounts[ i ];
+
+            if ('N/A' === acronym) {
+                continue;
+            }
+
+            const emphasisStyle = acronym === this.selectedPopulation ? 'style="font-size: 0.9rem; font-weight: bold;"' : '';
+
+            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(acronym)}</span><span class="population-count" ${emphasisStyle}>${count}</span><span class="population-percentage" ${emphasisStyle}>${ AssemblyMetadataService.formatNumber(frequency) }</span></div>`;
+        }
+
+        html += '</div>';
+
+        return html;
+    }
+
+    /**
+     * Get the singleton instance
+     * @returns {AssemblyMetadataService} The singleton instance
+     */
+    static getInstance() {
+        if (!AssemblyMetadataService.instance) {
+            AssemblyMetadataService.instance = new AssemblyMetadataService();
+        }
+        return AssemblyMetadataService.instance;
     }
 
     static formatNumber(frequency) {

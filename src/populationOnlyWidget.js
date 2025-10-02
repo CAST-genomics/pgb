@@ -3,7 +3,7 @@ import eventBus from './utils/eventBus.js';
 import { getHierarchicalPopulationStructureFromData } from './utils/populationUtils.js';
 import {app} from "./main.js"
 
-class PopulationWidget {
+class PopulationOnlyWidget {
     constructor(populationWidgetContainer, jsonData = null) {
         this.populationWidgetContainer = populationWidgetContainer;
         this.draggable = new Draggable(this.populationWidgetContainer);
@@ -36,9 +36,8 @@ class PopulationWidget {
         this.allPopulationItems.clear();
 
         for (const superpopulation of this.hierarchicalData) {
-            const superpopulationItem = this.createSuperpopulationItem(superpopulation);
-            this.listGroup.appendChild(superpopulationItem);
-            this.allSuperpopulationItems.set(superpopulation.name, superpopulationItem);
+            // Skip creating superpopulation items - only show populations
+            // But keep the superpopulation reference for the dividing lines
 
             // Always add populations for each superpopulation
             for (const population of superpopulation.populations) {
@@ -206,4 +205,5 @@ class PopulationWidget {
     }
 }
 
-export default PopulationWidget;
+export default PopulationOnlyWidget;
+

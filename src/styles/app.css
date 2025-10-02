@@ -219,7 +219,7 @@
   margin-top: 0.75rem;
 }
 .superpopulation-widget__population-container {
-  margin-left: 2rem;
+  margin-left: 1rem;
   margin-right: 1rem;
   margin-top: 0.125rem;
   margin-bottom: 0.125rem;
@@ -301,7 +301,7 @@
 
 .graph-tooltip {
   position: absolute;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.85);
   color: #000000;
   border-radius: 4px;
   pointer-events: none;
@@ -311,103 +311,45 @@
   border: 1px solid #B8B8B8;
 }
 
-.demographic-breakdown {
+.population-tooltip {
   padding: 0.75rem;
   font-size: 0.875rem;
-  font-variant-caps: small-caps;
   line-height: 1.4;
   color: #495057;
+  min-width: 300px;
 }
-.demographic-breakdown .superpopulation-section {
-  margin-bottom: 1rem;
+.population-tooltip .population-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1.25rem;
+  align-items: center;
+  margin-bottom: 0.125rem;
+  padding: 0.125rem 0;
 }
-.demographic-breakdown .superpopulation-section:last-child {
+.population-tooltip .population-item:last-child {
   margin-bottom: 0;
 }
-.demographic-breakdown .superpopulation-section .superpopulation-title {
-  margin-top: 0;
-  margin-right: 0;
-  margin-bottom: 0.125rem;
-  margin-left: 0;
-  font-size: 0.9rem;
-  padding-bottom: 0.125rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.demographic-breakdown .superpopulation-section .superpopulation-title .title-text {
-  flex: 1;
-}
-.demographic-breakdown .superpopulation-section .population-list {
-  margin: 0;
-  padding-left: 1.25rem;
-  list-style-type: disc;
-  min-width: fit-content;
-}
-.demographic-breakdown .superpopulation-section .population-list .population-item {
-  margin-bottom: 0.125rem;
+.population-tooltip .population-item .population-name {
   font-size: 0.8rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-width: fit-content;
-}
-.demographic-breakdown .superpopulation-section .population-list .population-item:last-child {
-  margin-bottom: 0;
-}
-.demographic-breakdown .superpopulation-section .population-list .population-item .item-text {
-  flex: 0 1 auto;
-  margin-right: 0.75rem;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
-.demographic-breakdown .superpopulation-section .population-list .population-item .item-percentage {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.look-tooltip {
-  padding: 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  color: #545453;
-}
-.look-tooltip .node-section {
-  margin-bottom: 1rem;
-}
-.look-tooltip .node-section:last-child {
-  margin-bottom: 0;
-}
-.look-tooltip .node-section .node-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  color: #545453;
-  padding-bottom: 0.25rem;
-}
-.look-tooltip .node-section .assembly-table-container .assembly-table-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.2rem;
-  color: #545453;
-}
-.look-tooltip .node-section .assembly-table-container .assembly-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0.5rem 0;
-  margin: 0;
-}
-.look-tooltip .node-section .assembly-table-container .assembly-table .assembly-cell {
-  padding-right: 0.5rem;
-  padding-bottom: 0.25rem;
+.population-tooltip .population-item .population-count {
   font-size: 0.8rem;
-  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-variant-numeric: tabular-nums slashed-zero;
-  color: #545453;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #6c757d;
   text-align: right;
-  border: none;
-  vertical-align: top;
+  min-width: 2rem;
+  margin-left: 0.25rem;
+  margin-right: 1rem;
 }
-.look-tooltip .node-section .assembly-table-container .assembly-table .assembly-cell.empty {
-  color: transparent;
+.population-tooltip .population-item .population-percentage {
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #6c757d;
+  text-align: right;
 }
 
 .edge-tooltip {
@@ -450,6 +392,58 @@
   text-align: left;
   vertical-align: top;
   width: 70%;
+}
+
+.look-tooltip {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #495057;
+  width: fit-content;
+  max-width: 300px;
+}
+.look-tooltip .node-section {
+  margin-bottom: 1rem;
+}
+.look-tooltip .node-section:last-child {
+  margin-bottom: 0;
+}
+.look-tooltip .node-section .node-title {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  margin-right: 0;
+  margin-left: 0;
+  font-size: 0.9rem;
+  color: #212529;
+  padding-bottom: 0.125rem;
+  font-weight: 600;
+}
+.look-tooltip .node-section .node-details-table {
+  min-width: fit-content;
+  border-collapse: collapse;
+  margin: 0;
+}
+.look-tooltip .node-section .node-details-table .node-detail-row .node-detail-label {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+  padding-right: 0.5rem;
+  padding-left: 0;
+  font-size: 0.8rem;
+  color: #212529;
+  font-weight: 500;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.look-tooltip .node-section .node-details-table .node-detail-row .node-detail-value {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+  padding-right: 0.5rem;
+  padding-left: 0;
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-align: left;
+  vertical-align: top;
 }
 
 /*# sourceMappingURL=app.css.map */

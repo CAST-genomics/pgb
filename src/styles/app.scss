@@ -2,9 +2,9 @@
 @use 'geneAnnotationTrackContainer';
 @use 'assemblyWidget';
 @use 'metadataWidget';
-@use 'populationWidget';
+@use 'populationOnlyWidget';
 @use 'widgetService';
 @use 'toolTipContainer';
-@use 'heatMapToolTip';
-@use 'lookToolTip';
+@use 'populationToolTip';
 @use 'edgeToolTip';
+@use 'lookToolTip';

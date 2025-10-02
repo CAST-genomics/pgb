@@ -1,14 +1,13 @@
 // Look Tooltip Styles
-// Used by Look.createNodeTooltipContent()
-
-@use 'appleCrayonColors' as colors;
+// Used by Look.createNodeTooltipContent() for node tooltips
 
 .look-tooltip {
-  padding: 0.75rem;
+  padding: 0.5rem;
   font-size: 0.875rem;
-  //font-variant-caps: small-caps;
   line-height: 1.4;
-  color: colors.$iron;
+  color: #495057;
+  width: fit-content;
+  max-width: 300px;
 
   .node-section {
     margin-bottom: 1rem;
@@ -18,42 +17,50 @@
     }
 
     .node-title {
-      margin: 0 0 0.5rem 0;
+      margin-top: 0;
+      margin-bottom: 0.25rem;
+
+      margin-right: 0;      
+      margin-left: 0;
+
       font-size: 0.9rem;
-      color: colors.$iron;
-      padding-bottom: 0.25rem;
+      color: #212529;
+      padding-bottom: 0.125rem;
+      font-weight: 600;
     }
 
-    .assembly-table-container {
+    .node-details-table {
+      min-width: fit-content;
+      border-collapse: collapse;
+      margin: 0;
 
-      .assembly-table-title {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.2rem;
-        color: colors.$iron;
-      }
+      .node-detail-row {
+        .node-detail-label {
+          padding-top: 0.125rem;
+          padding-bottom: 0.125rem;
 
-      .assembly-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0.5rem 0;
-        margin: 0;
+          padding-right: 0.5rem;         
+          padding-left: 0;
 
-        .assembly-cell {
-          // padding-top: 0.25rem;
-          padding-right: 0.5rem;
-          padding-bottom: 0.25rem;
-          // padding-left: 0.5rem;
-          font-size: 0.80rem;
-          font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-          font-variant-numeric: tabular-nums slashed-zero;
-          color: colors.$iron;
-          text-align: right;
-          border: none;
+          font-size: 0.8rem;
+          color: #212529;
+          font-weight: 500;
+          text-align: left;
           vertical-align: top;
+          white-space: nowrap;
+        }
 
-          &.empty {
-            color: transparent;
-          }
+        .node-detail-value {
+          padding-top: 0.125rem;
+          padding-bottom: 0.125rem;
+
+          padding-right: 0.5rem;
+          padding-left: 0;
+
+          font-size: 0.8rem;
+          color: #6c757d;
+          text-align: left;
+          vertical-align: top;
         }
       }
     }

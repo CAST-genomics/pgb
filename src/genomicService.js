@@ -27,7 +27,7 @@ class GenomicService {
         console.log(`locus length ${ prettyPrint(this.locus.endBP - this.locus.startBP) }`)
 
         this.startNode = undefined
-        for (const [nodeName, { assembly, assembly_metadata }] of Object.entries(nodes)) {
+        for (const [nodeName, { length, assembly, assembly_metadata }] of Object.entries(nodes)) {
 
             if (undefined === this.startNode) {
                 this.startNode = nodeName
@@ -38,7 +38,8 @@ class GenomicService {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            this.nodeMetadata.set(nodeName, { assemblySet, sequence: sequences[nodeName], frequency: assembly_metadata.frequency });
+            const { frequency, count } = assembly_metadata
+            this.nodeMetadata.set(nodeName, { assemblySet, frequency, count, length, sequence: sequences[nodeName] });
 
         }
 

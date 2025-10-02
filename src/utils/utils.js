@@ -93,4 +93,42 @@ function getWorldDistanceFromPixelDistance(camera, pixelDistance, container) {
     return worldDistance
 }
 
-export { prettyPrint, loadPath, uniqueRandomGenerator, getWorldDistanceFromPixelDistance }
+async function showRelease() {
+    const repoOwner = 'CAST-genomics';
+    const repoName = 'pgb';
+    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`GitHub API returned status ${response.status}`);
+        }
+        const releaseData = await response.json();
+        return releaseData.tag_name; // This is the release tag (e.g., "v1.2.3")
+    } catch (error) {
+        console.error('Failed to fetch latest release tag:', error);
+        return null;
+    }
+}
+
+// Handles "pre-release" tags as well as release tags
+async function __showRelease() {
+    const repoOwner = 'CAST-genomics';
+    const repoName = 'pgb';
+    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/releases`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`GitHub API returned status ${response.status}`);
+        const releases = await response.json();
+        if (releases.length === 0) return null;
+
+        // Get the most recent release (first in the list)
+        return releases[0].tag_name; // e.g., "0.1.0"
+    } catch (error) {
+        console.error('Failed to fetch releases:', error);
+        return null;
+    }
+}
+
+export { prettyPrint, loadPath, uniqueRandomGenerator, getWorldDistanceFromPixelDistance, showRelease }

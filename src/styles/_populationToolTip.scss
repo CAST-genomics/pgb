@@ -1,0 +1,48 @@
+// Population Tooltip Styles
+// Clean flexbox design for population-only tooltips
+
+.population-tooltip {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #495057;
+  min-width: 300px;
+
+  .population-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 1.25rem;
+    align-items: center;
+    margin-bottom: 0.125rem;
+    padding: 0.125rem 0;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .population-name {
+      font-size: 0.8rem;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .population-count {
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+      color: #6c757d;
+      text-align: right;
+      min-width: 2rem;
+      margin-left: 0.25rem;
+      margin-right: 1rem;
+    }
+
+    .population-percentage {
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+      color: #6c757d;
+      text-align: right;
+    }
+  }
+}

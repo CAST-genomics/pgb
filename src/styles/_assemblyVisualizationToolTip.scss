@@ -1,0 +1,61 @@
+// Look Tooltip Styles
+// Used by Look.createNodeTooltipContent()
+
+@use 'appleCrayonColors' as colors;
+
+.look-tooltip {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  //font-variant-caps: small-caps;
+  line-height: 1.4;
+  color: colors.$iron;
+
+  .node-section {
+    margin-bottom: 1rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .node-title {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.9rem;
+      color: colors.$iron;
+      padding-bottom: 0.25rem;
+    }
+
+    .assembly-table-container {
+
+      .assembly-table-title {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.2rem;
+        color: colors.$iron;
+      }
+
+      .assembly-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0.5rem 0;
+        margin: 0;
+
+        .assembly-cell {
+          // padding-top: 0.25rem;
+          padding-right: 0.5rem;
+          padding-bottom: 0.25rem;
+          // padding-left: 0.5rem;
+          font-size: 0.80rem;
+          font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-variant-numeric: tabular-nums slashed-zero;
+          color: colors.$iron;
+          text-align: right;
+          border: none;
+          vertical-align: top;
+
+          &.empty {
+            color: transparent;
+          }
+        }
+      }
+    }
+  }
+}

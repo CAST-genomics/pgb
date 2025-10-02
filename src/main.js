@@ -2,10 +2,9 @@ import App from './app.js'
 import RayCastService from './raycastService.js'
 import LocusInput from './locusInput.js'
 import GenomicService from './genomicService.js'
-import SequenceService from './sequenceService.js'
 import GeometryManager from './geometryManager.js'
 import AssemblyWidget from './assemblyWidget.js'
-import PopulationWidget from './populationWidget.js'
+import PopulationOnlyWidget from "./populationOnlyWidget.js"
 import WidgetService from './widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
@@ -15,15 +14,28 @@ import HeatmapLook from "./heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
+import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
+import {showRelease} from "./utils/utils.js"
 import './styles/app.scss'
+
+let contextMenuService
 
 let app
 let locusInput
 let defaultGenome
 let annotationRenderService
 let widgetService
+
 document.addEventListener("DOMContentLoaded", async (event) => {
+
+    const release = await showRelease()
+    if (release){
+        console.log(`Release: ${release}`)
+    }
+
+    // Initialize info button popover
+    initializeInfoButton(release)
 
     await materialService.initialize()
 
@@ -40,13 +52,11 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const geometryManager = new GeometryManager(genomicService)
 
-    const sequenceService = new SequenceService(threeJSContainer, raycastService, genomicService)
-
     const sceneManager = new SceneManager(new LookManager())
 
-    const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
+    contextMenuService = new ContextMenuService(threeJSContainer, raycastService, genomicService)
 
-    const populationWidget = new PopulationWidget(document.getElementById('pgb-superpopulation-card'));
+    const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
 
     // AssemblyVisualizationLook
     const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
@@ -59,7 +69,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 
-    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationWidget);
+    const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
+    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget);
 
     annotationRenderService = new AnnotationRenderService(document.querySelector('.pgb-gene-annotation-track-container'), genomicService, sceneManager, raycastService)
 
@@ -87,6 +98,21 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     }
 
 })
+
+function initializeInfoButton(release) {
+    const infoButton = document.getElementById('info-button');
+    if (!infoButton) return;
+
+    const config = {
+        container: 'body',
+        placement: 'bottom',
+        trigger: 'click',
+        title: 'Release Information',
+        content: release ? `Current Release: ${release}` : 'Unable to fetch release information'
+    };
+
+    new bootstrap.Popover(infoButton, config);
+}
 
 export { app, locusInput, annotationRenderService, defaultGenome, widgetService }
 

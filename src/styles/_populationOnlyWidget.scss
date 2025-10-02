@@ -1,0 +1,146 @@
+.superpopulation-widget {
+  &__card {
+    z-index: 1000;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: 10rem;
+    margin-top: 10rem;
+    min-width: 300px;
+    min-height: fit-content;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(0, 0);
+
+    &.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .card-body {
+      height: calc(100% - 60px);
+      padding: 0;
+      overflow: hidden;
+
+      .superpopulation-widget__list-container {
+        height: 100%;
+        overflow-y: auto;
+
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums slashed-zero;
+      }
+    }
+  }
+
+  &__button-container {
+
+    margin-left: 1rem;
+    margin-right: 1rem;
+
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  &__button {
+
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+
+    background: transparent;
+
+    // original
+    //border: 1px solid #dee2e6;
+    //border-radius: 6px;
+
+    //tweaked widget service
+    border-radius: 6px;
+    border-style: solid;
+    border-width: thin;
+    border-color: transparent;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+
+    font-size: 0.85rem;
+    color: #495057;
+
+    text-align: left;
+
+    &:hover {
+      transform: translateY(-1px);
+      border-color: #495057;
+    }
+
+    &:active {
+      transform: translateY(0);
+      background: rgba(73, 80, 87, 0.05);
+    }
+  }
+
+  &--active {
+    border-color: #495057;
+    background: rgba(73, 80, 87, 0.05);
+  }
+
+  // Hierarchical container styles (only for spacing/indentation)
+  &__superpopulation-container {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.125rem;
+
+    // Add thin dividing line between superpopulation groups
+    &:not(:first-child) {
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+    }
+  }
+
+  &__population-container {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    margin-top: 0.125rem;
+    margin-bottom: 0.125rem;
+  }
+
+  // Unified button styles - all buttons look identical
+  &__superpopulation-button,
+  &__population-button {
+
+    width: 100%;
+    //padding: 0.25rem 0.5rem;
+
+    background-color: #ffffff;
+
+    border-radius: 6px;
+    border-style: solid;
+    border-width: thin;
+    border-color: transparent;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+
+    font-size: 0.7rem;
+    color: #495057;
+
+    text-align: left;
+
+
+    &:hover {
+      transform: translateY(-1px);
+      border-color: #495057;
+    }
+
+    &:active {
+      transform: translateY(0);
+      background: rgba(73, 80, 87, 0.05);
+    }
+  }
+
+
+}

@@ -1,6 +1,6 @@
 import { app } from "./main.js"
 
-class SequenceService {
+class ContextMenuService {
     constructor(container, raycastService, genomicService) {
 
         this.container = container;
@@ -14,22 +14,39 @@ class SequenceService {
 
     createContextMenu(container) {
         this.contextMenu = document.createElement('div');
+        container.appendChild(this.contextMenu);
+
         this.contextMenu.id = 'pgb-context-menu';
+
         this.contextMenu.style.display = 'none';
+
         this.contextMenu.style.position = 'absolute';
+
         this.contextMenu.style.zIndex = '9999';
+
         this.contextMenu.style.backgroundColor = 'white';
-        this.contextMenu.style.border = '1px solid #ccc';
+
+        this.contextMenu.style.borderWidth = 'thin';
+        this.contextMenu.style.borderStyle = 'solid';
+        this.contextMenu.style.borderColor = '#ccc';
         this.contextMenu.style.borderRadius = '4px';
-        this.contextMenu.style.padding = '4px 0';
+
+        this.contextMenu.style.paddingTop = '4px';
+        this.contextMenu.style.paddingBottom = '4px';
+        this.contextMenu.style.paddingLeft = '0';
+        this.contextMenu.style.paddingRight = '0';
+
         this.contextMenu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+
         this.contextMenu.style.pointerEvents = 'auto';
+
         this.contextMenu.innerHTML = `
             <ul style="list-style: none; padding: 0; margin: 0;">
-                <li data-action="copy-info" style="padding: 8px 16px; cursor: pointer; pointer-events: auto;">Copy Assembly & Sequence</li>
+                <li data-action="copy-info" style="padding: 8px 16px; cursor: pointer; pointer-events: auto;">Copy Sequence</li>
+                <li data-action="assemblies" style="padding: 8px 16px; cursor: pointer; pointer-events: auto;">Copy Assemblies, Haplotypes, and Sequence IDs</li>
             </ul>
         `;
-                container.appendChild(this.contextMenu);
+
 
         const listItems = this.contextMenu.querySelectorAll('li');
         for (const listItem of listItems) {
@@ -73,11 +90,15 @@ class SequenceService {
             return;
         }
 
-        const { sequence } = payload
+        
         let textToCopy;
 
         if (action === 'copy-info') {
+            const { sequence } = payload
             textToCopy = `Sequence:\n${sequence}`;
+        } else if (action === 'assemblies') {
+            const assemblyHaplotypeSequenceIds = this.genomicService.getAssemblyListForNodeName(this.currentNodeName).join('\n');
+            textToCopy = `${assemblyHaplotypeSequenceIds}`;
         }
 
         if (textToCopy) {
@@ -88,14 +109,14 @@ class SequenceService {
             });
         }
         this.dismissContextMenu();
-
-        app.enableTooltip()
     }
 
     dismissContextMenu() {
         if (this.contextMenu) {
             this.contextMenu.style.display = 'none';
         }
+        // Re-enable tooltip when context menu is dismissed
+        app.enableTooltip();
     }
 
     raycastClickHandler(intersection, event) {
@@ -137,4 +158,4 @@ class SequenceService {
     }
 }
 
-export default SequenceService;
+export default ContextMenuService;
