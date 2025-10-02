@@ -189,11 +189,9 @@ class AssemblyMetadataService {
                 continue;
             }
 
-            const isSelected = this.selectedPopulation === acronym;
-            const emphasisStyle = isSelected ? 'style="color: #dc3545; font-weight: bold;"' : '';
+            const emphasisStyle = acronym === this.selectedPopulation ? 'style="font-size: 0.9rem; font-weight: bold;"' : '';
 
-
-            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(acronym)}</span><span class="population-percentage" ${emphasisStyle}>${ count } ${ AssemblyMetadataService.formatNumber(frequency) }</span></div>`;
+            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(acronym)}</span><span class="population-count" ${emphasisStyle}>${count}</span><span class="population-percentage" ${emphasisStyle}>${ AssemblyMetadataService.formatNumber(frequency) }</span></div>`;
         }
 
         html += '</div>';
