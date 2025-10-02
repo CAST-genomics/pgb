@@ -24,7 +24,7 @@ export const POPULATION_NAMES = new Map([
     ['CLM', 'Colombian in Medellin, Colombia'],
     ['PUR', 'Puerto Rican in Puerto Rico'],
     ['PEL', 'Peruvian in Lima, Peru'],
-    ['MXL', 'Mexican Ancestry in Los Angeles, California, USA'],
+    ['MXL', 'Mexican Ancestry in Los Angeles, CA'],
 
     // African populations
     ['ACB', 'African Caribbean in Barbados'],
@@ -35,7 +35,7 @@ export const POPULATION_NAMES = new Map([
     ['ASW', 'African Ancestry in Southwest USA'],
     ['MKK', 'Maasai in Kinyawa, Kenya'],
     ['LWK', 'Luhya in Webuye, Kenya'],
-    ['ASL', 'African Americans living in St. Louis, Missouri'],
+    ['ASL', 'African Americans living in St. Louis, MO'],
 
     // East Asian populations
     ['CHS', 'Han Chinese South, China'],
@@ -49,7 +49,7 @@ export const POPULATION_NAMES = new Map([
     ['BEB', 'Bengali in Bangladesh'],
     ['STU', 'Sri Lankan Tamil in the UK'],
     ['ITU', 'Indian Telugu in the UK'],
-    ['GIH', 'Gujarati Indians in Houston, Texas, USA'],
+    ['GIH', 'Gujarati Indians in Houston, TX'],
 
     // European populations
     ['FIN', 'Finnish in Finland'],
