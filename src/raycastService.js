@@ -88,6 +88,22 @@ class RayCastService {
         }
     }
 
+    getClickIntersection(event, camera) {
+        const { top, left, width, height } = this.container.getBoundingClientRect()
+        this.pointer.x =  ((event.clientX - left) /  width) * 2 - 1;
+        this.pointer.y = -((event.clientY -  top) / height) * 2 + 1;
+
+        this.updateRaycaster(camera)
+
+        const scene = app.sceneManager.getActiveScene()
+        const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
+        const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
+        const all = [ ...nodeMeshGroup.children, ...edgeMeshGroup.children ];
+
+        const intersects = this.raycaster.intersectObjects(all);
+        return intersects[0] || null;
+    }
+
     onClick(event) {
 
         if (this.hasMouseMoved) {

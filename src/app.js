@@ -38,6 +38,28 @@ class App {
 
         this.tooltip = this.createTooltip();
 
+        container.addEventListener("pointerdown", (event) => {
+
+            const hit = this.raycastService.getClickIntersection(event, this.cameraManager.camera)
+
+            const str = null === hit ? 'miss' : 'hit'
+            console.log(`raycast click handler ${ str }`)
+
+            if (hit) {
+
+                const { object, point } = hit
+                if ('node' === object.userData?.type) {
+                    this.showTooltip(object, point, 'node')
+                } else if ('edge' === object.userData?.type) {
+                    this.showTooltip(object, point, 'edge')
+                }
+
+            } else {
+                this.hideTooltip()
+            }
+
+        });
+
         window.addEventListener('resize', () => {
             const { clientWidth, clientHeight } = this.container
             this.cameraManager.windowResizeHelper(clientWidth/clientHeight)
@@ -113,27 +135,27 @@ class App {
 
         if (object.userData?.type === 'edge') {
             this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
-            this.showTooltip(object, point, 'edge');
+            // this.showTooltip(object, point, 'edge');
         } else if (object.userData?.type === 'node') {
 
             const { t, nodeName, line } = this.raycastService.handleIntersection(this.geometryManager, intersections[0], RayCastService.DIRECT_LINE_INTERSECTION_STRATEGY)
 
             eventBus.publish('lineIntersection', { t, nodeName, nodeLine:line })
 
-            this.showTooltip(object, point, 'node')
+            // this.showTooltip(object, point, 'node')
 
         }
     }
 
     handleEdgeIntersection(edgeObject, point) {
         this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
-        this.showTooltip(edgeObject, point, 'edge');
+        // this.showTooltip(edgeObject, point, 'edge');
     }
 
     clearIntersection() {
         this.raycastService.clearIntersection()
         this.renderer.domElement.style.cursor = '';
-        this.hideTooltip()
+        // this.hideTooltip()
         eventBus.publish('clearIntersection', {})
     }
 
