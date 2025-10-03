@@ -161,7 +161,12 @@ class RayCastService {
 
         // update radius of the visual feedback sphere
         worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
-        this.raycastVisualFeedback.scale.set(worldSize, worldSize, worldSize)
+
+        const scene = app.sceneManager.getActiveScene()
+        const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
+        if (raycastVisualFeedback) {
+            raycastVisualFeedback.scale.set(worldSize, worldSize, worldSize)
+        }
 
         this.raycaster.setFromCamera(this.pointer, camera);
     }
@@ -176,12 +181,7 @@ class RayCastService {
         return this.raycaster.intersectObjects(objects)
     }
 
-    setupVisualFeedback() {
-        this.raycastVisualFeedback = this.createVisualFeeback(RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
-        return this.raycastVisualFeedback
-    }
-
-    createVisualFeeback(color) {
+    createVisualFeedback(color) {
 
         const material = new THREE.MeshBasicMaterial({ color, transparent: true, depthTest: false })
         const geometry = new THREE.SphereGeometry(1, 32, 16)
@@ -198,17 +198,26 @@ class RayCastService {
 
     showVisualFeedback(pointOnLine, visualFeedbackColor) {
 
-        this.raycastVisualFeedback.visible = true;
-        this.raycastVisualFeedback.position.copy(pointOnLine);
+        const scene = app.sceneManager.getActiveScene()
+        if (scene){
+            const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
 
-        // this.raycastVisualFeedback.material.color.copy(visualFeedbackColor).offsetHSL(0.7, 0, 0);
-        this.raycastVisualFeedback.material.color.copy(visualFeedbackColor);
+            if (raycastVisualFeedback){
+                raycastVisualFeedback.visible = true;
+                raycastVisualFeedback.position.copy(pointOnLine);
+                raycastVisualFeedback.material.color.copy(visualFeedbackColor);
+            }
+        }
     }
 
     clearVisualFeedback() {
 
-        if (this.raycastVisualFeedback){
-            this.raycastVisualFeedback.visible = false;
+        const scene = app.sceneManager.getActiveScene()
+        if (scene){
+            const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
+            if (raycastVisualFeedback){
+                raycastVisualFeedback.visible = false;
+            }
         }
 
     }
@@ -228,7 +237,6 @@ class RayCastService {
         }
 
         const { pointOnLine, object:line } = intersection
-        // this.showVisualFeedback(pointOnLine, line.material.color)
         this.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
 
         return this.currentIntersection
