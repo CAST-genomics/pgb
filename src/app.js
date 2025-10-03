@@ -62,7 +62,7 @@ class App {
             const existingVisualFeedback = scene.getObjectByName(this.raycastService.getVisualFeedbackName())
             if (!existingVisualFeedback) {
                 console.log(`Add RaycastService Visual Feedback to Scene ${this.sceneManager.getActiveSceneName()}`)
-                scene.add(this.raycastService.setupVisualFeedback())
+                scene.add(this.raycastService.createVisualFeedback(RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS))
             }
 
             if (doPauseAnimation) {
@@ -374,6 +374,8 @@ class App {
         this.sceneManager.lookManager.clearAllMaterialCaches()
 
         this.sceneManager.clearAllScenes()
+
+        this.sceneManager.activeSceneName = null
 
     }
 
