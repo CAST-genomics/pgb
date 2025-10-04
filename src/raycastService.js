@@ -64,6 +64,14 @@ class RayCastService {
         this.isMouseDown = false;
     }
 
+    onPointerMove({ clientX, clientY }) {
+        const { left, top, width, height } = this.container.getBoundingClientRect();
+        this.pointer.x = ((clientX - left) / width) * 2 - 1;
+        this.pointer.y = -((clientY - top) / height) * 2 + 1;
+        
+        this.updateRaycaster(app.cameraManager.camera, this.pointer);
+    }
+
     onMouseMove(event) {
 
         if (!this.isMouseDown) return;
@@ -107,12 +115,6 @@ class RayCastService {
         return () => this.clickCallbacks.delete(callback);
     }
 
-    onPointerMove({ clientX, clientY }) {
-        const { left, top, width, height } = this.container.getBoundingClientRect();
-        this.pointer.x = ((clientX - left) / width) * 2 - 1;
-        this.pointer.y = -((clientY - top) / height) * 2 + 1;
-    }
-
     updateLine2Threshold(camera) {
 
         // pixels
@@ -138,7 +140,12 @@ class RayCastService {
         this.raycaster.params.Line2.threshold = updatedThreshold;
     }
 
-    updateRaycaster(camera) {
+    updateRaycaster(camera, pointer) {
+
+        const scene = app.sceneManager.getActiveScene()
+        if (!scene) {
+            return
+        }
 
         let worldSize
         worldSize = getWorldDistanceFromPixelDistance(camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
@@ -147,22 +154,20 @@ class RayCastService {
         // update radius of the visual feedback sphere
         worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
 
-        const scene = app.sceneManager.getActiveScene()
+        
         const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
         if (raycastVisualFeedback) {
             raycastVisualFeedback.scale.set(worldSize, worldSize, worldSize)
         }
 
-        this.raycaster.setFromCamera(this.pointer, camera);
+        this.raycaster.setFromCamera(pointer, camera);
     }
 
     intersectObject(camera, object) {
-        this.updateRaycaster(camera);
         return this.raycaster.intersectObject(object)
     }
 
     intersectObjects(camera, objects) {
-        this.updateRaycaster(camera)
         return this.raycaster.intersectObjects(objects)
     }
 
