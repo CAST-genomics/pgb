@@ -70,7 +70,7 @@ class ParametricLine extends Line2 {
         const { userData } = line;
         const { nodeName } = userData;
 
-        return { t, nodeName, line }
+        return { t, nodeName, line, point }
 
     }
 

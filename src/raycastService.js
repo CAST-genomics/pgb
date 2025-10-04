@@ -54,18 +54,6 @@ class RayCastService {
         container.addEventListener('contextmenu', this.onContextMenu.bind(this));
     }
 
-    cleanup() {
-        if (this.container) {
-            this.container.removeEventListener('pointermove', this.onPointerMove.bind(this));
-            this.container.removeEventListener('click', this.onClick.bind(this));
-            this.container.removeEventListener('mousedown', this.onMouseDown.bind(this));
-            this.container.removeEventListener('mousemove', this.onMouseMove.bind(this));
-            this.container.removeEventListener('mouseup', this.onMouseUp.bind(this));
-            this.container.removeEventListener('contextmenu', this.onContextMenu.bind(this));
-        }
-        this.clickCallbacks.clear();
-    }
-
     onMouseDown(event) {
         this.mouseDownPosition = { x: event.clientX, y: event.clientY };
         this.hasMouseMoved = false;
@@ -88,33 +76,14 @@ class RayCastService {
         }
     }
 
-    getClickIntersection(event, camera) {
-        const { top, left, width, height } = this.container.getBoundingClientRect()
-        this.pointer.x =  ((event.clientX - left) /  width) * 2 - 1;
-        this.pointer.y = -((event.clientY -  top) / height) * 2 + 1;
-
-        this.updateRaycaster(camera)
-
-        const scene = app.sceneManager.getActiveScene()
-        const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
-        const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
-        const all = [ ...nodeMeshGroup.children, ...edgeMeshGroup.children ];
-
-        const intersects = this.raycaster.intersectObjects(all);
-        return intersects[0] || null;
-    }
-
     onClick(event) {
 
         if (this.hasMouseMoved) {
             return
         }
 
-        // Only fire events if there's an intersection with a node
-        if (this.currentIntersection) {
-            for (const callback of this.clickCallbacks) {
-                callback(this.currentIntersection, event);
-            }
+        for (const callback of this.clickCallbacks) {
+            callback(this.currentIntersection || null, event);
         }
 
         this.isMouseDown = false;
@@ -340,6 +309,19 @@ class RayCastService {
     enable() {
         this.isEnabled = true;
     }
+
+    cleanup() {
+        if (this.container) {
+            this.container.removeEventListener('pointermove', this.onPointerMove.bind(this));
+            this.container.removeEventListener('click', this.onClick.bind(this));
+            this.container.removeEventListener('mousedown', this.onMouseDown.bind(this));
+            this.container.removeEventListener('mousemove', this.onMouseMove.bind(this));
+            this.container.removeEventListener('mouseup', this.onMouseUp.bind(this));
+            this.container.removeEventListener('contextmenu', this.onContextMenu.bind(this));
+        }
+        this.clickCallbacks.clear();
+    }
+
 }
 
 export default RayCastService;

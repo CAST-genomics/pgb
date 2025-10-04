@@ -38,26 +38,21 @@ class App {
 
         this.tooltip = this.createTooltip();
 
-        container.addEventListener("pointerdown", (event) => {
+        // Register click callback to handle tooltip display
+        this.raycastService.registerClickHandler((intersection, event) => {
+            const str = intersection ? 'hit' : 'miss'
+            console.log(`raycast click handler ${str}`)
 
-            const hit = this.raycastService.getClickIntersection(event, this.cameraManager.camera)
-
-            const str = null === hit ? 'miss' : 'hit'
-            console.log(`raycast click handler ${ str }`)
-
-            if (hit) {
-
-                const { object, point } = hit
+            if (intersection) {
+                const { line:object, point } = intersection
                 if ('node' === object.userData?.type) {
                     this.showTooltip(object, point, 'node')
                 } else if ('edge' === object.userData?.type) {
                     this.showTooltip(object, point, 'edge')
                 }
-
             } else {
                 this.hideTooltip()
             }
-
         });
 
         window.addEventListener('resize', () => {
