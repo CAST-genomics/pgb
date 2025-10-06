@@ -39,21 +39,53 @@ class App {
         this.tooltip = this.createTooltip();
 
         // Register click callback to handle tooltip display
-        this.raycastService.registerClickHandler((intersection, event) => {
-            const str = intersection ? 'hit' : 'miss'
-            console.log(`raycast click handler ${str}`)
+        // this.raycastService.registerClickHandler((intersection, event) => {
+        //     const str = intersection ? 'hit' : 'miss'
+        //     console.log(`raycast click handler ${str}`)
+        //
+        //     if (intersection) {
+        //         const { line:object, point } = intersection
+        //         if ('node' === object.userData?.type) {
+        //             this.showTooltip(object, point, 'node')
+        //         } else if ('edge' === object.userData?.type) {
+        //             this.showTooltip(object, point, 'edge')
+        //         }
+        //     } else {
+        //         this.hideTooltip()
+        //     }
+        // })
 
-            if (intersection) {
-                const { line:object, point } = intersection
-                if ('node' === object.userData?.type) {
-                    this.showTooltip(object, point, 'node')
-                } else if ('edge' === object.userData?.type) {
-                    this.showTooltip(object, point, 'edge')
-                }
-            } else {
-                this.hideTooltip()
+        // Register mouse over callback (stationary hover)
+        this.raycastService.registerMouseOverHandler((intersection, event) => {
+            if (!intersection) {
+                this.clearIntersection()
+                return
             }
-        });
+
+            const { object, point } = intersection
+
+            if ('node' === object.userData?.type) {
+                const { t, nodeName } = intersection
+                // Publish the vital lineIntersection event using processed intersection
+                eventBus.publish('lineIntersection', { t, nodeName, nodeLine: object })
+                this.showTooltip(object, point, 'node')
+            } else if ('edge' === object.userData?.type) {
+                this.showTooltip(object, point, 'edge')
+            }
+        })
+
+        // Register continuous move tracking to publish lineIntersection while over an object
+        this.raycastService.registerMoveHandler((intersection, event) => {
+            if (!intersection) {
+                this.clearIntersection()
+                return
+            }
+            const { object, point } = intersection
+            if ('node' === object.userData?.type) {
+                const { t, nodeName } = intersection
+                eventBus.publish('lineIntersection', { t, nodeName, nodeLine: object })
+            }
+        })
 
         window.addEventListener('resize', () => {
             const { clientWidth, clientHeight } = this.container
@@ -93,16 +125,7 @@ class App {
 
         const scene = this.sceneManager.getActiveScene()
 
-        if (true === this.raycastService.isEnabled) {
-
-            const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
-            const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
-
-            const all = [ ...nodeMeshGroup.children, ...edgeMeshGroup.children ];
-            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
-
-            this.handleIntersection(intersections)
-        }
+        // Raycasting is now event-driven (pointer events) and no longer runs every frame
 
         this.mapControl.update()
 
@@ -114,33 +137,7 @@ class App {
         this.renderer.render(scene, this.cameraManager.camera)
     }
 
-    handleIntersection(intersections) {
-
-        if (undefined === intersections || 0 === intersections.length) {
-            this.clearIntersection()
-            return
-        }
-
-        // Sort by distance to get the closest intersection
-        intersections.sort((a, b) => a.distance - b.distance);
-
-        const { point, object } = intersections[0];
-
-        // this.renderer.domElement.style.cursor = 'none';
-
-        if (object.userData?.type === 'edge') {
-            this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
-            // this.showTooltip(object, point, 'edge');
-        } else if (object.userData?.type === 'node') {
-
-            const { t, nodeName, line } = this.raycastService.handleIntersection(this.geometryManager, intersections[0], RayCastService.DIRECT_LINE_INTERSECTION_STRATEGY)
-
-            eventBus.publish('lineIntersection', { t, nodeName, nodeLine:line })
-
-            // this.showTooltip(object, point, 'node')
-
-        }
-    }
+    // handleIntersection no longer needed with event-driven hover
 
     handleEdgeIntersection(edgeObject, point) {
         this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
@@ -150,7 +147,7 @@ class App {
     clearIntersection() {
         this.raycastService.clearIntersection()
         this.renderer.domElement.style.cursor = '';
-        // this.hideTooltip()
+        this.hideTooltip()
         eventBus.publish('clearIntersection', {})
     }
 
