@@ -30,7 +30,7 @@ class RayCastService {
         this.setupEventListeners(container);
 
         this.clickCallbacks = new Set();
-        this.moveCallbacks = new Set();
+        this.mouseMoveCallbacks = new Set();
         this.mouseOverCallbacks = new Set();
 
         this.currentIntersection = undefined;
@@ -101,11 +101,11 @@ class RayCastService {
         const immediateIntersection = this.#raycastClosest();
         if (immediateIntersection) {
             const processedImmediate = this.#processIntersection(immediateIntersection);
-            for (const callback of this.moveCallbacks) {
+            for (const callback of this.mouseMoveCallbacks) {
                 callback(processedImmediate, { type: 'pointermove' });
             }
         } else {
-            for (const callback of this.moveCallbacks) {
+            for (const callback of this.mouseMoveCallbacks) {
                 callback(null, { type: 'pointermove' });
             }
         }
@@ -177,9 +177,9 @@ class RayCastService {
         return () => this.clickCallbacks.delete(callback);
     }
 
-    registerMoveHandler(callback) {
-        this.moveCallbacks.add(callback);
-        return () => this.moveCallbacks.delete(callback);
+    registerMouseMoveHandler(callback) {
+        this.mouseMoveCallbacks.add(callback);
+        return () => this.mouseMoveCallbacks.delete(callback);
     }
 
     registerMouseOverHandler(callback) {
@@ -189,15 +189,15 @@ class RayCastService {
 
     updateLine2Threshold(camera) {
 
-        // pixels
+        // Screen space
         const screenPixelThreshold = 5
 
-        // points in NDC space
+        // NDC space
         const { width } = this.container.getBoundingClientRect()
         const v1 = new THREE.Vector3(0, 0, 0.5);
         const v2 = new THREE.Vector3(screenPixelThreshold / (width * 2), 0, 0.5);
 
-        // NDC -> World
+        // NDC -> World space
         v1.unproject(camera);
         v2.unproject(camera);
 
@@ -219,23 +219,14 @@ class RayCastService {
             return
         }
 
-        // update radius of the visual feedback sphere
-        const worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
-
         const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
         if (raycastVisualFeedback) {
+            // update radius of the visual feedback sphere
+            const worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
             raycastVisualFeedback.scale.set(worldSize, worldSize, worldSize)
         }
 
         this.raycaster.setFromCamera(pointer, camera);
-    }
-
-    intersectObject(camera, object) {
-        return this.raycaster.intersectObject(object)
-    }
-
-    intersectObjects(camera, objects) {
-        return this.raycaster.intersectObjects(objects)
     }
 
     #getRaycastTargets(){
@@ -252,10 +243,17 @@ class RayCastService {
         this.updateRaycaster(app.cameraManager.camera, this.pointer);
 
         const targets = this.#getRaycastTargets();
-        if (targets.length === 0) return null;
-        const intersections = this.intersectObjects(app.cameraManager.camera, targets);
-        if (!intersections || intersections.length === 0) return null;
+        if (0 === targets.length) {
+            return null;
+        }
+
+        const intersections = this.raycaster.intersectObjects(targets);
+        if (!intersections || 0 === intersections.length) {
+            return null;
+        }
+
         intersections.sort((a, b) => a.distance - b.distance);
+
         return intersections[0];
     }
 
@@ -451,7 +449,7 @@ class RayCastService {
             this.container.removeEventListener('contextmenu', this.onContextMenu.bind(this));
         }
         this.clickCallbacks.clear();
-        this.moveCallbacks.clear();
+        this.mouseMoveCallbacks.clear();
         this.mouseOverCallbacks.clear();
     }
 

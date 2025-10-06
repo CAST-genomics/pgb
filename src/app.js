@@ -76,15 +76,15 @@ class App {
         })
 
         // Register continuous move tracking to publish lineIntersection while over an object
-        this.raycastService.registerMoveHandler((intersection, event) => {
+        this.raycastService.registerMouseMoveHandler((intersection, event) => {
             if (!intersection) {
                 this.clearIntersection()
                 return
             }
-            const { object, point } = intersection
+            const {object, point} = intersection
             if ('node' === object.userData?.type) {
-                const { t, nodeName } = intersection
-                eventBus.publish('lineIntersection', { t, nodeName, nodeLine: object })
+                const {t, nodeName} = intersection
+                eventBus.publish('lineIntersection', {t, nodeName, nodeLine: object})
             }
         })
 
