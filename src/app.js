@@ -128,12 +128,9 @@ class App {
 
         this.mapControl.update()
 
-        const deltaTime = this.clock.getDelta()
-
         const look = this.sceneManager.getActiveLook()
-
         const scene = this.sceneManager.getActiveScene()
-        look.updateBehavior(deltaTime, scene)
+        look.updateBehavior(this.clock.getDelta(), scene)
 
         this.renderer.render(scene, this.cameraManager.camera)
     }
@@ -172,7 +169,6 @@ class App {
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
-        // Update the population widget with the new data
         this.widgetService.updatePopulationWidget(json)
 
         this.widgetService.reset()
@@ -271,11 +267,10 @@ class App {
 
     createTooltip() {
 
-        const tooltip = document.createElement('div');
+        const tooltip = document.createElement('div')
+        this.container.appendChild(tooltip)
+
         tooltip.className = 'graph-tooltip';
-
-        this.container.appendChild(tooltip);
-
         this.enableTooltip()
 
         return tooltip;
@@ -374,16 +369,7 @@ class App {
 
         materialService.clear()
 
-        // if (true === this.sceneManager.isActive()) {
-        //     const look = this.sceneManager.getActiveLook()
-        //     look.materialCache.clear()
-        // }
-
-        this.sceneManager.lookManager.clearAllMaterialCaches()
-
-        this.sceneManager.clearAllScenes()
-
-        this.sceneManager.activeSceneName = null
+        this.sceneManager.clearCurrentData()
 
     }
 

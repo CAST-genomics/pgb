@@ -157,13 +157,16 @@ class SceneManager {
         this.disposeSceneObjects(scene)
     }
 
-    /**
-     * Clear all objects from all scenes
-     */
     clearAllScenes() {
         for (const scene of this.scenes.values()) {
             this.disposeSceneObjects(scene)
         }
+    }
+
+    clearCurrentData(){
+        this.lookManager.clearAllMaterialCaches()
+        this.clearAllScenes()
+        this.activeSceneName = null
     }
 
     /**

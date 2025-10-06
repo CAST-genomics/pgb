@@ -59,12 +59,13 @@ class RayCastService {
         container.addEventListener('contextmenu', this.onContextMenu.bind(this));
     }
 
-    onPointerDown(event) {
-        this.mouseDownPosition = { x: event.clientX, y: event.clientY };
+    onPointerDown({ clientX, clientY }) {
+        this.mouseDownPosition = { x: clientX, y: clientY };
         this.hasMouseMoved = false;
         this.isMouseDown = true;
     }
 
+    // Behaves as a click handler
     onPointerUp(event) {
         // treat as click if pointer did not move beyond threshold
         const deltaX = Math.abs(event.clientX - this.mouseDownPosition.x);
@@ -286,7 +287,7 @@ class RayCastService {
         }
     }
 
-    clearVisualFeedback() {
+    hideVisualFeedback() {
 
         const scene = app.sceneManager.getActiveScene()
         if (scene){
@@ -296,26 +297,6 @@ class RayCastService {
             }
         }
 
-    }
-
-    handleIntersection(geometryManager, intersection, intersectionStrategy) {
-
-        if (RayCastService.SPLINE_INTERPOLATION_INTERSECTION_STRATEGY === intersectionStrategy){
-            this.currentIntersection = this.#doSplineInterpolationIntersection(geometryManager, intersection)
-        } else if (RayCastService.DIRECT_LINE_INTERSECTION_STRATEGY === intersectionStrategy) {
-
-            // class ParametricLine implements methods to interpret a Line2 object
-            // as a one-dimensional parametric line. This establishes a mapping: xyz <--> t
-            // where t: 0-1
-            this.currentIntersection = ParametricLine.getParameter(intersection)
-        } else {
-            throw new Error(`handleIntersection fail`);
-        }
-
-        const { pointOnLine } = intersection
-        this.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
-
-        return this.currentIntersection
     }
 
     #processIntersection(intersection){
@@ -373,7 +354,7 @@ class RayCastService {
 
     clearIntersection() {
         this.currentIntersection = undefined;
-        this.clearVisualFeedback();
+        this.hideVisualFeedback();
     }
 
     findClosestT(spline, targetPoint, segmentIndex, totalSegments, tolerance = 0.0001) {
