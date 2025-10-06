@@ -3,11 +3,12 @@ import CameraManager from './cameraManager.js'
 import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
-import {loadPath} from './utils/utils.js'
+import {getWorldDistanceFromPixelDistance, loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
+import Look from "./look.js"
 
 let xxPre = undefined
 let yyPre = undefined
@@ -123,25 +124,18 @@ class App {
 
     animate() {
 
-        const scene = this.sceneManager.getActiveScene()
-
-        // Raycasting is now event-driven (pointer events) and no longer runs every frame
+        lineMaterialResolutionService.update(this.cameraManager.camera, this.container)
 
         this.mapControl.update()
 
         const deltaTime = this.clock.getDelta()
 
         const look = this.sceneManager.getActiveLook()
+
+        const scene = this.sceneManager.getActiveScene()
         look.updateBehavior(deltaTime, scene)
 
         this.renderer.render(scene, this.cameraManager.camera)
-    }
-
-    // handleIntersection no longer needed with event-driven hover
-
-    handleEdgeIntersection(edgeObject, point) {
-        this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
-        // this.showTooltip(edgeObject, point, 'edge');
     }
 
     clearIntersection() {

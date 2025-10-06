@@ -1,10 +1,8 @@
 import * as THREE from 'three';
 import ParametricLine from "./parametricLine.js"
 import {app} from "./main.js"
-import Look from "./look.js"
-import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
-import {colorComplements, getAppleCrayonColorByName, getComplementaryThreeJSColor} from "./utils/color/color.js"
+import {getComplementaryThreeJSColor} from "./utils/color/color.js"
 
 class RayCastService {
 
@@ -221,13 +219,8 @@ class RayCastService {
             return
         }
 
-        let worldSize
-        worldSize = getWorldDistanceFromPixelDistance(camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
-        lineMaterialResolutionService.updateAllLineWidths(worldSize)
-
         // update radius of the visual feedback sphere
-        worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
-
+        const worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
 
         const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
         if (raycastVisualFeedback) {
