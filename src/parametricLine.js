@@ -49,28 +49,30 @@ class ParametricLine extends Line2 {
 
     static getParameter(intersection){
 
-        const { faceIndex, point, object:line } = intersection
+        const { faceIndex, point, object } = intersection
 
         const P = point.clone();
-        line.worldToLocal(P);
+        object.worldToLocal(P);
 
-        const A = new THREE.Vector3().fromBufferAttribute(line.geometry.attributes.instanceStart, faceIndex);
-        const B = new THREE.Vector3().fromBufferAttribute(line.geometry.attributes.instanceEnd,   faceIndex);
+        const A = new THREE.Vector3().fromBufferAttribute(object.geometry.attributes.instanceStart, faceIndex);
+        const B = new THREE.Vector3().fromBufferAttribute(object.geometry.attributes.instanceEnd,   faceIndex);
 
         const AB = B.clone().sub(A);
 
         const u = AB.lengthSq() > 0 ? THREE.MathUtils.clamp( AB.dot(P.clone().sub(A)) / AB.lengthSq(), 0, 1 ) : 0;
 
-        const { cum, segLen, total } = line.userData.arcLengthTable
+        const { cum, segLen, total } = object.userData.arcLengthTable
 
         const s = cum[ faceIndex ] + u * segLen[ faceIndex ];
 
         const t = total > 0 ? s / total : 0;
 
-        const { userData } = line;
+        const { userData } = object;
         const { nodeName } = userData;
 
-        return { t, nodeName, line }
+        const result = { t, nodeName, ...intersection }
+
+        return result
 
     }
 

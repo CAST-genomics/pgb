@@ -1,10 +1,8 @@
 import * as THREE from 'three';
 import ParametricLine from "./parametricLine.js"
 import {app} from "./main.js"
-import Look from "./look.js"
-import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
-import {colorComplements, getAppleCrayonColorByName, getComplementaryThreeJSColor} from "./utils/color/color.js"
+import {getComplementaryThreeJSColor} from "./utils/color/color.js"
 
 class RayCastService {
 
@@ -13,6 +11,7 @@ class RayCastService {
     static VISUAL_FEEDBACK_NAME = 'VisualFeedback'
     static VISUAL_FEEDBACK_PIXELSIZE = 6
     static MOUSE_MOVEMENT_THRESHOLD = 5;
+    static HOVER_STATIONARY_DELAY_MS = 175;
 
     static DIRECT_LINE_INTERSECTION_STRATEGY = 'directLineIntersectionStrategy'
     static SPLINE_INTERPOLATION_INTERSECTION_STRATEGY = 'splineInterpolationIntersectionStrategy'
@@ -31,12 +30,18 @@ class RayCastService {
         this.setupEventListeners(container);
 
         this.clickCallbacks = new Set();
+        this.mouseMoveCallbacks = new Set();
+        this.mouseOverCallbacks = new Set();
 
         this.currentIntersection = undefined;
 
         this.mouseDownPosition = { x: 0, y: 0 };
         this.hasMouseMoved = false;
         this.isMouseDown = false;
+
+        this.hoverTimer = null;
+        this.lastPointerPosition = { x: 0, y: 0 };
+        this.lastHoverTargetId = null;
     }
 
     configureRaycaster(raycaster, threshold) {
@@ -47,62 +52,113 @@ class RayCastService {
     setupEventListeners(container) {
         this.container = container;
         container.addEventListener('pointermove', this.onPointerMove.bind(this));
-        container.addEventListener('click', this.onClick.bind(this));
-        container.addEventListener('mousedown', this.onMouseDown.bind(this));
-        container.addEventListener('mousemove', this.onMouseMove.bind(this));
-        container.addEventListener('mouseup', this.onMouseUp.bind(this));
+        container.addEventListener('pointerdown', this.onPointerDown.bind(this));
+        container.addEventListener('pointerup', this.onPointerUp.bind(this));
+        container.addEventListener('pointerover', this.onPointerOver.bind(this));
+        container.addEventListener('pointerout', this.onPointerOut.bind(this));
         container.addEventListener('contextmenu', this.onContextMenu.bind(this));
     }
 
-    cleanup() {
-        if (this.container) {
-            this.container.removeEventListener('pointermove', this.onPointerMove.bind(this));
-            this.container.removeEventListener('click', this.onClick.bind(this));
-            this.container.removeEventListener('mousedown', this.onMouseDown.bind(this));
-            this.container.removeEventListener('mousemove', this.onMouseMove.bind(this));
-            this.container.removeEventListener('mouseup', this.onMouseUp.bind(this));
-            this.container.removeEventListener('contextmenu', this.onContextMenu.bind(this));
-        }
-        this.clickCallbacks.clear();
-    }
-
-    onMouseDown(event) {
-        this.mouseDownPosition = { x: event.clientX, y: event.clientY };
+    onPointerDown({ clientX, clientY }) {
+        this.mouseDownPosition = { x: clientX, y: clientY };
         this.hasMouseMoved = false;
         this.isMouseDown = true;
     }
 
-    onMouseUp(event) {
-        this.isMouseDown = false;
-    }
-
-    onMouseMove(event) {
-
-        if (!this.isMouseDown) return;
-
+    // Behaves as a click handler
+    onPointerUp(event) {
+        // treat as click if pointer did not move beyond threshold
         const deltaX = Math.abs(event.clientX - this.mouseDownPosition.x);
         const deltaY = Math.abs(event.clientY - this.mouseDownPosition.y);
+        const isStationary = !(deltaX > RayCastService.MOUSE_MOVEMENT_THRESHOLD || deltaY > RayCastService.MOUSE_MOVEMENT_THRESHOLD);
 
-        if (deltaX > RayCastService.MOUSE_MOVEMENT_THRESHOLD || deltaY > RayCastService.MOUSE_MOVEMENT_THRESHOLD) {
-            this.hasMouseMoved = true;
-        }
-    }
-
-    onClick(event) {
-
-        if (this.hasMouseMoved) {
-            return
-        }
-
-        // Only fire events if there's an intersection with a node
-        if (this.currentIntersection) {
-            for (const callback of this.clickCallbacks) {
-                callback(this.currentIntersection, event);
+        if (isStationary) {
+            const intersection = this.#raycastClosest();
+            if (intersection) {
+                const processed = this.#processIntersection(intersection);
+                for (const callback of this.clickCallbacks) {
+                    callback(processed, event);
+                }
+            } else {
+                for (const callback of this.clickCallbacks) {
+                    callback(null, event);
+                }
             }
         }
 
         this.isMouseDown = false;
-        this.hasMouseMoved = false;
+    }
+
+    onPointerMove({ clientX, clientY }) {
+        const { left, top, width, height } = this.container.getBoundingClientRect();
+        this.pointer.x = ((clientX - left) / width) * 2 - 1;
+        this.pointer.y = -((clientY - top) / height) * 2 + 1;
+
+        this.updateRaycaster(app.cameraManager.camera, this.pointer);
+
+        this.lastPointerPosition = { x: clientX, y: clientY };
+
+        // immediate tracking: publish processed intersection continuously while over an object
+        const immediateIntersection = this.#raycastClosest();
+        if (immediateIntersection) {
+            const processedImmediate = this.#processIntersection(immediateIntersection);
+            for (const callback of this.mouseMoveCallbacks) {
+                callback(processedImmediate, { type: 'pointermove' });
+            }
+        } else {
+            for (const callback of this.mouseMoveCallbacks) {
+                callback(null, { type: 'pointermove' });
+            }
+        }
+
+        // debounce stationary hover detection
+        if (this.hoverTimer !== null) {
+            clearTimeout(this.hoverTimer);
+        }
+        this.hoverTimer = setTimeout(() => {
+            this.hoverTimer = null;
+            const intersection = this.#raycastClosest();
+
+            if (intersection) {
+                const processed = this.#processIntersection(intersection);
+                const targetId = processed.line ? processed.line.id : processed.object?.id;
+                if (targetId !== this.lastHoverTargetId) {
+                    this.lastHoverTargetId = targetId;
+                    for (const callback of this.mouseOverCallbacks) {
+                        callback(processed, { type: 'pointerover' });
+                    }
+                } else {
+                    // still over same target, fire again for idempotent handlers
+                    for (const callback of this.mouseOverCallbacks) {
+                        callback(processed, { type: 'pointerover' });
+                    }
+                }
+            } else {
+                if (this.lastHoverTargetId !== null) {
+                    this.lastHoverTargetId = null;
+                    for (const callback of this.mouseOverCallbacks) {
+                        callback(null, { type: 'pointerout' });
+                    }
+                }
+            }
+        }, RayCastService.HOVER_STATIONARY_DELAY_MS);
+    }
+
+    onPointerOver(event) {
+        // no-op; hover handled by debounced pointermove
+    }
+
+    onPointerOut(event) {
+        if (this.hoverTimer !== null) {
+            clearTimeout(this.hoverTimer);
+            this.hoverTimer = null;
+        }
+        if (this.lastHoverTargetId !== null) {
+            this.lastHoverTargetId = null;
+            for (const callback of this.mouseOverCallbacks) {
+                callback(null, { type: 'pointerout' });
+            }
+        }
     }
 
     onContextMenu(event) {
@@ -122,23 +178,27 @@ class RayCastService {
         return () => this.clickCallbacks.delete(callback);
     }
 
-    onPointerMove({ clientX, clientY }) {
-        const { left, top, width, height } = this.container.getBoundingClientRect();
-        this.pointer.x = ((clientX - left) / width) * 2 - 1;
-        this.pointer.y = -((clientY - top) / height) * 2 + 1;
+    registerMouseMoveHandler(callback) {
+        this.mouseMoveCallbacks.add(callback);
+        return () => this.mouseMoveCallbacks.delete(callback);
+    }
+
+    registerMouseOverHandler(callback) {
+        this.mouseOverCallbacks.add(callback);
+        return () => this.mouseOverCallbacks.delete(callback);
     }
 
     updateLine2Threshold(camera) {
 
-        // pixels
+        // Screen space
         const screenPixelThreshold = 5
 
-        // points in NDC space
+        // NDC space
         const { width } = this.container.getBoundingClientRect()
         const v1 = new THREE.Vector3(0, 0, 0.5);
         const v2 = new THREE.Vector3(screenPixelThreshold / (width * 2), 0, 0.5);
 
-        // NDC -> World
+        // NDC -> World space
         v1.unproject(camera);
         v2.unproject(camera);
 
@@ -153,32 +213,49 @@ class RayCastService {
         this.raycaster.params.Line2.threshold = updatedThreshold;
     }
 
-    updateRaycaster(camera) {
-
-        let worldSize
-        worldSize = getWorldDistanceFromPixelDistance(camera, Look.NODE_LINE_WIDTH_PIXELS, this.container)
-        lineMaterialResolutionService.updateAllLineWidths(worldSize)
-
-        // update radius of the visual feedback sphere
-        worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
+    updateRaycaster(camera, pointer) {
 
         const scene = app.sceneManager.getActiveScene()
+        if (!scene) {
+            return
+        }
+
         const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
         if (raycastVisualFeedback) {
+            // update radius of the visual feedback sphere
+            const worldSize = getWorldDistanceFromPixelDistance(camera, RayCastService.VISUAL_FEEDBACK_PIXELSIZE, this.container)
             raycastVisualFeedback.scale.set(worldSize, worldSize, worldSize)
         }
 
-        this.raycaster.setFromCamera(this.pointer, camera);
+        this.raycaster.setFromCamera(pointer, camera);
     }
 
-    intersectObject(camera, object) {
-        this.updateRaycaster(camera);
-        return this.raycaster.intersectObject(object)
+    #getRaycastTargets(){
+        const scene = app.sceneManager.getActiveScene()
+        if (!scene) return [];
+        const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
+        const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
+        if (!nodeMeshGroup || !edgeMeshGroup) return [];
+        return [ ...nodeMeshGroup.children, ...edgeMeshGroup.children ];
     }
 
-    intersectObjects(camera, objects) {
-        this.updateRaycaster(camera)
-        return this.raycaster.intersectObjects(objects)
+    #raycastClosest(){
+        // Always ensure raycaster is up-to-date before raycasting
+        this.updateRaycaster(app.cameraManager.camera, this.pointer);
+
+        const targets = this.#getRaycastTargets();
+        if (0 === targets.length) {
+            return null;
+        }
+
+        const intersections = this.raycaster.intersectObjects(targets);
+        if (!intersections || 0 === intersections.length) {
+            return null;
+        }
+
+        intersections.sort((a, b) => a.distance - b.distance);
+
+        return intersections[0];
     }
 
     createVisualFeedback(color) {
@@ -210,7 +287,7 @@ class RayCastService {
         }
     }
 
-    clearVisualFeedback() {
+    hideVisualFeedback() {
 
         const scene = app.sceneManager.getActiveScene()
         if (scene){
@@ -222,24 +299,42 @@ class RayCastService {
 
     }
 
-    handleIntersection(geometryManager, intersection, intersectionStrategy) {
+    #processIntersection(intersection){
+        const hitObject = intersection.object;
+        const type = hitObject?.userData?.type;
 
-        if (RayCastService.SPLINE_INTERPOLATION_INTERSECTION_STRATEGY === intersectionStrategy){
-            this.currentIntersection = this.#doSplineInterpolationIntersection(geometryManager, intersection)
-        } else if (RayCastService.DIRECT_LINE_INTERSECTION_STRATEGY === intersectionStrategy) {
+        // Only node lines support parametric mapping; edges use basic hit info
+        if (type === 'node') {
+            try {
+                const processed = ParametricLine.getParameter(intersection);
+                const line = hitObject;
+                const t = processed.t;
+                const pointOnLine = typeof line.getPoint === 'function' ? line.getPoint(t, 'world') : intersection.point;
 
-            // class ParametricLine implements methods to interpret a Line2 object
-            // as a one-dimensional parametric line. This establishes a mapping: xyz <--> t
-            // where t: 0-1
-            this.currentIntersection = ParametricLine.getParameter(intersection)
-        } else {
-            throw new Error(`handleIntersection fail`);
+                this.currentIntersection = { ...processed, line, point: intersection.point, pointOnLine };
+                this.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
+                return this.currentIntersection;
+            } catch (error) {
+                console.warn('Failed to process node intersection:', error);
+                return {
+                    object: hitObject,
+                    point: intersection.point,
+                    pointOnLine: intersection.point,
+                    t: 0,
+                    nodeName: hitObject?.userData?.nodeName || 'unknown'
+                };
+            }
         }
 
-        const { pointOnLine, object:line } = intersection
-        this.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
-
-        return this.currentIntersection
+        // Edge or unknown: do not attempt parametric processing
+        const basic = {
+            object: hitObject,
+            point: intersection.point,
+            pointOnLine: intersection.point
+        };
+        this.currentIntersection = basic;
+        this.showVisualFeedback(basic.pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
+        return basic;
     }
 
     #doSplineInterpolationIntersection(geometryManager, intersection){
@@ -259,7 +354,7 @@ class RayCastService {
 
     clearIntersection() {
         this.currentIntersection = undefined;
-        this.clearVisualFeedback();
+        this.hideVisualFeedback();
     }
 
     findClosestT(spline, targetPoint, segmentIndex, totalSegments, tolerance = 0.0001) {
@@ -324,6 +419,21 @@ class RayCastService {
     enable() {
         this.isEnabled = true;
     }
+
+    cleanup() {
+        if (this.container) {
+            this.container.removeEventListener('pointermove', this.onPointerMove.bind(this));
+            this.container.removeEventListener('pointerdown', this.onPointerDown.bind(this));
+            this.container.removeEventListener('pointerup', this.onPointerUp.bind(this));
+            this.container.removeEventListener('pointerover', this.onPointerOver.bind(this));
+            this.container.removeEventListener('pointerout', this.onPointerOut.bind(this));
+            this.container.removeEventListener('contextmenu', this.onContextMenu.bind(this));
+        }
+        this.clickCallbacks.clear();
+        this.mouseMoveCallbacks.clear();
+        this.mouseOverCallbacks.clear();
+    }
+
 }
 
 export default RayCastService;

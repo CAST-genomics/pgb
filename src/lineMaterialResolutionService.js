@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
+import Look from "./look.js"
 
 /**
  * Service to manage LineMaterial resolution updates for worldUnits: false
@@ -96,17 +98,15 @@ class LineMaterialResolutionService {
         return this.size.clone();
     }
 
-    /**
-     * Update line width for all registered LineMaterials
-     * @param {number} worldSize - The new line width in world units
-     */
-    updateAllLineWidths(worldSize) {
-        this.materials.forEach(material => {
+    update(camera, container){
+
+        const worldSize = getWorldDistanceFromPixelDistance(camera, Look.NODE_LINE_WIDTH_PIXELS, container)
+        for (const material of this.materials){
             if (material && typeof material.linewidth !== 'undefined') {
                 material.linewidth = worldSize;
                 material.needsUpdate = true;
             }
-        });
+        }
     }
 
     clear(){

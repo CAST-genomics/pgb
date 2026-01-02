@@ -3,11 +3,12 @@ import CameraManager from './cameraManager.js'
 import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
-import {loadPath} from './utils/utils.js'
+import {getWorldDistanceFromPixelDistance, loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
+import Look from "./look.js"
 
 let xxPre = undefined
 let yyPre = undefined
@@ -37,6 +38,55 @@ class App {
         this.isTooltipEnabled = undefined
 
         this.tooltip = this.createTooltip();
+
+        // Register click callback to handle tooltip display
+        // this.raycastService.registerClickHandler((intersection, event) => {
+        //     const str = intersection ? 'hit' : 'miss'
+        //     console.log(`raycast click handler ${str}`)
+        //
+        //     if (intersection) {
+        //         const { line:object, point } = intersection
+        //         if ('node' === object.userData?.type) {
+        //             this.showTooltip(object, point, 'node')
+        //         } else if ('edge' === object.userData?.type) {
+        //             this.showTooltip(object, point, 'edge')
+        //         }
+        //     } else {
+        //         this.hideTooltip()
+        //     }
+        // })
+
+        // Register mouse over callback (stationary hover)
+        this.raycastService.registerMouseOverHandler((intersection, event) => {
+            if (!intersection) {
+                this.clearIntersection()
+                return
+            }
+
+            const { object, point } = intersection
+
+            if ('node' === object.userData?.type) {
+                const { t, nodeName } = intersection
+                // Publish the vital lineIntersection event using processed intersection
+                eventBus.publish('lineIntersection', { t, nodeName, nodeLine: object })
+                this.showTooltip(object, point, 'node')
+            } else if ('edge' === object.userData?.type) {
+                this.showTooltip(object, point, 'edge')
+            }
+        })
+
+        // Register continuous move tracking to publish lineIntersection while over an object
+        this.raycastService.registerMouseMoveHandler((intersection, event) => {
+            if (!intersection) {
+                this.clearIntersection()
+                return
+            }
+            const {object, point} = intersection
+            if ('node' === object.userData?.type) {
+                const {t, nodeName} = intersection
+                eventBus.publish('lineIntersection', {t, nodeName, nodeLine: object})
+            }
+        })
 
         window.addEventListener('resize', () => {
             const { clientWidth, clientHeight } = this.container
@@ -74,60 +124,15 @@ class App {
 
     animate() {
 
-        const scene = this.sceneManager.getActiveScene()
-
-        if (true === this.raycastService.isEnabled) {
-
-            const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
-            const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
-
-            const all = [ ...nodeMeshGroup.children, ...edgeMeshGroup.children ];
-            const intersections = this.raycastService.intersectObjects(this.cameraManager.camera, all)
-
-            this.handleIntersection(intersections)
-        }
+        lineMaterialResolutionService.update(this.cameraManager.camera, this.container)
 
         this.mapControl.update()
 
-        const deltaTime = this.clock.getDelta()
-
         const look = this.sceneManager.getActiveLook()
-        look.updateBehavior(deltaTime, scene)
+        const scene = this.sceneManager.getActiveScene()
+        look.updateBehavior(this.clock.getDelta(), scene)
 
         this.renderer.render(scene, this.cameraManager.camera)
-    }
-
-    handleIntersection(intersections) {
-
-        if (undefined === intersections || 0 === intersections.length) {
-            this.clearIntersection()
-            return
-        }
-
-        // Sort by distance to get the closest intersection
-        intersections.sort((a, b) => a.distance - b.distance);
-
-        const { point, object } = intersections[0];
-
-        // this.renderer.domElement.style.cursor = 'none';
-
-        if (object.userData?.type === 'edge') {
-            this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
-            this.showTooltip(object, point, 'edge');
-        } else if (object.userData?.type === 'node') {
-
-            const { t, nodeName, line } = this.raycastService.handleIntersection(this.geometryManager, intersections[0], RayCastService.DIRECT_LINE_INTERSECTION_STRATEGY)
-
-            eventBus.publish('lineIntersection', { t, nodeName, nodeLine:line })
-
-            this.showTooltip(object, point, 'node')
-
-        }
-    }
-
-    handleEdgeIntersection(edgeObject, point) {
-        this.raycastService.showVisualFeedback(point, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
-        this.showTooltip(edgeObject, point, 'edge');
     }
 
     clearIntersection() {
@@ -164,7 +169,6 @@ class App {
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
-        // Update the population widget with the new data
         this.widgetService.updatePopulationWidget(json)
 
         this.widgetService.reset()
@@ -263,11 +267,10 @@ class App {
 
     createTooltip() {
 
-        const tooltip = document.createElement('div');
+        const tooltip = document.createElement('div')
+        this.container.appendChild(tooltip)
+
         tooltip.className = 'graph-tooltip';
-
-        this.container.appendChild(tooltip);
-
         this.enableTooltip()
 
         return tooltip;
@@ -366,16 +369,7 @@ class App {
 
         materialService.clear()
 
-        // if (true === this.sceneManager.isActive()) {
-        //     const look = this.sceneManager.getActiveLook()
-        //     look.materialCache.clear()
-        // }
-
-        this.sceneManager.lookManager.clearAllMaterialCaches()
-
-        this.sceneManager.clearAllScenes()
-
-        this.sceneManager.activeSceneName = null
+        this.sceneManager.clearCurrentData()
 
     }
 
