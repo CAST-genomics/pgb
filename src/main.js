@@ -17,6 +17,7 @@ import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
+import {loadConfig} from "./utils/configService.js"
 import './styles/app.scss'
 
 let contextMenuService
@@ -81,21 +82,41 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 
+    // Load application configuration
+    const config = await loadConfig()
+
+    // Check for URL parameter first (highest priority)
     const urlParameter = locusInput.getUrlParameter('locus');
     let locus = null;
+    
     if (urlParameter) {
+        // URL parameter takes precedence over config
         locusInput.inputElement.value = urlParameter
         locus = locusInput.processLocusInput(locusInput.inputElement.value);
-    } else {
-        locusInput.inputElement.value = 'chr1:25240000-25460000';
+        if (locus) {
+            await locusInput.ingestLocus(locus.chr, locus.startBP, locus.endBP);
+        } else {
+            locusInput.showError(`Invalid locus url parameter: ${urlParameter}`);
+        }
+    } else if (config.preload.enabled) {
+        // Use config preload if enabled and no URL parameter
+        locusInput.inputElement.value = config.preload.locus;
         locus = locusInput.processLocusInput(locusInput.inputElement.value);
+        if (locus) {
+            await locusInput.ingestLocus(locus.chr, locus.startBP, locus.endBP);
+        } else {
+            // If config locus is invalid, try treating it as a URL or local file
+            if (locusInput.isUrl(config.preload.locus)) {
+                await locusInput.ingestUrl(config.preload.locus);
+            } else if (locusInput.isLocalFile(config.preload.locus)) {
+                const normalizedPath = locusInput.normalizeLocalFilePath(config.preload.locus);
+                await locusInput.ingestUrl(normalizedPath);
+            } else {
+                locusInput.showError(`Invalid preload locus in configuration: ${config.preload.locus}`);
+            }
+        }
     }
-
-    if (locus) {
-        await locusInput.ingestLocus(locus.chr, locus.startBP, locus.endBP);
-    } else {
-        locusInput.showError(`Invalid locus url parameter: ${urlParameter}`);
-    }
+    // If config.preload.enabled is false and no URL parameter, skip preloading (blank screen)
 
 })
 
