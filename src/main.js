@@ -15,6 +15,7 @@ import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
+import { pcaChartService } from "./pcaChartService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
 import {loadConfig} from "./utils/configService.js"
@@ -81,6 +82,14 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     app = new App(threeJSContainer, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager)
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
+
+    // Wire up PCA Chart button
+    const pcaChartButton = document.getElementById('pca-chart-button');
+    if (pcaChartButton) {
+        pcaChartButton.addEventListener('click', () => {
+            pcaChartService.toggleChart();
+        });
+    }
 
     // Load application configuration
     const config = await loadConfig()

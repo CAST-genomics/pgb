@@ -171,6 +171,14 @@ class PCLACoordinateService {
     }
 
     /**
+     * Get all node IDs that have coordinate data
+     * @returns {string[]} Array of node IDs
+     */
+    getAllNodeIds() {
+        return Array.from(this.coordinates.keys());
+    }
+
+    /**
      * Get the bounding box of all coordinates
      * @returns {Object|null} Bounding box object with x and y min/max/centroid, or null if no coordinates loaded
      */

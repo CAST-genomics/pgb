@@ -11,9 +11,11 @@ import materialService from './materialService.js'
 import Look from "./look.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { pclaiCoordinateService } from "./pclaiCoordinateService.js"
+import { pcaChartService } from "./pcaChartService.js"
 
 let xxPre = undefined
 let yyPre = undefined
+
 class App {
 
     constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager) {
@@ -172,6 +174,10 @@ class App {
         assemblyMetadataService.loadMetadata(json)
         
         pclaiCoordinateService.loadCoordinates(json)
+
+        // Initialize PCA Chart with global bounding box
+        pcaChartService.reset()
+        pcaChartService.initializeGlobalBoundingBox()
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
