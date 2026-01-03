@@ -7,8 +7,11 @@ import {defaultGenome} from "./main.js"
 const LOCUS_PATTERN = { REGION: /^(chr[0-9XY]+):([0-9,]+)-([0-9,]+)$/i };
 const URL_PATTERN = /^https?:\/\/.+/i;
 
-const pangenomeURLTemplate = 'https://pangenome-api.ucsd.edu:8000/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=_VERSION_&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000'
-const DEPRICATED_pangenomeURLTemplate = 'https://3.145.184.140:8443/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=_VERSION_&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000'
+const default_domain = 'pangenome-api.ucsd.edu:8000';
+const hprc_domain = '3.145.184.140:8443';
+const current_domain = hprc_domain;
+
+const pangenomeURLTemplate = `https://${current_domain}/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=_VERSION_&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000`
 
 class LocusInput {
     constructor(container, sceneManager) {
@@ -30,7 +33,7 @@ class LocusInput {
         this.goButton = this.container.querySelector(`#${ELEMENT_IDS.GO_BUTTON}`);
         this.errorDiv = this.container.querySelector(`#${ELEMENT_IDS.ERROR}`);
         this.versionDropdown = this.container.querySelector(`#${ELEMENT_IDS.VERSION_DROPDOWN}`);
-        
+
         // Programmatically select "Version 1" to match this.version = 'v1'
         this.versionDropdown.value = 'v1';
     }
@@ -130,6 +133,7 @@ class LocusInput {
         .replace('_START_', startBP)
         .replace('_END_', endBP)
         .replace('_VERSION_', this.version);
+        console.log('path:', path);
         await this.sceneManager.handleSearch(path);
     }
 
