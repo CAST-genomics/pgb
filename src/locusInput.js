@@ -6,6 +6,8 @@ import {defaultGenome} from "./main.js"
 // Regular expressions for parsing genomic loci and URLs
 const LOCUS_PATTERN = { REGION: /^(chr[0-9XY]+):([0-9,]+)-([0-9,]+)$/i };
 const URL_PATTERN = /^https?:\/\/.+/i;
+// Pattern to detect local file paths (relative paths starting with / or ./ or containing .json)
+const LOCAL_FILE_PATTERN = /^(\/|\.\/).*\.json$/i;
 
 const default_domain = 'pangenome-api.ucsd.edu:8000';
 const hprc_domain = '3.145.184.140:8443';
@@ -48,6 +50,13 @@ class LocusInput {
                 return;
             }
 
+            // Then check if it's a local file path
+            if (this.isLocalFile(candidateInput)) {
+                const normalizedPath = this.normalizeLocalFilePath(candidateInput);
+                await this.ingestUrl(normalizedPath);
+                return;
+            }
+
             // Then check if it's a locus
             const locus = this.processLocusInput(candidateInput);
             if (locus) {
@@ -59,7 +68,7 @@ class LocusInput {
                     const { chr, start, end, name } = result
                     await this.ingestLocus(chr, start, end);
                 } else {
-                    this.showError(`Invalid input format. Please enter a locus (e.g., chr1:25240000-25460000), gene name, or URL.`);
+                    this.showError(`Invalid input format. Please enter a locus (e.g., chr1:25240000-25460000), gene name, URL, or local file (e.g., daz1.json or /public/daz1.json). Files should be placed in the public/ directory.`);
                 }
             }
         };
@@ -81,6 +90,38 @@ class LocusInput {
 
     isUrl(value) {
         return URL_PATTERN.test(value);
+    }
+
+    isLocalFile(value) {
+        // Check if it's a relative path starting with / or ./ and ends with .json
+        // Also allow paths without leading slash if they contain .json (for files in public/)
+        // Or bare filenames ending in .json (e.g., "daz1.json")
+        return LOCAL_FILE_PATTERN.test(value) || 
+               (value.includes('.json') && !value.includes('://')) ||
+               /^[^\/\\]+\.json$/i.test(value); // Bare filename like "daz1.json"
+    }
+
+    normalizeLocalFilePath(value) {
+        // Vite serves files from public/ at the root, so strip /public/ if present
+        // e.g., "/public/hprc-project/hello-hprc.json" -> "/hprc-project/hello-hprc.json"
+        if (value.startsWith('/public/')) {
+            value = value.replace(/^\/public/, '');
+        } else if (value.startsWith('./public/')) {
+            value = value.replace(/^\.\/public/, '');
+        } else if (value.startsWith('public/')) {
+            value = '/' + value.replace(/^public/, '');
+        }
+        
+        // If it's a bare filename (no path separators), prepend / to make it work with Vite's public directory
+        // Files in public/ are served at the root, so "daz1.json" should become "/daz1.json"
+        if (/^[^\/\\]+\.json$/i.test(value)) {
+            return '/' + value;
+        }
+        // If it doesn't start with / or ./, prepend / for consistency
+        if (!value.startsWith('/') && !value.startsWith('./')) {
+            return '/' + value;
+        }
+        return value;
     }
 
     processLocusInput(value) {
