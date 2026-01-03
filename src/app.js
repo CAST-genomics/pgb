@@ -9,6 +9,8 @@ import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
 import Look from "./look.js"
+import { assemblyMetadataService } from "./assemblyMetadataService.js"
+import { pclaiCoordinateService } from "./pclaiCoordinateService.js"
 
 let xxPre = undefined
 let yyPre = undefined
@@ -166,6 +168,10 @@ class App {
         }
 
         this.pangenomeService.loadData(json)
+
+        assemblyMetadataService.loadMetadata(json)
+        
+        pclaiCoordinateService.loadCoordinates(json)
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
