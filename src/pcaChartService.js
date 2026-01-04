@@ -1,5 +1,6 @@
 import eventBus from './utils/eventBus.js';
 import { pclaiCoordinateService } from './pclaiCoordinateService.js';
+import { Draggable } from './utils/draggable.js';
 
 /**
  * PCAChartService - Manages and renders PCA chart visualization
@@ -20,11 +21,13 @@ class PCAChartService {
         this.currentNodeId = null;
         this.globalBoundingBox = null;
         this.eventUnsubscribe = null;
-        this.dotSizePercent = 0.5; // Percentage of bounding box width
+        this.dotSizePercent = 0.5; // Percentage of maximum available dimension (width or height)
         this.chartPadding = 20; // Padding in pixels
         this.isInitialized = false;
+        this.draggable = null;
 
         this.createChartDOM();
+        this.draggable = new Draggable(this.chartContainer);
         this.subscribeToNodeHover();
 
         PCAChartService.instance = this;
@@ -139,14 +142,16 @@ class PCAChartService {
 
         const xRange = maxX - minX;
         const yRange = maxY - minY;
-        const maxDimension = Math.max(xRange, yRange);
 
-        // Calculate chart dimensions based on max dimension + padding
-        const chartWidth = maxDimension + (2 * this.chartPadding);
-        const chartHeight = maxDimension + (2 * this.chartPadding);
+        // Get actual pixel dimensions of chart surface
+        // Use requestAnimationFrame to ensure DOM is rendered and dimensions are accurate
+        if (!this.chartSurface) {
+            console.warn('PCAChartService: Chart surface not found during initialization');
+            return;
+        }
 
-        // Store global bounding box
-        this.globalBoundingBox = {
+        // Store data ranges first
+        const dataBounds = {
             x: {
                 min: minX,
                 max: maxX,
@@ -158,30 +163,60 @@ class PCAChartService {
                 max: maxY,
                 centroid: (minY + maxY) / 2,
                 range: yRange
-            },
-            maxDimension: maxDimension,
-            chartWidth: chartWidth,
-            chartHeight: chartHeight
+            }
         };
 
-        // Update chart surface dimensions
-        if (this.chartSurface) {
-            this.chartSurface.style.width = `${chartWidth}px`;
-            this.chartSurface.style.height = `${chartHeight}px`;
+        // Get pixel dimensions from CSS custom properties (single source of truth)
+        // Read dimensions from the computed styles of the chart container
+        if (!this.chartContainer) {
+            console.warn('PCAChartService: Chart container not found during initialization');
+            return;
         }
 
-        // Update card body to accommodate chart size
-        const cardBody = this.chartContainer?.querySelector('.card-body');
-        if (cardBody) {
-            // Ensure card body can accommodate the chart
-            cardBody.style.minWidth = `${chartWidth + 32}px`; // Add padding
-            cardBody.style.minHeight = `${chartHeight + 32}px`; // Add padding
-        }
+        // Use requestAnimationFrame to ensure DOM is ready, then read CSS variables
+        requestAnimationFrame(() => {
+            const computedStyle = window.getComputedStyle(this.chartContainer);
+            
+            // Extract CSS custom property values
+            const cardWidth = parseFloat(computedStyle.getPropertyValue('--pca-chart-card-width')) || 400;
+            const cardHeight = parseFloat(computedStyle.getPropertyValue('--pca-chart-card-height')) || 400;
+            const headerHeight = parseFloat(computedStyle.getPropertyValue('--pca-chart-header-height')) || 60;
+            
+            // Calculate square surface dimensions
+            const availableDimension = cardHeight - headerHeight;
+            const surfaceWidth = availableDimension;
+            const surfaceHeight = availableDimension;
+
+            this.finishInitialization(dataBounds, surfaceWidth, surfaceHeight);
+        });
+
+    }
+
+    /**
+     * Complete initialization with pixel dimensions
+     * @private
+     */
+    finishInitialization(dataBounds, surfaceWidth, surfaceHeight) {
+        // Calculate available space for data (accounting for padding)
+        const availableWidth = surfaceWidth - (2 * this.chartPadding);
+        const availableHeight = surfaceHeight - (2 * this.chartPadding);
+        const maxAvailableDimension = Math.max(availableWidth, availableHeight);
+
+        // Store global bounding box with data ranges and pixel dimensions
+        this.globalBoundingBox = {
+            ...dataBounds,
+            // Pixel dimensions for scaling
+            surfaceWidth: surfaceWidth,
+            surfaceHeight: surfaceHeight,
+            availableWidth: availableWidth,
+            availableHeight: availableHeight,
+            maxAvailableDimension: maxAvailableDimension
+        };
 
         this.isInitialized = true;
 
-        console.log(`PCAChartService: Initialized global bounding box - x: [${minX.toFixed(3)}, ${maxX.toFixed(3)}], y: [${minY.toFixed(3)}, ${maxY.toFixed(3)}]`);
-        console.log(`PCAChartService: Chart dimensions: ${chartWidth.toFixed(1)} x ${chartHeight.toFixed(1)}px`);
+        console.log(`PCAChartService: Initialized global bounding box - x: [${dataBounds.x.min.toFixed(3)}, ${dataBounds.x.max.toFixed(3)}], y: [${dataBounds.y.min.toFixed(3)}, ${dataBounds.y.max.toFixed(3)}]`);
+        console.log(`PCAChartService: Surface dimensions: ${surfaceWidth.toFixed(1)} x ${surfaceHeight.toFixed(1)}px`);
     }
 
     /**
@@ -224,8 +259,8 @@ class PCAChartService {
             return;
         }
 
-        // Calculate dot size in pixels
-        const dotSizePx = (globalBoundingBox.x.range * this.dotSizePercent / 100);
+        // Calculate dot size as percentage of maximum available dimension
+        const dotSizePx = (globalBoundingBox.maxAvailableDimension * this.dotSizePercent / 100);
         const halfDotSize = dotSizePx / 2;
 
         // Use DocumentFragment for batch DOM updates
@@ -235,15 +270,16 @@ class PCAChartService {
             const [x, y] = assemblyData.coordinates;
             const color = assemblyData.color;
 
-            // Scale coordinates accounting for padding
+            // Scale coordinates to fit within available pixel space
+            // Map data coordinates [minX, maxX] -> [padding, surfaceWidth - padding]
             const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range * 
-                          (globalBoundingBox.chartWidth - 2 * this.chartPadding) + this.chartPadding;
+                          globalBoundingBox.availableWidth + this.chartPadding;
             const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range * 
-                          (globalBoundingBox.chartHeight - 2 * this.chartPadding) + this.chartPadding;
+                          globalBoundingBox.availableHeight + this.chartPadding;
 
             // Clamp values to chart bounds
-            const clampedX = Math.max(halfDotSize, Math.min(scaledX, globalBoundingBox.chartWidth - halfDotSize));
-            const clampedY = Math.max(halfDotSize, Math.min(scaledY, globalBoundingBox.chartHeight - halfDotSize));
+            const clampedX = Math.max(halfDotSize, Math.min(scaledX, globalBoundingBox.surfaceWidth - halfDotSize));
+            const clampedY = Math.max(halfDotSize, Math.min(scaledY, globalBoundingBox.surfaceHeight - halfDotSize));
 
             // Create dot element
             const dot = document.createElement('div');
@@ -335,6 +371,10 @@ class PCAChartService {
      * Dispose of service
      */
     dispose() {
+        if (this.draggable) {
+            this.draggable.destroy();
+            this.draggable = null;
+        }
         if (this.eventUnsubscribe) {
             this.eventUnsubscribe();
             this.eventUnsubscribe = null;
