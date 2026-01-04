@@ -22,6 +22,8 @@
 .pca-chart__card .card-body {
   padding: 0;
   overflow: hidden;
+  position: relative; // Needed for absolute positioning of reference-dots container
+  background: white; // Ensure white background for the chart area
   // Square: use available height (card height - header) for both dimensions
   width: calc(100% - var(--pca-chart-header-height));
   height: calc(100% - var(--pca-chart-header-height));
@@ -30,25 +32,28 @@
 
 .pca-chart__surface {
   position: relative;
-  background: white;
+  background: transparent; // Transparent so reference dots show through
   border-bottom: 1px solid #ccc; // Bottom border for debugging
   overflow: hidden;
   width: 100%;
   height: 100%;
+  z-index: 2; // Dataset dots appear on top
+}
+
+.pca-chart__reference-dots {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; // Make reference dots non-interactive (invisible to raycast)
+  z-index: 1; // Behind dataset dots
 }
 
 .pca-chart__dot {
   position: absolute;
   border-radius: 50%;
   pointer-events: auto;
-  transition: border-color 0.2s ease, border-width 0.2s ease, z-index 0.2s ease;
   z-index: 1;
-}
-
-.pca-chart__dot:hover {
-  border-color: #333 !important;
-  border-width: 2px !important;
-  z-index: 10 !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 

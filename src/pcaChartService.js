@@ -17,6 +17,7 @@ class PCAChartService {
         this.containerId = containerId;
         this.chartContainer = null;
         this.chartSurface = null;
+        this.referenceDotsContainer = null; // Separate container for reference dots
         this.isVisible = false;
         this.currentNodeId = null;
         this.globalBoundingBox = null;
@@ -25,10 +26,13 @@ class PCAChartService {
         this.chartPadding = 20; // Padding in pixels
         this.isInitialized = false;
         this.draggable = null;
+        this.referenceData = []; // Array of {x: number, y: number, color: string} for reference PCA data
+        this.referenceDataPromise = null; // Promise for reference data loading
 
         this.createChartDOM();
         this.draggable = new Draggable(this.chartContainer);
         this.subscribeToNodeHover();
+        this.referenceDataPromise = this.loadReferenceData(); // Load reference data asynchronously, store promise
 
         PCAChartService.instance = this;
     }
@@ -64,14 +68,24 @@ class PCAChartService {
         if (!container.querySelector('.card-body')) {
             const body = document.createElement('div');
             body.className = 'card-body';
+            
+            // Create container for chart surface (dataset dots will go here)
             const surface = document.createElement('div');
             surface.id = 'pca-chart-surface';
             surface.className = 'pca-chart__surface';
             body.appendChild(surface);
+            
+            // Create separate container for reference dots (isolated from hover behavior)
+            const referenceContainer = document.createElement('div');
+            referenceContainer.id = 'pca-chart-reference-dots';
+            referenceContainer.className = 'pca-chart__reference-dots';
+            body.appendChild(referenceContainer);
+            
             container.appendChild(body);
         }
 
         this.chartSurface = document.getElementById('pca-chart-surface');
+        this.referenceDotsContainer = document.getElementById('pca-chart-reference-dots');
     }
 
     /**
@@ -89,6 +103,7 @@ class PCAChartService {
 
         // Subscribe to clearIntersection events (mouse away from node)
         const clearIntersectionUnsub = eventBus.subscribe('clearIntersection', () => {
+            // Clear dataset dots only (reference dots are in separate container and unaffected)
             this.clearChart();
         });
 
@@ -100,11 +115,71 @@ class PCAChartService {
     }
 
     /**
-     * Initialize global bounding box by traversing all nodes
+     * Load reference PCA data from TSV file
+     * Parses hprc-reference-pca.tsv and stores as array of {x, y, color} objects
      */
-    initializeGlobalBoundingBox() {
+    async loadReferenceData() {
+        try {
+            const response = await fetch('/hprc-reference-pca.tsv');
+            if (!response.ok) {
+                console.warn('PCAChartService: Failed to load reference PCA data:', response.statusText);
+                return;
+            }
+
+            const text = await response.text();
+            const lines = text.trim().split('\n');
+            
+            // Skip header row (first line)
+            const dataLines = lines.slice(1);
+            
+            this.referenceData = [];
+            
+            for (const line of dataLines) {
+                if (!line.trim()) continue; // Skip empty lines
+                
+                const columns = line.split('\t');
+                if (columns.length < 3) continue; // Skip malformed lines
+                
+                const x = parseFloat(columns[0]);
+                const y = parseFloat(columns[1]);
+                const rgbString = columns[2].trim();
+                
+                // Skip invalid coordinates
+                if (isNaN(x) || isNaN(y)) continue;
+                
+                // Parse RGB tuple string: "(r, g, b)" where r, g, b are floats 0-1
+                // Convert to HTML color string: "rgb(r, g, b)" where r, g, b are integers 0-255
+                const rgbMatch = rgbString.match(/\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)/);
+                if (!rgbMatch) continue;
+                
+                const r = Math.round(parseFloat(rgbMatch[1]) * 255);
+                const g = Math.round(parseFloat(rgbMatch[2]) * 255);
+                const b = Math.round(parseFloat(rgbMatch[3]) * 255);
+                
+                const color = `rgb(${r}, ${g}, ${b})`;
+                
+                this.referenceData.push({ x, y, color });
+            }
+            
+            console.log(`PCAChartService: Loaded ${this.referenceData.length} reference PCA data points`);
+        } catch (error) {
+            console.warn('PCAChartService: Error loading reference PCA data:', error);
+            this.referenceData = []; // Ensure it's an empty array on error
+        }
+    }
+
+    /**
+     * Initialize global bounding box by traversing all nodes
+     * Ensures reference data is loaded before calculating bounding box
+     */
+    async initializeGlobalBoundingBox() {
         this.globalBoundingBox = null;
         this.isInitialized = false;
+
+        // Ensure reference data is loaded before proceeding
+        if (this.referenceDataPromise) {
+            await this.referenceDataPromise;
+        }
 
         const allXCoords = [];
         const allYCoords = [];
@@ -127,6 +202,12 @@ class PCAChartService {
                 allXCoords.push(x);
                 allYCoords.push(y);
             }
+        }
+
+        // Also include reference data coordinates in bounding box calculation
+        for (const refPoint of this.referenceData) {
+            allXCoords.push(refPoint.x);
+            allYCoords.push(refPoint.y);
         }
 
         if (allXCoords.length === 0 || allYCoords.length === 0) {
@@ -217,6 +298,9 @@ class PCAChartService {
 
         console.log(`PCAChartService: Initialized global bounding box - x: [${dataBounds.x.min.toFixed(3)}, ${dataBounds.x.max.toFixed(3)}], y: [${dataBounds.y.min.toFixed(3)}, ${dataBounds.y.max.toFixed(3)}]`);
         console.log(`PCAChartService: Surface dimensions: ${surfaceWidth.toFixed(1)} x ${surfaceHeight.toFixed(1)}px`);
+        
+        // Render reference dots in separate container (always render when initialized, independent of visibility)
+        this.renderReferenceDots(this.globalBoundingBox);
     }
 
     /**
@@ -240,22 +324,27 @@ class PCAChartService {
     }
 
     /**
-     * Render dots on chart surface
-     * @param {Map} coordinatesMap - Map of assemblyKey -> coordinateData
+     * Render reference dots in separate container (isolated from hover behavior)
      * @param {Object} globalBoundingBox - Global bounding box
      */
-    renderDots(coordinatesMap, globalBoundingBox) {
-        if (!this.chartSurface) {
-            console.error('PCAChartService: Chart surface not found');
+    renderReferenceDots(globalBoundingBox) {
+        if (!this.referenceDotsContainer) {
+            console.error('PCAChartService: Reference dots container not found');
             return;
         }
 
-        // Clear existing dots
-        this.chartSurface.innerHTML = '';
+        // Check if reference data is loaded
+        if (!this.referenceData || this.referenceData.length === 0) {
+            console.warn('PCAChartService: No reference data available to render');
+            return;
+        }
+
+        // Clear existing reference dots
+        this.referenceDotsContainer.innerHTML = '';
 
         // Validate ranges (handle division by zero)
         if (globalBoundingBox.x.range === 0 || globalBoundingBox.y.range === 0) {
-            console.warn('PCAChartService: Invalid bounding box ranges (division by zero)');
+            console.warn('PCAChartService: Invalid bounding box ranges for reference dots (division by zero)');
             return;
         }
 
@@ -266,6 +355,74 @@ class PCAChartService {
         // Use DocumentFragment for batch DOM updates
         const fragment = document.createDocumentFragment();
 
+        console.log(`PCAChartService: Rendering ${this.referenceData.length} reference dots`);
+
+        // Render reference dots
+        for (const refPoint of this.referenceData) {
+            const { x, y, color } = refPoint;
+
+            // Scale coordinates to fit within available pixel space
+            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range * 
+                          globalBoundingBox.availableWidth + this.chartPadding;
+            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range * 
+                          globalBoundingBox.availableHeight + this.chartPadding;
+
+            // Clamp values to chart bounds
+            const clampedX = Math.max(halfDotSize, Math.min(scaledX, globalBoundingBox.surfaceWidth - halfDotSize));
+            const clampedY = Math.max(halfDotSize, Math.min(scaledY, globalBoundingBox.surfaceHeight - halfDotSize));
+
+            // Create dot element (same styling as dataset dots)
+            const dot = document.createElement('div');
+            dot.className = 'pca-chart__dot';
+            dot.style.position = 'absolute';
+            dot.style.left = `${clampedX - halfDotSize}px`;
+            dot.style.top = `${clampedY - halfDotSize}px`;
+            dot.style.width = `${dotSizePx}px`;
+            dot.style.height = `${dotSizePx}px`;
+            dot.style.backgroundColor = color;
+            dot.style.borderRadius = '50%';
+            dot.style.border = '1px solid transparent';
+
+            fragment.appendChild(dot);
+        }
+
+        this.referenceDotsContainer.appendChild(fragment);
+        console.log(`PCAChartService: Successfully rendered ${this.referenceData.length} reference dots`);
+    }
+
+    /**
+     * Render dataset dots on chart surface (reference dots are in separate container)
+     * @param {Map} coordinatesMap - Map of assemblyKey -> coordinateData
+     * @param {Object} globalBoundingBox - Global bounding box
+     */
+    renderDots(coordinatesMap, globalBoundingBox) {
+        if (!this.chartSurface) {
+            console.error('PCAChartService: Chart surface not found');
+            return;
+        }
+
+        // Clear existing dataset dots only (reference dots are in separate container)
+        this.chartSurface.innerHTML = '';
+
+        // Validate ranges (handle division by zero)
+        if (globalBoundingBox.x.range === 0 || globalBoundingBox.y.range === 0) {
+            console.warn('PCAChartService: Invalid bounding box ranges (division by zero)');
+            return;
+        }
+
+        // If no coordinates provided, just clear dataset dots (reference dots remain)
+        if (!coordinatesMap || coordinatesMap.size === 0) {
+            return;
+        }
+
+        // Calculate dot size as percentage of maximum available dimension
+        const dotSizePx = (globalBoundingBox.maxAvailableDimension * this.dotSizePercent / 100);
+        const halfDotSize = dotSizePx / 2;
+
+        // Use DocumentFragment for batch DOM updates
+        const fragment = document.createDocumentFragment();
+
+        // Render dataset dots (reference dots are rendered separately and independently)
         for (const [assemblyKey, assemblyData] of coordinatesMap) {
             const [x, y] = assemblyData.coordinates;
             const color = assemblyData.color;
@@ -292,21 +449,6 @@ class PCAChartService {
             dot.style.backgroundColor = color;
             dot.style.borderRadius = '50%';
             dot.style.border = '1px solid transparent';
-            dot.style.cursor = 'pointer';
-            dot.style.transition = 'border-color 0.2s ease, border-width 0.2s ease, z-index 0.2s ease';
-
-            // Add hover effect
-            dot.addEventListener('mouseenter', () => {
-                dot.style.borderColor = '#333';
-                dot.style.borderWidth = '2px';
-                dot.style.zIndex = '10';
-            });
-
-            dot.addEventListener('mouseleave', () => {
-                dot.style.borderColor = 'transparent';
-                dot.style.borderWidth = '1px';
-                dot.style.zIndex = '1';
-            });
 
             fragment.appendChild(dot);
         }
@@ -341,6 +483,11 @@ class PCAChartService {
         if (this.chartContainer) {
             this.chartContainer.style.display = 'block';
             this.isVisible = true;
+            
+            // Ensure reference dots are rendered if initialization is complete
+            if (this.isInitialized && this.globalBoundingBox) {
+                this.renderReferenceDots(this.globalBoundingBox);
+            }
         }
     }
 

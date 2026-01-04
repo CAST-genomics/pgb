@@ -177,7 +177,7 @@ class App {
 
         // Initialize PCA Chart with global bounding box
         pcaChartService.reset()
-        pcaChartService.initializeGlobalBoundingBox()
+        await pcaChartService.initializeGlobalBoundingBox()
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
