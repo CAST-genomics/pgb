@@ -22,7 +22,7 @@ class PCAChartService {
         this.currentNodeId = null;
         this.globalBoundingBox = null;
         this.eventUnsubscribe = null;
-        this.dotSizePercent = 0.5; // Percentage of maximum available dimension (width or height)
+        this.dotSizePercent = 1; // Percentage of maximum available dimension (width or height)
         this.chartPadding = 20; // Padding in pixels
         this.isInitialized = false;
         this.draggable = null;
@@ -65,27 +65,41 @@ class PCAChartService {
             container.appendChild(header);
         }
 
-        if (!container.querySelector('.card-body')) {
-            const body = document.createElement('div');
+        // Ensure card-body exists
+        let body = container.querySelector('.card-body');
+        if (!body) {
+            body = document.createElement('div');
             body.className = 'card-body';
-            
-            // Create container for chart surface (dataset dots will go here)
-            const surface = document.createElement('div');
+            container.appendChild(body);
+        }
+        
+        // Ensure chart surface exists
+        let surface = document.getElementById('pca-chart-surface');
+        if (!surface) {
+            surface = document.createElement('div');
             surface.id = 'pca-chart-surface';
             surface.className = 'pca-chart__surface';
             body.appendChild(surface);
-            
-            // Create separate container for reference dots (isolated from hover behavior)
-            const referenceContainer = document.createElement('div');
+        }
+        
+        // Ensure reference dots container exists as child of surface
+        let referenceContainer = document.getElementById('pca-chart-reference-dots');
+        if (!referenceContainer) {
+            referenceContainer = document.createElement('div');
             referenceContainer.id = 'pca-chart-reference-dots';
             referenceContainer.className = 'pca-chart__reference-dots';
-            body.appendChild(referenceContainer);
-            
-            container.appendChild(body);
+            surface.appendChild(referenceContainer);
         }
 
-        this.chartSurface = document.getElementById('pca-chart-surface');
-        this.referenceDotsContainer = document.getElementById('pca-chart-reference-dots');
+        if (!container.querySelector('.card-footer')) {
+            const footer = document.createElement('div');
+            footer.className = 'card-footer pca-chart__footer';
+            container.appendChild(footer);
+        }
+
+        // Store references to DOM elements
+        this.chartSurface = surface;
+        this.referenceDotsContainer = referenceContainer;
     }
 
     /**
@@ -263,8 +277,8 @@ class PCAChartService {
             const cardHeight = parseFloat(computedStyle.getPropertyValue('--pca-chart-card-height')) || 400;
             const headerHeight = parseFloat(computedStyle.getPropertyValue('--pca-chart-header-height')) || 60;
             
-            // Calculate square surface dimensions
-            const availableDimension = cardHeight - headerHeight;
+            // Calculate square surface dimensions (accounting for both header and footer)
+            const availableDimension = cardHeight - (headerHeight * 2);
             const surfaceWidth = availableDimension;
             const surfaceHeight = availableDimension;
 
@@ -299,8 +313,7 @@ class PCAChartService {
         console.log(`PCAChartService: Initialized global bounding box - x: [${dataBounds.x.min.toFixed(3)}, ${dataBounds.x.max.toFixed(3)}], y: [${dataBounds.y.min.toFixed(3)}, ${dataBounds.y.max.toFixed(3)}]`);
         console.log(`PCAChartService: Surface dimensions: ${surfaceWidth.toFixed(1)} x ${surfaceHeight.toFixed(1)}px`);
         
-        // Render reference dots in separate container (always render when initialized, independent of visibility)
-        this.renderReferenceDots(this.globalBoundingBox);
+        // Reference dots will be rendered when chart is shown, not during initialization
     }
 
     /**
@@ -328,14 +341,39 @@ class PCAChartService {
      * @param {Object} globalBoundingBox - Global bounding box
      */
     renderReferenceDots(globalBoundingBox) {
+        console.log('PCAChartService: renderReferenceDots() called', {
+            hasContainer: !!this.referenceDotsContainer,
+            hasChartSurface: !!this.chartSurface,
+            referenceDataLength: this.referenceData?.length,
+            boundingBox: globalBoundingBox
+        });
+        
+        // Ensure reference dots container exists
         if (!this.referenceDotsContainer) {
-            console.error('PCAChartService: Reference dots container not found');
+            // Try to find it again
+            this.referenceDotsContainer = document.getElementById('pca-chart-reference-dots');
+            if (!this.referenceDotsContainer && this.chartSurface) {
+                // Create it if it doesn't exist
+                const referenceContainer = document.createElement('div');
+                referenceContainer.id = 'pca-chart-reference-dots';
+                referenceContainer.className = 'pca-chart__reference-dots';
+                this.chartSurface.appendChild(referenceContainer);
+                this.referenceDotsContainer = referenceContainer;
+                console.log('PCAChartService: Created reference dots container');
+            }
+        }
+        
+        if (!this.referenceDotsContainer) {
+            console.error('PCAChartService: Reference dots container not found and could not be created');
             return;
         }
 
         // Check if reference data is loaded
         if (!this.referenceData || this.referenceData.length === 0) {
-            console.warn('PCAChartService: No reference data available to render');
+            console.warn('PCAChartService: No reference data available to render', {
+                referenceData: this.referenceData,
+                length: this.referenceData?.length
+            });
             return;
         }
 
@@ -344,7 +382,10 @@ class PCAChartService {
 
         // Validate ranges (handle division by zero)
         if (globalBoundingBox.x.range === 0 || globalBoundingBox.y.range === 0) {
-            console.warn('PCAChartService: Invalid bounding box ranges for reference dots (division by zero)');
+            console.warn('PCAChartService: Invalid bounding box ranges for reference dots (division by zero)', {
+                xRange: globalBoundingBox.x.range,
+                yRange: globalBoundingBox.y.range
+            });
             return;
         }
 
@@ -355,7 +396,11 @@ class PCAChartService {
         // Use DocumentFragment for batch DOM updates
         const fragment = document.createDocumentFragment();
 
-        console.log(`PCAChartService: Rendering ${this.referenceData.length} reference dots`);
+        console.log(`PCAChartService: Rendering ${this.referenceData.length} reference dots`, {
+            container: this.referenceDotsContainer,
+            containerExists: !!this.referenceDotsContainer,
+            boundingBox: globalBoundingBox
+        });
 
         // Render reference dots
         for (const refPoint of this.referenceData) {
@@ -371,9 +416,9 @@ class PCAChartService {
             const clampedX = Math.max(halfDotSize, Math.min(scaledX, globalBoundingBox.surfaceWidth - halfDotSize));
             const clampedY = Math.max(halfDotSize, Math.min(scaledY, globalBoundingBox.surfaceHeight - halfDotSize));
 
-            // Create dot element (same styling as dataset dots)
+            // Create dot element with reference dot class
             const dot = document.createElement('div');
-            dot.className = 'pca-chart__dot';
+            dot.className = 'pca-chart__reference-dot';
             dot.style.position = 'absolute';
             dot.style.left = `${clampedX - halfDotSize}px`;
             dot.style.top = `${clampedY - halfDotSize}px`;
@@ -387,7 +432,8 @@ class PCAChartService {
         }
 
         this.referenceDotsContainer.appendChild(fragment);
-        console.log(`PCAChartService: Successfully rendered ${this.referenceData.length} reference dots`);
+        const renderedDots = this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot');
+        console.log(`PCAChartService: Successfully rendered ${this.referenceData.length} reference dots. DOM contains ${renderedDots.length} dot elements.`);
     }
 
     /**
@@ -401,8 +447,15 @@ class PCAChartService {
             return;
         }
 
-        // Clear existing dataset dots only (reference dots are in separate container)
-        this.chartSurface.innerHTML = '';
+        // Deemphasize reference dots when dataset dots are displayed
+        if (this.referenceDotsContainer) {
+            this.referenceDotsContainer.classList.add('pca-chart__reference-dots--deemphasized');
+        }
+
+        // Clear existing dataset dots only (preserve reference dots container)
+        // Remove only elements with class 'pca-chart__dot', not the reference container
+        const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
+        datasetDots.forEach(dot => dot.remove());
 
         // Validate ranges (handle division by zero)
         if (globalBoundingBox.x.range === 0 || globalBoundingBox.y.range === 0) {
@@ -461,8 +514,16 @@ class PCAChartService {
      */
     clearChart() {
         if (this.chartSurface) {
-            this.chartSurface.innerHTML = '';
+            // Clear only dataset dots, preserve reference dots container
+            const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
+            datasetDots.forEach(dot => dot.remove());
         }
+        
+        // Restore full opacity of reference dots when dataset dots are cleared
+        if (this.referenceDotsContainer) {
+            this.referenceDotsContainer.classList.remove('pca-chart__reference-dots--deemphasized');
+        }
+        
         this.currentNodeId = null;
     }
 
@@ -480,13 +541,35 @@ class PCAChartService {
      * Show chart
      */
     showChart() {
+        console.log('PCAChartService: showChart() called', {
+            chartContainer: !!this.chartContainer,
+            isInitialized: this.isInitialized,
+            globalBoundingBox: !!this.globalBoundingBox,
+            referenceDotsContainer: !!this.referenceDotsContainer,
+            referenceDataLength: this.referenceData?.length
+        });
+        
         if (this.chartContainer) {
             this.chartContainer.style.display = 'block';
             this.isVisible = true;
             
-            // Ensure reference dots are rendered if initialization is complete
+            // Render reference dots when chart is shown (if not already rendered)
             if (this.isInitialized && this.globalBoundingBox) {
-                this.renderReferenceDots(this.globalBoundingBox);
+                // Check if reference dots already exist in DOM
+                const existingDots = this.referenceDotsContainer?.querySelectorAll('.pca-chart__reference-dot');
+                console.log('PCAChartService: Checking for existing dots', {
+                    existingDotsCount: existingDots?.length || 0,
+                    willRender: !existingDots || existingDots.length === 0
+                });
+                if (!existingDots || existingDots.length === 0) {
+                    console.log('PCAChartService: Calling renderReferenceDots()');
+                    this.renderReferenceDots(this.globalBoundingBox);
+                }
+            } else {
+                console.warn('PCAChartService: Cannot render reference dots - not initialized or missing bounding box', {
+                    isInitialized: this.isInitialized,
+                    hasBoundingBox: !!this.globalBoundingBox
+                });
             }
         }
     }
