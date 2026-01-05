@@ -170,7 +170,8 @@ class App {
             console.error(`Error loading ${url}:`, error)
             this.showError(`Error loading ${url}: ${error.message}`)
             this.startAnimation()
-            return
+            // Re-throw the error so the caller (e.g., locusInput) can handle it
+            throw error
         }
 
         await this.processData(json)

@@ -196,7 +196,13 @@ class LocusInput {
         // Normalize Dropbox URLs to use direct download
         const normalizedUrl = this.normalizeDropboxUrl(url);
         
-        await this.sceneManager.handleSearch(normalizedUrl);
+        try {
+            await this.sceneManager.handleSearch(normalizedUrl);
+        } catch (error) {
+            // Display error in the locus input widget
+            this.showError(`Failed to load URL: ${error.message}`);
+            throw error; // Re-throw so app.showError can also display it
+        }
     }
 
     static parsePosition(pos) {
