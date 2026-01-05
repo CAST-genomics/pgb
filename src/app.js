@@ -99,6 +99,9 @@ class App {
             // Update line material resolutions for worldUnits: false
             lineMaterialResolutionService.handleResize()
         })
+
+        // Setup drag and drop functionality
+        this.setupDragAndDrop()
     }
 
     setActiveScene(sceneName, doPauseAnimation = false){
@@ -165,10 +168,15 @@ class App {
             json = await loadPath(url)
         } catch (error) {
             console.error(`Error loading ${url}:`, error)
+            this.showError(`Error loading ${url}: ${error.message}`)
             this.startAnimation()
             return
         }
 
+        await this.processData(json)
+    }
+
+    async processData(json) {
         this.pangenomeService.loadData(json)
 
         assemblyMetadataService.loadMetadata(json)
@@ -383,6 +391,116 @@ class App {
 
         this.sceneManager.clearCurrentData()
 
+    }
+
+    setupDragAndDrop() {
+        let dragCounter = 0
+
+        this.container.addEventListener('dragover', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            
+            // Only show visual feedback for file drops
+            if (e.dataTransfer.types.includes('Files')) {
+                this.container.classList.add('drag-over')
+            }
+        })
+
+        this.container.addEventListener('dragenter', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            dragCounter++
+            
+            if (e.dataTransfer.types.includes('Files')) {
+                this.container.classList.add('drag-over')
+            }
+        })
+
+        this.container.addEventListener('dragleave', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            dragCounter--
+            
+            if (dragCounter === 0) {
+                this.container.classList.remove('drag-over')
+            }
+        })
+
+        this.container.addEventListener('drop', async (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            dragCounter = 0
+            this.container.classList.remove('drag-over')
+
+            const files = e.dataTransfer.files
+            if (!files || files.length === 0) {
+                return
+            }
+
+            // Process the first JSON file found
+            let jsonFile = null
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                if (file.type === 'application/json' || file.name.toLowerCase().endsWith('.json')) {
+                    jsonFile = file
+                    break
+                }
+            }
+
+            if (!jsonFile) {
+                this.showError('Please drop a JSON file. Other file types are not supported.')
+                return
+            }
+
+            // Read and parse the file
+            try {
+                const fileContent = await this.readFileAsText(jsonFile)
+                const json = JSON.parse(fileContent)
+                
+                this.stopAnimation()
+                this.clearCurrentData()
+                await this.processData(json)
+            } catch (error) {
+                console.error('Error reading or parsing dropped file:', error)
+                if (error instanceof SyntaxError) {
+                    this.showError(`Invalid JSON file: ${error.message}`)
+                } else {
+                    this.showError(`Error reading file: ${error.message}`)
+                }
+            }
+        })
+    }
+
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = (e) => resolve(e.target.result)
+            reader.onerror = (e) => reject(new Error('Failed to read file'))
+            reader.readAsText(file)
+        })
+    }
+
+    showError(message) {
+        console.error(message)
+        
+        // Create or update error display
+        let errorDiv = document.getElementById('pgb-drag-drop-error')
+        if (!errorDiv) {
+            errorDiv = document.createElement('div')
+            errorDiv.id = 'pgb-drag-drop-error'
+            errorDiv.className = 'pgb-drag-drop-error'
+            document.body.appendChild(errorDiv)
+        }
+        
+        errorDiv.textContent = message
+        errorDiv.classList.add('show')
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (errorDiv) {
+                errorDiv.classList.remove('show')
+            }
+        }, 5000)
     }
 
 }
