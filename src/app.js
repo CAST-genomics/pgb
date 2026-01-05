@@ -460,6 +460,9 @@ class App {
                 this.stopAnimation()
                 this.clearCurrentData()
                 await this.processData(json)
+                
+                // Clear the locus input widget after successful file load
+                this.clearLocusInput()
             } catch (error) {
                 console.error('Error reading or parsing dropped file:', error)
                 if (error instanceof SyntaxError) {
@@ -478,6 +481,21 @@ class App {
             reader.onerror = (e) => reject(new Error('Failed to read file'))
             reader.readAsText(file)
         })
+    }
+
+    clearLocusInput() {
+        const locusInput = document.getElementById('pgb-locus-input')
+        const locusError = document.getElementById('pgb-locus-error')
+        
+        if (locusInput) {
+            locusInput.value = ''
+            locusInput.classList.remove('is-invalid')
+        }
+        
+        if (locusError) {
+            locusError.style.display = 'none'
+            locusError.textContent = ''
+        }
     }
 
     showError(message) {

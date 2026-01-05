@@ -178,12 +178,25 @@ class LocusInput {
         await this.sceneManager.handleSearch(path);
     }
 
+    normalizeDropboxUrl(url) {
+        // Dropbox shared links with dl=0 return HTML preview pages, not raw files
+        // We need to change dl=0 to dl=1 to get the direct download
+        if (url.includes('dropbox.com') && url.includes('dl=0')) {
+            // Replace dl=0 with dl=1 (handles both &dl=0 and ?dl=0 cases)
+            return url.replace('dl=0', 'dl=1');
+        }
+        return url;
+    }
+
     async ingestUrl(url) {
         // Reset error state
         this.inputElement.classList.remove('is-invalid');
         this.errorDiv.style.display = 'none';
 
-        await this.sceneManager.handleSearch(url);
+        // Normalize Dropbox URLs to use direct download
+        const normalizedUrl = this.normalizeDropboxUrl(url);
+        
+        await this.sceneManager.handleSearch(normalizedUrl);
     }
 
     static parsePosition(pos) {
