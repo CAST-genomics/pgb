@@ -289,19 +289,21 @@ class PCAChartService {
             return;
         }
 
-        // Use requestAnimationFrame to ensure DOM is ready, then read CSS variables
+        // Read surface size directly from CSS custom property (single source of truth)
+        if (!this.chartContainer) {
+            console.warn('PCAChartService: Chart container not found during initialization');
+            return;
+        }
+
+        // Use requestAnimationFrame to ensure DOM is ready and CSS is applied
         requestAnimationFrame(() => {
             const computedStyle = window.getComputedStyle(this.chartContainer);
             
-            // Extract CSS custom property values
-            const cardWidth = parseFloat(computedStyle.getPropertyValue('--pca-chart-card-width')) || 400;
-            const cardHeight = parseFloat(computedStyle.getPropertyValue('--pca-chart-card-height')) || 400;
-            const headerHeight = parseFloat(computedStyle.getPropertyValue('--pca-chart-header-height')) || 60;
-            
-            // Calculate square surface dimensions (accounting for both header and footer)
-            const availableDimension = cardHeight - (headerHeight * 2);
-            const surfaceWidth = availableDimension;
-            const surfaceHeight = availableDimension;
+            // Read surface size directly from CSS custom property (single source of truth)
+            // Surface is square, so we only need one dimension
+            const surfaceSize = parseFloat(computedStyle.getPropertyValue('--pca-chart-surface-size')) || 448;
+            const surfaceWidth = surfaceSize;
+            const surfaceHeight = surfaceSize;
 
             this.finishInitialization(dataBounds, surfaceWidth, surfaceHeight);
         });
@@ -362,6 +364,8 @@ class PCAChartService {
 
     /**
      * Update axis positions based on origin (0,0) in data coordinate space
+     * Uses bbox.surfaceWidth and bbox.surfaceHeight which are the actual rendered dimensions
+     * from CSS (single source of truth)
      */
     updateAxes() {
         if (!this.isInitialized || !this.globalBoundingBox) {
@@ -375,7 +379,8 @@ class PCAChartService {
         const originX = (0 - bbox.x.min) / bbox.x.range * bbox.availableWidth + this.chartPadding;
         const originY = (0 - bbox.y.min) / bbox.y.range * bbox.availableHeight + this.chartPadding;
 
-        // Position horizontal axis (1px tall, full width)
+        // Position horizontal axis (1px tall, full width of surface)
+        // bbox.surfaceWidth is the actual rendered dimension from CSS (single source of truth)
         if (this.horizontalAxis) {
             this.horizontalAxis.style.position = 'absolute';
             this.horizontalAxis.style.left = '0px';
@@ -387,7 +392,8 @@ class PCAChartService {
             this.horizontalAxis.style.zIndex = '0'; // Below dots so dots occlude axes
         }
 
-        // Position vertical axis (1px wide, full height)
+        // Position vertical axis (1px wide, full height of surface)
+        // bbox.surfaceHeight is the actual rendered dimension from CSS (single source of truth)
         if (this.verticalAxis) {
             this.verticalAxis.style.position = 'absolute';
             this.verticalAxis.style.left = `${originX}px`;
