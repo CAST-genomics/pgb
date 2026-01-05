@@ -105,3 +105,20 @@
   z-index: 1;
 }
 
+.pca-chart__axis {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0; // Below dots so dots occlude axes
+  background-color: #ccc;
+}
+
+.pca-chart__axis--horizontal {
+  width: 100%;
+  height: 1px;
+}
+
+.pca-chart__axis--vertical {
+  width: 1px;
+  height: 100%;
+}
+

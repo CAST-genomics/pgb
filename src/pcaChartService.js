@@ -18,6 +18,8 @@ class PCAChartService {
         this.chartContainer = null;
         this.chartSurface = null;
         this.referenceDotsContainer = null; // Separate container for reference dots
+        this.horizontalAxis = null; // Horizontal axis line element
+        this.verticalAxis = null; // Vertical axis line element
         this.isVisible = false;
         this.currentNodeId = null;
         this.globalBoundingBox = null;
@@ -91,6 +93,23 @@ class PCAChartService {
             surface.appendChild(referenceContainer);
         }
 
+        // Ensure axes exist
+        let horizontalAxis = document.getElementById('pca-chart-axis-horizontal');
+        if (!horizontalAxis) {
+            horizontalAxis = document.createElement('div');
+            horizontalAxis.id = 'pca-chart-axis-horizontal';
+            horizontalAxis.className = 'pca-chart__axis pca-chart__axis--horizontal';
+            surface.appendChild(horizontalAxis);
+        }
+
+        let verticalAxis = document.getElementById('pca-chart-axis-vertical');
+        if (!verticalAxis) {
+            verticalAxis = document.createElement('div');
+            verticalAxis.id = 'pca-chart-axis-vertical';
+            verticalAxis.className = 'pca-chart__axis pca-chart__axis--vertical';
+            surface.appendChild(verticalAxis);
+        }
+
         if (!container.querySelector('.card-footer')) {
             const footer = document.createElement('div');
             footer.className = 'card-footer pca-chart__footer';
@@ -100,6 +119,8 @@ class PCAChartService {
         // Store references to DOM elements
         this.chartSurface = surface;
         this.referenceDotsContainer = referenceContainer;
+        this.horizontalAxis = horizontalAxis;
+        this.verticalAxis = verticalAxis;
     }
 
     /**
@@ -313,6 +334,9 @@ class PCAChartService {
         console.log(`PCAChartService: Initialized global bounding box - x: [${dataBounds.x.min.toFixed(3)}, ${dataBounds.x.max.toFixed(3)}], y: [${dataBounds.y.min.toFixed(3)}, ${dataBounds.y.max.toFixed(3)}]`);
         console.log(`PCAChartService: Surface dimensions: ${surfaceWidth.toFixed(1)} x ${surfaceHeight.toFixed(1)}px`);
         
+        // Position axes at origin (0,0)
+        this.updateAxes();
+        
         // Reference dots will be rendered when chart is shown, not during initialization
     }
 
@@ -334,6 +358,46 @@ class PCAChartService {
 
         this.currentNodeId = nodeId;
         this.renderDots(coordinatesMap, this.globalBoundingBox);
+    }
+
+    /**
+     * Update axis positions based on origin (0,0) in data coordinate space
+     */
+    updateAxes() {
+        if (!this.isInitialized || !this.globalBoundingBox) {
+            return;
+        }
+
+        const bbox = this.globalBoundingBox;
+        
+        // Calculate where (0,0) maps to in pixel coordinates
+        // Using the same scaling logic as renderDots
+        const originX = (0 - bbox.x.min) / bbox.x.range * bbox.availableWidth + this.chartPadding;
+        const originY = (0 - bbox.y.min) / bbox.y.range * bbox.availableHeight + this.chartPadding;
+
+        // Position horizontal axis (1px tall, full width)
+        if (this.horizontalAxis) {
+            this.horizontalAxis.style.position = 'absolute';
+            this.horizontalAxis.style.left = '0px';
+            this.horizontalAxis.style.top = `${originY}px`;
+            this.horizontalAxis.style.width = `${bbox.surfaceWidth}px`;
+            this.horizontalAxis.style.height = '1px';
+            this.horizontalAxis.style.backgroundColor = '#000';
+            this.horizontalAxis.style.pointerEvents = 'none';
+            this.horizontalAxis.style.zIndex = '0'; // Below dots so dots occlude axes
+        }
+
+        // Position vertical axis (1px wide, full height)
+        if (this.verticalAxis) {
+            this.verticalAxis.style.position = 'absolute';
+            this.verticalAxis.style.left = `${originX}px`;
+            this.verticalAxis.style.top = '0px';
+            this.verticalAxis.style.width = '1px';
+            this.verticalAxis.style.height = `${bbox.surfaceHeight}px`;
+            this.verticalAxis.style.backgroundColor = '#000';
+            this.verticalAxis.style.pointerEvents = 'none';
+            this.verticalAxis.style.zIndex = '0'; // Below dots so dots occlude axes
+        }
     }
 
     /**
@@ -555,6 +619,9 @@ class PCAChartService {
             
             // Render reference dots when chart is shown (if not already rendered)
             if (this.isInitialized && this.globalBoundingBox) {
+                // Update axes position
+                this.updateAxes();
+                
                 // Check if reference dots already exist in DOM
                 const existingDots = this.referenceDotsContainer?.querySelectorAll('.pca-chart__reference-dot');
                 console.log('PCAChartService: Checking for existing dots', {
