@@ -212,7 +212,7 @@ class Look {
         return `${this.constructor.name}:${nodeName}:normal`;
     }
 
-    getNodeEmphasisMaterial(assembly, nodeName) {
+    getNodeEmphasisMaterial(assembly, nodeName, color) {
 
         const cacheKey = `${this.constructor.name}:${nodeName}:assembly:${assembly}`;
 
@@ -221,13 +221,10 @@ class Look {
             return this.materialCache.get(cacheKey);
         }
 
-        const material = new LineMaterial({
-            color: Look.NODE_EMPHASIS_COLOR,
-            linewidth: Look.NODE_LINE_WIDTH,
-            worldUnits: true,
-            opacity: 1,
-            transparent: true
-        });
+        console.log(`getNodeEmphasisMaterial. Key = ${ cacheKey }`)
+
+        // color: Look.NODE_EMPHASIS_COLOR
+        const material = new LineMaterial({ color, linewidth: Look.NODE_LINE_WIDTH, worldUnits: true, opacity: 1, transparent: true });
 
         // Register with resolution service for automatic resolution updates
         lineMaterialResolutionService.registerMaterial(material);
@@ -238,7 +235,7 @@ class Look {
         return material;
     }
 
-    setNodeAndEdgeEmphasis(assembly, nodeSet, edgeSet) {
+    setNodeAndEdgeEmphasis(assembly, nodeSet, edgeSet, nodeColor) {
 
         this.emphasisStates.clear()
 
@@ -249,7 +246,7 @@ class Look {
         }
 
         this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined);
-        this.updateNodeEmphasis(nodeSet, 'emphasized', assembly);
+        this.updateNodeEmphasis(nodeSet, 'emphasized', assembly, nodeColor);
 
         const deemphasisEdgeSet = this.geometryManager.geometryFactory.getEdgeNameSet().difference(edgeSet);
 
@@ -273,7 +270,7 @@ class Look {
             this.setEmphasisState(key, 'normal');
         }
 
-        this.updateNodeEmphasis(nodeSet, 'normal', undefined);
+        this.updateNodeEmphasis(nodeSet, 'normal', undefined, undefined);
         this.updateEdgeEmphasis(edgeSet, 'normal', undefined);
 
         this.updateGeometryPositions();
@@ -283,7 +280,7 @@ class Look {
         this.emphasisStates.set(nodeName, state);
     }
 
-    applyEmphasisState(mesh, emphasisState, assembly) {
+    applyEmphasisState(mesh, emphasisState, assembly, nodeColor) {
         if (!mesh.userData) return;
 
         const { type } = mesh.userData;
@@ -297,7 +294,7 @@ class Look {
         } else if (emphasisState === 'emphasized') {
 
             if (type === 'node') {
-                mesh.material = this.getNodeEmphasisMaterial(assembly, mesh.userData.nodeName);
+                mesh.material = this.getNodeEmphasisMaterial(assembly, mesh.userData.nodeName, nodeColor);
             } else if (type === 'edge') {
 
                 const startColor = getAppleCrayonColorByName('magnesium')
@@ -335,19 +332,19 @@ class Look {
         edgeMeshGroup.traverse((object) => {
             if (object.userData?.type === 'edge') {
                 if (edgeSet.has(object.userData.geometryKey)) {
-                    this.applyEmphasisState(object, emphasisState, assembly);
+                    this.applyEmphasisState(object, emphasisState, assembly, undefined);
                 }
             }
         })
 
     }
 
-    updateNodeEmphasis(nodeNameSet, emphasisState, assembly) {
+    updateNodeEmphasis(nodeNameSet, emphasisState, assembly, nodeColor) {
 
         const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
         nodeMeshGroup.traverse((object) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
-                this.applyEmphasisState(object, emphasisState, assembly);
+                this.applyEmphasisState(object, emphasisState, assembly, nodeColor);
             }
         });
     }

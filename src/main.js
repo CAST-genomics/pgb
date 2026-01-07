@@ -15,12 +15,10 @@ import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
-import { pcaChartService } from "./pcaChartService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
 import {loadConfig} from "./utils/configService.js"
 import './styles/app.scss'
-import PCAChartLook from "./looks/pcaChartLook.js"
 
 let contextMenuService
 
@@ -73,12 +71,6 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     const populationLook = PopulationLook.createPopulationLook('populationLook', { genomicService, geometryManager, assemblyWidget })
     sceneManager.createScene('populationScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('populationScene', populationLook);
-
-    // PCA Chart Look
-    const pcaChartLook = PCAChartLook.createPCAChartLook('pcaChartLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
-    sceneManager.createScene('pcaChartScene', rubinColors.rubinIvory)
-    sceneManager.lookManager.setLook('pcaChartScene', pcaChartLook);
-
 
     annotationRenderService = new AnnotationRenderService(document.querySelector('.pgb-gene-annotation-track-container'), genomicService, sceneManager, raycastService)
 

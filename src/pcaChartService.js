@@ -703,25 +703,17 @@ class PCAChartService {
 
             const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet()
             const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet()
-
             eventBus.publish('pcaChart:normal', { nodeSet, edgeSet })
-
-            app.setActiveScene('assemblyVisualizationScene', true)
 
         } else {
 
-            app.setActiveScene('pcaChartScene', true);
+            // app.setActiveScene('pcaChartScene', true)
+            app.setActiveScene('assemblyVisualizationScene', true)
 
-            // const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
-            // const edgeSet = new Set()
-            //
-            // eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
+            const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
+            const edgeSet = new Set()
 
-
-            const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet()
-            const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet()
-
-            eventBus.publish('pcaChart:normal', { nodeSet, edgeSet })
+            eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
 
             this.showChart()
 
