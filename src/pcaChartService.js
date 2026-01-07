@@ -696,15 +696,35 @@ class PCAChartService {
      * @returns {boolean} New visibility state
      */
     toggleChart() {
+
         if (this.isVisible) {
+
             this.hideChart();
-            // app.setActiveScene('assemblyVisualizationScene', true);
-            // eventBus.publish('pcaChart:deselected', { acronym: population.acronym });
+
+            const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet()
+            const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet()
+
+            eventBus.publish('pcaChart:normal', { nodeSet, edgeSet })
+
+            app.setActiveScene('assemblyVisualizationScene', true)
 
         } else {
-            // app.setActiveScene('pcaChartScene', true);
-            // eventBus.publish('pcaChart:selected', { acronym: population.acronym });
-            this.showChart();
+
+            app.setActiveScene('pcaChartScene', true);
+
+            // const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
+            // const edgeSet = new Set()
+            //
+            // eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
+
+
+            const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet()
+            const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet()
+
+            eventBus.publish('pcaChart:normal', { nodeSet, edgeSet })
+
+            this.showChart()
+
         }
         return this.isVisible;
     }
