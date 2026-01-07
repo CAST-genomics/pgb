@@ -74,7 +74,7 @@ class PCAChartService {
             body.className = 'card-body';
             container.appendChild(body);
         }
-        
+
         // Ensure chart surface exists
         let surface = document.getElementById('pca-chart-surface');
         if (!surface) {
@@ -83,7 +83,7 @@ class PCAChartService {
             surface.className = 'pca-chart__surface';
             body.appendChild(surface);
         }
-        
+
         // Ensure reference dots container exists as child of surface
         let referenceContainer = document.getElementById('pca-chart-reference-dots');
         if (!referenceContainer) {
@@ -155,7 +155,7 @@ class PCAChartService {
      */
     async loadReferenceData() {
         try {
-            const response = await fetch('/hprc-reference-pca.tsv');
+            const response = await fetch('/hprc-project/hprc-reference-pca.tsv');
             if (!response.ok) {
                 console.warn('PCAChartService: Failed to load reference PCA data:', response.statusText);
                 return;
@@ -163,39 +163,39 @@ class PCAChartService {
 
             const text = await response.text();
             const lines = text.trim().split('\n');
-            
+
             // Skip header row (first line)
             const dataLines = lines.slice(1);
-            
+
             this.referenceData = [];
-            
+
             for (const line of dataLines) {
                 if (!line.trim()) continue; // Skip empty lines
-                
+
                 const columns = line.split('\t');
                 if (columns.length < 3) continue; // Skip malformed lines
-                
+
                 const x = parseFloat(columns[0]);
                 const y = parseFloat(columns[1]);
                 const rgbString = columns[2].trim();
-                
+
                 // Skip invalid coordinates
                 if (isNaN(x) || isNaN(y)) continue;
-                
+
                 // Parse RGB tuple string: "(r, g, b)" where r, g, b are floats 0-1
                 // Convert to HTML color string: "rgb(r, g, b)" where r, g, b are integers 0-255
                 const rgbMatch = rgbString.match(/\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)/);
                 if (!rgbMatch) continue;
-                
+
                 const r = Math.round(parseFloat(rgbMatch[1]) * 255);
                 const g = Math.round(parseFloat(rgbMatch[2]) * 255);
                 const b = Math.round(parseFloat(rgbMatch[3]) * 255);
-                
+
                 const color = `rgb(${r}, ${g}, ${b})`;
-                
+
                 this.referenceData.push({ x, y, color });
             }
-            
+
             console.log(`PCAChartService: Loaded ${this.referenceData.length} reference PCA data points`);
         } catch (error) {
             console.warn('PCAChartService: Error loading reference PCA data:', error);
@@ -298,7 +298,7 @@ class PCAChartService {
         // Use requestAnimationFrame to ensure DOM is ready and CSS is applied
         requestAnimationFrame(() => {
             const computedStyle = window.getComputedStyle(this.chartContainer);
-            
+
             // Read surface size directly from CSS custom property (single source of truth)
             // Surface is square, so we only need one dimension
             const surfaceSize = parseFloat(computedStyle.getPropertyValue('--pca-chart-surface-size')) || 448;
@@ -335,10 +335,10 @@ class PCAChartService {
 
         console.log(`PCAChartService: Initialized global bounding box - x: [${dataBounds.x.min.toFixed(3)}, ${dataBounds.x.max.toFixed(3)}], y: [${dataBounds.y.min.toFixed(3)}, ${dataBounds.y.max.toFixed(3)}]`);
         console.log(`PCAChartService: Surface dimensions: ${surfaceWidth.toFixed(1)} x ${surfaceHeight.toFixed(1)}px`);
-        
+
         // Position axes at origin (0,0)
         this.updateAxes();
-        
+
         // Reference dots will be rendered when chart is shown, not during initialization
     }
 
@@ -373,7 +373,7 @@ class PCAChartService {
         }
 
         const bbox = this.globalBoundingBox;
-        
+
         // Calculate where (0,0) maps to in pixel coordinates
         // Using the same scaling logic as renderDots
         const originX = (0 - bbox.x.min) / bbox.x.range * bbox.availableWidth + this.chartPadding;
@@ -417,7 +417,7 @@ class PCAChartService {
             referenceDataLength: this.referenceData?.length,
             boundingBox: globalBoundingBox
         });
-        
+
         // Ensure reference dots container exists
         if (!this.referenceDotsContainer) {
             // Try to find it again
@@ -432,7 +432,7 @@ class PCAChartService {
                 console.log('PCAChartService: Created reference dots container');
             }
         }
-        
+
         if (!this.referenceDotsContainer) {
             console.error('PCAChartService: Reference dots container not found and could not be created');
             return;
@@ -477,9 +477,9 @@ class PCAChartService {
             const { x, y, color } = refPoint;
 
             // Scale coordinates to fit within available pixel space
-            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range * 
+            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range *
                           globalBoundingBox.availableWidth + this.chartPadding;
-            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range * 
+            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range *
                           globalBoundingBox.availableHeight + this.chartPadding;
 
             // Clamp values to chart bounds
@@ -552,9 +552,9 @@ class PCAChartService {
 
             // Scale coordinates to fit within available pixel space
             // Map data coordinates [minX, maxX] -> [padding, surfaceWidth - padding]
-            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range * 
+            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range *
                           globalBoundingBox.availableWidth + this.chartPadding;
-            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range * 
+            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range *
                           globalBoundingBox.availableHeight + this.chartPadding;
 
             // Clamp values to chart bounds
@@ -588,12 +588,12 @@ class PCAChartService {
             const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
             datasetDots.forEach(dot => dot.remove());
         }
-        
+
         // Restore full opacity of reference dots when dataset dots are cleared
         if (this.referenceDotsContainer) {
             this.referenceDotsContainer.classList.remove('pca-chart__reference-dots--deemphasized');
         }
-        
+
         this.currentNodeId = null;
     }
 
@@ -618,16 +618,16 @@ class PCAChartService {
             referenceDotsContainer: !!this.referenceDotsContainer,
             referenceDataLength: this.referenceData?.length
         });
-        
+
         if (this.chartContainer) {
             this.chartContainer.style.display = 'block';
             this.isVisible = true;
-            
+
             // Render reference dots when chart is shown (if not already rendered)
             if (this.isInitialized && this.globalBoundingBox) {
                 // Update axes position
                 this.updateAxes();
-                
+
                 // Check if reference dots already exist in DOM
                 const existingDots = this.referenceDotsContainer?.querySelectorAll('.pca-chart__reference-dot');
                 console.log('PCAChartService: Checking for existing dots', {
