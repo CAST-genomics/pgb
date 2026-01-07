@@ -110,7 +110,7 @@ class PopulationOnlyWidget {
 
             console.log(`Selected superpopulation: ${superpopulation.name}`);
 
-            app.setActiveScene('heatmapScene', true);
+            app.setActiveScene('populationScene', true);
             eventBus.publish('superpopulation:selected', { acronym: superpopulation.acronym });
         }
     }
@@ -136,7 +136,7 @@ class PopulationOnlyWidget {
 
             console.log(`Selected population: ${population.name}`);
 
-            app.setActiveScene('heatmapScene', true);
+            app.setActiveScene('populationScene', true);
             eventBus.publish('population:selected', { acronym: population.acronym });
         }
     }

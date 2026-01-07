@@ -10,7 +10,7 @@ import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
 import LookManager from './looks/lookManager.js'
 import AssemblyVisualizationLook from './looks/assemblyVisualizationLook.js'
-import HeatmapLook from "./looks/heatmapLook.js"
+import PopulationLook from "./looks/populationLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
@@ -67,9 +67,9 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
     // Heatmap Look
-    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', {genomicService, geometryManager, assemblyWidget})
-    sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
-    sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
+    const populationLook = PopulationLook.createHeatmapLook('populationLook', {genomicService, geometryManager, assemblyWidget})
+    sceneManager.createScene('populationScene', rubinColors.rubinIvory)
+    sceneManager.lookManager.setLook('populationScene', populationLook);
 
     const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
     widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget);

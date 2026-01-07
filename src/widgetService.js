@@ -77,7 +77,7 @@ class WidgetService {
             if (null === this.populationWidget.selectedSuperpopulation && null === this.populationWidget.selectedPopulation){
                 app.setActiveScene('assemblyVisualizationScene', true)
             } else {
-                app.setActiveScene('heatmapScene', true)
+                app.setActiveScene('populationScene', true)
             }
 
             this.populationWidget.showCard();
