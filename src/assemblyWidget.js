@@ -1,7 +1,7 @@
 import { Draggable } from './utils/draggable.js';
 import eventBus from './utils/eventBus.js';
 import GenomicService from "./genomicService.js"
-import Look from "./look.js"
+import Look from "./looks/look.js"
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';

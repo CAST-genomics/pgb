@@ -8,9 +8,9 @@ import PopulationOnlyWidget from "./populationOnlyWidget.js"
 import WidgetService from './widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
-import LookManager from './lookManager.js'
-import AssemblyVisualizationLook from './assemblyVisualizationLook.js'
-import HeatmapLook from "./heatmapLook.js"
+import LookManager from './looks/lookManager.js'
+import AssemblyVisualizationLook from './looks/assemblyVisualizationLook.js'
+import HeatmapLook from "./looks/heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     // Check for URL parameter first (highest priority)
     const urlParameter = locusInput.getUrlParameter('locus');
     let locus = null;
-    
+
     if (urlParameter) {
         // URL parameter takes precedence over config
         locusInput.inputElement.value = urlParameter

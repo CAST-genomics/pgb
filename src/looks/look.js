@@ -1,12 +1,12 @@
 import * as THREE from 'three'
-import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
-import GeometryFactory from "./geometryFactory.js"
-import ParametricLine from "./parametricLine.js"
-import materialService, {colorRampArrowMaterialFactory} from "./materialService.js"
+import lineMaterialResolutionService from "../lineMaterialResolutionService.js"
+import GeometryFactory from "../geometryFactory.js"
+import ParametricLine from "../parametricLine.js"
+import materialService, {colorRampArrowMaterialFactory} from "../materialService.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
-import GenomicService from "./genomicService.js"
-import {getAppleCrayonColorByName} from "./utils/color/color.js"
-import {prettyPrint} from "./utils/utils.js"
+import GenomicService from "../genomicService.js"
+import {getAppleCrayonColorByName} from "../utils/color/color.js"
+import {prettyPrint} from "../utils/utils.js"
 
 class Look {
 

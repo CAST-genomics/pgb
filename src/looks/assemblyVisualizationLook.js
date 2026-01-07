@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import Look from './look.js';
-import {MATERIAL_TYPES} from './materialService.js';
-import materialService from './materialService.js';
-import GeometryFactory from "./geometryFactory.js"
-import eventBus from "./utils/eventBus.js"
-import {getAppleCrayonColorByName} from "./utils/color/color.js"
-import lineMaterialResolutionService from './lineMaterialResolutionService.js'
-import GenomicService from "./genomicService.js"
+import {MATERIAL_TYPES} from '../materialService.js';
+import materialService from '../materialService.js';
+import GeometryFactory from "../geometryFactory.js"
+import eventBus from "../utils/eventBus.js"
+import {getAppleCrayonColorByName} from "../utils/color/color.js"
+import lineMaterialResolutionService from '../lineMaterialResolutionService.js'
+import GenomicService from "../genomicService.js"
 
 class AssemblyVisualizationLook extends Look {
 

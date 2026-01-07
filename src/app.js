@@ -8,7 +8,7 @@ import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
-import Look from "./look.js"
+import Look from "./looks/look.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { pclaiCoordinateService } from "./pclaiCoordinateService.js"
 import { pcaChartService } from "./pcaChartService.js"
@@ -181,7 +181,7 @@ class App {
         this.pangenomeService.loadData(json)
 
         assemblyMetadataService.loadMetadata(json)
-        
+
         pclaiCoordinateService.loadCoordinates(json)
 
         // Initialize PCA Chart with global bounding box
@@ -400,7 +400,7 @@ class App {
         this.container.addEventListener('dragover', (e) => {
             e.preventDefault()
             e.stopPropagation()
-            
+
             // Only show visual feedback for file drops
             if (e.dataTransfer.types.includes('Files')) {
                 this.container.classList.add('drag-over')
@@ -411,7 +411,7 @@ class App {
             e.preventDefault()
             e.stopPropagation()
             dragCounter++
-            
+
             if (e.dataTransfer.types.includes('Files')) {
                 this.container.classList.add('drag-over')
             }
@@ -421,7 +421,7 @@ class App {
             e.preventDefault()
             e.stopPropagation()
             dragCounter--
-            
+
             if (dragCounter === 0) {
                 this.container.classList.remove('drag-over')
             }
@@ -457,11 +457,11 @@ class App {
             try {
                 const fileContent = await this.readFileAsText(jsonFile)
                 const json = JSON.parse(fileContent)
-                
+
                 this.stopAnimation()
                 this.clearCurrentData()
                 await this.processData(json)
-                
+
                 // Clear the locus input widget after successful file load
                 this.clearLocusInput()
             } catch (error) {
@@ -487,12 +487,12 @@ class App {
     clearLocusInput() {
         const locusInput = document.getElementById('pgb-locus-input')
         const locusError = document.getElementById('pgb-locus-error')
-        
+
         if (locusInput) {
             locusInput.value = ''
             locusInput.classList.remove('is-invalid')
         }
-        
+
         if (locusError) {
             locusError.style.display = 'none'
             locusError.textContent = ''
@@ -501,7 +501,7 @@ class App {
 
     showError(message) {
         console.error(message)
-        
+
         // Create or update error display
         let errorDiv = document.getElementById('pgb-drag-drop-error')
         if (!errorDiv) {
@@ -510,10 +510,10 @@ class App {
             errorDiv.className = 'pgb-drag-drop-error'
             document.body.appendChild(errorDiv)
         }
-        
+
         errorDiv.textContent = message
         errorDiv.classList.add('show')
-        
+
         // Auto-hide after 5 seconds
         setTimeout(() => {
             if (errorDiv) {

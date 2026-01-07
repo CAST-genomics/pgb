@@ -1,8 +1,8 @@
 import Look from "./look.js"
-import {assemblyMetadataService } from "./assemblyMetadataService.js"
-import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
-import {frequencyToColorContinuous} from "./utils/color/tufteHeatmapColors.js"
-import eventBus from "./utils/eventBus.js"
+import {assemblyMetadataService } from "../assemblyMetadataService.js"
+import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
+import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
+import eventBus from "../utils/eventBus.js"
 
 class HeatmapLook extends Look {
 
