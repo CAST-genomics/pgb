@@ -36,6 +36,7 @@ class PCAChartService {
         this.createButton();
         this.draggable = new Draggable(this.chartContainer);
         this.subscribeToNodeHover();
+        this.subscribeToDatasetLoad();
         this.referenceDataPromise = this.loadReferenceData(); // Load reference data asynchronously, store promise
 
         PCAChartService.instance = this;
@@ -181,6 +182,18 @@ class PCAChartService {
             lineIntersectionUnsub();
             clearIntersectionUnsub();
         };
+    }
+
+    /**
+     * Subscribe to dataset load events
+     */
+    subscribeToDatasetLoad() {
+        eventBus.subscribe('datasetLoaded', (data) => {
+            // Handle new dataset loaded event
+            // The chart will be reset and reinitialized by processData,
+            // but we can perform any additional cleanup or updates here if needed
+            console.log('PCAChartService: New dataset loaded event received');
+        });
     }
 
     /**

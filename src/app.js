@@ -43,23 +43,6 @@ class App {
 
         this.tooltip = this.createTooltip();
 
-        // Register click callback to handle tooltip display
-        // this.raycastService.registerClickHandler((intersection, event) => {
-        //     const str = intersection ? 'hit' : 'miss'
-        //     console.log(`raycast click handler ${str}`)
-        //
-        //     if (intersection) {
-        //         const { line:object, point } = intersection
-        //         if ('node' === object.userData?.type) {
-        //             this.showTooltip(object, point, 'node')
-        //         } else if ('edge' === object.userData?.type) {
-        //             this.showTooltip(object, point, 'edge')
-        //         }
-        //     } else {
-        //         this.hideTooltip()
-        //     }
-        // })
-
         // Register mouse over callback (stationary hover)
         this.raycastService.registerMouseOverHandler((intersection, event) => {
             if (!intersection) {
@@ -206,6 +189,9 @@ class App {
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
 
         this.startAnimation()
+
+        // Publish event indicating a new dataset has been loaded
+        eventBus.publish('datasetLoaded', { json })
     }
 
     updateViewToFitScene(scene, cameraManager, mapControl) {
