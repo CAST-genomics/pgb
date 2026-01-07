@@ -15,9 +15,13 @@ class PCAChartLook extends Look {
     }
 
     handleSelectionEvent(data, eventType) {
-        const { acronym } = data
 
+        let nodeCount = 0
         for (const nodeName of [...this.geometryManager.geometryFactory.getNodeNameSet()]){
+
+            ++nodeCount
+            continue;
+
 
             const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
             const { superpopulation } = frequency
@@ -32,6 +36,36 @@ class PCAChartLook extends Look {
 
             material.needsUpdate = true
 
+        }
+
+        console.log(`node count ${nodeCount}`)
+    }
+
+    activate() {
+        super.activate();
+
+        this.deemphasizeUnsub = eventBus.subscribe('assembly:emphasis', data => {
+            const { assembly, nodeSet, edgeSet } = data
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet);
+        });
+
+        this.restoreUnsub = eventBus.subscribe('assembly:normal', data => {
+            const { nodeSet, edgeSet } = data
+            this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
+        });
+    }
+
+    deactivate() {
+        super.deactivate();
+
+        if (this.deemphasizeUnsub) {
+            this.deemphasizeUnsub();
+            this.deemphasizeUnsub = null;
+        }
+
+        if (this.restoreUnsub) {
+            this.restoreUnsub();
+            this.restoreUnsub = null;
         }
     }
 

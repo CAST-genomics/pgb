@@ -1,4 +1,18 @@
 // PCA Chart Styles
+
+// PCA Chart Button Styles
+#pca-chart-button {
+  color: #6c757d !important;
+  border: 1px solid rgba(108, 117, 125, 0.3) !important;
+  background-color: transparent !important;
+
+  &:hover {
+    border-color: #6c757d !important;
+    color: #6c757d !important;
+    background-color: transparent !important;
+  }
+}
+
 .pca-chart__card {
   // CSS custom properties - single source of truth: surface size
   --pca-chart-surface-size: 448px;

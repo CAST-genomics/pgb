@@ -61,11 +61,11 @@ class PopulationLook extends Look {
 
         // Handle deselection events for both superpopulation and population
         this.superpopDeselectUnsub = eventBus.subscribe('superpopulation:deselected', data => {
-            console.log('Heatmap received superpopulation button deselection')
+            console.log('Population Look received superpopulation button deselection')
         });
 
         this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
-            console.log('Heatmap received population button deselection')
+            console.log('Population Look received population button deselection')
         });
 
         // Handle selection events for both superpopulation and population with shared handler

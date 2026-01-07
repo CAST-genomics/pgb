@@ -1,6 +1,7 @@
 import eventBus from './utils/eventBus.js';
 import { pclaiCoordinateService } from './pclaiCoordinateService.js';
 import { Draggable } from './utils/draggable.js';
+import {app} from "./main.js"
 
 /**
  * PCAChartService - Manages and renders PCA chart visualization
@@ -128,15 +129,6 @@ class PCAChartService {
      * Create and wire up the PCA Chart button in the navbar
      */
     createButton() {
-        // Check if button already exists
-        let button = document.getElementById('pca-chart-button');
-        if (button) {
-            // If button exists, just wire up the click handler
-            button.addEventListener('click', () => {
-                this.toggleChart();
-            });
-            return;
-        }
 
         // Find the navbar nav container where buttons are placed
         const navbarNav = document.querySelector('.navbar-nav.ms-auto');
@@ -146,13 +138,12 @@ class PCAChartService {
         }
 
         // Create the button
-        button = document.createElement('button');
+        const button = document.createElement('button');
         button.type = 'button';
         button.className = 'btn btn-outline-secondary';
         button.id = 'pca-chart-button';
         button.textContent = 'PCA Chart';
 
-        // Wire up click handler
         button.addEventListener('click', () => {
             this.toggleChart();
         });
@@ -707,7 +698,12 @@ class PCAChartService {
     toggleChart() {
         if (this.isVisible) {
             this.hideChart();
+            app.setActiveScene('assemblyVisualizationScene', true);
+            eventBus.publish('pcaChart:deselected', { acronym: population.acronym });
+
         } else {
+            app.setActiveScene('pcaChartScene', true);
+            eventBus.publish('pcaChart:selected', { acronym: population.acronym });
             this.showChart();
         }
         return this.isVisible;
