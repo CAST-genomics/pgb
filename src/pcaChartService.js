@@ -32,6 +32,7 @@ class PCAChartService {
         this.referenceDataPromise = null; // Promise for reference data loading
 
         this.createChartDOM();
+        this.createButton();
         this.draggable = new Draggable(this.chartContainer);
         this.subscribeToNodeHover();
         this.referenceDataPromise = this.loadReferenceData(); // Load reference data asynchronously, store promise
@@ -121,6 +122,48 @@ class PCAChartService {
         this.referenceDotsContainer = referenceContainer;
         this.horizontalAxis = horizontalAxis;
         this.verticalAxis = verticalAxis;
+    }
+
+    /**
+     * Create and wire up the PCA Chart button in the navbar
+     */
+    createButton() {
+        // Check if button already exists
+        let button = document.getElementById('pca-chart-button');
+        if (button) {
+            // If button exists, just wire up the click handler
+            button.addEventListener('click', () => {
+                this.toggleChart();
+            });
+            return;
+        }
+
+        // Find the navbar nav container where buttons are placed
+        const navbarNav = document.querySelector('.navbar-nav.ms-auto');
+        if (!navbarNav) {
+            console.warn('PCAChartService: Could not find navbar-nav container for button');
+            return;
+        }
+
+        // Create the button
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-outline-secondary';
+        button.id = 'pca-chart-button';
+        button.textContent = 'PCA Chart';
+
+        // Wire up click handler
+        button.addEventListener('click', () => {
+            this.toggleChart();
+        });
+
+        // Insert button before the info button (if it exists) or at the end
+        const infoButton = document.getElementById('info-button');
+        if (infoButton && infoButton.parentNode === navbarNav) {
+            navbarNav.insertBefore(button, infoButton);
+        } else {
+            navbarNav.appendChild(button);
+        }
     }
 
     /**

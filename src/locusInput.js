@@ -228,6 +228,54 @@ class LocusInput {
         return `${chr}:${prettyPrint(startBP)}-${prettyPrint(endBP)}`;
     }
 
+    /**
+     * Initialize the locus input from URL parameters and/or configuration.
+     * This handles the initial loading of locus data when the app starts.
+     * @param {Object} config - Application configuration object
+     */
+    async initializeFromConfig(config) {
+        // Check for URL parameter first (highest priority)
+        const urlParameter = this.getUrlParameter('locus');
+        let locus = null;
+
+        if (urlParameter) {
+            // URL parameter takes precedence over config
+            this.inputElement.value = urlParameter;
+            locus = this.processLocusInput(this.inputElement.value);
+            if (locus) {
+                await this.ingestLocus(locus.chr, locus.startBP, locus.endBP);
+            } else {
+                // If it's not a valid locus, try treating it as a URL or local file
+                if (this.isUrl(urlParameter)) {
+                    await this.ingestUrl(urlParameter);
+                } else if (this.isLocalFile(urlParameter)) {
+                    const normalizedPath = this.normalizeLocalFilePath(urlParameter);
+                    await this.ingestUrl(normalizedPath);
+                } else {
+                    this.showError(`Invalid locus url parameter: ${urlParameter}`);
+                }
+            }
+        } else if (config?.preload?.enabled) {
+            // Use config preload if enabled and no URL parameter
+            this.inputElement.value = config.preload.locus;
+            locus = this.processLocusInput(this.inputElement.value);
+            if (locus) {
+                await this.ingestLocus(locus.chr, locus.startBP, locus.endBP);
+            } else {
+                // If config locus is invalid, try treating it as a URL or local file
+                if (this.isUrl(config.preload.locus)) {
+                    await this.ingestUrl(config.preload.locus);
+                } else if (this.isLocalFile(config.preload.locus)) {
+                    const normalizedPath = this.normalizeLocalFilePath(config.preload.locus);
+                    await this.ingestUrl(normalizedPath);
+                } else {
+                    this.showError(`Invalid preload locus in configuration: ${config.preload.locus}`);
+                }
+            }
+        }
+        // If config.preload.enabled is false and no URL parameter, skip preloading (blank screen)
+    }
+
 }
 
 export default LocusInput;

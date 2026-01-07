@@ -89,49 +89,11 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 
-    // Wire up PCA Chart button
-    const pcaChartButton = document.getElementById('pca-chart-button');
-    if (pcaChartButton) {
-        pcaChartButton.addEventListener('click', () => {
-            pcaChartService.toggleChart();
-        });
-    }
-
     // Load application configuration
     const config = await loadConfig()
 
-    // Check for URL parameter first (highest priority)
-    const urlParameter = locusInput.getUrlParameter('locus');
-    let locus = null;
-
-    if (urlParameter) {
-        // URL parameter takes precedence over config
-        locusInput.inputElement.value = urlParameter
-        locus = locusInput.processLocusInput(locusInput.inputElement.value);
-        if (locus) {
-            await locusInput.ingestLocus(locus.chr, locus.startBP, locus.endBP);
-        } else {
-            locusInput.showError(`Invalid locus url parameter: ${urlParameter}`);
-        }
-    } else if (config.preload.enabled) {
-        // Use config preload if enabled and no URL parameter
-        locusInput.inputElement.value = config.preload.locus;
-        locus = locusInput.processLocusInput(locusInput.inputElement.value);
-        if (locus) {
-            await locusInput.ingestLocus(locus.chr, locus.startBP, locus.endBP);
-        } else {
-            // If config locus is invalid, try treating it as a URL or local file
-            if (locusInput.isUrl(config.preload.locus)) {
-                await locusInput.ingestUrl(config.preload.locus);
-            } else if (locusInput.isLocalFile(config.preload.locus)) {
-                const normalizedPath = locusInput.normalizeLocalFilePath(config.preload.locus);
-                await locusInput.ingestUrl(normalizedPath);
-            } else {
-                locusInput.showError(`Invalid preload locus in configuration: ${config.preload.locus}`);
-            }
-        }
-    }
-    // If config.preload.enabled is false and no URL parameter, skip preloading (blank screen)
+    // Initialize locus input from URL parameters and/or configuration
+    await locusInput.initializeFromConfig(config)
 
 })
 
