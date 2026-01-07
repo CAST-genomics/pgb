@@ -20,6 +20,7 @@ import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
 import {loadConfig} from "./utils/configService.js"
 import './styles/app.scss'
+import PCAChartLook from "./looks/pcaChartLook.js"
 
 let contextMenuService
 
@@ -59,20 +60,25 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     contextMenuService = new ContextMenuService(threeJSContainer, raycastService, genomicService)
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
+    const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
+    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget);
 
-    // AssemblyVisualizationLook
+    // Assembly Visualization Look
     const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
     assemblyVisualizationLook.setAnimationEnabled(false)
     sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
 
-    // Heatmap Look
-    const populationLook = PopulationLook.createHeatmapLook('populationLook', {genomicService, geometryManager, assemblyWidget})
+    // Population Look
+    const populationLook = PopulationLook.createPopulationLook('populationLook', { genomicService, geometryManager, assemblyWidget })
     sceneManager.createScene('populationScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('populationScene', populationLook);
 
-    const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
-    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget);
+    // PCA Chart Look
+    const pcaChartLook = PCAChartLook.createPCAChartLook('pcaChartLook', { genomicService, geometryManager, assemblyWidget })
+    sceneManager.createScene('pcaChartScene', rubinColors.rubinIvory)
+    sceneManager.lookManager.setLook('pcaChartScene', pcaChartLook);
+
 
     annotationRenderService = new AnnotationRenderService(document.querySelector('.pgb-gene-annotation-track-container'), genomicService, sceneManager, raycastService)
 

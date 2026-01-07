@@ -10,7 +10,7 @@ class PopulationLook extends Look {
         super(name, config)
     }
 
-    static createHeatmapLook(name, config) {
+    static createPopulationLook(name, config) {
         return new PopulationLook(name, config);
     }
 
