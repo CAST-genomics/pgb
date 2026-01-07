@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.lookManager.setLook('populationScene', populationLook);
 
     // PCA Chart Look
-    const pcaChartLook = PCAChartLook.createPCAChartLook('pcaChartLook', { genomicService, geometryManager, assemblyWidget })
+    const pcaChartLook = PCAChartLook.createPCAChartLook('pcaChartLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
     sceneManager.createScene('pcaChartScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('pcaChartScene', pcaChartLook);
 

@@ -698,12 +698,12 @@ class PCAChartService {
     toggleChart() {
         if (this.isVisible) {
             this.hideChart();
-            app.setActiveScene('assemblyVisualizationScene', true);
-            eventBus.publish('pcaChart:deselected', { acronym: population.acronym });
+            // app.setActiveScene('assemblyVisualizationScene', true);
+            // eventBus.publish('pcaChart:deselected', { acronym: population.acronym });
 
         } else {
-            app.setActiveScene('pcaChartScene', true);
-            eventBus.publish('pcaChart:selected', { acronym: population.acronym });
+            // app.setActiveScene('pcaChartScene', true);
+            // eventBus.publish('pcaChart:selected', { acronym: population.acronym });
             this.showChart();
         }
         return this.isVisible;
