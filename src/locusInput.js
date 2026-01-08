@@ -19,7 +19,7 @@ class LocusInput {
     constructor(container, sceneManager) {
         this.container = container;
         this.sceneManager = sceneManager;
-        this.version = 'v1';
+        this.version = 'v2';
         this.render();
         this.setupEventListeners();
     }
@@ -35,9 +35,7 @@ class LocusInput {
         this.goButton = this.container.querySelector(`#${ELEMENT_IDS.GO_BUTTON}`);
         this.errorDiv = this.container.querySelector(`#${ELEMENT_IDS.ERROR}`);
         this.versionDropdown = this.container.querySelector(`#${ELEMENT_IDS.VERSION_DROPDOWN}`);
-
-        // Programmatically select "Version 1" to match this.version = 'v1'
-        this.versionDropdown.value = 'v1';
+        this.versionDropdown.value = this.version;
     }
 
     setupEventListeners() {
@@ -96,7 +94,7 @@ class LocusInput {
         // Check if it's a relative path starting with / or ./ and ends with .json
         // Also allow paths without leading slash if they contain .json (for files in public/)
         // Or bare filenames ending in .json (e.g., "daz1.json")
-        return LOCAL_FILE_PATTERN.test(value) || 
+        return LOCAL_FILE_PATTERN.test(value) ||
                (value.includes('.json') && !value.includes('://')) ||
                /^[^\/\\]+\.json$/i.test(value); // Bare filename like "daz1.json"
     }
@@ -111,7 +109,7 @@ class LocusInput {
         } else if (value.startsWith('public/')) {
             value = '/' + value.replace(/^public/, '');
         }
-        
+
         // If it's a bare filename (no path separators), prepend / to make it work with Vite's public directory
         // Files in public/ are served at the root, so "daz1.json" should become "/daz1.json"
         if (/^[^\/\\]+\.json$/i.test(value)) {
@@ -195,7 +193,7 @@ class LocusInput {
 
         // Normalize Dropbox URLs to use direct download
         const normalizedUrl = this.normalizeDropboxUrl(url);
-        
+
         try {
             await this.sceneManager.handleSearch(normalizedUrl);
         } catch (error) {
