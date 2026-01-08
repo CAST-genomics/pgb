@@ -52,7 +52,7 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget- assembly')
-            app.setActiveScene('assemblyVisualizationScene', true);
+            app.setActiveScene('nodeEmphasisScene', true);
             this.assemblyWidget.showCard();
             this.setActiveButton(this.assemblyButton);
         }
@@ -75,9 +75,9 @@ class WidgetService {
             console.log('show widget - population')
 
             if (null === this.populationWidget.selectedSuperpopulation && null === this.populationWidget.selectedPopulation){
-                app.setActiveScene('assemblyVisualizationScene', true)
+                app.setActiveScene('nodeEmphasisScene', true)
             } else {
-                app.setActiveScene('populationScene', true)
+                app.setActiveScene('heatmapScene', true)
             }
 
             this.populationWidget.showCard();

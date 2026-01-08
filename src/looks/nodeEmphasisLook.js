@@ -5,7 +5,7 @@ import {MATERIAL_TYPES} from '../materialService.js';
 import materialService from '../materialService.js';
 import GeometryFactory from "../geometryFactory.js"
 
-class AssemblyVisualizationLook extends Look {
+class NodeEmphasisLook extends Look {
 
     static ANIMATION_SPEED = 0.5;
 
@@ -21,7 +21,7 @@ class AssemblyVisualizationLook extends Look {
             };
     }
 
-    static createAssemblyVisualizationLook(name, config) {
+    static createNodeEmphasisLook(name, config) {
 
         const factoryConfig =
             {
@@ -30,13 +30,13 @@ class AssemblyVisualizationLook extends Look {
                         edgeArrowAnimation:
                             {
                                 type: 'uvOffset',
-                                speed: AssemblyVisualizationLook.ANIMATION_SPEED,
+                                speed: NodeEmphasisLook.ANIMATION_SPEED,
                                 enabled: true
                             }
                     }
             };
 
-        return new AssemblyVisualizationLook(name, {...factoryConfig, ...config });
+        return new NodeEmphasisLook(name, {...factoryConfig, ...config });
     }
 
     getZOffset(objectId) {
@@ -192,4 +192,4 @@ class AssemblyVisualizationLook extends Look {
     }
 }
 
-export default AssemblyVisualizationLook;
+export default NodeEmphasisLook;

@@ -9,8 +9,8 @@ import WidgetService from './widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
 import LookManager from './looks/lookManager.js'
-import AssemblyVisualizationLook from './looks/assemblyVisualizationLook.js'
-import PopulationLook from "./looks/populationLook.js"
+import NodeEmphasisLook from './looks/nodeEmphasisLook.js'
+import HeatmapLook from "./looks/heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
@@ -61,16 +61,16 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
     widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget);
 
-    // Assembly Visualization Look
-    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
-    assemblyVisualizationLook.setAnimationEnabled(false)
-    sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
-    sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
+    // Node Emphasis Look & Scene
+    const nodeEmphasisLook = NodeEmphasisLook.createNodeEmphasisLook('nodeEmphasisLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
+    nodeEmphasisLook.setAnimationEnabled(false)
+    sceneManager.createScene('nodeEmphasisScene', rubinColors.rubinIvory)
+    sceneManager.lookManager.setLook('nodeEmphasisScene', nodeEmphasisLook);
 
-    // Population Look
-    const populationLook = PopulationLook.createPopulationLook('populationLook', { genomicService, geometryManager, assemblyWidget })
-    sceneManager.createScene('populationScene', rubinColors.rubinIvory)
-    sceneManager.lookManager.setLook('populationScene', populationLook);
+    // Heatmap Look & Scene
+    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, assemblyWidget })
+    sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
+    sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 
     annotationRenderService = new AnnotationRenderService(document.querySelector('.pgb-gene-annotation-track-container'), genomicService, sceneManager, raycastService)
 

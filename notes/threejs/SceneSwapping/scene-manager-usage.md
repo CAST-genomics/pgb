@@ -90,7 +90,7 @@ app.switchScene('analysisScene')
 
 ```javascript
 // Create a new scene with a specific look
-const newLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('analysis-look', {
+const newLook = NodeEmphasisLook.createNodeEmphasisLook('analysis-look', {
     genomicService,
     geometryManager
 })

@@ -192,7 +192,7 @@ class PCAChartService {
 
             if (true === this.isVisible){
 
-                app.setActiveScene('assemblyVisualizationScene', true)
+                app.setActiveScene('nodeEmphasisScene', true)
 
                 const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
                 const edgeSet = new Set()
@@ -726,7 +726,7 @@ class PCAChartService {
 
         } else {
 
-            app.setActiveScene('assemblyVisualizationScene', true)
+            app.setActiveScene('nodeEmphasisScene', true)
 
             const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
             const edgeSet = new Set()

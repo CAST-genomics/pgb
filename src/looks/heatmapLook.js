@@ -4,14 +4,14 @@ import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
 import eventBus from "../utils/eventBus.js"
 
-class PopulationLook extends Look {
+class HeatmapLook extends Look {
 
     constructor(name, config) {
         super(name, config)
     }
 
-    static createPopulationLook(name, config) {
-        return new PopulationLook(name, config);
+    static createHeatmapLook(name, config) {
+        return new HeatmapLook(name, config);
     }
 
     createNodeTooltipContent(nodeObject) {
@@ -110,4 +110,4 @@ class PopulationLook extends Look {
 
 }
 
-export default PopulationLook
+export default HeatmapLook

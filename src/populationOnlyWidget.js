@@ -98,7 +98,7 @@ class PopulationOnlyWidget {
             const deselectedSuperpopulation = this.selectedSuperpopulation;
             this.selectedSuperpopulation = null;
 
-            app.setActiveScene('assemblyVisualizationScene', true);
+            app.setActiveScene('nodeEmphasisScene', true);
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
         } else {
             // Clear all previous selections
@@ -110,7 +110,7 @@ class PopulationOnlyWidget {
 
             console.log(`Selected superpopulation: ${superpopulation.name}`);
 
-            app.setActiveScene('populationScene', true);
+            app.setActiveScene('heatmapScene', true);
             eventBus.publish('superpopulation:selected', { acronym: superpopulation.acronym });
         }
     }
@@ -124,7 +124,7 @@ class PopulationOnlyWidget {
             const deselectedPopulation = this.selectedPopulation;
             this.selectedPopulation = null;
 
-            app.setActiveScene('assemblyVisualizationScene', true);
+            app.setActiveScene('nodeEmphasisScene', true);
             eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
         } else {
             // Clear all previous selections
@@ -136,7 +136,7 @@ class PopulationOnlyWidget {
 
             console.log(`Selected population: ${population.name}`);
 
-            app.setActiveScene('populationScene', true);
+            app.setActiveScene('heatmapScene', true);
             eventBus.publish('population:selected', { acronym: population.acronym });
         }
     }
