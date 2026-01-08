@@ -189,10 +189,16 @@ class PCAChartService {
      */
     subscribeToDatasetLoad() {
         eventBus.subscribe('datasetLoaded', (data) => {
-            // Handle new dataset loaded event
-            // The chart will be reset and reinitialized by processData,
-            // but we can perform any additional cleanup or updates here if needed
-            console.log('PCAChartService: New dataset loaded event received');
+
+            if (true === this.isVisible){
+
+                app.setActiveScene('assemblyVisualizationScene', true)
+
+                const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
+                const edgeSet = new Set()
+                eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
+
+            }
         });
     }
 
@@ -720,12 +726,10 @@ class PCAChartService {
 
         } else {
 
-            // app.setActiveScene('pcaChartScene', true)
             app.setActiveScene('assemblyVisualizationScene', true)
 
             const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
             const edgeSet = new Set()
-
             eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
 
             this.showChart()
