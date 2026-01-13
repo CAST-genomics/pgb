@@ -4,6 +4,7 @@ import eventBus from "../utils/eventBus.js"
 import {MATERIAL_TYPES} from '../materialService.js';
 import materialService from '../materialService.js';
 import GeometryFactory from "../geometryFactory.js"
+import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
 class NodeEmphasisLook extends Look {
 
@@ -144,7 +145,9 @@ class NodeEmphasisLook extends Look {
 
         this.deemphasizePCAChartUnsub = eventBus.subscribe('pcaChart:emphasis', data => {
             const { assembly, nodeSet, edgeSet } = data
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, Look.DEFAULT_NODE_COLOR);
+
+            const color = (0 === pclaiCoordinateService.aveRgb.size) ? Look.DEFAULT_NODE_COLOR : pclaiCoordinateService.aveRgb
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color);
         });
 
         this.restorePCAChartUnsub = eventBus.subscribe('pcaChart:normal', data => {

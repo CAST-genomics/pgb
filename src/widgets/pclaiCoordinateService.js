@@ -42,13 +42,8 @@ class PCLACoordinateService {
                 const [r, g, b] = pclaiAveRgb;
                 // Validate RGB values are valid numbers
                 if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
-                    // Convert RGB array to Three.js Color object
-                    // Three.js Color expects RGB values in range 0-1, so normalize from 0-255
                     const color = new THREE.Color(r / 255, g / 255, b / 255);
-                    this.aveRgb.set(nodeId, {
-                        rgb: [r, g, b],
-                        color: color
-                    });
+                    this.aveRgb.set(nodeId, color);
                 }
             }
 

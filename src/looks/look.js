@@ -223,8 +223,25 @@ class Look {
 
         console.log(`getNodeEmphasisMaterial. Key = ${ cacheKey }`)
 
+        // Disambiguate between a single color and a Map object
+        let colorToUse;
+        if (nodeColor instanceof Map) {
+            // If nodeColor is a Map, retrieve the color using nodeName as the key
+            const color = nodeColor.get(nodeName);
+            if (color) {
+                // Clone the THREE.Color object to prevent external modification
+                colorToUse = color.clone();
+            } else {
+                // Fallback to default emphasis color if node not found in map
+                colorToUse = Look.NODE_EMPHASIS_COLOR;
+            }
+        } else {
+            // Use the single color directly
+            colorToUse = nodeColor;
+        }
+
         // color: Look.NODE_EMPHASIS_COLOR
-        const material = new LineMaterial({ nodeColor, linewidth: Look.NODE_LINE_WIDTH, worldUnits: true, opacity: 1, transparent: true });
+        const material = new LineMaterial({ color: colorToUse, linewidth: Look.NODE_LINE_WIDTH, worldUnits: true, opacity: 1, transparent: true });
 
         // Register with resolution service for automatic resolution updates
         lineMaterialResolutionService.registerMaterial(material);
