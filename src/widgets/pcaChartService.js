@@ -1,7 +1,7 @@
-import eventBus from './utils/eventBus.js';
+import eventBus from '../utils/eventBus.js';
 import { pclaiCoordinateService } from './pclaiCoordinateService.js';
-import { Draggable } from './utils/draggable.js';
-import {app} from "./main.js"
+import { Draggable } from '../utils/draggable.js';
+import {app} from "../main.js"
 
 /**
  * PCAChartService - Manages and renders PCA chart visualization

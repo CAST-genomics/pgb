@@ -1,7 +1,7 @@
-import { Draggable } from './utils/draggable.js';
-import eventBus from './utils/eventBus.js';
-import { getHierarchicalPopulationStructureFromData } from './utils/populationUtils.js';
-import {app} from "./main.js"
+import { Draggable } from '../utils/draggable.js';
+import eventBus from '../utils/eventBus.js';
+import { getHierarchicalPopulationStructureFromData } from '../utils/populationUtils.js';
+import {app} from "../main.js"
 
 class PopulationWidget {
     constructor(populationWidgetContainer, jsonData = null) {

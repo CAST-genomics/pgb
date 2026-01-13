@@ -3,9 +3,9 @@ import RayCastService from './raycastService.js'
 import LocusInput from './locusInput.js'
 import GenomicService from './genomicService.js'
 import GeometryManager from './geometryManager.js'
-import AssemblyWidget from './assemblyWidget.js'
-import PopulationOnlyWidget from "./populationOnlyWidget.js"
-import WidgetService from './widgetService.js'
+import AssemblyWidget from './widgets/assemblyWidget.js'
+import PopulationOnlyWidget from "./widgets/populationOnlyWidget.js"
+import WidgetService from './widgets/widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
 import LookManager from './looks/lookManager.js'
@@ -17,7 +17,7 @@ import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
-import {loadConfig} from "./utils/configService.js"
+import {loadConfig} from "./configService.js"
 import './styles/app.scss'
 
 let contextMenuService

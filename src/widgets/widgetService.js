@@ -1,4 +1,4 @@
-import { app } from "./main.js"
+import { app } from "../main.js"
 
 class WidgetService {
     constructor(containerElement, assemblyWidget, populationWidget) {

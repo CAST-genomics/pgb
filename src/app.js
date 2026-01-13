@@ -10,8 +10,8 @@ import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
 import Look from "./looks/look.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
-import { pclaiCoordinateService } from "./pclaiCoordinateService.js"
-import { pcaChartService } from "./pcaChartService.js"
+import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
+import { pcaChartService } from "./widgets/pcaChartService.js"
 
 let xxPre = undefined
 let yyPre = undefined
