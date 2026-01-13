@@ -1,9 +1,12 @@
 /**
  * PCLACoordinateService - Manages and provides access to PCA local ancestry inference (PCLAI) coordinates
  * for genomic nodes. Processes pclai_coordinates property from JSON data, calculates bounding box statistics,
- * and converts RGB values to HTML-compatible color strings.
+ * and converts RGB values to HTML-compatible color strings. Also processes pclai_ave_rgb property which contains
+ * the average RGB values from associated PCLAI coordinates.
  * Implemented as a singleton to ensure single instance across the application.
  */
+import * as THREE from 'three';
+
 class PCLACoordinateService {
     constructor() {
         if (PCLACoordinateService.instance) {
@@ -11,6 +14,7 @@ class PCLACoordinateService {
         }
 
         this.coordinates = new Map(); // nodeId -> Map<assemblyKey, coordinateData>
+        this.aveRgb = new Map(); // nodeId -> {rgb: [r, g, b], color: THREE.Color}
         this.boundingBox = null; // { x: {min, max, centroid}, y: {min, max, centroid} }
 
         PCLACoordinateService.instance = this;
@@ -22,6 +26,7 @@ class PCLACoordinateService {
      */
     loadCoordinates(jsonData) {
         this.coordinates.clear();
+        this.aveRgb.clear();
         this.boundingBox = null;
 
         const allXCoords = [];
@@ -30,6 +35,22 @@ class PCLACoordinateService {
 
         for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
             const pclaiCoords = nodeData.pclai_coordinates;
+            const pclaiAveRgb = nodeData.pclai_ave_rgb;
+
+            // Process pclai_ave_rgb if present
+            if (Array.isArray(pclaiAveRgb) && pclaiAveRgb.length === 3) {
+                const [r, g, b] = pclaiAveRgb;
+                // Validate RGB values are valid numbers
+                if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
+                    // Convert RGB array to Three.js Color object
+                    // Three.js Color expects RGB values in range 0-1, so normalize from 0-255
+                    const color = new THREE.Color(r / 255, g / 255, b / 255);
+                    this.aveRgb.set(nodeId, {
+                        rgb: [r, g, b],
+                        color: color
+                    });
+                }
+            }
 
             // Skip nodes with null, undefined, or empty pclai_coordinates
             if (!pclaiCoords || typeof pclaiCoords !== 'object' || Object.keys(pclaiCoords).length === 0) {
@@ -194,10 +215,48 @@ class PCLACoordinateService {
     }
 
     /**
+     * Get the average RGB color as a Three.js Color object for a specific node
+     * @param {string} nodeId - The node identifier (e.g., "5504+")
+     * @returns {THREE.Color|null} Three.js Color object, or null if not found
+     */
+    getAveRgbColor(nodeId) {
+        const aveRgbData = this.aveRgb.get(nodeId);
+        if (!aveRgbData) {
+            return null;
+        }
+        // Return a clone to prevent external modification
+        return aveRgbData.color.clone();
+    }
+
+    /**
+     * Get the average RGB array for a specific node
+     * @param {string} nodeId - The node identifier (e.g., "5504+")
+     * @returns {number[]|null} RGB array [r, g, b], or null if not found
+     */
+    getAveRgbArrayForNode(nodeId) {
+        const aveRgbData = this.aveRgb.get(nodeId);
+        if (!aveRgbData) {
+            return null;
+        }
+        // Return a copy to prevent external modification
+        return [...aveRgbData.rgb];
+    }
+
+    /**
+     * Check if a node has average RGB data
+     * @param {string} nodeId - The node identifier
+     * @returns {boolean} True if node has average RGB data, false otherwise
+     */
+    hasAveRgb(nodeId) {
+        return this.aveRgb.has(nodeId);
+    }
+
+    /**
      * Clear all stored coordinate data
      */
     clear() {
         this.coordinates.clear();
+        this.aveRgb.clear();
         this.boundingBox = null;
     }
 
