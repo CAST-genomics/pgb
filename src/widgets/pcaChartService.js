@@ -31,6 +31,7 @@ class PCAChartService {
         this.draggable = null;
         this.referenceData = []; // Array of {x: number, y: number, color: string} for reference PCA data
         this.referenceDataPromise = null; // Promise for reference data loading
+        this.button = null; // Reference to the PCA Chart button
 
         this.createChartDOM();
         this.createButton();
@@ -144,10 +145,14 @@ class PCAChartService {
         button.className = 'btn btn-outline-secondary';
         button.id = 'pca-chart-button';
         button.textContent = 'PCA Chart';
+        button.disabled = true; // Initially disabled until dataset with PCLAI data is loaded
 
         button.addEventListener('click', () => {
             this.toggleChart();
         });
+
+        // Store button reference
+        this.button = button;
 
         // Insert button before the info button (if it exists) or at the end
         const infoButton = document.getElementById('info-button');
@@ -189,17 +194,39 @@ class PCAChartService {
      */
     subscribeToDatasetLoad() {
         eventBus.subscribe('datasetLoaded', (data) => {
+            // Update button state based on whether PCLAI data is available
+            this.updateButtonState();
 
-            if (true === this.isVisible){
-
-                app.setActiveScene('nodeEmphasisScene', true)
-
-                const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
-                const edgeSet = new Set()
-                eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
-
+            // If chart is visible but new dataset doesn't have PCLAI data, hide the chart
+            if (this.isVisible && !pclaiCoordinateService.hasPCLAIData()) {
+                this.hideChart();
+                const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet();
+                const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet();
+                eventBus.publish('pcaChart:normal', { nodeSet, edgeSet });
+            } else if (this.isVisible && pclaiCoordinateService.hasPCLAIData()) {
+                // Chart is visible and new dataset has PCLAI data, update emphasis
+                app.setActiveScene('nodeEmphasisScene', true);
+                const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds());
+                const edgeSet = new Set();
+                eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet });
             }
         });
+    }
+
+    /**
+     * Update button enabled/disabled state based on PCLAI data availability
+     */
+    updateButtonState() {
+        if (this.button) {
+            const hasData = pclaiCoordinateService.hasPCLAIData();
+            this.button.disabled = !hasData;
+            if (!hasData) {
+                // If button is disabled and chart is visible, hide the chart
+                if (this.isVisible) {
+                    this.hideChart();
+                }
+            }
+        }
     }
 
     /**
@@ -715,6 +742,11 @@ class PCAChartService {
      * @returns {boolean} New visibility state
      */
     toggleChart() {
+        // Safety check: don't toggle if no PCLAI data is available
+        if (!pclaiCoordinateService.hasPCLAIData()) {
+            console.warn('PCAChartService: Cannot toggle chart - no PCLAI data available');
+            return this.isVisible;
+        }
 
         if (this.isVisible) {
 

@@ -247,6 +247,14 @@ class PCLACoordinateService {
     }
 
     /**
+     * Check if the dataset contains any PCLAI coordinate data
+     * @returns {boolean} True if any nodes have PCLAI coordinates loaded, false otherwise
+     */
+    hasPCLAIData() {
+        return this.coordinates.size > 0;
+    }
+
+    /**
      * Clear all stored coordinate data
      */
     clear() {
