@@ -14,7 +14,7 @@ class PCLACoordinateService {
         }
 
         this.coordinates = new Map(); // nodeId -> Map<assemblyKey, coordinateData>
-        this.assemblyIndex = new Map(); // assemblyKey -> Map<nodeId, coordinateData> - inverse index for O(1) lookup
+        this.assemblyIndex = new Map(); // assemblyKey -> coordinateData
         this.aveRgb = new Map(); // nodeId -> {rgb: [r, g, b], color: THREE.Color}
         this.boundingBox = null; // { x: {min, max, centroid}, y: {min, max, centroid} }
 
@@ -63,43 +63,24 @@ class PCLACoordinateService {
                     continue;
                 }
 
-                const coords = assemblyData.coordinates;
-                const rgb = assemblyData.RGB;
+                const {coordinates, RGB} = assemblyData;
 
-                // Validate coordinates array has exactly 2 elements [x, y]
-                if (!Array.isArray(coords) || coords.length !== 2) {
+                if (!Array.isArray(coordinates) || coordinates.length !== 2 || !Array.isArray(RGB) || RGB.length !== 3) {
                     continue;
                 }
 
-                // Validate RGB array has exactly 3 elements [r, g, b]
-                if (!Array.isArray(rgb) || rgb.length !== 3) {
-                    continue;
-                }
-
-                // Ensure all RGB values are valid numbers
-                const [r, g, b] = rgb;
-                if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) {
-                    continue;
-                }
-
-                // Ensure all coordinate values are valid numbers
-                const [x, y] = coords;
-                if (!Number.isFinite(x) || !Number.isFinite(y)) {
-                    continue;
-                }
-
+                const [r, g, b] = RGB;
                 const rgbThreeJS = new THREE.Color(r / 255, g / 255, b / 255);
                 const rgbString = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 
-                const coordinateData = { coordinates: [x, y], rgbThreeJS, rgbString, assemblyKey };
+                const [x, y] = coordinates;
+                const coordinateData = { coordinates: [x, y], rgbThreeJS, rgbString };
                 nodeCoordinates.set(assemblyKey, coordinateData);
 
-                // Build inverse index: assemblyKey -> Map<nodeId, coordinateData>
                 if (!this.assemblyIndex.has(assemblyKey)) {
-                    this.assemblyIndex.set(assemblyKey, new Map());
+                    this.assemblyIndex.set(assemblyKey, coordinateData);
                 }
-                this.assemblyIndex.get(assemblyKey).set(nodeId, coordinateData);
-
+                
                 // Collect coordinates for bounding box calculation
                 allXCoords.push(x);
                 allYCoords.push(y);
@@ -190,12 +171,12 @@ class PCLACoordinateService {
      * Uses inverse index for O(1) lookup performance
      */
     getDataForAssembly(assemblyKey) {
-        const assemblyDataMap = this.assemblyIndex.get(assemblyKey);
-        if (!assemblyDataMap) {
-            return new Map();
+        const assemblyData = this.assemblyIndex.get(assemblyKey);
+        if (!assemblyData) {
+            return null;
         }
         
-        return assemblyDataMap;
+        return { ...assemblyData };
     }
 
     /**
