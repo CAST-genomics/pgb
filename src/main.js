@@ -5,6 +5,7 @@ import GenomicService from './genomicService.js'
 import GeometryManager from './geometryManager.js'
 import AssemblyWidget from './widgets/assemblyWidget.js'
 import PopulationOnlyWidget from "./widgets/populationOnlyWidget.js"
+import PCAWidget from './widgets/pcaWidget.js'
 import WidgetService from './widgets/widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import materialService from './materialService.js'
@@ -59,7 +60,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
     const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
-    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget);
+    const pcaWidget = new PCAWidget(document.getElementById('pgb-pca-card'), genomicService, geometryManager);
+    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget, pcaWidget);
 
     // Node Emphasis Look & Scene
     const nodeEmphasisLook = NodeEmphasisLook.createNodeEmphasisLook('nodeEmphasisLook', { genomicService, geometryManager, sceneManager, assemblyWidget })

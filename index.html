@@ -85,6 +85,34 @@
       </div>
     </div>
 
+    <div id="pgb-pca-card" class="pca-widget__card card position-absolute" style="display: none;">
+      <div class="card-header">
+        <h5 class="card-title mb-0">PCA</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="p-3 border-bottom">
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control" id="pca-search" placeholder="Search assemblies..." aria-label="Search assemblies">
+          </div>
+        </div>
+        <div class="assembly-widget__list-container">
+          <div class="list-group list-group-flush">
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="d-flex align-items-center gap-3">
+          <div class="form-check form-switch assembly-widget__switch">
+            <input class="form-check-input form-check-input-lg" type="checkbox" role="switch">
+          </div>
+          <span id="emphasis-mode-label" class="assembly-widget__mode-label">Subgraph</span>
+        </div>
+      </div>
+    </div>
+
 
     <div class="h-100 w-100">
       <div class="w-100 pgb-gene-annotation-track-container">

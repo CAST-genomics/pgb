@@ -1,14 +1,16 @@
 import { app } from "../main.js"
 
 class WidgetService {
-    constructor(containerElement, assemblyWidget, populationWidget) {
+    constructor(containerElement, assemblyWidget, populationWidget, pcaWidget) {
 
         this.containerElement = containerElement;
         this.assemblyWidget = assemblyWidget;
         this.populationWidget = populationWidget;
+        this.pcaWidget = pcaWidget;
 
         this.assemblyButton = null;
         this.populationButton = null;
+        this.pcaButton = null;
 
         this.activeButton = null
 
@@ -36,6 +38,13 @@ class WidgetService {
         this.populationButton.innerHTML = 'Population';
         this.populationButton.addEventListener('click', this.onPopulationButtonClick.bind(this));
 
+        this.pcaButton = document.createElement('button');
+        buttonContainer.appendChild(this.pcaButton);
+
+        this.pcaButton.className = 'widget-service__button';
+        this.pcaButton.textContent = 'PCA';
+        this.pcaButton.addEventListener('click', this.onPCAButtonClick.bind(this));
+
     }
 
     onAssemblyButtonClick(event) {
@@ -45,6 +54,8 @@ class WidgetService {
         // Hide and reset other widgets when switching to assembly
         this.populationWidget.hideCard();
         this.populationWidget.reset();
+        this.pcaWidget.hideCard();
+        this.pcaWidget.reset();
 
         if (this.activeButton === this.assemblyButton) {
             console.log('hide widget - assembly')
@@ -66,6 +77,8 @@ class WidgetService {
         // Hide and reset other widgets when switching to population
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
+        this.pcaWidget.hideCard();
+        this.pcaWidget.reset();
 
         if (this.activeButton === this.populationButton) {
             console.log('hide widget - population')
@@ -82,6 +95,30 @@ class WidgetService {
 
             this.populationWidget.showCard();
             this.setActiveButton(this.populationButton);
+        }
+
+    }
+
+    onPCAButtonClick(event) {
+
+        event.stopPropagation();
+
+        // Hide and reset other widgets when switching to PCA
+        this.assemblyWidget.hideCard();
+        this.assemblyWidget.reset();
+        this.populationWidget.hideCard();
+        this.populationWidget.reset();
+
+        if (this.activeButton === this.pcaButton) {
+            console.log('hide widget - PCA')
+            this.pcaWidget.hideCard();
+            this.setActiveButton(null);
+        } else {
+            console.log('show widget - PCA')
+            app.setActiveScene('nodeEmphasisScene', true);
+            this.pcaWidget.configure();
+            this.pcaWidget.showCard();
+            this.setActiveButton(this.pcaButton);
         }
 
     }
@@ -118,6 +155,9 @@ class WidgetService {
 
         this.populationWidget.hideCard()
         this.populationWidget.reset()
+
+        this.pcaWidget.hideCard()
+        this.pcaWidget.configure()
     }
 
     destroy() {
@@ -126,6 +166,9 @@ class WidgetService {
         }
         if (this.populationButton) {
             this.populationButton.removeEventListener('click', this.onPopulationButtonClick.bind(this));
+        }
+        if (this.pcaButton) {
+            this.pcaButton.removeEventListener('click', this.onPCAButtonClick.bind(this));
         }
         this.activeButton = null;
     }
