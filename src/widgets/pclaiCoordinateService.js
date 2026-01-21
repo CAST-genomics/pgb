@@ -14,6 +14,7 @@ class PCLACoordinateService {
         }
 
         this.coordinates = new Map(); // nodeId -> Map<assemblyKey, coordinateData>
+        this.assemblyIndex = new Map(); // assemblyKey -> Map<nodeId, coordinateData> - inverse index for O(1) lookup
         this.aveRgb = new Map(); // nodeId -> {rgb: [r, g, b], color: THREE.Color}
         this.boundingBox = null; // { x: {min, max, centroid}, y: {min, max, centroid} }
 
@@ -26,6 +27,7 @@ class PCLACoordinateService {
      */
     loadCoordinates(jsonData) {
         this.coordinates.clear();
+        this.assemblyIndex.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
 
@@ -86,15 +88,17 @@ class PCLACoordinateService {
                     continue;
                 }
 
-                // Convert RGB array to HTML color string
-                const color = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+                const rgbThreeJS = new THREE.Color(r / 255, g / 255, b / 255);
+                const rgbString = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 
-                // Store processed data
-                nodeCoordinates.set(assemblyKey, {
-                    coordinates: [x, y],
-                    color: color,
-                    assemblyKey: assemblyKey
-                });
+                const coordinateData = { coordinates: [x, y], rgbThreeJS, rgbString, assemblyKey };
+                nodeCoordinates.set(assemblyKey, coordinateData);
+
+                // Build inverse index: assemblyKey -> Map<nodeId, coordinateData>
+                if (!this.assemblyIndex.has(assemblyKey)) {
+                    this.assemblyIndex.set(assemblyKey, new Map());
+                }
+                this.assemblyIndex.get(assemblyKey).set(nodeId, coordinateData);
 
                 // Collect coordinates for bounding box calculation
                 allXCoords.push(x);
@@ -103,6 +107,7 @@ class PCLACoordinateService {
 
             // Only store node if it has at least one valid coordinate entry
             if (nodeCoordinates.size > 0) {
+                console.log(`node ${ nodeId } assembly keys: ${ Array.from(nodeCoordinates.keys()).join(', ') }`)
                 this.coordinates.set(nodeId, nodeCoordinates);
                 nodesProcessed++;
             }
@@ -175,6 +180,22 @@ class PCLACoordinateService {
      */
     getCoordinates(nodeId) {
         return this.getCoordinatesForNode(nodeId);
+    }
+
+    /**
+     * Get all data associated with a specific assembly key across all nodes
+     * @param {string} assemblyKey - The assembly key (e.g., "HG00097#1")
+     * @returns {Map<string, Object>} Map of nodeId -> {coordinates: [x, y], rgbThreeJS, rgbString, assemblyKey}
+     * Returns an empty Map if no data found for the assembly key
+     * Uses inverse index for O(1) lookup performance
+     */
+    getDataForAssembly(assemblyKey) {
+        const assemblyDataMap = this.assemblyIndex.get(assemblyKey);
+        if (!assemblyDataMap) {
+            return new Map();
+        }
+        
+        return assemblyDataMap;
     }
 
     /**
@@ -259,6 +280,7 @@ class PCLACoordinateService {
      */
     clear() {
         this.coordinates.clear();
+        this.assemblyIndex.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
     }

@@ -628,14 +628,11 @@ class PCAChartService {
         // Render dataset dots (reference dots are rendered separately and independently)
         for (const [assemblyKey, assemblyData] of coordinatesMap) {
             const [x, y] = assemblyData.coordinates;
-            const color = assemblyData.color;
 
             // Scale coordinates to fit within available pixel space
             // Map data coordinates [minX, maxX] -> [padding, surfaceWidth - padding]
-            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range *
-                          globalBoundingBox.availableWidth + this.chartPadding;
-            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range *
-                          globalBoundingBox.availableHeight + this.chartPadding;
+            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range * globalBoundingBox.availableWidth + this.chartPadding;
+            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range * globalBoundingBox.availableHeight + this.chartPadding;
 
             // Clamp values to chart bounds
             const clampedX = Math.max(halfDotSize, Math.min(scaledX, globalBoundingBox.surfaceWidth - halfDotSize));
@@ -649,7 +646,7 @@ class PCAChartService {
             dot.style.top = `${clampedY - halfDotSize}px`;
             dot.style.width = `${dotSizePx}px`;
             dot.style.height = `${dotSizePx}px`;
-            dot.style.backgroundColor = color;
+            dot.style.backgroundColor = assemblyData.rgbString;
             dot.style.borderRadius = '50%';
             dot.style.border = '1px solid transparent';
 
