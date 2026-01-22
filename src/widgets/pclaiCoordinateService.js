@@ -152,6 +152,28 @@ class PCLACoordinateService {
     }
 
     /**
+     * Get a map of node IDs to Three.js Color objects for a specific coordinate key
+     * Returns a map where each node that has the given coordinate key is mapped to its corresponding Three.js Color.
+     * @param {string} coordinateKey - The coordinate key (e.g., "HG00097#1")
+     * @returns {Map<string, THREE.Color>} Map of nodeId -> THREE.Color for nodes that have the coordinate key
+     */
+    getNodeColorMapForCoordinateKey(coordinateKey) {
+        const nodeColorMap = new Map();
+        
+        // Iterate through all nodes that have PCLAI coordinates
+        for (const [nodeId, nodeCoords] of this.coordinates.entries()) {
+            // Check if this node has the requested coordinate key
+            const coordinateData = nodeCoords.get(coordinateKey);
+            if (coordinateData) {
+                // Clone the Three.js Color to prevent external modification
+                nodeColorMap.set(nodeId, coordinateData.rgbThreeJS.clone());
+            }
+        }
+        
+        return nodeColorMap;
+    }
+
+    /**
      * Get all node IDs that have PCLAI coordinates
      * Returns a list of node IDs that are guaranteed to have PCLAI coordinate data.
      * Any node ID in this list will have non-null data when retrieving coordinate information.
