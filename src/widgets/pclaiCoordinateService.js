@@ -13,10 +13,10 @@ class PCLACoordinateService {
             return PCLACoordinateService.instance;
         }
 
-        this.coordinates = new Map(); // nodeId -> Map<assemblyKey, coordinateData>
-        this.assemblyIndex = new Map(); // assemblyKey -> coordinateData
+        this.coordinates = new Map(); // nodeId -> Map<coordnateKey, coordinateData>
         this.aveRgb = new Map(); // nodeId -> {rgb: [r, g, b], color: THREE.Color}
         this.boundingBox = null; // { x: {min, max, centroid}, y: {min, max, centroid} }
+        this.coordinateKeyRgbMap = new Map(); // coordinateKey -> {rgbString: string, rgbThreeJS: THREE.Color}
 
         PCLACoordinateService.instance = this;
     }
@@ -27,21 +27,96 @@ class PCLACoordinateService {
      */
     loadCoordinates(jsonData) {
         this.coordinates.clear();
-        this.assemblyIndex.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
+        this.coordinateKeyRgbMap.clear();
 
         const allXCoords = [];
         const allYCoords = [];
         let nodesProcessed = 0;
 
+        // First pass: collect all RGB values for each coordinate key to find the most representative value
+        const coordinateKeyRgbCollection = new Map(); // coordinateKey -> Map<roundedRGBString, {count, originalRGB}>
+
+        // First pass: collect RGB values for each coordinate key
         for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
-            const pclaiCoords = nodeData.pclai_coordinates;
-            const pclaiAveRgb = nodeData.pclai_ave_rgb;
+            const { pclai_coordinates } = nodeData;
+
+            // Skip nodes with null, undefined, or empty pclai_coordinates
+            if (!pclai_coordinates || typeof pclai_coordinates !== 'object' || Object.keys(pclai_coordinates).length === 0) {
+                continue;
+            }
+
+            // Collect RGB values for each coordinate key
+            for (const [coordinateKey, {RGB}] of Object.entries(pclai_coordinates)) {
+                if (!Array.isArray(RGB) || RGB.length !== 3) {
+                    continue;
+                }
+
+                const [r, g, b] = RGB;
+                // Validate RGB values are valid numbers
+                if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) {
+                    continue;
+                }
+
+                // Round to integers for grouping similar values
+                const roundedR = Math.round(r);
+                const roundedG = Math.round(g);
+                const roundedB = Math.round(b);
+                const roundedRGBString = `${roundedR},${roundedG},${roundedB}`;
+
+                if (!coordinateKeyRgbCollection.has(coordinateKey)) {
+                    coordinateKeyRgbCollection.set(coordinateKey, new Map());
+                }
+
+                const rgbMap = coordinateKeyRgbCollection.get(coordinateKey);
+                if (!rgbMap.has(roundedRGBString)) {
+                    rgbMap.set(roundedRGBString, {
+                        count: 0,
+                        rgbSum: [0, 0, 0] // Sum of RGB values for averaging
+                    });
+                }
+                const entry = rgbMap.get(roundedRGBString);
+                entry.count++;
+                entry.rgbSum[0] += r;
+                entry.rgbSum[1] += g;
+                entry.rgbSum[2] += b;
+            }
+        }
+
+        // Determine the most representative RGB value for each coordinate key (most common rounded value)
+        // Use the average RGB within the most common rounded group
+        for (const [coordinateKey, rgbMap] of coordinateKeyRgbCollection.entries()) {
+            let maxCount = 0;
+            let mostRepresentativeRGB = null;
+
+            for (const [roundedRGBString, {count, rgbSum}] of rgbMap.entries()) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    // Calculate average RGB for this group
+                    mostRepresentativeRGB = [
+                        rgbSum[0] / count,
+                        rgbSum[1] / count,
+                        rgbSum[2] / count
+                    ];
+                }
+            }
+
+            if (mostRepresentativeRGB) {
+                const [r, g, b] = mostRepresentativeRGB;
+                const rgbThreeJS = new THREE.Color(r / 255, g / 255, b / 255);
+                const rgbString = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+                this.coordinateKeyRgbMap.set(coordinateKey, { rgbString, rgbThreeJS });
+            }
+        }
+
+        // Second pass: process coordinates and store node data
+        for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
+            const { pclai_coordinates, pclai_ave_rgb } = nodeData;
 
             // Process pclai_ave_rgb if present
-            if (Array.isArray(pclaiAveRgb) && pclaiAveRgb.length === 3) {
-                const [r, g, b] = pclaiAveRgb;
+            if (Array.isArray(pclai_ave_rgb) && pclai_ave_rgb.length === 3) {
+                const [r, g, b] = pclai_ave_rgb;
                 // Validate RGB values are valid numbers
                 if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
                     const color = new THREE.Color(r / 255, g / 255, b / 255);
@@ -50,20 +125,14 @@ class PCLACoordinateService {
             }
 
             // Skip nodes with null, undefined, or empty pclai_coordinates
-            if (!pclaiCoords || typeof pclaiCoords !== 'object' || Object.keys(pclaiCoords).length === 0) {
+            if (!pclai_coordinates || typeof pclai_coordinates !== 'object' || Object.keys(pclai_coordinates).length === 0) {
                 continue;
             }
 
-            const nodeCoordinates = new Map();
+            const nodeCoordData = new Map();
 
-            // Process each assembly entry in pclai_coordinates
-            for (const [assemblyKey, assemblyData] of Object.entries(pclaiCoords)) {
-                // Skip entries with missing or invalid data
-                if (!assemblyData || typeof assemblyData !== 'object') {
-                    continue;
-                }
-
-                const {coordinates, RGB} = assemblyData;
+            // Process each entry in pclai_coordinates
+            for (const [coordinateKey, {coordinates, RGB}] of Object.entries(pclai_coordinates)) {
 
                 if (!Array.isArray(coordinates) || coordinates.length !== 2 || !Array.isArray(RGB) || RGB.length !== 3) {
                     continue;
@@ -73,23 +142,19 @@ class PCLACoordinateService {
                 const rgbThreeJS = new THREE.Color(r / 255, g / 255, b / 255);
                 const rgbString = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 
-                const [x, y] = coordinates;
-                const coordinateData = { coordinates: [x, y], rgbThreeJS, rgbString };
-                nodeCoordinates.set(assemblyKey, coordinateData);
+                const coordinateData = { coordinates, rgbThreeJS, rgbString };
+                nodeCoordData.set(coordinateKey, coordinateData);
 
-                if (!this.assemblyIndex.has(assemblyKey)) {
-                    this.assemblyIndex.set(assemblyKey, coordinateData);
-                }
-                
                 // Collect coordinates for bounding box calculation
+                const [x, y] = coordinates;
                 allXCoords.push(x);
                 allYCoords.push(y);
             }
 
             // Only store node if it has at least one valid coordinate entry
-            if (nodeCoordinates.size > 0) {
-                console.log(`node ${ nodeId } assembly keys: ${ Array.from(nodeCoordinates.keys()).join(', ') }`)
-                this.coordinates.set(nodeId, nodeCoordinates);
+            if (nodeCoordData.size > 0) {
+                console.log(`node ${ nodeId } assembly keys: ${ Array.from(nodeCoordData.keys()).join(', ') }`)
+                this.coordinates.set(nodeId, nodeCoordData);
                 nodesProcessed++;
             }
         }
@@ -116,6 +181,7 @@ class PCLACoordinateService {
         }
 
         console.log(`PCLACoordinateService: Loaded coordinates for ${nodesProcessed} nodes`);
+        console.log(`PCLACoordinateService: Built RGB map for ${this.coordinateKeyRgbMap.size} coordinate keys`);
         if (this.boundingBox) {
             console.log(`PCLACoordinateService: Bounding box - x: [${this.boundingBox.x.min.toFixed(3)}, ${this.boundingBox.x.max.toFixed(3)}], y: [${this.boundingBox.y.min.toFixed(3)}, ${this.boundingBox.y.max.toFixed(3)}]`);
         }
@@ -124,7 +190,7 @@ class PCLACoordinateService {
     /**
      * Get all assemblies with their coordinates and colors for a specific node
      * @param {string} nodeId - The node identifier (e.g., "5504+")
-     * @returns {Map<string, Object>|null} Map of assemblyKey -> {coordinates: [x, y], color: "rgb(r, g, b)", assemblyKey}, or null if node not found
+     * @returns {Map<string, Object>|null} Map of coordnateKey -> {coordinates: [x, y], color: "rgb(r, g, b)", coordnateKey}, or null if node not found
      */
     getCoordinatesForNode(nodeId) {
         const nodeCoords = this.coordinates.get(nodeId);
@@ -136,56 +202,44 @@ class PCLACoordinateService {
     }
 
     /**
-     * Get coordinates and color for a specific node and assembly
-     * @param {string} nodeId - The node identifier (e.g., "5504+")
-     * @param {string} assemblyKey - The assembly key (e.g., "HG00097#1")
-     * @returns {Object|null} Object with {coordinates: [x, y], color: "rgb(r, g, b)", assemblyKey}, or null if not found
+     * Get the RGB color (both string and Three.js Color) for a specific coordinate key
+     * @param {string} coordinateKey - The coordinate key (e.g., "HG00097#1")
+     * @returns {Object|null} Object with {rgbString: string, rgbThreeJS: THREE.Color}, or null if not found
      */
-    getCoordinatesForNodeAndAssembly(nodeId, assemblyKey) {
-        const nodeCoords = this.coordinates.get(nodeId);
-        if (!nodeCoords) {
+    getRgbForCoordinateKey(coordinateKey) {
+        const rgbData = this.coordinateKeyRgbMap.get(coordinateKey);
+        if (!rgbData) {
             return null;
         }
-        const assemblyData = nodeCoords.get(assemblyKey);
-        if (!assemblyData) {
-            return null;
-        }
-        // Return a copy to prevent external modification
-        return { ...assemblyData };
+        // Return a copy with cloned color to prevent external modification
+        return {
+            rgbString: rgbData.rgbString,
+            rgbThreeJS: rgbData.rgbThreeJS.clone()
+        };
     }
 
     /**
-     * Get coordinate data for a specific node (alias for getCoordinatesForNode for backward compatibility)
-     * @param {string} nodeId - The node identifier
-     * @returns {Map<string, Object>|null} Map of assemblyKey -> coordinateData, or null if not found
+     * Get the RGB string for a specific coordinate key
+     * @param {string} coordinateKey - The coordinate key (e.g., "HG00097#1")
+     * @returns {string|null} RGB string (e.g., "rgb(222, 162, 255)"), or null if not found
      */
-    getCoordinates(nodeId) {
-        return this.getCoordinatesForNode(nodeId);
+    getRgbStringForCoordinateKey(coordinateKey) {
+        const rgbData = this.coordinateKeyRgbMap.get(coordinateKey);
+        return rgbData ? rgbData.rgbString : null;
     }
 
     /**
-     * Get all data associated with a specific assembly key across all nodes
-     * @param {string} assemblyKey - The assembly key (e.g., "HG00097#1")
-     * @returns {Map<string, Object>} Map of nodeId -> {coordinates: [x, y], rgbThreeJS, rgbString, assemblyKey}
-     * Returns an empty Map if no data found for the assembly key
-     * Uses inverse index for O(1) lookup performance
+     * Get the Three.js Color object for a specific coordinate key
+     * @param {string} coordinateKey - The coordinate key (e.g., "HG00097#1")
+     * @returns {THREE.Color|null} Three.js Color object, or null if not found
      */
-    getDataForAssembly(assemblyKey) {
-        const assemblyData = this.assemblyIndex.get(assemblyKey);
-        if (!assemblyData) {
+    getRgbColorForCoordinateKey(coordinateKey) {
+        const rgbData = this.coordinateKeyRgbMap.get(coordinateKey);
+        if (!rgbData) {
             return null;
         }
-        
-        return { ...assemblyData };
-    }
-
-    /**
-     * Check if a node has coordinate data
-     * @param {string} nodeId - The node identifier
-     * @returns {boolean} True if node has coordinates, false otherwise
-     */
-    hasCoordinates(nodeId) {
-        return this.coordinates.has(nodeId);
+        // Return a clone to prevent external modification
+        return rgbData.rgbThreeJS.clone();
     }
 
     /**
@@ -261,9 +315,9 @@ class PCLACoordinateService {
      */
     clear() {
         this.coordinates.clear();
-        this.assemblyIndex.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
+        this.coordinateKeyRgbMap.clear();
     }
 
     /**
