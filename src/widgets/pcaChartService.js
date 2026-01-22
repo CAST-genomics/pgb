@@ -206,7 +206,7 @@ class PCAChartService {
             } else if (this.isVisible && pclaiCoordinateService.hasPCLAIData()) {
                 // Chart is visible and new dataset has PCLAI data, update emphasis
                 app.setActiveScene('nodeEmphasisScene', true);
-                const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds());
+                const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates());
                 const edgeSet = new Set();
                 eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet });
             }
@@ -300,7 +300,7 @@ class PCAChartService {
         const allYCoords = [];
 
         // Get all node IDs that have coordinates
-        const nodeIds = pclaiCoordinateService.getAllNodeIds();
+        const nodeIds = pclaiCoordinateService.getNodeIdsWithPCLAICoordinates();
 
         if (nodeIds.length === 0) {
             console.warn('PCAChartService: No nodes with coordinates found');
@@ -757,7 +757,7 @@ class PCAChartService {
 
             app.setActiveScene('nodeEmphasisScene', true)
 
-            const nodeSet = new Set(pclaiCoordinateService.getAllNodeIds())
+            const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates())
             const edgeSet = new Set()
             eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
 

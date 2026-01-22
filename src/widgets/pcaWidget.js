@@ -7,15 +7,15 @@ class PCAWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
     static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
 
-    constructor(assemblyWidgetContainer, genomicService, geometryManager) {
+    constructor(pcaWidgetContainer, genomicService, geometryManager) {
 
-        this.assemblyWidgetContainer = assemblyWidgetContainer;
-        this.draggable = new Draggable(this.assemblyWidgetContainer);
+        this.pcaWidgetContainer = pcaWidgetContainer;
+        this.draggable = new Draggable(this.pcaWidgetContainer);
 
         this.genomicService = genomicService;
         this.geometryManager = geometryManager
 
-        this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');
+        this.listGroup = this.pcaWidgetContainer.querySelector('.list-group');
 
         this.searchInput = null; // Will be initialized when card is shown
         this.switchInput = null; // Will be initialized when card is shown
@@ -152,7 +152,7 @@ class PCAWidget {
 
     initializeSearchInput() {
         if (!this.searchInput) {
-            this.searchInput = this.assemblyWidgetContainer.querySelector('#pca-search');
+            this.searchInput = this.pcaWidgetContainer.querySelector('#pca-search');
             if (this.searchInput) {
                 this.searchInput.addEventListener('input', this.onSearchInput.bind(this));
                 console.log('Search input initialized successfully');
@@ -164,7 +164,7 @@ class PCAWidget {
 
     initializeSwitchInput() {
         if (!this.switchInput) {
-            this.switchInput = this.assemblyWidgetContainer.querySelector('.form-check-input[type="checkbox"]');
+            this.switchInput = this.pcaWidgetContainer.querySelector('.form-check-input[type="checkbox"]');
             if (this.switchInput) {
                 this.switchInput.addEventListener('change', this.onSwitchChange.bind(this));
                 console.log('Switch input initialized successfully');
@@ -176,7 +176,7 @@ class PCAWidget {
 
     initializeModeLabel() {
         if (!this.modeLabel) {
-            this.modeLabel = this.assemblyWidgetContainer.querySelector('#emphasis-mode-label');
+            this.modeLabel = this.pcaWidgetContainer.querySelector('#emphasis-mode-label');
             if (this.modeLabel) {
                 // Set initial label text based on current emphasis mode
                 this.updateModeLabel();
@@ -257,11 +257,11 @@ class PCAWidget {
     }
 
     showCard() {
-        this.assemblyWidgetContainer.style.display = '';
-        this.assemblyWidgetContainer.style.top = '0px'
-        this.assemblyWidgetContainer.style.left = '0px'
+        this.pcaWidgetContainer.style.display = '';
+        this.pcaWidgetContainer.style.top = '0px'
+        this.pcaWidgetContainer.style.left = '0px'
         setTimeout(() => {
-            this.assemblyWidgetContainer.classList.add('show');
+            this.pcaWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
             this.initializeSearchInput();
             // Initialize switch input when card is shown
@@ -272,9 +272,9 @@ class PCAWidget {
     }
 
     hideCard() {
-        this.assemblyWidgetContainer.classList.remove('show');
+        this.pcaWidgetContainer.classList.remove('show');
         setTimeout(() => {
-            this.assemblyWidgetContainer.style.display = 'none';
+            this.pcaWidgetContainer.style.display = 'none';
             // Clear search input when hiding card
             if (this.searchInput) {
                 this.searchInput.value = '';

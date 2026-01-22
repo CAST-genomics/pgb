@@ -47,7 +47,7 @@ Add a third "PCA" button to the left widget panel that behaves identically to th
 - Add import: `import PCAWidget from './widgets/pcaWidget.js'` (after line 6)
 - Instantiate PCA widget (after line 61):
   ```javascript
-  const pcaWidget = new PCAWidget(document.getElementById('pgb-pca-card'), genomicService, geometryManager);
+  const pcaWidget = new PCAWidget(document.getElementById('pgb-pca-card'),genomicService,geometryManager);
   ```
 - Update WidgetService instantiation (line 62):
   - Add `pcaWidget` as third parameter: `new WidgetService(..., assemblyWidget, populationOnlyWidget, pcaWidget)`
