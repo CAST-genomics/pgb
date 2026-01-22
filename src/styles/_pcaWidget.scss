@@ -48,35 +48,6 @@
     }
   }
 
-  &__switch {
-    // Styling for the form switch input
-    .form-check-input {
-      width: 3rem;
-      height: 1.5rem;
-
-      &:checked {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-      }
-
-      &:focus {
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-      }
-    }
-  }
-
-  &__mode-label {
-    font-size: 1rem;
-    font-weight: 400;
-    color: #6c757d;
-    user-select: none;
-    transition: color 0.2s ease;
-
-    &:hover {
-      color: #495057;
-    }
-  }
-
   &__assembly-name {
     font-size: 0.85rem;
     //font-weight: 500;

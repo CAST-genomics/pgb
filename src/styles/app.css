@@ -158,27 +158,6 @@
 .pca-widget__genome-selector:hover {
   transform: scale(1.5);
 }
-.pca-widget__switch .form-check-input {
-  width: 3rem;
-  height: 1.5rem;
-}
-.pca-widget__switch .form-check-input:checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-.pca-widget__switch .form-check-input:focus {
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-.pca-widget__mode-label {
-  font-size: 1rem;
-  font-weight: 400;
-  color: #6c757d;
-  user-select: none;
-  transition: color 0.2s ease;
-}
-.pca-widget__mode-label:hover {
-  color: #495057;
-}
 .pca-widget__assembly-name {
   font-size: 0.85rem;
 }

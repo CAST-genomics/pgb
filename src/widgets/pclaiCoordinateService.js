@@ -16,6 +16,7 @@ class PCLACoordinateService {
         this.coordinates = new Map(); // nodeId -> Map<coordnateKey, coordinateData>
         this.aveRgb = new Map(); // nodeId -> {rgb: [r, g, b], color: THREE.Color}
         this.boundingBox = null; // { x: {min, max, centroid}, y: {min, max, centroid} }
+        this.coordinateKeys = new Set(); // Set of all coordinate keys (union across all nodes)
 
         PCLACoordinateService.instance = this;
     }
@@ -28,6 +29,7 @@ class PCLACoordinateService {
         this.coordinates.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
+        this.coordinateKeys.clear();
 
         const allXCoords = [];
         const allYCoords = [];
@@ -66,6 +68,9 @@ class PCLACoordinateService {
 
                 const coordinateData = { coordinates, rgbThreeJS, rgbString };
                 nodeCoordData.set(coordinateKey, coordinateData);
+
+                // Add coordinate key to the Set (union of all keys across all nodes)
+                this.coordinateKeys.add(coordinateKey);
 
                 // Collect coordinates for bounding box calculation
                 const [x, y] = coordinates;
@@ -157,6 +162,16 @@ class PCLACoordinateService {
     }
 
     /**
+     * Get all coordinate keys (union across all nodes)
+     * Returns a list of all coordinate keys found in any node's PCLAI coordinates structure.
+     * This is the union of all coordinate keys across all nodes.
+     * @returns {string[]} Array of all coordinate keys
+     */
+    getAllCoordinateKeys() {
+        return Array.from(this.coordinateKeys);
+    }
+
+    /**
      * Get the bounding box of all coordinates
      * @returns {Object|null} Bounding box object with x and y min/max/centroid, or null if no coordinates loaded
      */
@@ -216,6 +231,11 @@ class PCLACoordinateService {
         return this.coordinates.size > 0;
     }
 
+    static presentationLabel(coordinateKey) {
+        const [ assembly_name, haplotype ] = coordinateKey.split('#')
+        return [ `${assembly_name}`, `${ haplotype }` ]
+    }
+
     /**
      * Clear all stored coordinate data
      */
@@ -223,6 +243,7 @@ class PCLACoordinateService {
         this.coordinates.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
+        this.coordinateKeys.clear();
     }
 
     /**

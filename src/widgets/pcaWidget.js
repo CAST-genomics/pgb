@@ -1,40 +1,32 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.js';
-import GenomicService from "../genomicService.js"
+import { pclaiCoordinateService, PCLACoordinateService } from "./pclaiCoordinateService.js"
 import Look from "../looks/look.js"
 
 class PCAWidget {
-    static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
-    static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
 
-    constructor(pcaWidgetContainer, genomicService, geometryManager) {
+    constructor(pcaWidgetContainer, geometryManager) {
 
         this.pcaWidgetContainer = pcaWidgetContainer;
         this.draggable = new Draggable(this.pcaWidgetContainer);
-
-        this.genomicService = genomicService;
         this.geometryManager = geometryManager
 
         this.listGroup = this.pcaWidgetContainer.querySelector('.list-group');
 
         this.searchInput = null; // Will be initialized when card is shown
-        this.switchInput = null; // Will be initialized when card is shown
-        this.modeLabel = null; // Will be initialized when card is shown
 
-        this.restoreUnsub = eventBus.subscribe('assembly:normal', data => {
+        this.restoreUnsub = eventBus.subscribe('pcaWidget:normal', data => {
             const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
             for (const selector of selectors) {
                 selector.style.border = '2px solid transparent'
-                selector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
+                // selector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
                 // Remove inline transform to allow CSS hover effects to work
                 selector.style.transform = ''
             }
         })
 
-        this.selectedAssembly = null; // Track selected assembly as { name, color } object
-        this.allAssemblyItems = new Map(); // Store all items for filtering
-
-        this.emphasisMode = PCAWidget.ASSEMBLY_SUBGRAPH_EMPHASIS; // Default to subgraph emphasis
+        this.selectedCoordinateKey = null; // Track selected coordinate key
+        this.allListItems = new Map(); // Store all items for filtering
 
     }
 
@@ -49,16 +41,16 @@ class PCAWidget {
         }
 
         this.listGroup.innerHTML = '';
-        this.allAssemblyItems.clear();
+        this.allListItems.clear();
 
-        for (const assemblyKey of this.genomicService.assemblySet){
-            const item = this.createListItem(assemblyKey);
+        for (const coordinateKey of pclaiCoordinateService.getAllCoordinateKeys()){
+            const item = this.createListItem(coordinateKey);
             this.listGroup.appendChild(item);
-            this.allAssemblyItems.set(assemblyKey, item);
+            this.allListItems.set(coordinateKey, item);
         }
     }
 
-    createListItem(assemblyKey) {
+    createListItem(coordinateKey) {
         const container = document.createElement('div');
         container.className = 'list-group-item d-flex align-items-center gap-3';
 
@@ -68,9 +60,9 @@ class PCAWidget {
 
         assemblySelector.className = 'assembly-widget__genome-selector';
         assemblySelector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
-        assemblySelector.dataset.assembly = assemblyKey;  // Use data attribute instead of direct property
+        assemblySelector.dataset.assembly = coordinateKey;  // Use data attribute instead of direct property
 
-        const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, assemblyKey);
+        const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, coordinateKey);
         assemblySelector.onAssemblySelectorClick = onAssemblySelectorClick;
         assemblySelector.addEventListener('click', onAssemblySelectorClick);
 
@@ -79,7 +71,7 @@ class PCAWidget {
         container.appendChild(labelContainer);
         labelContainer.className = 'flex-grow-1 d-flex justify-content-end align-items-center gap-2';
 
-        const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(assemblyKey);
+        const [ assemblyName, haplotype ] = PCLACoordinateService.presentationLabel(coordinateKey);
 
         // assembly name
         const nameLabel = document.createElement('span');
@@ -93,61 +85,47 @@ class PCAWidget {
         haplotypeLabel.textContent = `hap${haplotype}`;
         haplotypeLabel.className = 'assembly-widget__assembly-haplotype';
 
-
         return container;
     }
 
-    async onAssemblySelectorClick(assembly, event) {
+    async onAssemblySelectorClick(coordinateKey, event) {
         event.stopPropagation();
 
-        if (this.selectedAssembly && this.selectedAssembly.name === assembly) {
+        if (this.selectedCoordinateKey && this.selectedCoordinateKey === coordinateKey) {
+
             // Deselect current assembly selector
-            this.selectedAssembly = null;
+            this.selectedCoordinateKey = null;
 
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
             const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-            eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+            eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
         } else {
             // Deselect previous assembly selector if one exists
-            if (this.selectedAssembly !== null) {
+            if (this.selectedCoordinateKey !== null) {
                 const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
                 const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-                eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+                eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
             }
 
-            console.log(`selected ${ assembly }`)
+            console.log(`selected coordinate key ${ coordinateKey }`)
 
             // Select new genome and store its name and color
-            this.selectedAssembly =
-                {
-                    name: assembly,
-                    color: Look.NODE_EMPHASIS_COLOR
-                };
+            this.selectedCoordinateKey = coordinateKey
+
             event.target.style.border = '2px solid #000';
-            event.target.style.backgroundColor = Look.NODE_EMPHASIS_COLOR
+            // event.target.style.backgroundColor = Look.NODE_EMPHASIS_COLOR
             event.target.style.transform = 'scale(1.5)'
 
-            this.emphasizeAssembly(this.selectedAssembly);
+            this.emphasizeAssembly(this.selectedCoordinateKey);
         }
     }
 
     emphasizeAssembly(selectedAssembly) {
-        let nodeSet, edgeSet;
 
-        if (this.emphasisMode === PCAWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
-            // Use spine features data
-            const { spine } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).spineFeatures;
-            const { nodes, edges } = spine;
-            nodeSet = new Set([...(nodes.map(({ id }) => id))]);
-            edgeSet = new Set([...edges]);
-        } else {
-            // Use assembly subgraph data (default)
-            const { nodes, edges } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).assemblySubgraph;
-            nodeSet = new Set([...nodes]);
-            edgeSet = new Set([...edges]);
-        }
+        const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates())
+        const edgeSet = new Set()
 
-        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, edgeSet });
+        eventBus.publish('pcaWidget:emphasis', { assembly:selectedAssembly, nodeSet, edgeSet });
     }
 
     initializeSearchInput() {
@@ -162,38 +140,13 @@ class PCAWidget {
         }
     }
 
-    initializeSwitchInput() {
-        if (!this.switchInput) {
-            this.switchInput = this.pcaWidgetContainer.querySelector('.form-check-input[type="checkbox"]');
-            if (this.switchInput) {
-                this.switchInput.addEventListener('change', this.onSwitchChange.bind(this));
-                console.log('Switch input initialized successfully');
-            } else {
-                console.error('Switch input element not found');
-            }
-        }
-    }
-
-    initializeModeLabel() {
-        if (!this.modeLabel) {
-            this.modeLabel = this.pcaWidgetContainer.querySelector('#emphasis-mode-label');
-            if (this.modeLabel) {
-                // Set initial label text based on current emphasis mode
-                this.updateModeLabel();
-                console.log('Mode label initialized successfully');
-            } else {
-                console.error('Mode label element not found');
-            }
-        }
-    }
-
     onSearchInput(event) {
         const searchTerm = event.target.value.toLowerCase().trim();
         console.log('Search term:', searchTerm);
 
         if (searchTerm === '') {
             // When search is cleared, show all items
-            this.allAssemblyItems.forEach((item) => {
+            this.allListItems.forEach((item) => {
                 item.classList.remove('d-none');
             });
             console.log('Search cleared - all assemblies restored');
@@ -204,7 +157,7 @@ class PCAWidget {
     }
 
     filterAssemblies(searchTerm) {
-        this.allAssemblyItems.forEach((item, assembly) => {
+        this.allListItems.forEach((item, assembly) => {
             const matches = assembly.toLowerCase().includes(searchTerm);
             if (matches) {
                 item.classList.remove('d-none');
@@ -212,38 +165,6 @@ class PCAWidget {
                 item.classList.add('d-none');
             }
         });
-    }
-
-    updateModeLabel() {
-        if (this.modeLabel) {
-            if (this.emphasisMode === PCAWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
-                this.modeLabel.textContent = 'Assembly Walk';
-            } else {
-                this.modeLabel.textContent = 'Assembly Subgraph';
-            }
-        }
-    }
-
-    onSwitchChange(event) {
-        const isChecked = event.target.checked;
-        console.log('Switch toggled:', isChecked);
-
-        // Toggle between the two emphasis modes
-        if (isChecked) {
-            this.emphasisMode = PCAWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS;
-        } else {
-            this.emphasisMode = PCAWidget.ASSEMBLY_SUBGRAPH_EMPHASIS;
-        }
-
-        console.log('Emphasis mode changed to:', this.emphasisMode);
-
-        // Update the label text
-        this.updateModeLabel();
-
-        // If there's a currently selected assembly, re-emphasize it with the new mode
-        if (this.selectedAssembly !== null) {
-            this.emphasizeAssembly(this.selectedAssembly);
-        }
     }
 
     cleanupListItem(item) {
@@ -264,10 +185,6 @@ class PCAWidget {
             this.pcaWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
             this.initializeSearchInput();
-            // Initialize switch input when card is shown
-            this.initializeSwitchInput();
-            // Initialize mode label when card is shown
-            this.initializeModeLabel();
         }, 0);
     }
 
@@ -285,11 +202,11 @@ class PCAWidget {
 
     reset() {
         // Clear any selected assembly
-        if (this.selectedAssembly) {
+        if (this.selectedCoordinateKey) {
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
             const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
             eventBus.publish('assembly:normal', { nodeSet, edgeSet })
-            this.selectedAssembly = null;
+            this.selectedCoordinateKey = null;
         }
     }
 
@@ -297,9 +214,6 @@ class PCAWidget {
         this.draggable.destroy();
         if (this.searchInput) {
             this.searchInput.removeEventListener('input', this.onSearchInput.bind(this));
-        }
-        if (this.switchInput) {
-            this.switchInput.removeEventListener('change', this.onSwitchChange.bind(this));
         }
     }
 }

@@ -8,7 +8,6 @@ import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
-import Look from "./looks/look.js"
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
 import { pcaChartService } from "./widgets/pcaChartService.js"
