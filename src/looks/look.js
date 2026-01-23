@@ -49,6 +49,13 @@ class Look {
 
     }
 
+    /**
+     * Gets the Z-offset for a given object based on its ID.
+     * Nodes and edges are rendered at different Z depths to control visual layering.
+     *
+     * @param {string} objectId - The object identifier, must start with 'node:' or 'edge:'
+     * @returns {number} The Z-offset value for the object type
+     */
     getZOffset(objectId) {
 
         if (objectId.startsWith('node:')) {
@@ -62,11 +69,29 @@ class Look {
 
     }
 
+    /**
+     * Updates animation behavior for this look.
+     * Called each frame to update any time-based visual effects.
+     * Base implementation does nothing; subclasses should override for specific animations.
+     *
+     * @param {number} deltaTime - Time elapsed since last frame in milliseconds
+     * @param {THREE.Scene} scene - The Three.js scene being rendered
+     */
     updateBehavior(deltaTime, scene) {
         // Base class has no animation by default
         // Subclasses override this method for specific animation behaviors
     }
 
+    /**
+     * Creates a Three.js mesh from geometry and context information.
+     * Routes to the appropriate creation method based on context type.
+     *
+     * @param {THREE.BufferGeometry} geometry - The geometry to use for the mesh
+     * @param {Object} context - Context object containing type and metadata
+     * @param {string} context.type - Either 'node' or 'edge'
+     * @returns {THREE.Mesh|ParametricLine} The created mesh object
+     * @throws {Error} If context.type is not 'node' or 'edge'
+     */
     createMesh(geometry, context) {
         if (context.type === 'node') {
             return this.createNodeMesh(geometry, context);
@@ -77,6 +102,15 @@ class Look {
         throw new Error(`Unknown context type: ${context.type}`);
     }
 
+    /**
+     * Creates a mesh for a node (genomic segment) using the provided geometry.
+     * Uses ParametricLine for rendering node lines with appropriate materials.
+     *
+     * @param {THREE.BufferGeometry} geometry - The geometry for the node line
+     * @param {Object} context - Context object containing node information
+     * @param {string} context.nodeName - The name/identifier of the node
+     * @returns {ParametricLine} The created node mesh with userData populated
+     */
     createNodeMesh(geometry, context) {
 
         const {nodeName} = context
@@ -95,6 +129,13 @@ class Look {
         return mesh;
     }
 
+    /**
+     * Gets or creates a material for a node's normal (non-emphasized) state.
+     * Materials are cached to avoid creating duplicates for the same node.
+     *
+     * @param {string} nodeName - The name/identifier of the node
+     * @returns {LineMaterial} The material for rendering the node in normal state
+     */
     getNodeMaterial(nodeName) {
 
         const cacheKey = Look.getCacheKey(nodeName);
@@ -121,97 +162,20 @@ class Look {
         return material;
     }
 
-    getNodeColor(nodeName) {
-        return Look.DEFAULT_NODE_COLOR_THREE_JS
-    }
-
-    createEdgeMesh(geometry, context) {
-
-        const { startNode, endNode, edgeKey } = context;
-
-        const [ startColor, endColor ] = this.getEdgeColors(startNode, endNode, edgeKey)
-        const material = this.getEdgeMaterial(startColor, endColor)
-
-        const mesh = new THREE.Mesh(geometry, material);
-
-        mesh.userData =
-            {
-                nodeNameStart: startNode,
-                nodeNameEnd: endNode,
-                geometryKey: edgeKey,
-                type: 'edge',
-            };
-
-        return mesh;
-    }
-
-    getEdgeMaterial(startColor, endColor) {
-        return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
-    }
-
-    getEdgeColors(startNode, endNode, edgeKey) {
-        const startColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
-        const endColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
-        return [ startColor, endColor ]
-    }
-
-    createNodeTooltipContent(nodeObject) {
-        const { nodeName } = nodeObject.userData
-        const { length } = this.genomicService.nodeMetadata.get(nodeName)
-        const html = `<div class="look-tooltip">
-            <div class="node-section">
-                <table class="node-details-table">
-                    <tr class="node-detail-row">
-                        <td class="node-detail-label">Node:</td>
-                        <td class="node-detail-value">${nodeName}</td>
-                    </tr>
-                    <tr class="node-detail-row">
-                        <td class="node-detail-label">Length:</td>
-                        <td class="node-detail-value">${ prettyPrint(length) } bp</td>
-                    </tr>
-                </table>
-            </div>
-        </div>`
-
-        return html
-    }
-
     /**
-     * Called when this look becomes active
-     * Subclasses should override to enable event subscriptions
+     * Gets or creates a material for a node in its emphasized state.
+     * This is a critical method for highlighting nodes when an assembly is selected.
+     * Materials are cached per node and assembly combination to avoid duplicates.
+     *
+     * @param {string} assemblyName - The name of the assembly that this emphasis is for
+     * @param {string} nodeName - The name/identifier of the node to emphasize
+     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - The color(s) to use for emphasis.
+     *   Can be either:
+     *   - A single THREE.Color instance: Used for all nodes in the emphasis set
+     *   - A Map<string, THREE.Color>: Maps node names to their specific colors.
+     *     If the nodeName is not found in the map, falls back to NODE_EMPHASIS_COLOR.
+     * @returns {LineMaterial} The material for rendering the node in emphasized state
      */
-    activate() {
-        this.isActive = true;
-        console.log(`${this.constructor.name} is now active`)
-    }
-
-    /**
-     * Called when this look becomes inactive
-     * Subclasses should override to disable event subscriptions
-     */
-    deactivate() {
-        this.isActive = false;
-    }
-
-    dispose() {
-
-        this.deactivate(); // Ensure we unsubscribe before disposing
-
-        // Unregister all cached materials from the resolution service
-        for (const material of this.materialCache.values()) {
-            lineMaterialResolutionService.unregisterMaterial(material);
-        }
-
-        // Clear the material cache
-        console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.constructor.size }`)
-        this.materialCache.clear()
-        console.log(`${ this.constructor.name } dispose.  material cache post ${ this.constructor.size }`)
-    }
-
-    static getCacheKey(nodeName) {
-        return `${this.constructor.name}:${nodeName}:normal`;
-    }
-
     getNodeEmphasisMaterial(assemblyName, nodeName, nodeColor) {
 
         const cacheKey = `${this.constructor.name}:${nodeName}:assembly:${assemblyName}`;
@@ -252,6 +216,164 @@ class Look {
         return material;
     }
 
+    /**
+     * Gets the color for a node in its normal (non-emphasized) state.
+     * Subclasses can override this to provide node-specific coloring.
+     *
+     * @param {string} nodeName - The name/identifier of the node
+     * @returns {THREE.Color} The Three.js Color object for the node
+     */
+    getNodeColor(nodeName) {
+        return Look.DEFAULT_NODE_COLOR_THREE_JS
+    }
+
+    /**
+     * Creates a mesh for an edge (connection between nodes) using the provided geometry.
+     * Edges use gradient materials that transition from start to end colors.
+     *
+     * @param {THREE.BufferGeometry} geometry - The geometry for the edge
+     * @param {Object} context - Context object containing edge information
+     * @param {string} context.startNode - The name of the starting node
+     * @param {string} context.endNode - The name of the ending node
+     * @param {string} context.edgeKey - Unique identifier for this edge
+     * @returns {THREE.Mesh} The created edge mesh with userData populated
+     */
+    createEdgeMesh(geometry, context) {
+
+        const { startNode, endNode, edgeKey } = context;
+
+        const [ startColor, endColor ] = this.getEdgeColors(startNode, endNode, edgeKey)
+        const material = this.getEdgeMaterial(startColor, endColor)
+
+        const mesh = new THREE.Mesh(geometry, material);
+
+        mesh.userData =
+            {
+                nodeNameStart: startNode,
+                nodeNameEnd: endNode,
+                geometryKey: edgeKey,
+                type: 'edge',
+            };
+
+        return mesh;
+    }
+
+    /**
+     * Creates a gradient material for an edge that transitions from start to end color.
+     * Uses a color ramp with arrow texture for directional visualization.
+     *
+     * @param {THREE.Color} startColor - The color at the start of the edge
+     * @param {THREE.Color} endColor - The color at the end of the edge
+     * @returns {THREE.ShaderMaterial} The gradient material for the edge
+     */
+    getEdgeMaterial(startColor, endColor) {
+        return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
+    }
+
+    /**
+     * Gets the start and end colors for an edge.
+     * Subclasses can override this to provide edge-specific coloring based on nodes or edge properties.
+     *
+     * @param {string} startNode - The name of the starting node
+     * @param {string} endNode - The name of the ending node
+     * @param {string} edgeKey - Unique identifier for this edge
+     * @returns {Array<THREE.Color>} Array containing [startColor, endColor]
+     */
+    getEdgeColors(startNode, endNode, edgeKey) {
+        const startColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
+        const endColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
+        return [ startColor, endColor ]
+    }
+
+    /**
+     * Creates HTML content for a node tooltip that appears on hover.
+     * Displays node name and length information.
+     *
+     * @param {THREE.Object3D} nodeObject - The Three.js object representing the node
+     * @returns {string} HTML string for the tooltip content
+     */
+    createNodeTooltipContent(nodeObject) {
+        const { nodeName } = nodeObject.userData
+        const { length } = this.genomicService.nodeMetadata.get(nodeName)
+        const html = `<div class="look-tooltip">
+            <div class="node-section">
+                <table class="node-details-table">
+                    <tr class="node-detail-row">
+                        <td class="node-detail-label">Node:</td>
+                        <td class="node-detail-value">${nodeName}</td>
+                    </tr>
+                    <tr class="node-detail-row">
+                        <td class="node-detail-label">Length:</td>
+                        <td class="node-detail-value">${ prettyPrint(length) } bp</td>
+                    </tr>
+                </table>
+            </div>
+        </div>`
+
+        return html
+    }
+
+    /**
+     * Called when this look becomes active.
+     * Sets the active flag and can be overridden by subclasses to enable
+     * event subscriptions, start animations, or perform other activation logic.
+     */
+    activate() {
+        this.isActive = true;
+        console.log(`${this.constructor.name} is now active`)
+    }
+
+    /**
+     * Called when this look becomes inactive.
+     * Sets the active flag to false and can be overridden by subclasses to disable
+     * event subscriptions, stop animations, or perform cleanup logic.
+     */
+    deactivate() {
+        this.isActive = false;
+    }
+
+    /**
+     * Disposes of all resources used by this look.
+     * Deactivates the look, unregisters all materials from the resolution service,
+     * and clears the material cache. Should be called when the look is no longer needed.
+     */
+    dispose() {
+
+        this.deactivate(); // Ensure we unsubscribe before disposing
+
+        // Unregister all cached materials from the resolution service
+        for (const material of this.materialCache.values()) {
+            lineMaterialResolutionService.unregisterMaterial(material);
+        }
+
+        // Clear the material cache
+        console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.constructor.size }`)
+        this.materialCache.clear()
+        console.log(`${ this.constructor.name } dispose.  material cache post ${ this.constructor.size }`)
+    }
+
+    /**
+     * Generates a cache key for storing node materials.
+     * Used to uniquely identify materials in the material cache.
+     *
+     * @param {string} nodeName - The name/identifier of the node
+     * @returns {string} A unique cache key string
+     */
+    static getCacheKey(nodeName) {
+        return `${this.constructor.name}:${nodeName}:normal`;
+    }
+
+    /**
+     * Sets emphasis state for nodes and edges based on an assembly selection.
+     * Nodes and edges in the provided sets are emphasized, while others are deemphasized.
+     * Updates materials and Z-positions accordingly.
+     *
+     * @param {string} assemblyName - The name of the assembly being emphasized
+     * @param {Set<string>} nodeSet - Set of node names to emphasize
+     * @param {Set<string>} edgeSet - Set of edge keys to emphasize
+     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
+     *   See getNodeEmphasisMaterial() for details on the nodeColor parameter format.
+     */
     setNodeAndEdgeEmphasis(assemblyName, nodeSet, edgeSet, nodeColor) {
 
         this.emphasisStates.clear()
@@ -277,6 +399,13 @@ class Look {
         this.updateGeometryPositions();
     }
 
+    /**
+     * Restores nodes and edges to their normal (non-emphasized) state.
+     * Resets materials and Z-positions for the specified nodes and edges.
+     *
+     * @param {Set<string>} nodeSet - Set of node names to restore to normal state
+     * @param {Set<string>} edgeSet - Set of edge keys to restore to normal state
+     */
     restoreLinesandEdgesViaZOffset(nodeSet, edgeSet) {
 
         for (const nodeName of nodeSet) {
@@ -293,10 +422,27 @@ class Look {
         this.updateGeometryPositions();
     }
 
+    /**
+     * Sets the emphasis state for a node or edge.
+     * States can be: 'normal', 'emphasized', or 'deemphasized'.
+     *
+     * @param {string} nodeName - The name/key of the node or edge
+     * @param {string} state - The emphasis state ('normal', 'emphasized', or 'deemphasized')
+     */
     setEmphasisState(nodeName, state) {
         this.emphasisStates.set(nodeName, state);
     }
 
+    /**
+     * Applies an emphasis state to a mesh by updating its material.
+     * Handles both node and edge meshes, applying appropriate materials based on state.
+     *
+     * @param {THREE.Mesh|ParametricLine} mesh - The mesh to update
+     * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
+     * @param {string} assemblyName - The assembly name (required for 'emphasized' state)
+     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
+     *   See getNodeEmphasisMaterial() for details on the nodeColor parameter format.
+     */
     applyEmphasisState(mesh, emphasisState, assemblyName, nodeColor) {
         if (!mesh.userData) return;
 
@@ -343,6 +489,14 @@ class Look {
         }
     }
 
+    /**
+     * Updates the emphasis state for a set of edges in the scene.
+     * Traverses the EdgeMeshGroup and applies the emphasis state to matching edges.
+     *
+     * @param {Set<string>} edgeSet - Set of edge keys to update
+     * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
+     * @param {string} assembly - The assembly name (used for 'emphasized' state)
+     */
     updateEdgeEmphasis(edgeSet, emphasisState, assembly) {
 
         const edgeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('EdgeMeshGroup')
@@ -356,6 +510,16 @@ class Look {
 
     }
 
+    /**
+     * Updates the emphasis state for a set of nodes in the scene.
+     * Traverses the NodeMeshGroup and applies the emphasis state to matching nodes.
+     *
+     * @param {Set<string>} nodeNameSet - Set of node names to update
+     * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
+     * @param {string} assemblyName - The assembly name (used for 'emphasized' state)
+     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
+     *   See getNodeEmphasisMaterial() for details on the nodeColor parameter format.
+     */
     updateNodeEmphasis(nodeNameSet, emphasisState, assemblyName, nodeColor) {
 
         const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
@@ -366,6 +530,11 @@ class Look {
         });
     }
 
+    /**
+     * Updates the Z-position (depth) of all nodes and edges in the scene.
+     * Uses emphasis states to determine appropriate Z-offsets for visual layering.
+     * Nodes are updated by modifying their geometry attributes, edges by updating their position.
+     */
     updateGeometryPositions() {
 
         const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')

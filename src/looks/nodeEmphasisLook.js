@@ -155,6 +155,17 @@ class NodeEmphasisLook extends Look {
             this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
         });
 
+        this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
+            const { assembly, nodeSet, edgeSet } = data
+            const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color);
+        });
+
+        this.restorePCAWidgetUnsub = eventBus.subscribe('pcaWidget:normal', data => {
+            const { nodeSet, edgeSet } = data
+            this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
+        });
+
     }
 
     /**
@@ -181,6 +192,16 @@ class NodeEmphasisLook extends Look {
         if (this.restorePCAChartUnsub) {
             this.restorePCAChartUnsub();
             this.restorePCAChartUnsub = null;
+        }
+
+        if (this.deemphasizePCAWidgetUnsub) {
+            this.deemphasizePCAWidgetUnsub();
+            this.deemphasizePCAWidgetUnsub = null;
+        }
+
+        if (this.restorePCAWidgetUnsub) {
+            this.restorePCAWidgetUnsub();
+            this.restorePCAWidgetUnsub = null;
         }
     }
 

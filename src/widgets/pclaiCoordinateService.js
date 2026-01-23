@@ -80,7 +80,6 @@ class PCLACoordinateService {
 
             // Only store node if it has at least one valid coordinate entry
             if (nodeCoordData.size > 0) {
-                console.log(`node ${ nodeId } assembly keys: ${ Array.from(nodeCoordData.keys()).join(', ') }`)
                 this.coordinates.set(nodeId, nodeCoordData);
                 nodesProcessed++;
             }
@@ -138,12 +137,12 @@ class PCLACoordinateService {
         if (!nodeCoords) {
             return null;
         }
-        
+
         const coordinateData = nodeCoords.get(coordinateKey);
         if (!coordinateData) {
             return null;
         }
-        
+
         // Return RGB string and cloned Three.js Color object to prevent external modification
         return {
             rgbString: coordinateData.rgbString,
@@ -159,7 +158,7 @@ class PCLACoordinateService {
      */
     getNodeColorMapForCoordinateKey(coordinateKey) {
         const nodeColorMap = new Map();
-        
+
         // Iterate through all nodes that have PCLAI coordinates
         for (const [nodeId, nodeCoords] of this.coordinates.entries()) {
             // Check if this node has the requested coordinate key
@@ -169,7 +168,7 @@ class PCLACoordinateService {
                 nodeColorMap.set(nodeId, coordinateData.rgbThreeJS.clone());
             }
         }
-        
+
         return nodeColorMap;
     }
 
@@ -181,6 +180,27 @@ class PCLACoordinateService {
      */
     getNodeIdsWithPCLAICoordinates() {
         return Array.from(this.coordinates.keys());
+    }
+
+    /**
+     * Get node IDs that contain a specific coordinate key
+     * Returns a list of node IDs that have the specified coordinate key in their PCLAI coordinates.
+     * Only nodes that contain the given coordinate key are included in the result.
+     * @param {string} coordinateKey - The coordinate key to search for (e.g., "HG00097#1")
+     * @returns {string[]} Array of node IDs that contain the specified coordinate key
+     */
+    getNodeIdsWithCoordinateKey(coordinateKey) {
+        const nodeIds = [];
+
+        // Iterate through all nodes that have PCLAI coordinates
+        for (const [nodeId, nodeCoords] of this.coordinates.entries()) {
+            // Check if this node has the requested coordinate key
+            if (nodeCoords.has(coordinateKey)) {
+                nodeIds.push(nodeId);
+            }
+        }
+
+        return nodeIds;
     }
 
     /**

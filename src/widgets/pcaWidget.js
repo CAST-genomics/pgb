@@ -120,12 +120,12 @@ class PCAWidget {
         }
     }
 
-    emphasizeAssembly(selectedAssembly) {
+    emphasizeAssembly(coordinateKey) {
 
-        const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates())
+        const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
         const edgeSet = new Set()
 
-        eventBus.publish('pcaWidget:emphasis', { assembly:selectedAssembly, nodeSet, edgeSet });
+        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet });
     }
 
     initializeSearchInput() {

@@ -200,15 +200,19 @@ class PCAChartService {
             // If chart is visible but new dataset doesn't have PCLAI data, hide the chart
             if (this.isVisible && !pclaiCoordinateService.hasPCLAIData()) {
                 this.hideChart();
-                const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet();
-                const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet();
-                eventBus.publish('pcaChart:normal', { nodeSet, edgeSet });
+
+                // const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet();
+                // const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet();
+                // eventBus.publish('pcaChart:normal', { nodeSet, edgeSet });
+
             } else if (this.isVisible && pclaiCoordinateService.hasPCLAIData()) {
+
                 // Chart is visible and new dataset has PCLAI data, update emphasis
-                app.setActiveScene('nodeEmphasisScene', true);
-                const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates());
-                const edgeSet = new Set();
-                eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet });
+                // app.setActiveScene('nodeEmphasisScene', true);
+                // const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates());
+                // const edgeSet = new Set();
+                // eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet });
+
             }
         });
     }
@@ -749,17 +753,17 @@ class PCAChartService {
 
             this.hideChart();
 
-            const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet()
-            const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet()
-            eventBus.publish('pcaChart:normal', { nodeSet, edgeSet })
+            // const nodeSet = app.geometryManager.geometryFactory.getNodeNameSet()
+            // const edgeSet = app.geometryManager.geometryFactory.getEdgeNameSet()
+            // eventBus.publish('pcaChart:normal', { nodeSet, edgeSet })
 
         } else {
 
-            app.setActiveScene('nodeEmphasisScene', true)
-
-            const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates())
-            const edgeSet = new Set()
-            eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
+            // app.setActiveScene('nodeEmphasisScene', true)
+            //
+            // const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithPCLAICoordinates())
+            // const edgeSet = new Set()
+            // eventBus.publish('pcaChart:emphasis', { assembly:{ name: 'unnamed' }, nodeSet, edgeSet })
 
             this.showChart()
 
