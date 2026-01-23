@@ -24,6 +24,7 @@ class PCAChartService {
         this.currentNodeId = null;
         this.globalBoundingBox = null;
         this.eventUnsubscribes = []; // Array to store all unsubscribe functions
+        this.selectedCoordinateKey = null; // Track selected coordinate key from PCA widget
         this.dotSizePercent = 1; // Percentage of maximum available dimension (width or height)
         this.chartPadding = 20; // Padding in pixels
         this.isInitialized = false;
@@ -37,7 +38,7 @@ class PCAChartService {
         this.draggable = new Draggable(this.chartContainer);
         this.subscribeToNodeHover();
         this.subscribeToDatasetLoad();
-        // this.subscribeToPCAWidgetEvents();
+        this.subscribeToPCAWidgetEvents();
         this.referenceDataPromise = this.loadReferenceData(); // Load reference data asynchronously, store promise
 
         PCAChartService.instance = this;
@@ -224,18 +225,25 @@ class PCAChartService {
     subscribeToPCAWidgetEvents() {
         // Subscribe to pcaWidget:emphasis events
         const pcaWidgetEmphasisUnsub = eventBus.subscribe('pcaWidget:emphasis', (data) => {
-            // TODO: Implement PCA chart service specific functionality for emphasis
-            // This will have different underlying functionality than nodeEmphasisLook
-            const { assembly, nodeSet, edgeSet } = data;
-            // Placeholder for future implementation
+            // Store the selected coordinate key for filtering chart dots
+            const { assembly } = data;
+            this.selectedCoordinateKey = assembly.name;
+            
+            // If chart is visible and user is hovering over a node, update the chart with filtered data
+            if (this.isVisible && this.currentNodeId) {
+                this.updateChartForNode(this.currentNodeId);
+            }
         });
 
         // Subscribe to pcaWidget:normal events
         const pcaWidgetNormalUnsub = eventBus.subscribe('pcaWidget:normal', (data) => {
-            // TODO: Implement PCA chart service specific functionality for normal state
-            // This will have different underlying functionality than nodeEmphasisLook
-            const { nodeSet, edgeSet } = data;
-            // Placeholder for future implementation
+            // Clear the selected coordinate key to show all dots again
+            this.selectedCoordinateKey = null;
+            
+            // If chart is visible and user is hovering over a node, update the chart with unfiltered data
+            if (this.isVisible && this.currentNodeId) {
+                this.updateChartForNode(this.currentNodeId);
+            }
         });
 
         // Store unsubscribe functions
@@ -462,10 +470,22 @@ class PCAChartService {
             return;
         }
 
-        const coordinatesMap = pclaiCoordinateService.getCoordinatesForNode(nodeId);
+        let coordinatesMap = pclaiCoordinateService.getCoordinatesForNode(nodeId);
         if (!coordinatesMap || coordinatesMap.size === 0) {
             this.clearChart();
             return;
+        }
+
+        // Filter coordinate map by selected coordinate key if one is set
+        if (this.selectedCoordinateKey) {
+            if (coordinatesMap.has(this.selectedCoordinateKey)) {
+                // Create filtered map with only the selected coordinate key
+                coordinatesMap = new Map([[this.selectedCoordinateKey, coordinatesMap.get(this.selectedCoordinateKey)]]);
+            } else {
+                // Node doesn't have the selected coordinate key, clear the chart
+                this.clearChart();
+                return;
+            }
         }
 
         this.currentNodeId = nodeId;
@@ -679,11 +699,66 @@ class PCAChartService {
             dot.style.backgroundColor = assemblyData.rgbString;
             dot.style.borderRadius = '50%';
             dot.style.border = '1px solid transparent';
+            
+            // Add hover event listeners
+            dot.addEventListener('mouseenter', () => this.handleDotHover(dot, dotSizePx, clampedX, clampedY));
+            dot.addEventListener('mouseleave', () => this.handleDotLeave(dot, dotSizePx, clampedX, clampedY));
 
             fragment.appendChild(dot);
         }
 
         this.chartSurface.appendChild(fragment);
+    }
+
+    /**
+     * Handle dot hover - double size and reduce opacity of other dots
+     * @param {HTMLElement} hoveredDot - The dot being hovered
+     * @param {number} dotSizePx - Original dot size in pixels
+     * @param {number} clampedX - X position of the dot
+     * @param {number} clampedY - Y position of the dot
+     */
+    handleDotHover(hoveredDot, dotSizePx, clampedX, clampedY) {
+        // Double the size of the hovered dot
+        const doubledSize = dotSizePx * 2;
+        const halfDoubledSize = doubledSize / 2;
+        
+        hoveredDot.classList.add('pca-chart__dot--hovered');
+        hoveredDot.style.width = `${doubledSize}px`;
+        hoveredDot.style.height = `${doubledSize}px`;
+        // Adjust position to keep dot centered
+        hoveredDot.style.left = `${clampedX - halfDoubledSize}px`;
+        hoveredDot.style.top = `${clampedY - halfDoubledSize}px`;
+        
+        // Reduce opacity of all other dots
+        const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
+        allDots.forEach(dot => {
+            if (dot !== hoveredDot) {
+                dot.classList.add('pca-chart__dot--deemphasized');
+            }
+        });
+    }
+
+    /**
+     * Handle dot leave - restore original size and opacity
+     * @param {HTMLElement} dot - The dot that was hovered
+     * @param {number} dotSizePx - Original dot size in pixels
+     * @param {number} clampedX - X position of the dot
+     * @param {number} clampedY - Y position of the dot
+     */
+    handleDotLeave(dot, dotSizePx, clampedX, clampedY) {
+        // Restore original size
+        const halfDotSize = dotSizePx / 2;
+        dot.classList.remove('pca-chart__dot--hovered');
+        dot.style.width = `${dotSizePx}px`;
+        dot.style.height = `${dotSizePx}px`;
+        dot.style.left = `${clampedX - halfDotSize}px`;
+        dot.style.top = `${clampedY - halfDotSize}px`;
+        
+        // Restore opacity of all dots
+        const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
+        allDots.forEach(d => {
+            d.classList.remove('pca-chart__dot--deemphasized');
+        });
     }
 
     /**

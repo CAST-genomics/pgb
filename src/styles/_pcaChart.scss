@@ -111,6 +111,17 @@
   border-radius: 50%;
   pointer-events: auto;
   z-index: 1;
+  transition: opacity 0.2s ease, width 0.2s ease, height 0.2s ease, left 0.2s ease, top 0.2s ease;
+  
+  // Reduced opacity state (applied via JavaScript when another dot is hovered)
+  &--deemphasized {
+    opacity: 0.1; // Reduced opacity for non-hovered dots
+  }
+  
+  // Hovered state (applied via JavaScript)
+  &--hovered {
+    z-index: 10; // Bring hovered dot to front
+  }
 }
 
 .pca-chart__axis {
