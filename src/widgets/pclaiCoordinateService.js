@@ -127,30 +127,6 @@ class PCLACoordinateService {
     }
 
     /**
-     * Get RGB value for a specific coordinate key and node
-     * @param {string} coordinateKey - The coordinate key (e.g., "HG00097#1")
-     * @param {string} nodeId - The node identifier (e.g., "5504+")
-     * @returns {Object|null} Object with {rgbString: string, rgbThreeJS: THREE.Color}, or null if not found
-     */
-    getRGB(coordinateKey, nodeId) {
-        const nodeCoords = this.coordinates.get(nodeId);
-        if (!nodeCoords) {
-            return null;
-        }
-
-        const coordinateData = nodeCoords.get(coordinateKey);
-        if (!coordinateData) {
-            return null;
-        }
-
-        // Return RGB string and cloned Three.js Color object to prevent external modification
-        return {
-            rgbString: coordinateData.rgbString,
-            rgbThreeJS: coordinateData.rgbThreeJS.clone()
-        };
-    }
-
-    /**
      * Get a map of node IDs to Three.js Color objects for a specific coordinate key
      * Returns a map where each node that has the given coordinate key is mapped to its corresponding Three.js Color.
      * @param {string} coordinateKey - The coordinate key (e.g., "HG00097#1")
@@ -170,6 +146,32 @@ class PCLACoordinateService {
         }
 
         return nodeColorMap;
+    }
+
+    /**
+     * Get coordinate structures for a specific coordinate key across all nodes
+     * Traverses every node and returns the coordinate structures (coordinates, RGB values) for the given coordinate key.
+     * @param {string} coordinateKey - The coordinate key (e.g., "HG00097#1")
+     * @returns {Map<string, Object>} Map of nodeId -> {coordinates: [x, y], rgbThreeJS: THREE.Color, rgbString: string} for nodes that have the coordinate key
+     */
+    getCoordinatesForCoordinateKey(coordinateKey) {
+        const coordinateStructures = new Map();
+
+        // Iterate through all nodes that have PCLAI coordinates
+        for (const [nodeId, nodeCoords] of this.coordinates.entries()) {
+            // Check if this node has the requested coordinate key
+            const coordinateData = nodeCoords.get(coordinateKey);
+            if (coordinateData) {
+                // Return a copy of the coordinate structure to prevent external modification
+                coordinateStructures.set(nodeId, {
+                    coordinates: [...coordinateData.coordinates], // Copy the coordinates array
+                    rgbThreeJS: coordinateData.rgbThreeJS.clone(), // Clone the Three.js Color
+                    rgbString: coordinateData.rgbString // String is immutable, no need to copy
+                });
+            }
+        }
+
+        return coordinateStructures;
     }
 
     /**
@@ -286,17 +288,6 @@ class PCLACoordinateService {
         this.aveRgb.clear();
         this.boundingBox = null;
         this.coordinateKeys.clear();
-    }
-
-    /**
-     * Get the singleton instance
-     * @returns {PCLACoordinateService} The singleton instance
-     */
-    static getInstance() {
-        if (!PCLACoordinateService.instance) {
-            PCLACoordinateService.instance = new PCLACoordinateService();
-        }
-        return PCLACoordinateService.instance;
     }
 }
 

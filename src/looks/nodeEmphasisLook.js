@@ -132,7 +132,7 @@ class NodeEmphasisLook extends Look {
     activate() {
         super.activate();
 
-        // Subscribe to assembly interaction events
+        // Assembly Viz Events
         this.deemphasizeAssemblyUnsub = eventBus.subscribe('assembly:emphasis', data => {
             const { assembly, nodeSet, edgeSet } = data
             this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, Look.NODE_EMPHASIS_COLOR);
@@ -143,18 +143,7 @@ class NodeEmphasisLook extends Look {
             this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
         });
 
-        this.deemphasizePCAChartUnsub = eventBus.subscribe('pcaChart:emphasis', data => {
-            const { assembly, nodeSet, edgeSet } = data
-
-            const color = (0 === pclaiCoordinateService.aveRgb.size) ? Look.DEFAULT_NODE_COLOR : pclaiCoordinateService.aveRgb
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color);
-        });
-
-        this.restorePCAChartUnsub = eventBus.subscribe('pcaChart:normal', data => {
-            const { nodeSet, edgeSet } = data
-            this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
-        });
-
+        // PCA Widget Events
         this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
             const { assembly, nodeSet, edgeSet } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
@@ -165,6 +154,24 @@ class NodeEmphasisLook extends Look {
             const { nodeSet, edgeSet } = data
             this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
         });
+
+
+
+
+
+        // PCA Chart Events
+        // this.deemphasizePCAChartUnsub = eventBus.subscribe('pcaChart:emphasis', data => {
+        //     const { assembly, nodeSet, edgeSet } = data
+        //
+        //     const color = (0 === pclaiCoordinateService.aveRgb.size) ? Look.DEFAULT_NODE_COLOR : pclaiCoordinateService.aveRgb
+        //     this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color);
+        // });
+        //
+        // this.restorePCAChartUnsub = eventBus.subscribe('pcaChart:normal', data => {
+        //     const { nodeSet, edgeSet } = data
+        //     this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
+        // });
+
 
     }
 
