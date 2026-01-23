@@ -23,7 +23,7 @@ class PCAChartService {
         this.isVisible = false;
         this.currentNodeId = null;
         this.globalBoundingBox = null;
-        this.eventUnsubscribe = null;
+        this.eventUnsubscribes = []; // Array to store all unsubscribe functions
         this.dotSizePercent = 1; // Percentage of maximum available dimension (width or height)
         this.chartPadding = 20; // Padding in pixels
         this.isInitialized = false;
@@ -37,6 +37,7 @@ class PCAChartService {
         this.draggable = new Draggable(this.chartContainer);
         this.subscribeToNodeHover();
         this.subscribeToDatasetLoad();
+        // this.subscribeToPCAWidgetEvents();
         this.referenceDataPromise = this.loadReferenceData(); // Load reference data asynchronously, store promise
 
         PCAChartService.instance = this;
@@ -181,18 +182,16 @@ class PCAChartService {
             this.clearChart();
         });
 
-        // Store unsubscribe function that unsubscribes from both
-        this.eventUnsubscribe = () => {
-            lineIntersectionUnsub();
-            clearIntersectionUnsub();
-        };
+        // Store unsubscribe functions
+        this.eventUnsubscribes.push(lineIntersectionUnsub);
+        this.eventUnsubscribes.push(clearIntersectionUnsub);
     }
 
     /**
      * Subscribe to dataset load events
      */
     subscribeToDatasetLoad() {
-        eventBus.subscribe('datasetLoaded', (data) => {
+        const datasetLoadedUnsub = eventBus.subscribe('datasetLoaded', (data) => {
             // Update button state based on whether PCLAI data is available
             this.updateButtonState();
 
@@ -214,6 +213,34 @@ class PCAChartService {
 
             }
         });
+
+        // Store unsubscribe function
+        this.eventUnsubscribes.push(datasetLoadedUnsub);
+    }
+
+    /**
+     * Subscribe to PCA widget events
+     */
+    subscribeToPCAWidgetEvents() {
+        // Subscribe to pcaWidget:emphasis events
+        const pcaWidgetEmphasisUnsub = eventBus.subscribe('pcaWidget:emphasis', (data) => {
+            // TODO: Implement PCA chart service specific functionality for emphasis
+            // This will have different underlying functionality than nodeEmphasisLook
+            const { assembly, nodeSet, edgeSet } = data;
+            // Placeholder for future implementation
+        });
+
+        // Subscribe to pcaWidget:normal events
+        const pcaWidgetNormalUnsub = eventBus.subscribe('pcaWidget:normal', (data) => {
+            // TODO: Implement PCA chart service specific functionality for normal state
+            // This will have different underlying functionality than nodeEmphasisLook
+            const { nodeSet, edgeSet } = data;
+            // Placeholder for future implementation
+        });
+
+        // Store unsubscribe functions
+        this.eventUnsubscribes.push(pcaWidgetEmphasisUnsub);
+        this.eventUnsubscribes.push(pcaWidgetNormalUnsub);
     }
 
     /**
@@ -778,10 +805,9 @@ class PCAChartService {
             this.draggable.destroy();
             this.draggable = null;
         }
-        if (this.eventUnsubscribe) {
-            this.eventUnsubscribe();
-            this.eventUnsubscribe = null;
-        }
+        // Unsubscribe from all events
+        this.eventUnsubscribes.forEach(unsub => unsub());
+        this.eventUnsubscribes = [];
         if (this.chartContainer && this.chartContainer.parentNode) {
             this.chartContainer.parentNode.removeChild(this.chartContainer);
         }
