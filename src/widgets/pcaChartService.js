@@ -32,6 +32,14 @@ class PCAChartService {
         this.referenceData = []; // Array of {x: number, y: number, color: string} for reference PCA data
         this.referenceDataPromise = null; // Promise for reference data loading
         this.button = null; // Reference to the PCA Chart button
+        
+        // Opacity constants for emphasis/de-emphasis (all controlled via JavaScript inline styles)
+        this.OPACITY_FULL = 1.0; // Full opacity
+        this.OPACITY_REFERENCE_DEEMPHASIZED = 0.25; // Reference dots when dataset dots shown
+        this.OPACITY_DATASET_DEEMPHASIZED = 0.05; // Dataset dots when another dot is hovered (reduced further for grayscale effect)
+        
+        // Size multiplier for emphasis
+        this.EMPHASIS_SIZE_MULTIPLIER = 1.5; // Increase dot size by 50% when hovered
 
         this.createChartDOM();
         this.createButton();
@@ -95,7 +103,11 @@ class PCAChartService {
             referenceContainer = document.createElement('div');
             referenceContainer.id = 'pca-chart-reference-dots';
             referenceContainer.className = 'pca-chart__reference-dots';
+            referenceContainer.style.opacity = this.OPACITY_FULL; // Initialize with full opacity (controlled via JavaScript)
             surface.appendChild(referenceContainer);
+        } else {
+            // Ensure existing container has opacity set (controlled via JavaScript)
+            referenceContainer.style.opacity = this.OPACITY_FULL;
         }
 
         // Ensure axes exist
@@ -179,8 +191,16 @@ class PCAChartService {
 
         // Subscribe to clearIntersection events (mouse away from node)
         const clearIntersectionUnsub = eventBus.subscribe('clearIntersection', () => {
+            // Clear the current node ID since mouse is no longer over a node
+            this.currentNodeId = null;
+            
             // Clear dataset dots only (reference dots are in separate container and unaffected)
-            this.clearChart();
+            // If a coordinate key is selected, show all dots for that key instead of clearing
+            if (this.selectedCoordinateKey && this.isVisible) {
+                this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey);
+            } else {
+                this.clearChart();
+            }
         });
 
         // Store unsubscribe functions
@@ -229,9 +249,14 @@ class PCAChartService {
             const { assembly } = data;
             this.selectedCoordinateKey = assembly.name;
             
-            // If chart is visible and user is hovering over a node, update the chart with filtered data
-            if (this.isVisible && this.currentNodeId) {
-                this.updateChartForNode(this.currentNodeId);
+            if (this.isVisible) {
+                if (this.currentNodeId) {
+                    // Node is hovered - show that node's dots filtered by coordinate key
+                    this.updateChartForNode(this.currentNodeId);
+                } else {
+                    // No node hovered - show all dots for selected coordinate key
+                    this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey);
+                }
             }
         });
 
@@ -240,9 +265,17 @@ class PCAChartService {
             // Clear the selected coordinate key to show all dots again
             this.selectedCoordinateKey = null;
             
-            // If chart is visible and user is hovering over a node, update the chart with unfiltered data
-            if (this.isVisible && this.currentNodeId) {
-                this.updateChartForNode(this.currentNodeId);
+            if (this.isVisible) {
+                // Always restore reference dots immediately when coordinate key is deselected
+                this.restoreReferenceDots();
+                
+                if (this.currentNodeId) {
+                    // Node is hovered - show all dots for that node (unfiltered)
+                    this.updateChartForNode(this.currentNodeId);
+                } else {
+                    // No node hovered - clear dataset dots, restore reference dots opacity
+                    this.clearChart();
+                }
             }
         });
 
@@ -557,6 +590,7 @@ class PCAChartService {
                 const referenceContainer = document.createElement('div');
                 referenceContainer.id = 'pca-chart-reference-dots';
                 referenceContainer.className = 'pca-chart__reference-dots';
+                referenceContainer.style.opacity = this.OPACITY_FULL; // Initialize with full opacity (controlled via JavaScript)
                 this.chartSurface.appendChild(referenceContainer);
                 this.referenceDotsContainer = referenceContainer;
                 console.log('PCAChartService: Created reference dots container');
@@ -567,6 +601,9 @@ class PCAChartService {
             console.error('PCAChartService: Reference dots container not found and could not be created');
             return;
         }
+        
+        // Ensure reference dots container starts with full opacity (controlled via JavaScript)
+        this.referenceDotsContainer.style.opacity = this.OPACITY_FULL;
 
         // Check if reference data is loaded
         if (!this.referenceData || this.referenceData.length === 0) {
@@ -627,6 +664,9 @@ class PCAChartService {
             dot.style.backgroundColor = color;
             dot.style.borderRadius = '50%';
             dot.style.border = '1px solid transparent';
+            
+            // Store original color for restoration after de-emphasis
+            dot.dataset.originalColor = color;
 
             fragment.appendChild(dot);
         }
@@ -637,25 +677,16 @@ class PCAChartService {
     }
 
     /**
-     * Render dataset dots on chart surface (reference dots are in separate container)
-     * @param {Map} coordinatesMap - Map of assemblyKey -> coordinateData
+     * Render dots from a coordinate data map (unified rendering helper)
+     * @param {Map} coordinateDataMap - Map where keys can be assemblyKey or nodeId, values are {coordinates, rgbThreeJS, rgbString}
      * @param {Object} globalBoundingBox - Global bounding box
+     * @private
      */
-    renderDots(coordinatesMap, globalBoundingBox) {
+    renderDotsFromCoordinateDataMap(coordinateDataMap, globalBoundingBox) {
         if (!this.chartSurface) {
             console.error('PCAChartService: Chart surface not found');
             return;
         }
-
-        // Deemphasize reference dots when dataset dots are displayed
-        if (this.referenceDotsContainer) {
-            this.referenceDotsContainer.classList.add('pca-chart__reference-dots--deemphasized');
-        }
-
-        // Clear existing dataset dots only (preserve reference dots container)
-        // Remove only elements with class 'pca-chart__dot', not the reference container
-        const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
-        datasetDots.forEach(dot => dot.remove());
 
         // Validate ranges (handle division by zero)
         if (globalBoundingBox.x.range === 0 || globalBoundingBox.y.range === 0) {
@@ -663,8 +694,8 @@ class PCAChartService {
             return;
         }
 
-        // If no coordinates provided, just clear dataset dots (reference dots remain)
-        if (!coordinatesMap || coordinatesMap.size === 0) {
+        // If no coordinates provided, return early
+        if (!coordinateDataMap || coordinateDataMap.size === 0) {
             return;
         }
 
@@ -675,9 +706,9 @@ class PCAChartService {
         // Use DocumentFragment for batch DOM updates
         const fragment = document.createDocumentFragment();
 
-        // Render dataset dots (reference dots are rendered separately and independently)
-        for (const [assemblyKey, assemblyData] of coordinatesMap) {
-            const [x, y] = assemblyData.coordinates;
+        // Render dots (works for both assemblyKey->coordinateData and nodeId->coordinateData maps)
+        for (const [key, coordinateData] of coordinateDataMap) {
+            const [x, y] = coordinateData.coordinates;
 
             // Scale coordinates to fit within available pixel space
             // Map data coordinates [minX, maxX] -> [padding, surfaceWidth - padding]
@@ -696,9 +727,13 @@ class PCAChartService {
             dot.style.top = `${clampedY - halfDotSize}px`;
             dot.style.width = `${dotSizePx}px`;
             dot.style.height = `${dotSizePx}px`;
-            dot.style.backgroundColor = assemblyData.rgbString;
+            dot.style.backgroundColor = coordinateData.rgbString;
             dot.style.borderRadius = '50%';
             dot.style.border = '1px solid transparent';
+            dot.style.opacity = this.OPACITY_FULL; // Initialize with full opacity (controlled via JavaScript)
+            
+            // Store original color for restoration after de-emphasis
+            dot.dataset.originalColor = coordinateData.rgbString;
             
             // Add hover event listeners
             dot.addEventListener('mouseenter', () => this.handleDotHover(dot, dotSizePx, clampedX, clampedY));
@@ -711,35 +746,151 @@ class PCAChartService {
     }
 
     /**
-     * Handle dot hover - double size and reduce opacity of other dots
+     * Deemphasize reference dots by converting to grayscale and reducing opacity
+     * @private
+     */
+    deemphasizeReferenceDots() {
+        if (!this.referenceDotsContainer) return;
+        
+        const referenceDots = this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot');
+        referenceDots.forEach(dot => {
+            // Store original color if not already stored
+            if (!dot.dataset.originalColor) {
+                dot.dataset.originalColor = dot.style.backgroundColor;
+            }
+            // Convert to grayscale and reduce opacity
+            const grayscaleColor = this.rgbToGrayscale(dot.dataset.originalColor);
+            dot.style.backgroundColor = grayscaleColor;
+        });
+        this.referenceDotsContainer.style.opacity = this.OPACITY_REFERENCE_DEEMPHASIZED;
+    }
+
+    /**
+     * Restore reference dots to original colors and full opacity
+     * @private
+     */
+    restoreReferenceDots() {
+        if (!this.referenceDotsContainer) return;
+        
+        const referenceDots = this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot');
+        referenceDots.forEach(dot => {
+            // Restore original color if stored
+            if (dot.dataset.originalColor) {
+                dot.style.backgroundColor = dot.dataset.originalColor;
+            }
+        });
+        this.referenceDotsContainer.style.opacity = this.OPACITY_FULL;
+    }
+
+    /**
+     * Render dataset dots on chart surface (reference dots are in separate container)
+     * @param {Map} coordinatesMap - Map of assemblyKey -> coordinateData
+     * @param {Object} globalBoundingBox - Global bounding box
+     */
+    renderDots(coordinatesMap, globalBoundingBox) {
+        // Deemphasize reference dots when dataset dots are displayed (grayscale + reduced opacity)
+        this.deemphasizeReferenceDots();
+
+        // Clear existing dataset dots only (preserve reference dots container)
+        // Remove only elements with class 'pca-chart__dot', not the reference container
+        const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
+        datasetDots.forEach(dot => dot.remove());
+
+        // Use unified rendering helper
+        this.renderDotsFromCoordinateDataMap(coordinatesMap, globalBoundingBox);
+    }
+
+    /**
+     * Render all dots for a specific coordinate key across all nodes
+     * @param {string} coordinateKey - The coordinate key to render dots for
+     */
+    renderAllDotsForCoordinateKey(coordinateKey) {
+        if (!this.isInitialized || !this.globalBoundingBox) {
+            console.warn('PCAChartService: Not initialized. Cannot render dots for coordinate key.');
+            return;
+        }
+
+        // Get all coordinates for this coordinate key across all nodes
+        const nodeCoordinatesMap = pclaiCoordinateService.getCoordinatesForCoordinateKey(coordinateKey);
+        
+        if (!nodeCoordinatesMap || nodeCoordinatesMap.size === 0) {
+            // No nodes have this coordinate key, clear dataset dots
+            const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
+            datasetDots.forEach(dot => dot.remove());
+            return;
+        }
+
+        // Deemphasize reference dots when dataset dots are displayed (grayscale + reduced opacity)
+        this.deemphasizeReferenceDots();
+
+        // Clear existing dataset dots only (preserve reference dots container)
+        const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
+        datasetDots.forEach(dot => dot.remove());
+
+        // Use unified rendering helper to render all dots for this coordinate key
+        this.renderDotsFromCoordinateDataMap(nodeCoordinatesMap, this.globalBoundingBox);
+    }
+
+    /**
+     * Convert RGB color string to grayscale
+     * @param {string} rgbString - RGB color string like "rgb(255, 128, 64)"
+     * @returns {string} Grayscale RGB string
+     * @private
+     */
+    rgbToGrayscale(rgbString) {
+        // Extract RGB values from string like "rgb(255, 128, 64)"
+        const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (!match) {
+            return rgbString; // Return original if parsing fails
+        }
+        
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        
+        // Calculate luminance using standard formula: 0.299*R + 0.587*G + 0.114*B
+        const luminance = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        
+        return `rgb(${luminance}, ${luminance}, ${luminance})`;
+    }
+
+    /**
+     * Handle dot hover - increase size by 50% and de-emphasize other dots (grayscale + reduced opacity)
      * @param {HTMLElement} hoveredDot - The dot being hovered
      * @param {number} dotSizePx - Original dot size in pixels
      * @param {number} clampedX - X position of the dot
      * @param {number} clampedY - Y position of the dot
      */
     handleDotHover(hoveredDot, dotSizePx, clampedX, clampedY) {
-        // Double the size of the hovered dot
-        const doubledSize = dotSizePx * 2;
-        const halfDoubledSize = doubledSize / 2;
+        // Increase size by 50% (1.5x multiplier)
+        const emphasizedSize = dotSizePx * this.EMPHASIS_SIZE_MULTIPLIER;
+        const halfEmphasizedSize = emphasizedSize / 2;
         
-        hoveredDot.classList.add('pca-chart__dot--hovered');
-        hoveredDot.style.width = `${doubledSize}px`;
-        hoveredDot.style.height = `${doubledSize}px`;
+        hoveredDot.style.width = `${emphasizedSize}px`;
+        hoveredDot.style.height = `${emphasizedSize}px`;
+        hoveredDot.style.zIndex = '10'; // Bring hovered dot to front
         // Adjust position to keep dot centered
-        hoveredDot.style.left = `${clampedX - halfDoubledSize}px`;
-        hoveredDot.style.top = `${clampedY - halfDoubledSize}px`;
+        hoveredDot.style.left = `${clampedX - halfEmphasizedSize}px`;
+        hoveredDot.style.top = `${clampedY - halfEmphasizedSize}px`;
         
-        // Reduce opacity of all other dots
+        // De-emphasize all other dots: convert to grayscale and reduce opacity
         const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
         allDots.forEach(dot => {
             if (dot !== hoveredDot) {
-                dot.classList.add('pca-chart__dot--deemphasized');
+                // Store original color if not already stored
+                if (!dot.dataset.originalColor) {
+                    dot.dataset.originalColor = dot.style.backgroundColor;
+                }
+                // Convert to grayscale and reduce opacity
+                const grayscaleColor = this.rgbToGrayscale(dot.dataset.originalColor);
+                dot.style.backgroundColor = grayscaleColor;
+                dot.style.opacity = this.OPACITY_DATASET_DEEMPHASIZED;
             }
         });
     }
 
     /**
-     * Handle dot leave - restore original size and opacity
+     * Handle dot leave - restore original size, color, and opacity
      * @param {HTMLElement} dot - The dot that was hovered
      * @param {number} dotSizePx - Original dot size in pixels
      * @param {number} clampedX - X position of the dot
@@ -748,16 +899,20 @@ class PCAChartService {
     handleDotLeave(dot, dotSizePx, clampedX, clampedY) {
         // Restore original size
         const halfDotSize = dotSizePx / 2;
-        dot.classList.remove('pca-chart__dot--hovered');
         dot.style.width = `${dotSizePx}px`;
         dot.style.height = `${dotSizePx}px`;
+        dot.style.zIndex = '1'; // Restore default z-index
         dot.style.left = `${clampedX - halfDotSize}px`;
         dot.style.top = `${clampedY - halfDotSize}px`;
         
-        // Restore opacity of all dots
+        // Restore original color and opacity of all dots
         const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
         allDots.forEach(d => {
-            d.classList.remove('pca-chart__dot--deemphasized');
+            // Restore original color if stored
+            if (d.dataset.originalColor) {
+                d.style.backgroundColor = d.dataset.originalColor;
+            }
+            d.style.opacity = this.OPACITY_FULL;
         });
     }
 
@@ -771,10 +926,8 @@ class PCAChartService {
             datasetDots.forEach(dot => dot.remove());
         }
 
-        // Restore full opacity of reference dots when dataset dots are cleared
-        if (this.referenceDotsContainer) {
-            this.referenceDotsContainer.classList.remove('pca-chart__reference-dots--deemphasized');
-        }
+        // Restore reference dots to original colors and full opacity
+        this.restoreReferenceDots();
 
         this.currentNodeId = null;
     }
@@ -819,6 +972,11 @@ class PCAChartService {
                 if (!existingDots || existingDots.length === 0) {
                     console.log('PCAChartService: Calling renderReferenceDots()');
                     this.renderReferenceDots(this.globalBoundingBox);
+                }
+
+                // If a coordinate key is selected, show all dots for that key
+                if (this.selectedCoordinateKey) {
+                    this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey);
                 }
             } else {
                 console.warn('PCAChartService: Cannot render reference dots - not initialized or missing bounding box', {

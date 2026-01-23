@@ -185,7 +185,27 @@ class PCAWidget {
             this.pcaWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
             this.initializeSearchInput();
+            // Restore visual state of selected coordinate key if one exists
+            this.restoreSelectedCoordinateKeyVisualState();
         }, 0);
+    }
+
+    /**
+     * Restore the visual state of the selected coordinate key when card is shown
+     * This ensures the selection persists when the widget is dismissed and re-opened
+     */
+    restoreSelectedCoordinateKeyVisualState() {
+        if (this.selectedCoordinateKey) {
+            // Find the selector for the selected coordinate key
+            const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'));
+            const selectedSelector = selectors.find(selector => selector.dataset.assembly === this.selectedCoordinateKey);
+            
+            if (selectedSelector) {
+                // Restore the visual state (border and transform)
+                selectedSelector.style.border = '2px solid #000';
+                selectedSelector.style.transform = 'scale(1.5)';
+            }
+        }
     }
 
     hideCard() {
@@ -201,11 +221,11 @@ class PCAWidget {
     }
 
     reset() {
-        // Clear any selected assembly
+        // Clear any selected coordinate key
         if (this.selectedCoordinateKey) {
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
             const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-            eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+            eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
             this.selectedCoordinateKey = null;
         }
     }
