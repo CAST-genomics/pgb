@@ -15,7 +15,7 @@
 
 .pca-chart__card {
   // CSS custom properties - single source of truth: surface size
-  --pca-chart-surface-size: 448px;
+  --pca-chart-surface-size: 576px;
   --pca-chart-header-height: 32px;
   // Derived dimensions: card width matches surface (square), height adds header and footer
   --pca-chart-card-width: var(--pca-chart-surface-size);
