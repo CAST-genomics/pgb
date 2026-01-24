@@ -59,6 +59,11 @@ class PCAWidget {
         container.appendChild(assemblySelector);
 
         assemblySelector.className = 'assembly-widget__genome-selector';
+
+        // TODO: Decide if selector dot should use color given that for a given coordinateKey there may
+        //       occasionally be more then one color for a given coordinateKey and node id
+        // const colorMap = pclaiCoordinateService.getNodeColorMapForCoordinateKey(coordinateKey)
+
         assemblySelector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
         assemblySelector.dataset.assembly = coordinateKey;  // Use data attribute instead of direct property
 
@@ -199,7 +204,7 @@ class PCAWidget {
             // Find the selector for the selected coordinate key
             const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'));
             const selectedSelector = selectors.find(selector => selector.dataset.assembly === this.selectedCoordinateKey);
-            
+
             if (selectedSelector) {
                 // Restore the visual state (border and transform)
                 selectedSelector.style.border = '2px solid #000';
