@@ -346,6 +346,19 @@
   border-color: #495057;
   background: rgba(73, 80, 87, 0.05);
 }
+.widget-service__button:disabled {
+  color: #6c757d !important;
+  border-color: rgba(108, 117, 125, 0.3) !important;
+  background-color: transparent !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.widget-service__button:disabled:hover {
+  transform: none;
+  border-color: rgba(108, 117, 125, 0.3) !important;
+  color: #6c757d !important;
+  background-color: transparent !important;
+}
 
 .graph-tooltip {
   position: absolute;
@@ -589,6 +602,13 @@
   border-radius: 50%;
   pointer-events: auto;
   z-index: 1;
+  transition: opacity 0.2s ease, width 0.2s ease, height 0.2s ease, left 0.2s ease, top 0.2s ease;
+}
+.pca-chart__dot--deemphasized {
+  opacity: 0.1;
+}
+.pca-chart__dot--hovered {
+  z-index: 10;
 }
 
 .pca-chart__axis {

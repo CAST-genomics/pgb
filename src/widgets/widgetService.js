@@ -1,4 +1,5 @@
 import { app } from "../main.js"
+import { pclaiCoordinateService } from "./pclaiCoordinateService.js"
 
 class WidgetService {
     constructor(containerElement, assemblyWidget, populationWidget, pcaWidget) {
@@ -103,6 +104,11 @@ class WidgetService {
 
         event.stopPropagation();
 
+        // Don't proceed if button is disabled
+        if (this.pcaButton.disabled) {
+            return;
+        }
+
         // Hide and reset other widgets when switching to PCA
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
@@ -143,6 +149,23 @@ class WidgetService {
         this.populationWidget.updateData(jsonData);
     }
 
+    /**
+     * Update PCA button enabled/disabled state based on PCLAI data availability
+     */
+    updatePCAButtonState() {
+        if (this.pcaButton) {
+            const hasData = pclaiCoordinateService.hasPCLAIData();
+            this.pcaButton.disabled = !hasData;
+            if (!hasData) {
+                // If button is disabled and PCA widget is visible, hide the widget
+                if (this.activeButton === this.pcaButton) {
+                    this.pcaWidget.hideCard();
+                    this.setActiveButton(null);
+                }
+            }
+        }
+    }
+
     reset(){
 
         if (this.activeButton) {
@@ -158,6 +181,9 @@ class WidgetService {
 
         this.pcaWidget.hideCard()
         this.pcaWidget.configure()
+
+        // Update PCA button state based on PCLAI data availability
+        this.updatePCAButtonState()
     }
 
     destroy() {
