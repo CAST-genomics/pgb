@@ -182,10 +182,11 @@ class Look {
 
         // Check if we already have this material cached
         if (this.materialCache.has(cacheKey)) {
+            console.log(`getNodeEmphasisMaterial - Node ${ nodeName } return material with cache key ${ cacheKey }`)
             return this.materialCache.get(cacheKey);
         }
 
-        console.log(`getNodeEmphasisMaterial. Key = ${ cacheKey }`)
+        console.log(`getNodeEmphasisMaterial - Node ${ nodeName } create cache key ${ cacheKey } and create material`)
 
         // Disambiguate between a single color and a Map object
         let colorToUse;
