@@ -228,6 +228,14 @@ class PCAWidget {
     reset() {
         // Clear any selected coordinate key
         if (this.selectedCoordinateKey) {
+            // Clear visual state of selected selector before clearing selection
+            const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'));
+            const selectedSelector = selectors.find(selector => selector.dataset.assembly === this.selectedCoordinateKey);
+            if (selectedSelector) {
+                selectedSelector.style.border = '2px solid transparent';
+                selectedSelector.style.transform = '';
+            }
+            
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
             const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
             eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })

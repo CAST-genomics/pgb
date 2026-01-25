@@ -180,6 +180,7 @@ class WidgetService {
         this.populationWidget.reset()
 
         this.pcaWidget.hideCard()
+        this.pcaWidget.reset()
         this.pcaWidget.configure()
 
         // Update PCA button state based on PCLAI data availability
