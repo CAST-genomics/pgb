@@ -3,7 +3,7 @@ import CameraManager from './cameraManager.js'
 import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
-import {getWorldDistanceFromPixelDistance, loadPath} from './utils/utils.js'
+import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
@@ -51,7 +51,7 @@ class App {
 
             if ('node' === object.userData?.type) {
                 const { t, nodeName } = intersection
-                
+
                 // Check if a coordinate key is selected and if this node has it
                 const selectedCoordinateKey = pcaChartService.selectedCoordinateKey;
                 if (selectedCoordinateKey) {
@@ -62,7 +62,7 @@ class App {
                         return;
                     }
                 }
-                
+
                 // Publish the vital lineIntersection event using processed intersection
                 eventBus.publish('lineIntersection', { t, nodeName, nodeLine: object })
                 this.showTooltip(object, point, 'node')
@@ -80,7 +80,7 @@ class App {
             const {object, point} = intersection
             if ('node' === object.userData?.type) {
                 const {t, nodeName} = intersection
-                
+
                 // Check if a coordinate key is selected and if this node has it
                 const selectedCoordinateKey = pcaChartService.selectedCoordinateKey;
                 if (selectedCoordinateKey) {
@@ -91,7 +91,7 @@ class App {
                         return;
                     }
                 }
-                
+
                 eventBus.publish('lineIntersection', {t, nodeName, nodeLine: object})
             }
         })
