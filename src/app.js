@@ -31,8 +31,6 @@ class App {
         this.genomeLibrary = genomeLibrary
         this.sceneManager = sceneManager
 
-        this.clock = new THREE.Clock()
-
         this.cameraManager = new CameraManager(frustumSize, container.clientWidth/container.clientHeight)
         this.mapControl = MapControlsFactory.create(this.cameraManager.camera, container)
 
@@ -141,10 +139,7 @@ class App {
 
         this.mapControl.update()
 
-        const look = this.sceneManager.getActiveLook()
         const scene = this.sceneManager.getActiveScene()
-        look.updateBehavior(this.clock.getDelta(), scene)
-
         this.renderer.render(scene, this.cameraManager.camera)
     }
 

@@ -32,7 +32,6 @@ class Look {
         this.assemblyWidget = config.assemblyWidget; // Access to assembly widget for selected assembly info
         this.sceneManager = config.sceneManager; // Optional, may be undefined
 
-        this.behaviors = config.behaviors || {};
         this.zOffset = config.zOffset || 0;
 
         this.isActive = false; // Track if this look is currently active
@@ -67,19 +66,6 @@ class Look {
             return GeometryFactory.NODE_LINE_Z_OFFSET;
         }
 
-    }
-
-    /**
-     * Updates animation behavior for this look.
-     * Called each frame to update any time-based visual effects.
-     * Base implementation does nothing; subclasses should override for specific animations.
-     *
-     * @param {number} deltaTime - Time elapsed since last frame in milliseconds
-     * @param {THREE.Scene} scene - The Three.js scene being rendered
-     */
-    updateBehavior(deltaTime, scene) {
-        // Base class has no animation by default
-        // Subclasses override this method for specific animation behaviors
     }
 
     /**

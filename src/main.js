@@ -65,7 +65,6 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     // Node Emphasis Look & Scene
     const nodeEmphasisLook = NodeEmphasisLook.createNodeEmphasisLook('nodeEmphasisLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
-    nodeEmphasisLook.setAnimationEnabled(false)
     sceneManager.createScene('nodeEmphasisScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('nodeEmphasisScene', nodeEmphasisLook);
 

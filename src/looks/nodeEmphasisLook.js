@@ -1,43 +1,19 @@
-import * as THREE from 'three';
 import Look from './look.js';
 import eventBus from "../utils/eventBus.js"
-import {MATERIAL_TYPES} from '../materialService.js';
 import materialService from '../materialService.js';
 import GeometryFactory from "../geometryFactory.js"
 import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
 class NodeEmphasisLook extends Look {
 
-    static ANIMATION_SPEED = 0.5;
-
     constructor(name, config) {
         super(name, config);
 
         this.sceneManager = config.sceneManager
-
-        this.edgeArrowAnimationState =
-            {
-                uvOffset: 0,
-                enabled: config.behaviors?.edgeArrowAnimation?.enabled ?? false
-            };
     }
 
     static createNodeEmphasisLook(name, config) {
-
-        const factoryConfig =
-            {
-                behaviors:
-                    {
-                        edgeArrowAnimation:
-                            {
-                                type: 'uvOffset',
-                                speed: NodeEmphasisLook.ANIMATION_SPEED,
-                                enabled: true
-                            }
-                    }
-            };
-
-        return new NodeEmphasisLook(name, {...factoryConfig, ...config });
+        return new NodeEmphasisLook(name, config);
     }
 
     getZOffset(objectId) {
@@ -75,55 +51,6 @@ class NodeEmphasisLook extends Look {
 
         // Fallback to parent implementation
         return super.getZOffset(objectId);
-    }
-
-    updateBehavior(deltaTime, scene) {
-
-        if (!this.edgeArrowAnimationState.enabled) {
-            return;
-        }
-
-        const behavior = this.behaviors.edgeArrowAnimation;
-
-        if (behavior?.type === 'uvOffset') {
-            const speed = behavior.speed * deltaTime;
-            this.edgeArrowAnimationState.uvOffset = (this.edgeArrowAnimationState.uvOffset - speed) % 1.0;
-        }
-
-        const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
-        this.#updateEdgeAnimation(edgeMeshGroup)
-
-    }
-
-    setAnimationEnabled(enabled) {
-        this.edgeArrowAnimationState.enabled = enabled;
-    }
-
-    #updateEdgeAnimation(edgeMeshesGroup) {
-
-        if (!this.edgeArrowAnimationState.enabled) return;
-
-        const uvOffset = new THREE.Vector2(this.edgeArrowAnimationState.uvOffset, 0);
-
-        let edgeCount = 0;
-        edgeMeshesGroup.traverse(object => {
-
-            if (object.material){
-
-                if (MATERIAL_TYPES.DEEMPHASIS !== object.material.materialType) {
-
-                    if (object.userData?.type === 'edge' && object.material.uniforms) {
-                        if (object.material.uniforms.uvOffset) {
-                            object.material.uniforms.uvOffset.value.copy(uvOffset);
-                            edgeCount++;
-                        }
-                    }
-
-                }
-
-            }
-        });
-
     }
 
     /**
