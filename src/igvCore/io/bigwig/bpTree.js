@@ -1,5 +1,5 @@
 import {igvxhr} from 'igv-utils'
-import {buildOptions} from "../util/igvUtils.js"
+import {buildOptions} from "../../util/igvUtils.js"
 import BinaryParser from "../binary.js"
 
 /**

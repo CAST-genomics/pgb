@@ -24,8 +24,8 @@
  */
 
 import BWReader from "./bwReader.js"
-import pack from "../feature/featurePacker.js"
-import BaseFeatureSource from "../feature/baseFeatureSource.js"
+import pack from "../../layout/featurePacker.js"
+import BaseFeatureSource from "../baseFeatureSource.js"
 
 class BWSource extends BaseFeatureSource {
 

@@ -1,8 +1,8 @@
 import { knownGenomes } from './knownGenomes.js';
 import Genome from './genome.js';
-import TextFeatureSource from '../feature/textFeatureSource.js';
+import TextFeatureSource from '../io/textFeatureSource.js';
 import QTLSelections from '../qtl/qtlSelections.js';
-import FeatureRenderer from '../feature/featureRenderer.js';
+import FeatureRenderer from '../rendering/featureRenderer.js';
 import { genomeIDAliases } from './genomeIDAliases.js';
 
 class GenomeLibrary {

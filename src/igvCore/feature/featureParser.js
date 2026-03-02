@@ -23,8 +23,7 @@
  * THE SOFTWARE.
  */
 
-import { decodeGenePredExt } from "./decode/ucsc.js"
-import DecodeError from "./decode/decodeError.js"
+import { decodeGenePredExt, DecodeError } from "../codec/refGeneCodec.js"
 
 class FeatureParser {
 

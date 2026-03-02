@@ -2,7 +2,7 @@ import {
     aminoAcidSequenceRenderThreshold,
     calculateFeatureCoordinates, getFeatureLabelY, translationDict
 } from "./featureRendererUtils.js"
-import IGVGraphics from "../igv-canvas.js"
+import IGVGraphics from "./igvCanvas.js"
 import {complementSequence} from "../util/sequenceUtils.js"
 import {getEonStart, getExonEnd, getExonPhase} from "./exonUtils.js"
 

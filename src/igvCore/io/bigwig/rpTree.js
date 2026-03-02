@@ -1,6 +1,6 @@
 import {igvxhr} from 'igv-utils'
 import BinaryParser from "../binary.js"
-import {buildOptions} from "../util/igvUtils.js"
+import {buildOptions} from "../../util/igvUtils.js"
 
 const RPTREE_HEADER_SIZE = 48
 const RPTREE_NODE_LEAF_ITEM_SIZE = 32   // leaf item size

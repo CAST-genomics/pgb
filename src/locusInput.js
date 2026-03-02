@@ -1,6 +1,6 @@
 import { template, ELEMENT_IDS } from './locusInput.template.js';
 import { prettyPrint } from './utils/utils.js';
-import {searchFeatures} from "./igvCore/search.js"
+import {searchFeatures} from "./igvCore/search/geneSearch.js"
 import {defaultGenome} from "./main.js"
 
 // Regular expressions for parsing genomic loci and URLs

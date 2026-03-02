@@ -31,7 +31,7 @@
 //    IGVGraphics.strokeLine(context, 0, 0, 10, 10);
 //
 
-import {randomRGB} from "./util/colorPalletes.js";
+import {randomRGB} from "../util/colorPalletes.js";
 
 var debug = false
 

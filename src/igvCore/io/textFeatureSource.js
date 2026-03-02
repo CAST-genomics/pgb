@@ -1,7 +1,7 @@
 import {FeatureCache} from 'igv-utils'
 import FeatureFileReader from "./featureFileReader.js"
 import GenomicInterval from "../genome/genomicInterval.js"
-import {packFeatures} from "./featureUtils.js"
+import {packFeatures} from "../feature/featureUtils.js"
 import ChromAliasManager from "./chromAliasManager.js"
 import BaseFeatureSource from "./baseFeatureSource.js"
 
