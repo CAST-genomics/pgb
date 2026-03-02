@@ -24,7 +24,6 @@
  */
 
 import {FileUtils, StringUtils} from 'igv-utils'
-import * as DOMUtils from "./dom-utils.js"
 
 const extend = function (parent, child) {
 
@@ -195,19 +194,6 @@ function isDataURL(obj) {
     return (StringUtils.isString(obj) && obj.startsWith("data:"))
 }
 
-function createColumn(columnContainer, className) {
-    const column = DOMUtils.div({class: className})
-    columnContainer.appendChild(column)
-}
-
-
-function insertElementBefore(element, referenceNode) {
-    referenceNode.parentNode.insertBefore(element, referenceNode)
-}
-
-function insertElementAfter(element, referenceNode) {
-    referenceNode.parentNode.insertBefore(element, referenceNode.nextSibling)
-}
 
 /**
  * Test to see if page is loaded in a secure context, that is by https or is localhost.
@@ -251,6 +237,6 @@ function getElementVerticalDimension(element) {
 }
 
 export {
-    createColumn, extend, isSimpleType, buildOptions, validateGenomicExtent, doAutoscale, isNumber,
-    getFilename, prettyBasePairNumber, isDataURL, insertElementBefore, insertElementAfter, isSecureContext, expandRegion, isInteger, getElementVerticalDimension
+    extend, isSimpleType, buildOptions, validateGenomicExtent, doAutoscale, isNumber,
+    getFilename, prettyBasePairNumber, isDataURL, isSecureContext, expandRegion, isInteger, getElementVerticalDimension
 }
