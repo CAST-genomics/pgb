@@ -1,21 +1,16 @@
-import { knownGenomes } from './knownGenomes.js';
+import { getGenomeConfig } from './genomeRegistry.js';
 import Genome from './genome.js';
 import TextFeatureSource from '../io/textFeatureSource.js';
 import QTLSelections from '../qtl/qtlSelections.js';
 import FeatureRenderer from '../rendering/featureRenderer.js';
-import { genomeIDAliases } from './genomeIDAliases.js';
 
 class GenomeLibrary {
     constructor() {
-        // for (const [ key, value ] of Object.entries(knownGenomes)){
-        //     const { name } = value
-        //     console.log(`${ key }#${ name }`)
-        // }
     }
 
     async getGenomePayload(genomeId) {
 
-        const config = knownGenomes[genomeId] || knownGenomes[genomeIDAliases.get(genomeId)] || undefined;
+        const config = getGenomeConfig(genomeId);
 
         if (!config) {
             return undefined
