@@ -1,7 +1,9 @@
+import * as THREE from 'three';
 import Look from "./look.js"
 import {assemblyMetadataService } from "../assemblyMetadataService.js"
 import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
+import { ylGnBu, ylOrRd, blues } from "../utils/color/color-ramps.js"
 import eventBus from "../utils/eventBus.js"
 
 class HeatmapLook extends Look {
@@ -46,7 +48,11 @@ class HeatmapLook extends Look {
 
             // const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
             // const color = frequencyToColorDiscrete(frequencyToUse)
-            const color = frequencyToColorContinuous(rawFrequency)
+
+
+
+            // const color = frequencyToColorContinuous(rawFrequency)
+            const color = new THREE.Color(blues.hex(rawFrequency))
 
             const key = Look.getCacheKey(nodeName)
             const material = this.materialCache.get(key)
