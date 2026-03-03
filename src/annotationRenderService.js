@@ -19,7 +19,8 @@ class AnnotationRenderService {
 
         this.splineParameterMap = new Map()
 
-        this.isSequenceRenderer = false
+        /** True when gene annotation data is available; false when falling back to extent markers only. */
+        this.hasGeneAnnotations = false
 
         this.createVisualFeedbackElement();
 
@@ -90,11 +91,12 @@ class AnnotationRenderService {
         const result = await app.genomeLibrary.getGenomePayload(genomeId)
 
         if (undefined === result) {
-            this.isSequenceRenderer = true
+            // Unknown genome: no RefSeq/annotation data — fall back to extent markers only
+            this.hasGeneAnnotations = false
             this.drawConfig = { nodes, chr, bpStart, bpEnd }
             this.renderGenomicExtents(this.drawConfig)
         } else {
-            this.isSequenceRenderer = false
+            this.hasGeneAnnotations = true
             const {geneFeatureSource, geneRenderer} = result
             this.featureSource = geneFeatureSource
             this.featureRenderer = geneRenderer
@@ -110,7 +112,7 @@ class AnnotationRenderService {
 
         this.featureRenderer = undefined
 
-        this.isSequenceRenderer = false
+        this.hasGeneAnnotations = false
 
         this.drawConfig = undefined
 
@@ -159,6 +161,7 @@ class AnnotationRenderService {
         this.container.appendChild(this.visualFeedbackElement);
     }
 
+    /** Draw vertical tick marks at node boundaries when gene annotation data is unavailable. */
     renderGenomicExtents(config) {
 
         const { nodes, bpStart:assemblyBPStart, bpEnd:assemblyBPEnd } = config
@@ -196,6 +199,7 @@ class AnnotationRenderService {
 
     }
 
+    /** Draw gene features (exons, introns, etc.) when annotation data is available. */
     renderGeneAnnotation(renderConfig) {
 
         if (renderConfig) {
@@ -234,9 +238,10 @@ class AnnotationRenderService {
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`
 
-        if (false === this.isSequenceRenderer && this.drawConfig) {
+        // Re-render using the same mode as the last emphasis
+        if (this.hasGeneAnnotations && this.drawConfig) {
             this.renderGeneAnnotation(this.drawConfig);
-        } else if (true === this.isSequenceRenderer && this.drawConfig) {
+        } else if (!this.hasGeneAnnotations && this.drawConfig) {
             this.renderGenomicExtents(this.drawConfig)
         } else {
             ctx.clearRect(0, 0, width, height);
