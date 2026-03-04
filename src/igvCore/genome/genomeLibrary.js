@@ -16,13 +16,17 @@ class GenomeLibrary {
             return undefined
         }
 
+        console.log(`GenomeLibrary: creating genome "${genomeId}" ...`)
+        console.time(`GenomeLibrary: genome "${genomeId}" created`)
         const genome = await Genome.createGenome(config)
+        console.timeEnd(`GenomeLibrary: genome "${genomeId}" created`)
 
         const [ refseqSelectTrackConfig ] = genome.config.tracks
         const geneFeatureSource = new TextFeatureSource({ ...refseqSelectTrackConfig, type: "annotation", expandQuery: false }, genome)
 
         const browser = { genome, qtlSelections: new QTLSelections() }
-        const geneRendererConfig = { format: "refgene", type: "annotation", displayMode: "COLLAPSED", browser }
+        const trackFormat = refseqSelectTrackConfig.format || "refgene"
+        const geneRendererConfig = { format: trackFormat, type: "annotation", displayMode: "COLLAPSED", browser }
 
         const geneRenderer = new FeatureRenderer(geneRendererConfig)
 

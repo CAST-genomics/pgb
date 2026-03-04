@@ -27,6 +27,9 @@ import {BGZip, FileUtils, igvxhr, URIUtils} from 'igv-utils'
 import FeatureParser from "../feature/featureParser.js"
 import {buildOptions, isDataURL} from "../util/igvUtils.js"
 import getDataWrapper from "./dataWrapper.js"
+import {loadIndex} from "./indexFactory.js"
+import BGZBlockLoader from "./bgzBlockLoader.js"
+import BGZLineReader from "./bgzLineReader.js"
 
 // Conservative estimate of the maximum allowed string length
 const MAX_STRING_LENGTH = 500000000
@@ -97,8 +100,17 @@ class FeatureFileReader {
         }
 
         let allFeatures
-        this.indexed = false
-        allFeatures = await this.loadFeaturesNoIndex()
+        const index = await this.getIndex()
+        if (index) {
+            this.indexed = true
+            allFeatures = await this.loadFeaturesWithIndex(chr, start, end)
+        } else if (this.dataURI) {
+            this.indexed = false
+            allFeatures = await this.loadFeaturesFromDataURI()
+        } else {
+            this.indexed = false
+            allFeatures = await this.loadFeaturesNoIndex()
+        }
 
         allFeatures.sort(function (a, b) {
             if (a.chr === b.chr) {
@@ -113,31 +125,93 @@ class FeatureFileReader {
 
     async readHeader() {
 
-        let data
+        if (this.dataURI) {
+            await this.loadFeaturesFromDataURI(this.dataURI)
+            return this.header
+        } else if (this.config.indexURL) {
+            const index = await this.getIndex()
+            if (!index) {
+                throw new Error("Unable to load index: " + this.config.indexURL)
+            }
+            this.sequenceNames = new Set(index.sequenceNames)
 
-        const options = buildOptions(this.config)
-        data = await igvxhr.loadByteArray(this.config.url, options)
+            if (index.tabix) {
+                this._blockLoader = new BGZBlockLoader(this.config)
+                const dataWrapper = new BGZLineReader(this.config)
+                this.header = await this.parser.parseHeader(dataWrapper)
+            } else {
+                // Non-tabix indexed files: load header from start of file
+                const options = buildOptions(this.config)
+                const data = await igvxhr.loadByteArray(this.config.url, options)
+                const decoded = data.length < MAX_STRING_LENGTH ? new TextDecoder().decode(data) : data
+                const dataWrapper = getDataWrapper(decoded)
+                this.header = await this.parser.parseHeader(dataWrapper)
+            }
 
-        // If the data size is < max string length decode entire string with TextDecoder.  This is much faster
-        // than decoding by line
-        if (data.length < MAX_STRING_LENGTH) {
-            data = new TextDecoder().decode(data)
+            return this.header
+        } else {
+            // Non-indexed file
+            this.indexed = false
+
+            let data
+            const options = buildOptions(this.config)
+            data = await igvxhr.loadByteArray(this.config.url, options)
+
+            if (data.length < MAX_STRING_LENGTH) {
+                data = new TextDecoder().decode(data)
+            }
+
+            let dataWrapper = getDataWrapper(data)
+            this.header = await this.parser.parseHeader(dataWrapper)
+
+            // Reset data wrapper and parse features
+            dataWrapper = getDataWrapper(data)
+            this.features = await this.parser.parseFeatures(dataWrapper)   // cache features
+
+            // Extract chromosome names
+            this.sequenceNames = new Set()
+            for (let f of this.features) this.sequenceNames.add(f.chr)
+
+            return this.header
+        }
+    }
+
+    async loadFeaturesWithIndex(chr, start, end) {
+
+        const tabix = this.index.tabix
+        const refId = tabix ? this.index.sequenceIndexMap[chr] : chr
+
+        if (refId === undefined) {
+            return []
         }
 
+        const chunks = this.index.chunksForRange(refId, start, end)
+        if (!chunks || chunks.length === 0) {
+            return []
+        }
 
-        let dataWrapper = getDataWrapper(data)
-        this.header = await this.parser.parseHeader(dataWrapper)
+        const allFeatures = []
+        for (const chunk of chunks) {
 
-        // Reset data wrapper and parse features
-        dataWrapper = getDataWrapper(data)
-        this.features = await this.parser.parseFeatures(dataWrapper)   // cache features
+            let inflated
+            if (tabix) {
+                inflated = await this._blockLoader.getData(chunk.minv, chunk.maxv)
+            } else {
+                const options = buildOptions(this.config, {
+                    range: {
+                        start: chunk.minv.block,
+                        size: chunk.maxv.block - chunk.minv.block + 1
+                    }
+                })
+                inflated = await igvxhr.loadString(this.config.url, options)
+            }
 
-        // Extract chromosome names
-        this.sequenceNames = new Set()
-        for (let f of this.features) this.sequenceNames.add(f.chr)
+            const slicedData = chunk.minv.offset ? inflated.slice(chunk.minv.offset) : inflated
+            const dataWrapper = getDataWrapper(slicedData)
+            await this._parse(allFeatures, dataWrapper, chr, end, start)
+        }
 
-        return this.header
-
+        return allFeatures
     }
 
     async loadFeaturesNoIndex() {
@@ -204,17 +278,9 @@ class FeatureFileReader {
         if (this.index) {
             return this.index
         } else if (this.config.indexURL) {
-            this.index = await this.loadIndex()
+            this.index = await loadIndex(this.config.indexURL, this.config)
             return this.index
         }
-    }
-
-    /**
-     * Return a Promise for the async loaded index
-     */
-    async loadIndex() {
-        const indexURL = this.config.indexURL
-        return loadIndex(indexURL, this.config)
     }
 
     async loadFeaturesFromDataURI() {
@@ -228,9 +294,6 @@ class FeatureFileReader {
             const plain = BGZip.decodeDataURI(this.dataURI)
             let dataWrapper = getDataWrapper(plain)
             this.header = await this.parser.parseHeader(dataWrapper)
-            if (this.header instanceof String && this.header.startsWith("##gff-version 3")) {
-                this.format = 'gff3'
-            }
 
             dataWrapper = getDataWrapper(plain)
             const features = []
@@ -242,4 +305,3 @@ class FeatureFileReader {
 }
 
 export default FeatureFileReader
-

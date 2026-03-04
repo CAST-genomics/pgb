@@ -88,7 +88,10 @@ class AnnotationRenderService {
         }
 
         const [ genomeId, haplotype, sequence_id ] = this.assembly.split('#')
+        console.log(`AnnotationRenderService: loading genome payload for "${genomeId}" ...`)
+        console.time(`AnnotationRenderService: genome payload "${genomeId}"`)
         const result = await app.genomeLibrary.getGenomePayload(genomeId)
+        console.timeEnd(`AnnotationRenderService: genome payload "${genomeId}"`)
 
         if (undefined === result) {
             // Unknown genome: no RefSeq/annotation data — fall back to extent markers only
@@ -100,7 +103,11 @@ class AnnotationRenderService {
             const {geneFeatureSource, geneRenderer} = result
             this.featureSource = geneFeatureSource
             this.featureRenderer = geneRenderer
+            console.log(`AnnotationRenderService: fetching features for ${chr}:${bpStart}-${bpEnd} ...`)
+            console.time(`AnnotationRenderService: features fetched`)
             const features = await this.getFeatures(chr, bpStart, bpEnd)
+            console.timeEnd(`AnnotationRenderService: features fetched`)
+            console.log(`AnnotationRenderService: ${features ? features.length : 0} features returned`)
             this.renderGeneAnnotation({ container: this.container, bpStart, bpEnd, features })
         }
 

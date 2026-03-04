@@ -1,23 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock igvxhr before importing registry module
-vi.mock('igv-utils', async () => {
-    const actual = await vi.importActual('igv-utils')
-    return {
-        ...actual,
-        igvxhr: {
-            loadJson: vi.fn(),
-        },
-    }
-})
+// Mock the two source modules
+vi.mock('../genome/igvOrgRegistrySource.js', () => ({
+    initialize: vi.fn(),
+}))
+
+vi.mock('../genome/customRegistrySource.js', () => ({
+    initialize: vi.fn(),
+}))
 
 import {
     initializeGenomeRegistry,
     getGenomeConfig,
     isInitialized,
     resetRegistry,
+    setCustomRegistryURL,
 } from '../genome/genomeRegistry.js'
-import { igvxhr } from 'igv-utils'
+import { initialize as initIgvOrg } from '../genome/igvOrgRegistrySource.js'
+import { initialize as initCustom } from '../genome/customRegistrySource.js'
 
 const fixtureGenomes = [
     { id: 'hg38', name: 'Human (GRCh38/hg38)', twoBitURL: 'https://example.com/hg38.2bit', tracks: [] },
@@ -27,27 +27,24 @@ const fixtureGenomes = [
 beforeEach(() => {
     resetRegistry()
     vi.clearAllMocks()
+    // Default: igv.org returns fixtures, custom returns empty
+    initIgvOrg.mockResolvedValue(new Map(fixtureGenomes.map(g => [g.id, g])))
+    initCustom.mockResolvedValue(new Map())
 })
 
 describe('genomeRegistry', () => {
 
-    // Round 1: Basic fetch and lookup
+    // Basic fetch and lookup
     describe('basic fetch and lookup', () => {
 
-        it('initializeGenomeRegistry fetches from primary URL with 2s timeout', async () => {
-            igvxhr.loadJson.mockResolvedValueOnce(fixtureGenomes)
-
+        it('initializeGenomeRegistry calls both sources', async () => {
             await initializeGenomeRegistry()
 
-            expect(igvxhr.loadJson).toHaveBeenCalledWith(
-                'https://igv.org/genomes/genomes3.json',
-                { timeout: 2000 }
-            )
+            expect(initIgvOrg).toHaveBeenCalledTimes(1)
+            expect(initCustom).toHaveBeenCalledTimes(1)
         })
 
         it('getGenomeConfig returns matching config after init', async () => {
-            igvxhr.loadJson.mockResolvedValueOnce(fixtureGenomes)
-
             await initializeGenomeRegistry()
 
             const config = getGenomeConfig('hg38')
@@ -55,94 +52,109 @@ describe('genomeRegistry', () => {
         })
 
         it('getGenomeConfig returns undefined for nonexistent id', async () => {
-            igvxhr.loadJson.mockResolvedValueOnce(fixtureGenomes)
-
             await initializeGenomeRegistry()
 
             expect(getGenomeConfig('nonexistent')).toBeUndefined()
         })
     })
 
-    // Round 2: Singleton
+    // Singleton
     describe('singleton behavior', () => {
 
         it('second call to initializeGenomeRegistry does not re-fetch', async () => {
-            igvxhr.loadJson.mockResolvedValueOnce(fixtureGenomes)
-
             await initializeGenomeRegistry()
             await initializeGenomeRegistry()
 
-            expect(igvxhr.loadJson).toHaveBeenCalledTimes(1)
+            expect(initIgvOrg).toHaveBeenCalledTimes(1)
+            expect(initCustom).toHaveBeenCalledTimes(1)
         })
     })
 
-    // Round 3: Fallback to backup URL
-    describe('fallback to backup URL', () => {
+    // Graceful degradation
+    describe('graceful degradation', () => {
 
-        it('when primary rejects, fetches from backup URL with 10s timeout', async () => {
-            igvxhr.loadJson
-                .mockRejectedValueOnce(new Error('Network error'))
-                .mockResolvedValueOnce(fixtureGenomes)
-
-            await initializeGenomeRegistry()
-
-            expect(igvxhr.loadJson).toHaveBeenCalledTimes(2)
-            expect(igvxhr.loadJson).toHaveBeenNthCalledWith(2,
-                'https://raw.githubusercontent.com/igvteam/igv/master/resources/genomes3.json',
-                { timeout: 10000 }
-            )
-            expect(getGenomeConfig('hg38')).toEqual(fixtureGenomes[0])
-        })
-    })
-
-    // Round 4: Graceful degradation
-    describe('graceful degradation when both URLs fail', () => {
-
-        it('isInitialized is true and getGenomeConfig returns undefined', async () => {
-            igvxhr.loadJson
-                .mockRejectedValueOnce(new Error('Primary failed'))
-                .mockRejectedValueOnce(new Error('Backup failed'))
+        it('igv.org source failure does not block custom results', async () => {
+            const customGenome = { id: 'custom1', name: 'Custom' }
+            initIgvOrg.mockResolvedValue(new Map())
+            initCustom.mockResolvedValue(new Map([['custom1', customGenome]]))
 
             await initializeGenomeRegistry()
 
             expect(isInitialized()).toBe(true)
-            expect(getGenomeConfig('hg38')).toBeUndefined()
+            expect(getGenomeConfig('custom1')).toEqual(customGenome)
         })
 
-        it('does not throw', async () => {
-            igvxhr.loadJson
-                .mockRejectedValueOnce(new Error('Primary failed'))
-                .mockRejectedValueOnce(new Error('Backup failed'))
+        it('custom source failure does not block igv.org results', async () => {
+            initCustom.mockResolvedValue(new Map())
 
-            await expect(initializeGenomeRegistry()).resolves.not.toThrow()
+            await initializeGenomeRegistry()
+
+            expect(isInitialized()).toBe(true)
+            expect(getGenomeConfig('hg38')).toEqual(fixtureGenomes[0])
         })
     })
 
-    // Round 5: Alias resolution
+    // Alias resolution
     describe('alias resolution', () => {
 
         it('getGenomeConfig resolves GRCh38 alias to hg38', async () => {
-            igvxhr.loadJson.mockResolvedValueOnce(fixtureGenomes)
-
             await initializeGenomeRegistry()
 
             expect(getGenomeConfig('GRCh38')).toEqual(fixtureGenomes[0])
         })
 
         it('getGenomeConfig resolves GRCm39 alias to mm39', async () => {
-            igvxhr.loadJson.mockResolvedValueOnce(fixtureGenomes)
-
             await initializeGenomeRegistry()
 
             expect(getGenomeConfig('GRCm39')).toEqual(fixtureGenomes[1])
         })
+
+        it('alias resolution works against merged Map (custom genome with alias)', async () => {
+            const customHg38 = { id: 'hg38', name: 'Custom hg38' }
+            initCustom.mockResolvedValue(new Map([['hg38', customHg38]]))
+
+            await initializeGenomeRegistry()
+
+            expect(getGenomeConfig('GRCh38')).toEqual(customHg38)
+        })
     })
 
-    // Round 6: Pre-initialization guard
+    // Pre-initialization guard
     describe('pre-initialization guard', () => {
 
         it('getGenomeConfig throws before init', () => {
             expect(() => getGenomeConfig('hg38')).toThrow('GenomeRegistry has not been initialized')
+        })
+    })
+
+    // Facade: merge precedence
+    describe('merge precedence', () => {
+
+        it('custom config takes precedence over igv.org on ID collision', async () => {
+            const customHg38 = { id: 'hg38', name: 'Custom hg38', fastaURL: 'https://example.com/custom.fa' }
+            initCustom.mockResolvedValue(new Map([['hg38', customHg38]]))
+
+            await initializeGenomeRegistry()
+
+            expect(getGenomeConfig('hg38')).toEqual(customHg38)
+        })
+    })
+
+    // setCustomRegistryURL
+    describe('setCustomRegistryURL', () => {
+
+        it('configures the custom source URL', async () => {
+            setCustomRegistryURL('https://example.com/custom-genomes.json')
+
+            await initializeGenomeRegistry()
+
+            expect(initCustom).toHaveBeenCalledWith('https://example.com/custom-genomes.json')
+        })
+
+        it('custom source receives undefined when no URL is set', async () => {
+            await initializeGenomeRegistry()
+
+            expect(initCustom).toHaveBeenCalledWith(undefined)
         })
     })
 })
