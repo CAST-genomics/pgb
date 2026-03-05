@@ -15,8 +15,12 @@ async function initialize(url) {
         return new Map()
     }
 
-    if (!Array.isArray(genomeList)) {
-        console.error('customRegistrySource: response is not an array')
+    if (Array.isArray(genomeList)) {
+        // already an array — use as-is
+    } else if (genomeList && typeof genomeList === 'object' && genomeList.id) {
+        genomeList = [genomeList]
+    } else {
+        console.error('customRegistrySource: response is not a valid genome config or array')
         return new Map()
     }
 

@@ -58,8 +58,19 @@ describe('customRegistrySource', () => {
         expect(map.size).toBe(0)
     })
 
-    it('returns empty Map when response is not an array', async () => {
-        igvxhr.loadJson.mockResolvedValueOnce({ not: 'an array' })
+    it('accepts a single genome object (not wrapped in array) and returns a 1-entry Map', async () => {
+        const singleGenome = { id: 'solo', name: 'Solo Genome', fastaURL: 'https://example.com/solo.fa' }
+        igvxhr.loadJson.mockResolvedValueOnce(singleGenome)
+
+        const map = await initialize('https://example.com/single-genome.json')
+
+        expect(map).toBeInstanceOf(Map)
+        expect(map.size).toBe(1)
+        expect(map.get('solo')).toEqual(singleGenome)
+    })
+
+    it('returns empty Map when response is not a valid genome config or array', async () => {
+        igvxhr.loadJson.mockResolvedValueOnce({ not: 'a genome' })
 
         const map = await initialize('https://example.com/bad-format.json')
 
