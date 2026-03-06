@@ -1,12 +1,22 @@
 # Assembly Coordinates Conceptual Bug
 
-This document describes a deeper design inconsistency in PGB: the per-assembly spine mixes assembly-specific structure with reference-specific coordinates. The bug is not confined to the annotation render service—it originates in how the spine is built.
+This document describes a design inconsistency in PGB: the per-assembly spine mixes assembly-specific structure with reference-specific coordinates. An **implemented fix** addresses the critical part—the sequence ID and coordinate origin—while keeping the design flexible for future assembly-specific start data.
 
 ---
 
 ## Summary
 
-The spine is built per-assembly (each assembly has its own walk and spine in `assemblyWalkMap`), but the coordinates within it are in **reference space**. The spine is only assembly-specific in terms of *which nodes* it contains and *in what order*. The *coordinates* (bpStart, bpEnd) are reference coordinates. This mixed design causes downstream consumers (e.g., AnnotationRenderService) to use the wrong coordinate system when fetching features for custom genomes.
+The spine is built per-assembly (each assembly has its own walk and spine in `assemblyWalkMap`), but the coordinates within it were originally in **reference space** for all assemblies. The spine was assembly-specific in terms of *which nodes* it contains and *in what order*, but not in *coordinates* (bpStart, bpEnd) or *sequence ID*.
+
+The implemented fix:
+
+1. **GenomicService** now computes per-assembly values and passes them explicitly in the config: `locusStartBp` (locus start for reference assemblies, 0 for custom as placeholder) and `sequenceId` (from the assembly key).
+
+2. **PangenomeService** consumes these values from the config; no decision logic. The spine includes `sequenceId` for downstream use.
+
+3. **AnnotationRenderService** uses `spine.sequenceId` instead of `locus.chr` for the feature query.
+
+For reference assemblies, the spine coordinates remain in reference space (chr1 positions). For custom assemblies, the origin is 0 (placeholder); proper assembly-specific starts are future work. The design keeps all coordinate-selection logic in GenomicService so the fix can evolve when that data becomes available.
 
 ---
 
@@ -15,47 +25,48 @@ The spine is built per-assembly (each assembly has its own walk and spine in `as
 The spine is constructed in `PangenomeService.getSpineFeatures()` and cached in `GenomicService.assemblyWalkMap`:
 
 ```
+src/genomicService.js  — computes per-assembly config (locusStartBp, sequenceId), calls getSpineFeatures
 src/pangenomeService.js — getSpineFeatures(assemblyKey, assessOpts, walkOpts)
-src/genomicService.js  — calls getSpineFeatures, stores in assemblyWalkMap
 ```
 
-For each assembly, the spine is built from the assembly walk (node order) and the locus:
+For each assembly, the spine is built from the assembly walk and the **per-assembly config**:
 
 ```javascript
-// Spine with bp coords
-let x = Number(locusStartBp) || 0;   // ← reference locus (chr1)
+// Spine with bp coords — locusStartBp and sequenceId come from assessOpts (GenomicService)
+let x = Number(locusStartBp) || 0;   // reference: locus start; custom: 0
 const spineNodes = [];
 for (const id of path.nodes) {
     const len = this.graph.nodes.get(id)?.lengthBp || 0;
     spineNodes.push({ id, bpStart: x, bpEnd: x + len, lengthBp: len });
     x += len;
 }
+const spine = { assemblyKey, nodes: spineNodes, edges: ..., lengthBp: ..., sequenceId };
 ```
 
-`locusStartBp` comes from `this.locus.startBP` in GenomicService—the reference locus (e.g., chr1:25240000–25460000). So every assembly's spine uses the same reference coordinate system.
+`locusStartBp` and `sequenceId` are provided by GenomicService in the assessment config. GenomicService determines reference vs. custom by checking `sequenceId === this.locus.chr`.
 
 ---
 
-## The Inconsistency
+## The Inconsistency (Partially Addressed)
 
-| Aspect | Current behavior | What "per-assembly spine" implies |
-|--------|------------------|-----------------------------------|
+| Aspect | Original behavior | Implemented behavior |
+|--------|-------------------|----------------------|
 | Node order | Assembly-specific ✓ | Assembly-specific ✓ |
-| Coordinates (bpStart, bpEnd) | Reference (chr1) | Assembly-specific (per-contig) |
+| Sequence ID | Always from locus (chr1) | Per-assembly: `spine.sequenceId` from assembly key ✓ |
+| Origin (locusStartBp) | Same for all (reference locus) | Reference: locus start; Custom: 0 ✓ |
+| Spine coordinates (bpStart, bpEnd) | Reference (chr1) | Reference: chr1; Custom: 0-based (placeholder) |
 
-The spine is assembly-specific in **structure** (which nodes, walk order) but not in **coordinates**. A consumer that assumes "this spine represents assembly X" might reasonably expect the coordinates to be in assembly X's coordinate system. They are not.
+The sequence ID and origin are now assembly-specific. The spine coordinates for custom assemblies use a 0-based placeholder until proper assembly-specific offsets (from the walk and node metadata) are available. See `annotation-track-custom-genome-coordinates.md` for the algorithm.
 
 ---
 
 ## Downstream Impact
 
-Any code that consumes the spine and assumes assembly-specific coordinates will be wrong:
+Any code that consumes the spine and assumes assembly-specific coordinates:
 
-- **AnnotationRenderService** — Uses `chr` from locus and `bpStart`/`bpEnd` from the spine for feature retrieval. For custom genomes, this queries chr1:bpStart–bpEnd against a GFF3 that uses contigs like CM094060.1. No match.
+- **AnnotationRenderService** — Now uses `spine.sequenceId` for the feature query. For custom genomes, this queries `CM094060.1:0-35995` (or similar) instead of `chr1:...`. The sequence ID is correct; the start/end are placeholder until proper assembly-specific offsets exist.
 
-- **Other potential consumers** — Any future code that treats spine coordinates as assembly coordinates will inherit the same bug.
-
-The bug manifests in AnnotationRenderService, but the root cause is the mixed coordinate design in the spine itself.
+- **Other potential consumers** — Should use `spine.sequenceId` when they need the assembly's contig. For layout (relative position along the spine), the existing bpStart/bpEnd work for both reference and custom.
 
 ---
 
@@ -63,29 +74,19 @@ The bug manifests in AnnotationRenderService, but the root cause is the mixed co
 
 A natural design choice: the view has a single locus (reference coordinates). The spine is a linearization of "what we're looking at" along the assembly's path. Using the locus start as the origin gives a monotonic bp parameter that works for track layout—mapping position along the spine to pixels.
 
-The mistake: treating that layout parameter as the coordinate system for *all* downstream uses. For feature retrieval, we need assembly-specific coordinates. The spine doesn't provide them.
+The mistake: treating that layout parameter as the coordinate system for *all* downstream uses. For feature retrieval, we need assembly-specific sequence ID and (eventually) assembly-specific coordinates. The implemented fix addresses the sequence ID and origin; proper assembly-specific start/end remain future work.
 
 ---
 
 ## Relation to Other Documents
 
-- **annotation-track-custom-genome-coordinates.md** — Describes the bug from the annotation track perspective: wrong coordinates passed to `getFeatures`. This document explains why those coordinates are wrong: the spine itself is built in reference space.
-
----
-
-## Possible Fix Directions
-
-1. **Make the spine assembly-specific** — Extend spine nodes in `getSpineFeatures` with assembly-specific coordinates (sequence_id, asmStart, asmEnd) derived from the walk and node metadata. Keep a separate layout parameter (reference bp or normalized 0–1) for track rendering if needed.
-
-2. **Two coordinate systems in the spine** — Keep reference-based bpStart/bpEnd for layout (monotonic track parameter) and add assembly-specific ranges for feature retrieval. Spine nodes would carry both.
-
-3. **Unify on assembly coordinates** — Use assembly-specific coordinates throughout for that assembly's spine. Layout would need to work in per-contig or merged assembly space instead of reference space.
+- **annotation-track-custom-genome-coordinates.md** — Describes the bug from the annotation track perspective, the implemented solution (GenomicService config, spine.sequenceId), and the future algorithm for assembly-specific offsets.
 
 ---
 
 ## References
 
-- `src/pangenomeService.js` — `getSpineFeatures`, spine coordinate calculation
-- `src/genomicService.js` — `locus.startBP`, `assemblyWalkMap`
-- `src/annotationRenderService.js` — `handleAssemblyEmphasis`, consumes spine for feature query
-- `notes/genomics/annotation-track-custom-genome-coordinates.md` — Annotation track coordinate system and fix approach
+- `src/genomicService.js` — Per-assembly config: `locusStartBp`, `sequenceId`, reference vs. custom logic
+- `src/pangenomeService.js` — `getSpineFeatures`, consumes config, adds `sequenceId` to spine
+- `src/annotationRenderService.js` — `handleAssemblyEmphasis`, uses `spine.sequenceId` for feature query
+- `notes/genomics/annotation-track-custom-genome-coordinates.md` — Annotation track coordinate system and fix
