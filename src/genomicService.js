@@ -69,7 +69,7 @@ class GenomicService {
                     maxRegionEdges: 4000,
                     operationBudget: 500000,
                     locusStartBp: effectiveLocusStartBp,
-                    sequenceId,
+                    sequenceId: isReference ? this.locus.chr : assemblyKey,
                 };
 
             const walkConfig =
