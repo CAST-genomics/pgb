@@ -72,7 +72,8 @@ class AnnotationRenderService {
 
         this.endpointMap = buildNodeEndpointMap(walkNodes, this.sceneManager);
 
-        const chr = spine.sequenceId ?? this.genomicService.locus.chr
+        // const chr = spine.sequenceId ?? this.genomicService.locus.chr
+        const chr = spine.sequenceId
         const bpStart = nodes[0].bpStart
         const bpEnd = nodes[ nodes.length - 1].bpEnd
 
