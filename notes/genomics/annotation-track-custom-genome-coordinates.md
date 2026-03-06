@@ -1,6 +1,6 @@
 # Annotation Track Coordinate System for Custom Genomes
 
-This document describes the coordinate system used when rendering gene annotation tracks in PGB, the logical bug that prevents correct rendering for custom (personal assembly) genomes, and the general approach to calculating assembly-specific offsets.
+This document describes the coordinate system used when rendering gene annotation tracks in PGB, the logical bug that prevented correct rendering for custom (personal assembly) genomes, and the implemented approach to addressing it.
 
 ---
 
@@ -25,7 +25,7 @@ But we are **not** dealing with one linear genome. Each assembly has its own coo
 
 ### Implications for the Annotation Track
 
-The annotation track renders features for the emphasized assembly. The feature source (e.g., TextFeatureSource) expects `(chr, start, end)` in that assembly's coordinate system. For reference assemblies (GRCh38, CHM13), the locus and spine are already in chr1 coordinates, so no transform is needed. For custom assemblies, we must compute `(sequence_id, start, end)` from the walk and use that for the query. The rest of this document describes the bug that arises when that transform is skipped, and how to implement it.
+The annotation track renders features for the emphasized assembly. The feature source (e.g., TextFeatureSource) expects `(chr, start, end)` in that assembly's coordinate system. For reference assemblies (GRCh38, CHM13), the locus and spine are already in chr1 coordinates, so no transform is needed. For custom assemblies, we must use the correct `sequence_id` and assembly-specific coordinates. The implemented fix addresses the sequence ID; the start/end for custom assemblies use a placeholder (0-based) until proper assembly-specific offsets are available.
 
 ---
 
@@ -35,19 +35,19 @@ The annotation track renders features for the emphasized assembly. The feature s
 2. [Background](#background)
 3. [How IGV.js Avoids This Problem](#how-igvjs-avoids-this-problem)
 4. [Current Architecture](#current-architecture)
-5. [The Logical Bug](#the-logical-bug)
-6. [Sequence ID Semantics](#sequence-id-semantics)
-7. [General Approach: Calculating Assembly-Specific Offsets](#general-approach-calculating-assembly-specific-offsets)
-8. [Implementation Considerations](#implementation-considerations)
+5. [The Logical Bug (Addressed)](#the-logical-bug-addressed)
+6. [Implemented Solution](#implemented-solution)
+7. [Sequence ID Semantics](#sequence-id-semantics)
+8. [Future Work: Assembly-Specific Offsets](#future-work-assembly-specific-offsets)
 9. [References](#references)
 
 ---
 
 ## Background
 
-PGB displays gene annotation tracks (exons, introns, CDS, etc.) when a user emphasizes an assembly in the pangenome graph. For reference genomes (e.g., GRCh38), annotations are fetched from igv.org and rendered correctly. For custom genomes (HPRC personal assemblies such as HG00097, HG00099), the infrastructure exists to load indexed FASTA + GFF3, but the annotation track does not render correctly because the feature query uses the wrong coordinate system.
+PGB displays gene annotation tracks (exons, introns, CDS, etc.) when a user emphasizes an assembly in the pangenome graph. For reference genomes (e.g., GRCh38), annotations are fetched from igv.org and rendered correctly. For custom genomes (HPRC personal assemblies such as HG00097, HG00099), the infrastructure exists to load indexed FASTA + GFF3. The annotation track previously failed for custom genomes because the feature query used the wrong coordinate system.
 
-The root cause: the code uses **reference (locus) coordinates** for all assemblies, but custom assemblies use different contigs and coordinate systems. The node data provides the contig name (`sequence_id`) and the extent (`length`), but not the **start position** on that contig. This document explains the bug and how to compute the missing start position.
+The root cause was that the code used **reference (locus) coordinates** for all assemblies, but custom assemblies use different contigs and coordinate systems. The node data provides the contig name (`sequence_id`) and the extent (`length`), but not the **start position** on that contig. The implemented fix addresses the sequence ID and origin; proper assembly-specific start positions remain future work.
 
 ---
 
@@ -99,7 +99,7 @@ PGB has a **pangenome model**: multiple assemblies are visible simultaneously in
 - The emphasized assembly may use different contigs (e.g., CM094060.1 for HG00097#1)
 - The spine's `bpStart`/`bpEnd` are computed in reference coordinates
 
-So PGB cannot simply pass the locus through unchanged. It must **transform** from the view's reference coordinates to the emphasized assembly's coordinate system before calling `getFeatures`. That transformation is what the "General Approach" section describes.
+So PGB cannot simply pass the locus through unchanged. It must **transform** from the view's reference coordinates to the emphasized assembly's coordinate system before calling `getFeatures`. The implemented fix handles the sequence ID; proper assembly-specific start/end offsets are described in "Future Work".
 
 ### Summary
 
@@ -107,10 +107,10 @@ So PGB cannot simply pass the locus through unchanged. It must **transform** fro
 |--------|--------|-----|
 | Genomes displayed | One at a time | Multiple (pangenome graph) |
 | Locus | Always in current genome's coordinates | Fixed in reference coordinates |
-| Feature query | Locus → ReferenceFrame → getFeatures (no transform) | Must transform reference locus to assembly-specific coordinates |
-| Bug potential | None—unified coordinate system | Bug: reference coordinates used for all assemblies |
+| Feature query | Locus → ReferenceFrame → getFeatures (no transform) | Per-assembly: sequenceId + bpStart/bpEnd from spine |
+| Bug potential | None—unified coordinate system | Addressed: GenomicService passes per-assembly config |
 
-IGV.js solves the problem by never having multiple coordinate systems in play at once. PGB must explicitly handle the mapping from reference coordinates to assembly-specific coordinates when rendering annotation tracks for custom genomes.
+IGV.js solves the problem by never having multiple coordinate systems in play at once. PGB explicitly handles the mapping via GenomicService, which computes per-assembly `sequenceId` and `locusStartBp` and passes them in the config.
 
 ---
 
@@ -120,54 +120,60 @@ IGV.js solves the problem by never having multiple coordinate systems in play at
 
 1. **Locus**: The user views a region, e.g. `chr1:25240000-25460000`. The locus defines the reference chromosome and base-pair range.
 
-2. **Assembly walk**: For each assembly (e.g., `GRCh38`, `HG00097#1`), `PangenomeService.getAssemblyWalk()` returns an ordered list of node IDs representing the path through the pangenome graph for that assembly.
+2. **Per-assembly config (GenomicService)**: For each assembly, `GenomicService.initialize()` computes assembly-specific values and passes them explicitly in `assessmentConfig`:
+   - `sequenceId` — from the assembly key (`assemblyKey.split('#')[2]`)
+   - `locusStartBp` — `this.locus.startBP` for reference assemblies, `0` for custom (placeholder until proper start data exists)
+   - Reference vs. custom is determined by `sequenceId === this.locus.chr`
 
-3. **Spine features**: `getSpineFeatures(assemblyKey)` builds a spine from the walk. For each node in the walk, it computes:
+3. **Assembly walk**: `PangenomeService.getAssemblyWalk(assemblyKey)` returns an ordered list of node IDs for that assembly.
+
+4. **Spine features**: `getSpineFeatures(assemblyKey, assessOpts)` builds a spine from the walk. It consumes `locusStartBp` and `sequenceId` from `assessOpts` (no decision logic). For each node:
    - `bpStart` = accumulated position (starting from `locusStartBp`)
    - `bpEnd` = `bpStart` + node length
-   - `lengthBp` = node length
+   - The spine object includes `sequenceId` for downstream use.
 
-4. **Annotation render**: When an assembly is emphasized, `AnnotationRenderService.handleAssemblyEmphasis()`:
-   - Gets `chr` from `this.genomicService.locus` (e.g., `chr1`)
+5. **Annotation render**: When an assembly is emphasized, `AnnotationRenderService.handleAssemblyEmphasis()`:
+   - Gets `chr` from `spine.sequenceId` (fallback: `locus.chr`)
    - Gets `bpStart` and `bpEnd` from the first and last spine nodes
    - Calls `getFeatures(chr, bpStart, bpEnd)` to fetch annotations
    - Renders the returned features
 
 ### Spine Coordinate Calculation
 
-The spine coordinates are built in `pangenomeService.js`:
+The spine coordinates are built in `pangenomeService.js` using values from the config:
 
 ```javascript
-let x = Number(locusStartBp) || 0;   // e.g., 25240000 from locus chr1:25240000-25460000
+let x = Number(locusStartBp) || 0;   // from assessOpts: locus start for reference, 0 for custom
 const spineNodes = [];
 for (const id of path.nodes) {
     const len = this.graph.nodes.get(id)?.lengthBp || 0;
     spineNodes.push({ id, bpStart: x, bpEnd: x + len, lengthBp: len });
     x += len;
 }
+const spine = { assemblyKey, nodes: spineNodes, edges: ..., lengthBp: ..., sequenceId };
 ```
 
-So `bpStart` and `bpEnd` are in the **reference coordinate system** (chr1 positions). They start at the locus start and accumulate node lengths along the walk. This is the same for every assembly—the walk order may differ per assembly, but the coordinate accumulation uses `locusStartBp` as the origin, which is a reference (chr1) position.
+For **reference assemblies**, `locusStartBp` is the locus start (chr1 position), so spine coordinates align with the annotation file. For **custom assemblies**, the origin is `0` (placeholder); proper assembly-specific starts are future work.
 
 ### Feature Query
 
-`TextFeatureSource.getFeatures({ chr, start, end })` passes these to `FeatureFileReader.readFeatures(chr, start, end)`. For tabix-indexed GFF3, this triggers `loadFeaturesWithIndex(chr, start, end)`, which fetches only the compressed blocks covering that genomic range. The GFF3 `seqid` column must match `chr`; coordinates are 1-based in GFF3, 0-based in the parser.
+`TextFeatureSource.getFeatures({ chr, start, end })` passes these to `FeatureFileReader.readFeatures(chr, start, end)`. The `chr` now comes from `spine.sequenceId`, so the query uses the correct contig (e.g., `CM094060.1`) for custom genomes.
 
 ---
 
-## The Logical Bug
+## The Logical Bug (Addressed)
 
-### What the Code Does
+### What the Code Previously Did
 
-For **every** emphasized assembly (including custom genomes), the code uses:
+For **every** emphasized assembly (including custom genomes), the code used:
 
 - `chr` = from the locus (always `chr1` when viewing chr1:25240000-25460000)
 - `bpStart` = first spine node's `bpStart` (reference coordinate)
 - `bpEnd` = last spine node's `bpEnd` (reference coordinate)
 
-So the feature query is always: `chr1:bpStart-bpEnd`.
+So the feature query was always: `chr1:bpStart-bpEnd`.
 
-### Why This Works for GRCh38
+### Why This Worked for GRCh38
 
 For GRCh38 (and CHM13, HG002, etc.):
 
@@ -176,25 +182,63 @@ For GRCh38 (and CHM13, HG002, etc.):
 - The RefSeq/annotation track uses chr1 as the sequence ID.
 - All three align: the query `chr1:25240000-25460000` correctly fetches features for that region.
 
-### Why This Fails for Custom Genomes
+### Why This Failed for Custom Genomes
 
 For HG00097#1 (and other HPRC personal assemblies):
 
-- The locus is still chr1 (the reference).
-- The spine `bpStart`/`bpEnd` are still chr1 coordinates.
+- The locus was chr1 (the reference).
+- The spine `bpStart`/`bpEnd` were chr1 coordinates.
 - But the HG00097 GFF3 uses seqids like `CM094060.1` or `HG00097#1#CM094060.1`—**not** chr1.
-- The node data says: for HG00097 haplotype 1, this node lies on contig `CM094060.1` and has length 35,895 bp.
-- The code queries `chr1:bpStart-bpEnd`, which does not exist in the HG00097 GFF3. Either no features are returned, or the query fails.
+- The code queried `chr1:bpStart-bpEnd`, which does not exist in the HG00097 GFF3. No features were returned.
 
 ### Summary of the Bug
 
-| Aspect | Current behavior | Correct behavior for custom genomes |
-|--------|------------------|-------------------------------------|
-| Sequence ID (chr) | Always from locus (chr1) | Per-assembly: from node's `sequence_id` |
-| Start position | Reference coordinate (chr1) | Assembly-specific: offset on that contig |
-| End position | Reference coordinate (chr1) | Assembly-specific: start + node length |
+| Aspect | Previous behavior | Implemented fix |
+|--------|-------------------|-----------------|
+| Sequence ID (chr) | Always from locus (chr1) | Per-assembly: `spine.sequenceId` from assembly key |
+| Spine origin | Same for all assemblies | Reference: locus start; Custom: 0 (placeholder) |
+| Start/end for custom | Reference coordinates | 0-based spine (placeholder until proper assembly-specific offsets exist) |
 
-The bug is that **one coordinate system (reference) is used for all assemblies**. Custom assemblies require **assembly-specific coordinates** on their own contigs.
+---
+
+## Implemented Solution
+
+All coordinate-selection logic lives in **GenomicService**. This keeps the design fluid: when proper assembly-specific start data becomes available, only GenomicService needs to change.
+
+### GenomicService (`src/genomicService.js`)
+
+For each assembly, before calling `getSpineFeatures`:
+
+```javascript
+const sequenceId = assemblyKey.split('#')[2] ?? '';
+const isReference = (sequenceId === this.locus.chr);
+const effectiveLocusStartBp = isReference ? this.locus.startBP : 0;
+
+const assessmentConfig = {
+    // ...other options...
+    locusStartBp: effectiveLocusStartBp,
+    sequenceId,
+};
+pangenomeService.getSpineFeatures(assemblyKey, assessmentConfig, walkConfig);
+```
+
+### PangenomeService (`src/pangenomeService.js`)
+
+Consumes `locusStartBp` and `sequenceId` from `assessOpts`. No decision logic—just pass-through. Adds `sequenceId` to the spine object for downstream use.
+
+### AnnotationRenderService (`src/annotationRenderService.js`)
+
+Uses `chr = spine.sequenceId ?? this.genomicService.locus.chr` for the feature query. Falls back to locus chr when `sequenceId` is absent (e.g., legacy callers).
+
+### Future Extension
+
+When assembly-specific start positions are available, update only GenomicService:
+
+```javascript
+const effectiveLocusStartBp = isReference
+    ? this.locus.startBP
+    : (lookupAssemblyStart(assemblyKey) ?? 0);
+```
 
 ---
 
@@ -225,9 +269,9 @@ The HPRC FASTA files use a compound format: `{sample}#{haplotype}#{accession}`. 
 
 ---
 
-## General Approach: Calculating Assembly-Specific Offsets
+## Future Work: Assembly-Specific Offsets
 
-The node provides `sequence_id` (which contig) and `length` (extent in bp). It does **not** provide the start position on that contig. The start position can be derived from the assembly walk.
+The node provides `sequence_id` (which contig) and `length` (extent in bp). It does **not** provide the start position on that contig. The start position can be derived from the assembly walk. The current implementation uses `0` as a placeholder for custom assemblies; the algorithm below describes how to compute proper offsets when that data is available.
 
 ### Key Insight
 
@@ -280,39 +324,13 @@ When the spine spans multiple contigs (e.g., nodes on CM094060.1 and CM094075.1)
 
 The feature renderer expects a single list of features for the view. Merging features from multiple queries and sorting by position should produce the correct input.
 
----
-
-## Implementation Considerations
-
-### Where to Compute Assembly-Specific Coordinates
-
-Options:
-
-1. **In `getSpineFeatures`**: Extend the spine nodes with `sequence_id`, `asmStart`, `asmEnd` per assembly. Requires passing assembly-specific data into the spine, which may already be available via the assembly walk and node metadata.
-
-2. **In `AnnotationRenderService`**: When handling emphasis, compute assembly-specific coordinates before calling `getFeatures`. The service has access to the spine, the graph (for node metadata), and the assembly key.
-
-3. **New helper**: A function that, given `(assemblyKey, spineNodes, graph)` returns a list of `{ sequence_id, start, end }` ranges (possibly merged by contig) for the feature query.
-
-### Handling Reference vs. Custom Genomes
-
-- **Reference assemblies** (GRCh38, CHM13, HG002 with chr1): Continue using `chr` from locus and `bpStart`/`bpEnd` from spine. No change.
-
-- **Custom assemblies**: Use assembly-specific `(sequence_id, start, end)`. If a single contig spans the view, one query suffices. If multiple contigs, issue multiple queries and merge.
-
 ### Genome ID and Haplotype
 
-The emphasized assembly is passed as e.g. `HG00097#1`. The `AnnotationRenderService` already parses this:
-
-```javascript
-const [ genomeId, haplotype, sequence_id ] = this.assembly.split('#')
-```
-
-For `getGenomePayload`, only `genomeId` (e.g., `HG00097`) is used, because the genome config is per sample. The GFF3 may contain both haplotypes; the `sequence_id` in the node data is already haplotype-specific (e.g., CM094060.1 for haplotype 1, CM094075.1 for haplotype 2). So the assembly key `HG00097#1` identifies both the genome and the haplotype; the node's assembly entry for that haplotype gives the correct `sequence_id`.
+The emphasized assembly is passed as e.g. `HG00097#1#CM094060.1`. The `AnnotationRenderService` parses this for `getGenomePayload` (genomeId, haplotype). The `sequence_id` in the assembly key (third segment) is used for the feature query.
 
 ### Chromosome Name Aliasing
 
-The GFF3 may use `HG00097#1#CM094060.1` while the node has `sequence_id: "CM094060.1"`. The `ChromAliasManager` in `TextFeatureSource` maps between genome chromosome names and the names in the file. Ensure the query `chr` matches what the GFF3 and genome's `.fai` use. The genome's chromosome list comes from the FASTA index; the GFF3 seqids must match those names (or be aliased).
+The GFF3 may use `HG00097#1#CM094060.1` while the assembly key has `sequence_id: "CM094060.1"`. The `ChromAliasManager` in `TextFeatureSource` maps between genome chromosome names and the names in the file. Ensure the query `chr` matches what the GFF3 and genome's `.fai` use.
 
 ---
 
@@ -320,8 +338,9 @@ The GFF3 may use `HG00097#1#CM094060.1` while the node has `sequence_id: "CM0940
 
 ### PGB (this project)
 
-- `src/annotationRenderService.js` — `handleAssemblyEmphasis`, `getFeatures`
-- `src/pangenomeService.js` — `getSpineFeatures`, `getAssemblyWalk`, spine coordinate calculation
+- `src/genomicService.js` — per-assembly config: `locusStartBp`, `sequenceId`, reference vs. custom logic
+- `src/annotationRenderService.js` — `handleAssemblyEmphasis`, `getFeatures`, uses `spine.sequenceId`
+- `src/pangenomeService.js` — `getSpineFeatures`, `getAssemblyWalk`, consumes config, adds `sequenceId` to spine
 - `src/igvCore/io/textFeatureSource.js` — `getFeatures`, `loadFeatures`
 - `src/igvCore/io/featureFileReader.js` — `readFeatures`, `loadFeaturesWithIndex`
 - `notes/genomics/genome-loading-architecture.md` — Overall genome loading flow

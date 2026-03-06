@@ -56,6 +56,10 @@ class GenomicService {
 
         for (const assemblyKey of this.assemblySet){
 
+            const sequenceId = assemblyKey.split('#')[2] ?? '';
+            const isReference = (sequenceId === this.locus.chr);
+            const effectiveLocusStartBp = isReference ? this.locus.startBP : 0;
+
             const assessmentConfig =
                 {
                     includeOffSpineComponents: "none",
@@ -64,7 +68,8 @@ class GenomicService {
                     maxRegionNodes: 4000,
                     maxRegionEdges: 4000,
                     operationBudget: 500000,
-                    locusStartBp: this.locus.startBP
+                    locusStartBp: effectiveLocusStartBp,
+                    sequenceId,
                 };
 
             const walkConfig =
