@@ -31,3 +31,4 @@ src/styles/*.css.map
 # Local genome data (symlinks to large files)
 data/genomes/
 
+.wrangler

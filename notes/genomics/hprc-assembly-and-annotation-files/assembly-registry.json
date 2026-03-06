@@ -7,8 +7,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/data/genomes/HG00408_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
-        "indexURL": "http://localhost:8000/data/genomes/HG00408_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG00408_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG00408_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -21,8 +21,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG00597/assemblies/release2/annotation/cat/HG00597_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG00597_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG00597_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -35,8 +35,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG01192/assemblies/release2/annotation/cat/HG01192_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG01192_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG01192_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -49,8 +49,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG01261/assemblies/release2/annotation/cat/HG01261_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG01261_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG01261_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -63,8 +63,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG02015/assemblies/release2/annotation/cat/HG02015_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02015_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02015_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -77,8 +77,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG02056/assemblies/release2/annotation/cat/HG02056_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02056_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02056_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -91,8 +91,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG02129/assemblies/release2/annotation/cat/HG02129_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02129_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02129_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -105,8 +105,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG02258/assemblies/release2/annotation/cat/HG02258_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02258_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02258_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -119,8 +119,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG03834/assemblies/release2/annotation/cat/HG03834_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG03834_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG03834_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -133,8 +133,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG01975/assemblies/release2/annotation/cat/HG01975_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG01975_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG01975_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -147,8 +147,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG02602/assemblies/release2/annotation/cat/HG02602_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02602_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG02602_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]
@@ -161,8 +161,8 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG04187/assemblies/release2/annotation/cat/HG04187_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
-        "indexURL": "TBD",
+        "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG04187_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+        "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG04187_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
         "format": "gff3"
       }
     ]

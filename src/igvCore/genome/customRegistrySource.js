@@ -1,26 +1,17 @@
-import { igvxhr } from 'igv-utils'
+function initialize(genomes) {
 
-async function initialize(url) {
-
-    if (!url) {
+    if (!genomes) {
         return new Map()
     }
 
     let genomeList
 
-    try {
-        genomeList = await igvxhr.loadJson(url, {})
-    } catch (e) {
-        console.error(`customRegistrySource: failed to load custom genome configs from ${url}`)
-        return new Map()
-    }
-
-    if (Array.isArray(genomeList)) {
-        // already an array — use as-is
-    } else if (genomeList && typeof genomeList === 'object' && genomeList.id) {
-        genomeList = [genomeList]
+    if (Array.isArray(genomes)) {
+        genomeList = genomes
+    } else if (genomes && typeof genomes === 'object' && genomes.id) {
+        genomeList = [genomes]
     } else {
-        console.error('customRegistrySource: response is not a valid genome config or array')
+        console.error('customRegistrySource: expected an array of genome configs or a single genome config')
         return new Map()
     }
 
