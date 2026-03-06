@@ -8,7 +8,7 @@ import PopulationOnlyWidget from "./widgets/populationOnlyWidget.js"
 import PCAWidget from './widgets/pcaWidget.js'
 import WidgetService from './widgets/widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
-import { initializeGenomeRegistry, setCustomRegistryURL } from './igvCore/genome/genomeRegistry.js'
+import { initializeGenomeRegistry, setCustomGenomes } from './igvCore/genome/genomeRegistry.js'
 import materialService from './materialService.js'
 import LookManager from './looks/lookManager.js'
 import NodeEmphasisLook from './looks/nodeEmphasisLook.js'
@@ -42,7 +42,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     await materialService.initialize()
 
-    setCustomRegistryURL('http://localhost:8000/data/test-local.json')
+    const customAssemblies = await fetch('/custom-assemblies-12.json').then(r => r.json()).catch(() => [])
+    setCustomGenomes(customAssemblies)
     await initializeGenomeRegistry()
     const genomeLibrary = new GenomeLibrary()
     const { genome } = await genomeLibrary.getGenomePayload('hg38')
