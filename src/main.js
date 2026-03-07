@@ -20,6 +20,7 @@ import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
 import {loadConfig} from "./configService.js"
+import appConfig from './appConfig.js'
 import './styles/app.scss'
 
 let contextMenuService
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     await materialService.initialize()
 
-    const customAssemblies = await fetch('/custom-assemblies-12.json').then(r => r.json()).catch(() => [])
+    const customAssemblies = await fetch(appConfig.customAssemblyRegistryURL).then(r => r.json()).catch(() => [])
     setCustomGenomes(customAssemblies)
     await initializeGenomeRegistry()
     const genomeLibrary = new GenomeLibrary()
