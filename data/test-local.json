@@ -1,13 +1,13 @@
 {
-  "id": "HG00099",
-  "name": "HG00099 test file (Cici) - local",
-  "fastaURL": "http://localhost:8000/data/genomes/HG00099_hap1_hprc_r2_v1.0.1.fa",
-  "indexURL": "http://localhost:8000/data/genomes/HG00099_hap1_hprc_r2_v1.0.1.fa.fai",
+  "id": "HG00408",
+  "name": "HG00408_pat_hprc_r2_v1.0.1",
+  "fastaURL": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG00408/assemblies/release2/HG00408_pat_hprc_r2_v1.0.1.fa.gz",
+  "indexURL": "http://localhost:8000/s3-proxy/human-pangenomics/working/HPRC/HG00408/assemblies/release2/HG00408_pat_hprc_r2_v1.0.1.fa.gz.fai",
   "tracks": [
     {
       "name": "Gene annotations",
-      "url": "http://localhost:8000/data/genomes/HG00099_hap1_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
-      "indexURL": "http://localhost:8000/data/genomes/HG00099_hap1_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
+      "url": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG00408_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+      "indexURL": "https://pub-f01aebfa997342239ff267859037de0f.r2.dev/gff3/HG00408_pat_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
       "format": "gff3"
     }
   ]
