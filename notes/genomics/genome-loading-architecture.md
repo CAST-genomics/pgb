@@ -41,42 +41,33 @@ The pipeline involves these classes, listed in call order:
 
 Both paths begin with the same initialization at app startup.
 
-```
-┌──────────┐     ┌─────────────────┐     ┌───────────────────┐     ┌────────────────────┐
-│  main.js │     │ genomeRegistry  │     │igvOrgRegistrySource│     │customRegistrySource │
-└────┬─────┘     └───────┬─────────┘     └─────────┬─────────┘     └──────────┬──────────┘
-     │                   │                          │                          │
-     │ setCustomRegistryURL(url)                    │                          │
-     │──────────────────>│                          │                          │
-     │                   │ (stores URL)             │                          │
-     │                   │                          │                          │
-     │ initializeGenomeRegistry()                   │                          │
-     │──────────────────>│                          │                          │
-     │                   │                          │                          │
-     │                   │─── Promise.all ──────────┤──────────────────────────┤
-     │                   │                          │                          │
-     │                   │     initialize()         │                          │
-     │                   │─────────────────────────>│                          │
-     │                   │                          │                          │
-     │                   │                          │── fetch igv.org/genomes  │
-     │                   │                          │   /genomes3.json         │
-     │                   │                          │                          │
-     │                   │                          │<─ Map<id, config>        │
-     │                   │                          │                          │
-     │                   │     initialize(url)      │                          │
-     │                   │────────────────────────────────────────────────────>│
-     │                   │                          │                          │
-     │                   │                          │                          │── fetch custom
-     │                   │                          │                          │   registry JSON
-     │                   │                          │                          │
-     │                   │                          │                          │<─ Map<id, config>
-     │                   │                          │                          │
-     │                   │<── both maps ────────────┤──────────────────────────┤
-     │                   │                          │                          │
-     │                   │ merge: custom overrides   │                          │
-     │                   │ igv.org on ID collision   │                          │
-     │                   │                          │                          │
-     │<── initialized ──│                          │                          │
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '16px'}}}%%
+sequenceDiagram
+    autonumber
+    participant Main as main.js
+    participant GR as genomeRegistry
+    participant IGV as igvOrgRegistrySource
+    participant Custom as customRegistrySource
+
+    Main->>GR: setCustomRegistryURL(url)
+    GR->>GR: stores URL
+
+    Main->>GR: initializeGenomeRegistry()
+
+    Note over GR,Custom: Promise.all — fetch both sources in parallel
+
+    GR->>IGV: initialize()
+    IGV->>IGV: fetch igv.org/genomes<br/>/genomes3.json
+    IGV-->>GR: Map<id, config>
+
+    GR->>Custom: initialize(url)
+    Custom->>Custom: fetch custom<br/>registry JSON
+    Custom-->>GR: Map<id, config>
+
+    GR->>GR: merge: custom overrides<br/>igv.org on ID collision
+
+    GR-->>Main: initialized
 ```
 
 After initialization, `genomeRegistry` holds a single merged `Map<genomeId, config>` accessible via `getGenomeConfig(id)`.
@@ -87,103 +78,70 @@ After initialization, `genomeRegistry` holds a single merged `Map<genomeId, conf
 
 This path is triggered when a user emphasizes an assembly whose genome ID (e.g., "hg38") matches an igv.org registry entry. The igv.org config typically has `indexURL` for both the FASTA and the annotation track.
 
-```
-┌──────────────────────┐  ┌─────────────┐  ┌───────────────┐  ┌──────────────┐  ┌──────────────┐
-│AnnotationRenderService│  │GenomeLibrary│  │    Genome      │  │loadSequence()│  │ IndexedFasta │
-└──────────┬───────────┘  └──────┬──────┘  └──────┬────────┘  └──────┬───────┘  └──────┬───────┘
-           │                     │                │                   │                 │
-   assembly:emphasis event       │                │                   │                 │
-           │                     │                │                   │                 │
-           │ getGenomePayload("hg38")             │                   │                 │
-           │────────────────────>│                │                   │                 │
-           │                     │                │                   │                 │
-           │                     │ getGenomeConfig("hg38")            │                 │
-           │                     │──> genomeRegistry                  │                 │
-           │                     │<── config {fastaURL, indexURL,     │                 │
-           │                     │     tracks: [{url, indexURL,       │                 │
-           │                     │     format: "refgene"}]}           │                 │
-           │                     │                │                   │                 │
-           │                     │ Genome.createGenome(config)        │                 │
-           │                     │───────────────>│                   │                 │
-           │                     │                │                   │                 │
-           │                     │                │ loadSequence(config)                │
-           │                     │                │──────────────────>│                 │
-           │                     │                │                   │                 │
-           │                     │                │     config.indexURL exists           │
-           │                     │                │     && !isDataURL ──┐               │
-           │                     │                │                   │ new IndexedFasta │
-           │                     │                │                   │────────────────>│
-           │                     │                │                   │                 │
-           │                     │                │                   │      init()     │
-           │                     │                │                   │────────────────>│
-           │                     │                │                   │                 │
-           │                     │                │                   │                 │── fetch .fai
-           │                     │                │                   │                 │   (6 KB)
-           │                     │                │                   │                 │
-           │                     │                │                   │                 │── parse index
-           │                     │                │                   │                 │   entries
-           │                     │                │                   │                 │
-           │                     │                │                   │                 │── build
-           │                     │                │                   │                 │   chromosomes
-           │                     │                │                   │                 │   Map
-           │                     │                │                   │<────────────────│
-           │                     │                │<──────────────────│                 │
-           │                     │                │                   │                 │
-           │                     │<───────────────│ genome object     │                 │
-           │                     │                │ (with chromosomes,│                 │
-           │                     │                │  sequence access) │                 │
-           │                     │                │                   │                 │
-           │                     │ new TextFeatureSource(trackConfig, genome)           │
-           │                     │──> creates FeatureFileReader internally              │
-           │                     │                │                   │                 │
-           │                     │ new FeatureRenderer(...)           │                 │
-           │                     │                │                   │                 │
-           │<────────────────────│                │                   │                 │
-           │ {genome, geneFeatureSource, geneRenderer}                │                 │
-           │                     │                │                   │                 │
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '16px'}}}%%
+sequenceDiagram
+    autonumber
+    participant ARS as AnnotationRenderService
+    participant GL as GenomeLibrary
+    participant G as Genome
+    participant LS as loadSequence()
+    participant IF as IndexedFasta
+
+    Note over ARS: assembly:emphasis event
+
+    ARS->>GL: getGenomePayload("hg38")
+    GL->>GL: getGenomeConfig("hg38")<br/>→ genomeRegistry
+    Note right of GL: config {fastaURL, indexURL,<br/>tracks: [{url, indexURL,<br/>format: "refgene"}]}
+
+    GL->>G: Genome.createGenome(config)
+    G->>LS: loadSequence(config)
+
+    Note over LS,IF: config.indexURL exists && !isDataURL
+
+    LS->>IF: new IndexedFasta
+    LS->>IF: init()
+    IF->>IF: fetch .fai (6 KB)
+    IF->>IF: parse index entries
+    IF->>IF: build chromosomes Map
+    IF-->>LS:
+    LS-->>G:
+    G-->>GL: genome object<br/>(with chromosomes, sequence access)
+
+    GL->>GL: new TextFeatureSource(trackConfig, genome)<br/>→ creates FeatureFileReader internally
+    GL->>GL: new FeatureRenderer(...)
+
+    GL-->>ARS: {genome, geneFeatureSource, geneRenderer}
 ```
 
 ### Feature Loading (on-demand)
 
 After the genome is created, `AnnotationRenderService` requests features for the visible region:
 
-```
-┌──────────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌────────────┐
-│AnnotationRenderService│  │TextFeatureSource │  │FeatureFileReader │  │FeatureParser│
-└──────────┬───────────┘  └────────┬─────────┘  └────────┬─────────┘  └──────┬─────┘
-           │                       │                      │                   │
-           │ getFeatures({chr, start, end})               │                   │
-           │──────────────────────>│                      │                   │
-           │                       │                      │                   │
-           │                       │ readFeatures(chr, start, end)            │
-           │                       │─────────────────────>│                   │
-           │                       │                      │                   │
-           │                       │                      │ getIndex()        │
-           │                       │                      │──> (no indexURL   │
-           │                       │                      │     on igv.org    │
-           │                       │                      │     refseq track) │
-           │                       │                      │                   │
-           │                       │                      │ index = undefined │
-           │                       │                      │ → loadFeaturesNoIndex()
-           │                       │                      │                   │
-           │                       │                      │── fetch entire    │
-           │                       │                      │   annotation file │
-           │                       │                      │   (loadByteArray) │
-           │                       │                      │                   │
-           │                       │                      │ _parse(features,  │
-           │                       │                      │  dataWrapper)     │
-           │                       │                      │──────────────────>│
-           │                       │                      │                   │
-           │                       │                      │                   │── parseFeatures()
-           │                       │                      │                   │   (RefSeq codec)
-           │                       │                      │                   │
-           │                       │                      │<──────────────────│
-           │                       │                      │ features[]        │
-           │                       │<─────────────────────│                   │
-           │<──────────────────────│                      │                   │
-           │ features[]            │                      │                   │
-           │                       │                      │                   │
-           │ renderGeneAnnotation()│                      │                   │
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '16px'}}}%%
+sequenceDiagram
+    autonumber
+    participant ARS as AnnotationRenderService
+    participant TFS as TextFeatureSource
+    participant FFR as FeatureFileReader
+    participant FP as FeatureParser
+
+    ARS->>TFS: getFeatures({chr, start, end})
+    TFS->>FFR: readFeatures(chr, start, end)
+
+    FFR->>FFR: getIndex()<br/>(no indexURL on igv.org refseq track)
+    Note right of FFR: index = undefined<br/>→ loadFeaturesNoIndex()
+
+    FFR->>FFR: fetch entire annotation file<br/>(loadByteArray)
+
+    FFR->>FP: _parse(features, dataWrapper)
+    FP->>FP: parseFeatures()<br/>(RefSeq codec)
+    FP-->>FFR: features[]
+    FFR-->>TFS: features[]
+    TFS-->>ARS: features[]
+
+    ARS->>ARS: renderGeneAnnotation()
 ```
 
 Note: Many igv.org tracks (e.g., RefSeq for hg38) are small enough to load fully. If the igv.org config includes an `indexURL` on the track, the indexed path (same as Path 2 below) would be used instead.
@@ -196,148 +154,94 @@ This path is triggered when the genome ID matches a custom registry entry. The c
 
 ### Genome Creation (same structure, different data)
 
-```
-┌──────────────────────┐  ┌─────────────┐  ┌───────────────┐  ┌──────────────┐  ┌──────────────┐
-│AnnotationRenderService│  │GenomeLibrary│  │    Genome      │  │loadSequence()│  │ IndexedFasta │
-└──────────┬───────────┘  └──────┬──────┘  └──────┬────────┘  └──────┬───────┘  └──────┬───────┘
-           │                     │                │                   │                 │
-           │ getGenomePayload("HG00099")          │                   │                 │
-           │────────────────────>│                │                   │                 │
-           │                     │                │                   │                 │
-           │                     │ getGenomeConfig("HG00099")         │                 │
-           │                     │──> genomeRegistry                  │                 │
-           │                     │<── config {                        │                 │
-           │                     │     fastaURL: "...fa",             │                 │
-           │                     │     indexURL: "...fa.fai",         │                 │
-           │                     │     tracks: [{                     │                 │
-           │                     │       url: "...sorted.gff3.gz",   │                 │
-           │                     │       indexURL: "...gff3.gz.tbi", │                 │
-           │                     │       format: "gff3"              │                 │
-           │                     │     }]                             │                 │
-           │                     │   }                                │                 │
-           │                     │                │                   │                 │
-           │                     │ Genome.createGenome(config)        │                 │
-           │                     │───────────────>│                   │                 │
-           │                     │                │                   │                 │
-           │                     │                │ loadSequence(config)                │
-           │                     │                │──────────────────>│                 │
-           │                     │                │                   │                 │
-           │                     │                │     config.indexURL exists           │
-           │                     │                │     → new IndexedFasta              │
-           │                     │                │                   │────────────────>│
-           │                     │                │                   │                 │
-           │                     │                │                   │      init()     │
-           │                     │                │                   │────────────────>│
-           │                     │                │                   │                 │── fetch .fai
-           │                     │                │                   │                 │── parse → index
-           │                     │                │                   │                 │── build chromosomes
-           │                     │                │                   │<────────────────│
-           │                     │                │<──────────────────│                 │
-           │                     │<───────────────│                   │                 │
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '16px'}}}%%
+sequenceDiagram
+    autonumber
+    participant ARS as AnnotationRenderService
+    participant GL as GenomeLibrary
+    participant G as Genome
+    participant LS as loadSequence()
+    participant IF as IndexedFasta
+
+    ARS->>GL: getGenomePayload("HG00099")
+    GL->>GL: getGenomeConfig("HG00099")<br/>→ genomeRegistry
+    Note right of GL: config {<br/>fastaURL: "...fa",<br/>indexURL: "...fa.fai",<br/>tracks: [{<br/>  url: "...sorted.gff3.gz",<br/>  indexURL: "...gff3.gz.tbi",<br/>  format: "gff3"<br/>}]}
+
+    GL->>G: Genome.createGenome(config)
+    G->>LS: loadSequence(config)
+
+    Note over LS,IF: config.indexURL exists → new IndexedFasta
+
+    LS->>IF: new IndexedFasta
+    LS->>IF: init()
+    IF->>IF: fetch .fai
+    IF->>IF: parse → index
+    IF->>IF: build chromosomes
+    IF-->>LS:
+    LS-->>G:
+    G-->>GL:
 ```
 
 ### Feature Loading — Indexed Path (the key difference)
 
-```
-┌───────────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌──────────┐ ┌──────────────┐ ┌───────────┐
-│AnnotationRenderService│ │TextFeatureSource│ │FeatureFileReader│ │loadIndex()│ │BGZBlockLoader│ │BGZLineReader│
-└───────────┬───────────┘ └───────┬────────┘ └───────┬────────┘ └────┬─────┘ └──────┬───────┘ └─────┬─────┘
-            │                     │                   │               │              │               │
-            │ getFeatures({chr, start, end})          │               │              │               │
-            │────────────────────>│                   │               │              │               │
-            │                     │                   │               │              │               │
-            │                     │ readHeader()      │               │              │               │
-            │                     │──────────────────>│               │              │               │
-            │                     │                   │               │              │               │
-            │                     │                   │ getIndex()    │              │               │
-            │                     │                   │──────────────>│              │               │
-            │                     │                   │               │              │               │
-            │                     │                   │               │── fetch .tbi │               │
-            │                     │                   │               │   (~200 KB)  │               │
-            │                     │                   │               │              │               │
-            │                     │                   │               │── detect gzip│               │
-            │                     │                   │               │   magic bytes│               │
-            │                     │                   │               │              │               │
-            │                     │                   │               │── inflate    │               │
-            │                     │                   │               │   → parseTabixIndex()        │
-            │                     │                   │               │              │               │
-            │                     │                   │<──────────────│              │               │
-            │                     │                   │ TabixIndex {sequenceIndexMap,│               │
-            │                     │                   │  chunksForRange(), tabix:true}               │
-            │                     │                   │               │              │               │
-            │                     │                   │ index.tabix === true         │               │
-            │                     │                   │ → new BGZBlockLoader(config) │               │
-            │                     │                   │────────────────────────────>│               │
-            │                     │                   │               │              │               │
-            │                     │                   │ → new BGZLineReader(config) │               │
-            │                     │                   │──────────────────────────────────────────── >│
-            │                     │                   │               │              │               │
-            │                     │                   │ parseHeader(bgzLineReader)   │               │
-            │                     │                   │               │              │               │
-            │                     │                   │               │              │    nextLine() │
-            │                     │                   │                              │  ────────────>│
-            │                     │                   │               │              │               │
-            │                     │                   │               │              │               │── range
-            │                     │                   │               │              │               │   request
-            │                     │                   │               │              │               │   [0, 26)
-            │                     │                   │               │              │               │
-            │                     │                   │               │              │               │── get block
-            │                     │                   │               │              │               │   size
-            │                     │                   │               │              │               │
-            │                     │                   │               │              │               │── range
-            │                     │                   │               │              │               │   request
-            │                     │                   │               │              │               │   [0, blockSize)
-            │                     │                   │               │              │               │
-            │                     │                   │               │              │               │── inflate
-            │                     │                   │               │              │               │   → text
-            │                     │                   │               │              │               │
-            │                     │                   │               │              │  <────────────│
-            │                     │                   │               │              │  "##gff-version 3"
-            │                     │                   │               │              │               │
-            │                     │<──────────────────│               │              │               │
-            │                     │ header parsed     │               │              │               │
-            │                     │                   │               │              │               │
-            │                     │ readFeatures(chr, start, end)     │              │               │
-            │                     │──────────────────>│               │              │               │
-            │                     │                   │               │              │               │
-            │                     │                   │ index.tabix = true           │               │
-            │                     │                   │ → loadFeaturesWithIndex()    │               │
-            │                     │                   │               │              │               │
-            │                     │                   │ refId = index.sequenceIndexMap[chr]          │
-            │                     │                   │               │              │               │
-            │                     │                   │ chunks = index.chunksForRange(refId,         │
-            │                     │                   │                              start, end)     │
-            │                     │                   │               │              │               │
-            │                     │                   │ for each chunk:              │               │
-            │                     │                   │   _blockLoader.getData(      │               │
-            │                     │                   │     chunk.minv, chunk.maxv)  │               │
-            │                     │                   │────────────────────────────>│               │
-            │                     │                   │               │              │               │
-            │                     │                   │               │              │── range request
-            │                     │                   │               │              │   [minv.block,
-            │                     │                   │               │              │    maxv.block+
-            │                     │                   │               │              │    blockSize)
-            │                     │                   │               │              │
-            │                     │                   │               │              │── find block
-            │                     │                   │               │              │   boundaries
-            │                     │                   │               │              │
-            │                     │                   │               │              │── inflate each
-            │                     │                   │               │              │   block
-            │                     │                   │               │              │
-            │                     │                   │<────────────────────────────│
-            │                     │                   │ decompressed bytes          │
-            │                     │                   │               │              │
-            │                     │                   │ _parse(features, dataWrapper,│
-            │                     │                   │        chr, end, start)      │
-            │                     │                   │               │              │
-            │                     │                   │ → FeatureParser.parseFeatures()
-            │                     │                   │   (GFF3 codec: decode lines, │
-            │                     │                   │    combine parent/child features)
-            │                     │                   │               │              │
-            │                     │<──────────────────│               │              │
-            │<────────────────────│ features[]        │               │              │
-            │                     │                   │               │              │
-            │ renderGeneAnnotation()                  │               │              │
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '16px'}}}%%
+sequenceDiagram
+    autonumber
+    participant ARS as AnnotationRenderService
+    participant TFS as TextFeatureSource
+    participant FFR as FeatureFileReader
+    participant LI as loadIndex()
+    participant BL as BGZBlockLoader
+    participant BLR as BGZLineReader
+
+    ARS->>TFS: getFeatures({chr, start, end})
+
+    Note over TFS,BLR: Phase 1 — Read header (first call only)
+
+    TFS->>FFR: readHeader()
+    FFR->>LI: getIndex()
+    LI->>LI: fetch .tbi (~200 KB)
+    LI->>LI: detect gzip magic bytes
+    LI->>LI: inflate → parseTabixIndex()
+    LI-->>FFR: TabixIndex {sequenceIndexMap,<br/>chunksForRange(), tabix: true}
+
+    Note right of FFR: index.tabix === true
+
+    FFR->>BL: new BGZBlockLoader(config)
+    FFR->>BLR: new BGZLineReader(config)
+    FFR->>BLR: parseHeader(bgzLineReader) → nextLine()
+    BLR->>BLR: range request [0, 26)
+    BLR->>BLR: get block size
+    BLR->>BLR: range request [0, blockSize)
+    BLR->>BLR: inflate → text
+    BLR-->>FFR: "##gff-version 3"
+    FFR-->>TFS: header parsed
+
+    Note over TFS,BL: Phase 2 — Read features for region
+
+    TFS->>FFR: readFeatures(chr, start, end)
+
+    Note right of FFR: index.tabix = true<br/>→ loadFeaturesWithIndex()
+
+    FFR->>FFR: refId = index.sequenceIndexMap[chr]
+    FFR->>FFR: chunks = index.chunksForRange(<br/>refId, start, end)
+
+    loop for each chunk
+        FFR->>BL: _blockLoader.getData(<br/>chunk.minv, chunk.maxv)
+        BL->>BL: range request [minv.block,<br/>maxv.block + blockSize)
+        BL->>BL: find block boundaries
+        BL->>BL: inflate each block
+        BL-->>FFR: decompressed bytes
+    end
+
+    FFR->>FFR: _parse(features, dataWrapper, chr, end, start)<br/>→ FeatureParser.parseFeatures()<br/>(GFF3 codec: decode lines,<br/>combine parent/child features)
+
+    FFR-->>TFS: features[]
+    TFS-->>ARS: features[]
+
+    ARS->>ARS: renderGeneAnnotation()
 ```
 
 ---
@@ -346,92 +250,61 @@ This path is triggered when the genome ID matches a custom registry entry. The c
 
 This shows the static relationships between all components involved in genome loading.
 
-```
-                              ┌─────────────────────────────┐
-                              │        main.js              │
-                              │  setCustomRegistryURL(url)  │
-                              │  initializeGenomeRegistry() │
-                              └──────────────┬──────────────┘
-                                             │
-                              ┌──────────────▼──────────────┐
-                              │      genomeRegistry         │
-                              │  (facade)                   │
-                              │                             │
-                              │  getGenomeConfig(id)        │
-                              │  initializeGenomeRegistry() │
-                              └───────┬────────────┬────────┘
-                                      │            │
-                     ┌────────────────▼──┐    ┌────▼────────────────┐
-                     │igvOrgRegistrySource│    │customRegistrySource │
-                     │                   │    │                     │
-                     │ fetch igv.org     │    │ fetch custom JSON   │
-                     │ genomes3.json     │    │ (test-local.json)   │
-                     └───────────────────┘    └─────────────────────┘
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '18px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 50}}}%%
+flowchart TB
+    subgraph EntryPoint["Entry Point"]
+        MAIN[main.js<br/>setCustomRegistryURL · initializeGenomeRegistry]
+    end
 
+    subgraph Registry["Registry Layer"]
+        GR[genomeRegistry<br/>facade<br/>getGenomeConfig · initializeGenomeRegistry]
+        IGV[igvOrgRegistrySource<br/>fetch igv.org genomes3.json]
+        CUSTOM[customRegistrySource<br/>fetch custom JSON]
+    end
 
-    ┌──────────────────────────┐         ┌─────────────────────────────────────┐
-    │AnnotationRenderService   │────────>│         GenomeLibrary               │
-    │                          │         │                                     │
-    │ on assembly:emphasis     │         │  getGenomePayload(genomeId)         │
-    │  → getGenomePayload()    │         │    → getGenomeConfig()              │
-    │  → getFeatures()         │         │    → Genome.createGenome()          │
-    │  → renderGeneAnnotation()│         │    → new TextFeatureSource()        │
-    └──────────────────────────┘         │    → new FeatureRenderer()          │
-                                         └──────────┬────────┬────────────────┘
-                                                    │        │
-                                     ┌──────────────▼┐  ┌────▼──────────────┐
-                                     │    Genome      │  │ TextFeatureSource │
-                                     │                │  │                   │
-                                     │  init()        │  │  getFeatures()    │
-                                     │  chromosomes   │  │  loadFeatures()   │
-                                     │  sequence      │  │                   │
-                                     └───────┬────────┘  └────────┬──────────┘
-                                             │                    │
-                                  ┌──────────▼──────────┐  ┌─────▼────────────┐
-                                  │   loadSequence()    │  │FeatureFileReader │
-                                  │                     │  │                  │
-                                  │   dispatches to:    │  │ readHeader()     │
-                                  └───┬────────────┬────┘  │ readFeatures()   │
-                                      │            │       │ getIndex()       │
-                          ┌───────────▼──┐  ┌──────▼─────┐ └──┬──────┬───────┘
-                          │ IndexedFasta │  │NonIndexed  │    │      │
-                          │              │  │Fasta       │    │      │
-                          │ .fai index   │  │            │    │      │
-                          │ range reqs   │  │ full load  │    │      │
-                          └──────────────┘  └────────────┘    │      │
-                                                              │      │
-                                  ┌───────────────────────────┘      │
-                                  │                                  │
-                       ┌──────────▼──────────┐            ┌──────────▼──────────┐
-                       │    loadIndex()      │            │   FeatureParser     │
-                       │  (indexFactory)     │            │                     │
-                       │                     │            │  parseHeader()      │
-                       │  fetch + parse .tbi │            │  parseFeatures()    │
-                       └──────────┬──────────┘            │                     │
-                                  │                       │  dispatches to:     │
-                       ┌──────────▼──────────┐            │  - RefSeq codec     │
-                       │    TabixIndex       │            │  - GFF3 codec       │
-                       │                     │            │  - BED codec        │
-                       │  sequenceIndexMap   │            └─────────────────────┘
-                       │  chunksForRange()   │
-                       └──────────┬──────────┘
-                                  │
-                       ┌──────────▼──────────┐
-                       │   BGZBlockLoader    │
-                       │                     │
-                       │  getData(minv,maxv) │
-                       │  HTTP range reqs    │
-                       │  inflate blocks     │
-                       │  block caching      │
-                       └─────────────────────┘
+    subgraph AppLayer["App Layer"]
+        ARS[AnnotationRenderService<br/>on assembly:emphasis<br/>→ getGenomePayload · getFeatures · renderGeneAnnotation]
+        GL[GenomeLibrary<br/>getGenomePayload<br/>→ getGenomeConfig · Genome.createGenome<br/>→ new TextFeatureSource · new FeatureRenderer]
+    end
 
-                       ┌─────────────────────┐
-                       │   BGZLineReader     │
-                       │                     │
-                       │  nextLine()         │
-                       │  (header reading    │
-                       │   from bgzip files) │
-                       └─────────────────────┘
+    subgraph GenomeLayer["Genome Construction"]
+        GENOME[Genome<br/>init · chromosomes · sequence]
+        LS[loadSequence<br/>dispatches to:]
+        IF[IndexedFasta<br/>.fai index · range reqs]
+        NIF[NonIndexedFasta<br/>full load]
+    end
+
+    subgraph FeatureLayer["Feature Loading"]
+        TFS[TextFeatureSource<br/>getFeatures · loadFeatures]
+        FFR[FeatureFileReader<br/>readHeader · readFeatures · getIndex]
+        LI[loadIndex<br/>fetch + parse .tbi]
+        TI[TabixIndex<br/>sequenceIndexMap · chunksForRange]
+        FP[FeatureParser<br/>parseHeader · parseFeatures<br/>→ RefSeq / GFF3 / BED codec]
+    end
+
+    subgraph BGZLayer["BGZ Infrastructure"]
+        BL[BGZBlockLoader<br/>getData · HTTP range reqs<br/>inflate blocks · block caching]
+        BLR[BGZLineReader<br/>nextLine<br/>header reading from bgzip files]
+    end
+
+    MAIN --> GR
+    GR --> IGV
+    GR --> CUSTOM
+
+    ARS -->|"getGenomePayload()"| GL
+    GL --> GENOME
+    GL --> TFS
+    GENOME --> LS
+    LS --> IF
+    LS --> NIF
+
+    TFS --> FFR
+    FFR --> LI
+    FFR --> FP
+    LI --> TI
+    TI --> BL
+    FFR --> BLR
 ```
 
 ---
