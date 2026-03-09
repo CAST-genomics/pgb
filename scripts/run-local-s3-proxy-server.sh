@@ -1,6 +1,6 @@
 #!/bin/bash
 # Serve igv-webapp and local genome files from port 8000 with CORS proxy for S3.
-# Open http://localhost:8000/ in your browser, then load data/test-local.json via Genome → Local File.
+# Open http://localhost:8000/ in your browser.
 #
 # Features:
 #   - Serves static files from the app root
