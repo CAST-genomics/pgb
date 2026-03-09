@@ -52,7 +52,8 @@ class HeatmapLook extends Look {
 
 
             // const color = frequencyToColorContinuous(rawFrequency)
-            const color = new THREE.Color(blues.hex(rawFrequency))
+            // const color = new THREE.Color(blues.hex(rawFrequency))
+            const color = new THREE.Color(ylOrRd.hex(rawFrequency))
 
             const key = Look.getCacheKey(nodeName)
             const material = this.materialCache.get(key)
