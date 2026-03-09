@@ -233,12 +233,11 @@ class PangenomeService {
             maxRegionEdges = 4000,
             operationBudget = 500000,
             locusStartBp = (this._defaultLocusStartBp ?? 0),
-            sequenceId,
         } = assessOpts || {};
 
         const path = this.getAssemblyWalk(assemblyKey, walkOpts);
         if (!path.nodes.length) {
-            return { spine: { assemblyKey, nodes: [], edges: [], lengthBp: 0, sequenceId }, events: [], offSpine: [], aborted: false };
+            return { spine: { assemblyKey, nodes: [], edges: [], lengthBp: 0 }, events: [], offSpine: [], aborted: false };
         }
 
         // Spine with bp coords
@@ -254,7 +253,6 @@ class PangenomeService {
             nodes: spineNodes,
             edges: path.edges.slice(),
             lengthBp: spineNodes.length ? (spineNodes[spineNodes.length-1].bpEnd - spineNodes[0].bpStart) : 0,
-            sequenceId,
         };
 
         // Event discovery (bounded)
