@@ -72,8 +72,7 @@ class AnnotationRenderService {
 
         this.endpointMap = buildNodeEndpointMap(walkNodes, this.sceneManager);
 
-        // const chr = spine.sequenceId ?? this.genomicService.locus.chr
-        const chr = spine.sequenceId
+        const chr = this.genomicService.getSequenceId(this.assembly)
         const bpStart = nodes[0].bpStart
         const bpEnd = nodes[ nodes.length - 1].bpEnd
 
@@ -88,11 +87,11 @@ class AnnotationRenderService {
             this.splineParameterMap.set(node.id, {startParam, endParam})
         }
 
-        const [ genomeId, haplotype, sequence_id ] = this.assembly.split('#')
-        console.log(`AnnotationRenderService: loading genome payload for "${genomeId}" ...`)
-        console.time(`AnnotationRenderService: genome payload "${genomeId}"`)
-        const result = await app.genomeLibrary.getGenomePayload(genomeId)
-        console.timeEnd(`AnnotationRenderService: genome payload "${genomeId}"`)
+        const genomeLibraryKey = this.genomicService.getGenomeLibraryKey(this.assembly)
+        console.log(`AnnotationRenderService: loading genome payload for "${genomeLibraryKey}" ...`)
+        console.time(`AnnotationRenderService: genome payload "${genomeLibraryKey}"`)
+        const result = await app.genomeLibrary.getGenomePayload(genomeLibraryKey)
+        console.timeEnd(`AnnotationRenderService: genome payload "${genomeLibraryKey}"`)
 
         if (undefined === result) {
             // Unknown genome: no RefSeq/annotation data — fall back to extent markers only
