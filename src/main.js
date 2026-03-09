@@ -19,7 +19,6 @@ import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
-import {loadConfig} from "./configService.js"
 import appConfig from './appConfig.js'
 import './styles/app.scss'
 
@@ -87,11 +86,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 
-    // Load application configuration
-    const config = await loadConfig()
-
     // Initialize locus input from URL parameters and/or configuration
-    await locusInput.initializeFromConfig(config)
+    await locusInput.initializeFromConfig(appConfig)
 
 })
 
