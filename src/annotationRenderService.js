@@ -24,6 +24,8 @@ class AnnotationRenderService {
 
         this.createVisualFeedbackElement();
 
+        this.createSpinnerElement();
+
         this.resizeCanvas(container);
 
         this.setupEventHandlers()
@@ -88,6 +90,9 @@ class AnnotationRenderService {
         }
 
         const genomeLibraryKey = this.genomicService.getGenomeLibraryKey(this.assembly)
+
+        this.showSpinner()
+
         console.log(`AnnotationRenderService: loading genome payload for "${genomeLibraryKey}" ...`)
         console.time(`AnnotationRenderService: genome payload "${genomeLibraryKey}"`)
         const result = await app.genomeLibrary.getGenomePayload(genomeLibraryKey)
@@ -110,6 +115,8 @@ class AnnotationRenderService {
             console.log(`AnnotationRenderService: ${features ? features.length : 0} features returned`)
             this.renderGeneAnnotation({ container: this.container, bpStart, bpEnd, features })
         }
+
+        this.hideSpinner()
 
     }
 
@@ -166,6 +173,21 @@ class AnnotationRenderService {
         this.visualFeedbackElement = document.createElement('div');
         this.visualFeedbackElement.className = 'pgb-gene-annotation-track-container__visual-feedback';
         this.container.appendChild(this.visualFeedbackElement);
+    }
+
+    createSpinnerElement() {
+        this.spinnerElement = document.createElement('div');
+        this.spinnerElement.className = 'pgb-gene-annotation-track-container__spinner';
+        this.spinnerElement.innerHTML = '<div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div>';
+        this.container.appendChild(this.spinnerElement);
+    }
+
+    showSpinner() {
+        this.spinnerElement.style.display = 'block';
+    }
+
+    hideSpinner() {
+        this.spinnerElement.style.display = 'none';
     }
 
     /** Draw vertical tick marks at node boundaries when gene annotation data is unavailable. */
@@ -351,6 +373,11 @@ class AnnotationRenderService {
         if (this.verticalBar && this.verticalBar.parentNode) {
             this.verticalBar.parentNode.removeChild(this.verticalBar);
             this.verticalBar = null;
+        }
+
+        if (this.spinnerElement && this.spinnerElement.parentNode) {
+            this.spinnerElement.parentNode.removeChild(this.spinnerElement);
+            this.spinnerElement = null;
         }
 
         this.drawConfig = null;

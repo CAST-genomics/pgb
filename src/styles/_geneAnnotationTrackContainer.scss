@@ -15,6 +15,21 @@
     cursor: pointer;
   }
 
+  &__spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    display: none;
+
+    .spinner-border {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-width: 0.15em;
+    }
+  }
+
   &__visual-feedback {
     position: absolute;
     top: 0;
