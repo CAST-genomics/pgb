@@ -16,13 +16,9 @@ class Look {
 
     static DEFAULT_EDGE_COLOR_NAME = 'magnesium'
 
-    // pixel units
+    // Apparent line width in screen pixels (constant regardless of zoom).
+    // Converted to world units per frame by lineMaterialResolutionService.
     static NODE_LINE_WIDTH_PIXELS = 2*2;
-    static NODE_LINE_DEEMPHASIS_WIDTH_PIXELS = 2*2;
-
-    // world units
-    static NODE_LINE_WIDTH = 16;
-    static NODE_LINE_DEEMPHASIS_WIDTH = 16;
 
     constructor(name, config) {
         this.name = name
@@ -133,10 +129,10 @@ class Look {
 
         const material = new LineMaterial({
             color: this.getNodeColor(nodeName),
-            linewidth: Look.NODE_LINE_WIDTH,
+            // linewidth: Look.NODE_LINE_WIDTH_PIXELS,
             worldUnits: true,
             opacity: 1,
-            transparent: true
+            transparent: true,
         });
 
         // Register with resolution service for automatic resolution updates
@@ -191,8 +187,15 @@ class Look {
             colorToUse = nodeColor;
         }
 
-        // color: Look.NODE_EMPHASIS_COLOR
-        const material = new LineMaterial({ color: colorToUse, linewidth: Look.NODE_LINE_WIDTH, worldUnits: true, opacity: 1, transparent: true });
+        const lineMaterialConfig =
+            {
+                color: colorToUse,
+                // linewidth: Look.NODE_LINE_WIDTH_PIXELS,
+                worldUnits: true,
+                opacity: 1,
+                transparent: true
+            }
+        const material = new LineMaterial(lineMaterialConfig);
 
         // Register with resolution service for automatic resolution updates
         lineMaterialResolutionService.registerMaterial(material);
