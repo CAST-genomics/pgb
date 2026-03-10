@@ -53,11 +53,10 @@ class MaterialService {
 
         const material = new LineMaterial({
             color: getAppleCrayonColorByName('mercury'),
-            linewidth: Look.NODE_LINE_DEEMPHASIS_WIDTH,
+            // linewidth: Look.NODE_LINE_WIDTH_PIXELS,
             worldUnits: true,
             opacity: 1,
             transparent: true,
-            // depthWrite: false
         });
         material.materialType = MATERIAL_TYPES.DEEMPHASIS;
 
