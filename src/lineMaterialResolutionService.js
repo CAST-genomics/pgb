@@ -1,128 +1,48 @@
-import * as THREE from 'three';
-import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 import Look from "./looks/look.js"
+import RibbonMaterialFactory from "./ribbonMaterialFactory.js"
 
 /**
- * Service to manage LineMaterial resolution updates for worldUnits: false
- * This ensures proper rendering of Line2 objects across different screen sizes and pixel densities
+ * Service to manage ribbon ShaderMaterial halfWidth uniform updates.
+ * Ensures constant screen-pixel width for ribbon meshes across zoom levels.
  */
 class LineMaterialResolutionService {
     constructor() {
-        this.materials = new Set();
-        this.size = new THREE.Vector2();
-        this.isInitialized = false;
+        this.ribbonMaterials = new Set();
     }
 
     /**
-     * Initialize the service with a renderer
-     * @param {THREE.WebGLRenderer} renderer - The renderer to use for getting drawing buffer size
+     * Register a ribbon ShaderMaterial for halfWidth uniform updates
+     * @param {THREE.ShaderMaterial} material - The ribbon material to register
      */
-    initialize(renderer) {
-        this.renderer = renderer;
-        this.isInitialized = true;
-
-        // Update all registered materials with initial resolution
-        this.updateAllMaterials();
-    }
-
-    /**
-     * Handle window resize events
-     * Call this from your app's resize handler
-     */
-    handleResize() {
-        this.updateAllMaterials();
-    }
-
-    /**
-     * Handle pixel ratio changes
-     * Call this when you change the renderer's pixel ratio
-     */
-    handlePixelRatioChange() {
-        this.updateAllMaterials();
-    }
-
-    /**
-     * Register a LineMaterial to be updated on resolution changes
-     * @param {THREE.LineMaterial} material - The LineMaterial to register
-     */
-    registerMaterial(material) {
-        if (material && material.resolution) {
-            this.materials.add(material);
-            // Set initial resolution if we have a renderer
-            if (this.isInitialized) {
-                this.updateMaterialResolution(material);
-            }
+    registerRibbonMaterial(material) {
+        if (material && material.uniforms?.halfWidth !== undefined) {
+            this.ribbonMaterials.add(material);
         }
     }
 
     /**
-     * Unregister a LineMaterial from resolution updates
-     * @param {THREE.LineMaterial} material - The LineMaterial to unregister
+     * Unregister a ribbon material from updates
+     * @param {THREE.Material} material - The material to unregister
      */
     unregisterMaterial(material) {
-        this.materials.delete(material);
-    }
-
-    /**
-     * Update resolution for a specific material
-     * @param {THREE.LineMaterial} material - The material to update
-     */
-    updateMaterialResolution(material) {
-        if (material.resolution) {
-            this.renderer.getDrawingBufferSize(this.size);
-            material.resolution.copy(this.size);
-        }
-    }
-
-    /**
-     * Update resolution for all registered materials
-     * Call this on window resize or pixel ratio changes
-     */
-    updateAllMaterials() {
-
-        this.renderer.getDrawingBufferSize(this.size);
-
-        this.materials.forEach(material => {
-            if (material && material.resolution) {
-                material.resolution.copy(this.size);
-            }
-        });
-    }
-
-    /**
-     * Get the current drawing buffer size
-     * @returns {THREE.Vector2} The current drawing buffer size
-     */
-    getCurrentSize() {
-        this.renderer.getDrawingBufferSize(this.size);
-        return this.size.clone();
+        this.ribbonMaterials.delete(material);
     }
 
     update(camera, container){
-
-        const worldSize = getWorldDistanceFromPixelDistance(camera, Look.NODE_LINE_WIDTH_PIXELS, container)
-        for (const material of this.materials){
-            if (material && typeof material.linewidth !== 'undefined') {
-                material.linewidth = worldSize;
-                material.needsUpdate = true;
+        if (this.ribbonMaterials.size > 0) {
+            const halfWidth = RibbonMaterialFactory.computeHalfWidth(camera, Look.NODE_LINE_WIDTH_PIXELS, container)
+            for (const material of this.ribbonMaterials) {
+                material.uniforms.halfWidth.value = halfWidth
             }
         }
     }
 
     clear(){
-
-        console.log(`LineMaterialResolutionService clear material cache pre ${ this.materials.size }`)
-        this.materials.clear()
-        console.log(`LineMaterialResolutionService clear material cache post ${ this.materials.size }`)
+        this.ribbonMaterials.clear()
     }
 
-    /**
-     * Dispose of the service and clear all registered materials
-     */
     dispose() {
-        this.materials.clear();
-        this.renderer = null;
-        this.isInitialized = false;
+        this.ribbonMaterials.clear();
     }
 }
 

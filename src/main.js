@@ -51,8 +51,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const threeJSContainer = document.getElementById('pgb-three-container')
 
-    const threshold = 8
-    const raycastService = new RayCastService(threeJSContainer, threshold)
+    const raycastService = new RayCastService(threeJSContainer)
 
     const genomicService = new GenomicService()
 
@@ -73,7 +72,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.lookManager.setLook('nodeEmphasisScene', nodeEmphasisLook);
 
     // Heatmap Look & Scene
-    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, assemblyWidget })
+    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 

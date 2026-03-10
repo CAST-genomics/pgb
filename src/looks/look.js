@@ -1,9 +1,9 @@
 import * as THREE from 'three'
 import lineMaterialResolutionService from "../lineMaterialResolutionService.js"
 import GeometryFactory from "../geometryFactory.js"
-import ParametricLine from "../parametricLine.js"
+import RibbonLine from "../ribbonLine.js"
+import RibbonMaterialFactory from "../ribbonMaterialFactory.js"
 import materialService, {colorRampArrowMaterialFactory} from "../materialService.js"
-import {LineMaterial} from "three/addons/lines/LineMaterial.js"
 import {getAppleCrayonColorByName} from "../utils/color/color.js"
 import {prettyPrint} from "../utils/utils.js"
 
@@ -71,7 +71,7 @@ class Look {
      * @param {THREE.BufferGeometry} geometry - The geometry to use for the mesh
      * @param {Object} context - Context object containing type and metadata
      * @param {string} context.type - Either 'node' or 'edge'
-     * @returns {THREE.Mesh|ParametricLine} The created mesh object
+     * @returns {THREE.Mesh|RibbonLine} The created mesh object
      * @throws {Error} If context.type is not 'node' or 'edge'
      */
     createMesh(geometry, context) {
@@ -85,125 +85,98 @@ class Look {
     }
 
     /**
-     * Creates a mesh for a node (genomic segment) using the provided geometry.
-     * Uses ParametricLine for rendering node lines with appropriate materials.
+     * Creates a ribbon mesh for a node.
      *
-     * @param {THREE.BufferGeometry} geometry - The geometry for the node line
-     * @param {Object} context - Context object containing node information
-     * @param {string} context.nodeName - The name/identifier of the node
-     * @returns {ParametricLine} The created node mesh with userData populated
+     * @param {THREE.BufferGeometry} geometry - Ribbon geometry from LineFactory.createNodeRibbonGeometry
+     * @param {Object} context - Context object
+     * @param {string} context.nodeName - Node name
+     * @param {THREE.CatmullRomCurve3} context.spline - The node's spline for getPoint()
+     * @returns {RibbonLine}
      */
     createNodeMesh(geometry, context) {
 
-        const {nodeName} = context
+        const { nodeName, spline } = context
 
-        const material = this.getNodeMaterial(nodeName);
+        const material = this.getNodeRibbonMaterial(nodeName)
 
-        const mesh = new ParametricLine(geometry, material);
+        const mesh = new RibbonLine(geometry, material)
 
-        // Set up user data
         mesh.userData = {
             nodeName,
             geometryKey: `node:${nodeName}`,
             type: 'node',
-        };
+            spline,
+            zOffset: GeometryFactory.NODE_LINE_Z_OFFSET,
+        }
 
-        return mesh;
+        return mesh
     }
 
     /**
-     * Gets or creates a material for a node's normal (non-emphasized) state.
-     * Materials are cached to avoid creating duplicates for the same node.
+     * Gets or creates a ribbon ShaderMaterial for a node's normal state.
      *
-     * @param {string} nodeName - The name/identifier of the node
-     * @returns {LineMaterial} The material for rendering the node in normal state
+     * @param {string} nodeName - The node name
+     * @returns {THREE.ShaderMaterial}
      */
-    getNodeMaterial(nodeName) {
+    getNodeRibbonMaterial(nodeName) {
+        const cacheKey = `ribbon:${nodeName}:normal`
 
-        const cacheKey = Look.getCacheKey(nodeName);
-
-        // Check if we already have this material cached
         if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey);
+            return this.materialCache.get(cacheKey)
         }
 
-        const material = new LineMaterial({
-            color: this.getNodeColor(nodeName),
-            // linewidth: Look.NODE_LINE_WIDTH_PIXELS,
-            worldUnits: true,
-            opacity: 1,
-            transparent: true,
-        });
+        const material = RibbonMaterialFactory.createMaterial(this.getNodeColor(nodeName))
+        lineMaterialResolutionService.registerRibbonMaterial(material)
+        this.materialCache.set(cacheKey, material)
 
-        // Register with resolution service for automatic resolution updates
-        lineMaterialResolutionService.registerMaterial(material);
-
-        // Cache the material
-        this.materialCache.set(cacheKey, material);
-
-        return material;
+        return material
     }
 
     /**
-     * Gets or creates a material for a node in its emphasized state.
-     * This is a critical method for highlighting nodes when an assembly is selected.
-     * Materials are cached per node and assembly combination to avoid duplicates.
+     * Gets or creates a ribbon ShaderMaterial for a node's emphasized state.
      *
-     * @param {string} assemblyName - The name of the assembly that this emphasis is for
-     * @param {string} nodeName - The name/identifier of the node to emphasize
-     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - The color(s) to use for emphasis.
-     *   Can be either:
-     *   - A single THREE.Color instance: Used for all nodes in the emphasis set
-     *   - A Map<string, THREE.Color>: Maps node names to their specific colors.
-     *     If the nodeName is not found in the map, falls back to NODE_EMPHASIS_COLOR.
-     * @returns {LineMaterial} The material for rendering the node in emphasized state
+     * @param {string} assemblyName - Assembly name
+     * @param {string} nodeName - Node name
+     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Emphasis color(s)
+     * @returns {THREE.ShaderMaterial}
      */
-    getNodeEmphasisMaterial(assemblyName, nodeName, nodeColor) {
+    getNodeRibbonEmphasisMaterial(assemblyName, nodeName, nodeColor) {
+        const cacheKey = `ribbon:${nodeName}:assembly:${assemblyName}`
 
-        const cacheKey = `${this.constructor.name}:${nodeName}:assembly:${assemblyName}`;
-
-        // Check if we already have this material cached
         if (this.materialCache.has(cacheKey)) {
-            console.log(`getNodeEmphasisMaterial - Node ${ nodeName } return material with cache key ${ cacheKey }`)
-            return this.materialCache.get(cacheKey);
+            return this.materialCache.get(cacheKey)
         }
 
-        console.log(`getNodeEmphasisMaterial - Node ${ nodeName } create cache key ${ cacheKey } and create material`)
-
-        // Disambiguate between a single color and a Map object
-        let colorToUse;
+        let colorToUse
         if (nodeColor instanceof Map) {
-            // If nodeColor is a Map, retrieve the color using nodeName as the key
-            const color = nodeColor.get(nodeName);
-            if (color) {
-                // Clone the THREE.Color object to prevent external modification
-                colorToUse = color.clone();
-            } else {
-                // Fallback to default emphasis color if node not found in map
-                colorToUse = Look.NODE_EMPHASIS_COLOR;
-            }
+            const color = nodeColor.get(nodeName)
+            colorToUse = color ? color.clone() : new THREE.Color(Look.NODE_EMPHASIS_COLOR)
         } else {
-            // Use the single color directly
-            colorToUse = nodeColor;
+            colorToUse = nodeColor instanceof THREE.Color ? nodeColor : new THREE.Color(nodeColor || Look.NODE_EMPHASIS_COLOR)
         }
 
-        const lineMaterialConfig =
-            {
-                color: colorToUse,
-                // linewidth: Look.NODE_LINE_WIDTH_PIXELS,
-                worldUnits: true,
-                opacity: 1,
-                transparent: true
-            }
-        const material = new LineMaterial(lineMaterialConfig);
+        const material = RibbonMaterialFactory.createMaterial(colorToUse)
+        lineMaterialResolutionService.registerRibbonMaterial(material)
+        this.materialCache.set(cacheKey, material)
 
-        // Register with resolution service for automatic resolution updates
-        lineMaterialResolutionService.registerMaterial(material);
+        return material
+    }
 
-        // Cache the material
-        this.materialCache.set(cacheKey, material);
+    /**
+     * Gets or creates a ribbon deemphasis material for a node.
+     */
+    getNodeRibbonDeemphasisMaterial(nodeName) {
+        const cacheKey = `ribbon:${nodeName}:deemphasis`
 
-        return material;
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey)
+        }
+
+        const material = RibbonMaterialFactory.createMaterial(getAppleCrayonColorByName('mercury'))
+        lineMaterialResolutionService.registerRibbonMaterial(material)
+        this.materialCache.set(cacheKey, material)
+
+        return material
     }
 
     /**
@@ -337,20 +310,9 @@ class Look {
         }
 
         // Clear the material cache
-        console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.constructor.size }`)
+        console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.materialCache.size }`)
         this.materialCache.clear()
-        console.log(`${ this.constructor.name } dispose.  material cache post ${ this.constructor.size }`)
-    }
-
-    /**
-     * Generates a cache key for storing node materials.
-     * Used to uniquely identify materials in the material cache.
-     *
-     * @param {string} nodeName - The name/identifier of the node
-     * @returns {string} A unique cache key string
-     */
-    static getCacheKey(nodeName) {
-        return `${this.constructor.name}:${nodeName}:normal`;
+        console.log(`${ this.constructor.name } dispose.  material cache post ${ this.materialCache.size }`)
     }
 
     /**
@@ -362,7 +324,6 @@ class Look {
      * @param {Set<string>} nodeSet - Set of node names to emphasize
      * @param {Set<string>} edgeSet - Set of edge keys to emphasize
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
-     *   See getNodeEmphasisMaterial() for details on the nodeColor parameter format.
      */
     setNodeAndEdgeEmphasis(assemblyName, nodeSet, edgeSet, nodeColor) {
 
@@ -427,11 +388,10 @@ class Look {
      * Applies an emphasis state to a mesh by updating its material.
      * Handles both node and edge meshes, applying appropriate materials based on state.
      *
-     * @param {THREE.Mesh|ParametricLine} mesh - The mesh to update
+     * @param {THREE.Mesh|RibbonLine} mesh - The mesh to update
      * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
      * @param {string} assemblyName - The assembly name (required for 'emphasized' state)
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
-     *   See getNodeEmphasisMaterial() for details on the nodeColor parameter format.
      */
     applyEmphasisState(mesh, emphasisState, assemblyName, nodeColor) {
         if (!mesh.userData) return;
@@ -440,42 +400,33 @@ class Look {
 
         if (emphasisState === 'deemphasized') {
             if (type === 'node') {
-                mesh.material = materialService.getNodeDeemphasisMaterial(mesh.userData.nodeName);
+                mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName);
             } else if (type === 'edge') {
                 mesh.material = materialService.getEdgeDeemphasisMaterial();
             }
         } else if (emphasisState === 'emphasized') {
 
             if (type === 'node') {
-                mesh.material = this.getNodeEmphasisMaterial(assemblyName, mesh.userData.nodeName, nodeColor);
+                mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName, mesh.userData.nodeName, nodeColor);
             } else if (type === 'edge') {
 
                 const startColor = getAppleCrayonColorByName('magnesium')
                 const endColor = getAppleCrayonColorByName('magnesium')
                 mesh.material = this.getEdgeMaterial(startColor, endColor)
-
-                // mesh.material = materialService.getEdgeEmphasisMaterial(this.genomicService.getAssemblyColor(assembly));
             }
 
         }  else if (emphasisState === 'normal') {
 
             if (type === 'node') {
-                mesh.material = this.getNodeMaterial(mesh.userData.nodeName);
+                mesh.material = this.getNodeRibbonMaterial(mesh.userData.nodeName);
             } else if (type === 'edge') {
-                // TODO: Handle 'normal' edge material
                 const startColor = getAppleCrayonColorByName('steel')
                 const endColor = getAppleCrayonColorByName('steel')
                 mesh.material = this.getEdgeMaterial(startColor, endColor)
-
             }
 
         } else {
             console.warn('DANGER! Should not get here')
-        }
-
-        // Immediately update resolution for LineMaterials to fix raycasting issues
-        if (mesh.material && mesh.material.resolution) {
-            lineMaterialResolutionService.updateMaterialResolution(mesh.material);
         }
     }
 
@@ -508,7 +459,6 @@ class Look {
      * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
      * @param {string} assemblyName - The assembly name (used for 'emphasized' state)
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
-     *   See getNodeEmphasisMaterial() for details on the nodeColor parameter format.
      */
     updateNodeEmphasis(nodeNameSet, emphasisState, assemblyName, nodeColor) {
 
@@ -523,7 +473,6 @@ class Look {
     /**
      * Updates the Z-position (depth) of all nodes and edges in the scene.
      * Uses emphasis states to determine appropriate Z-offsets for visual layering.
-     * Nodes are updated by modifying their geometry attributes, edges by updating their position.
      */
     updateGeometryPositions() {
 
@@ -532,25 +481,8 @@ class Look {
             if (object.userData?.nodeName) {
                 const nodeName = object.userData.nodeName;
                 const zOffset = this.getZOffset(`node:${nodeName}`);
-
-                // Update geometry Z coordinates
-                if (object.geometry.attributes.instanceStart) {
-                    const instanceStart = object.geometry.attributes.instanceStart.array;
-                    const instanceEnd = object.geometry.attributes.instanceEnd.array;
-
-                    for (let i = 0; i < instanceStart.length; i += 3) {
-                        instanceStart[i + 2] = zOffset;
-                        instanceEnd[i + 2] = zOffset;
-                    }
-
-                    // Only needed for dashed lines
-                    // if (object.computeLineDistances) {
-                    //     object.computeLineDistances();
-                    // }
-
-                    object.geometry.attributes.instanceStart.needsUpdate = true;
-                    object.geometry.attributes.instanceEnd.needsUpdate = true;
-                }
+                const baseZ = object.userData.zOffset || GeometryFactory.NODE_LINE_Z_OFFSET
+                object.position.z = zOffset - baseZ
             }
         });
 
