@@ -1,5 +1,7 @@
 # Node Shader Material Exploration
 
+**Status:** Archived — code reverted to stock `LineMaterial`, experiment preserved at git tag `experiment/node-shader-materials`
+
 Branch: `hprc-project-custom-assemblies-node-shader-hacks`
 Worktree: `/Users/turner/PanGenomeProject/pgb-node-shader-hacks/`
 
@@ -44,11 +46,18 @@ Replace the stock Three.js `LineMaterial` used for node rendering with custom sh
 - Singletons: `getSolidTexture`, `getOutlineTexture`, `getDashedTexture`
 - Textures use `ClampToEdgeWrapping` (no tiling)
 
-## Current State
+## Outcome
 
-- **TexturedLineMaterial with solid texture**: works perfectly, visually identical to stock LineMaterial
-- **TexturedLineMaterial with outline texture**: aspect ratio distortion at start/end of nodes (rounded rect and rectangular outlines both suffer from this)
-- **ProceduralLineMaterial outline**: top/bottom borders work great; start/end borders still exhibit zoom-dependent thickness
+The experiment was shelved. The line width cleanup (consolidating four constants into one `NODE_LINE_WIDTH_PIXELS` managed by the resolution service) was retained and merged back. The custom shader materials were reverted to stock `LineMaterial`.
+
+### What worked
+- **TexturedLineMaterial with solid texture**: visually identical to stock LineMaterial
+- **Canvas texture factory plugin architecture**: clean and extensible
+- **ProceduralLineMaterial top/bottom borders**: crisp and zoom-independent
+
+### What didn't
+- **TexturedLineMaterial with outline texture**: aspect ratio distortion at start/end of nodes
+- **ProceduralLineMaterial start/end borders**: zoom-dependent thickness due to the fundamental coordinate system mismatch (see below)
 
 ## The Open Problem: Start/End Border Consistency
 
@@ -83,16 +92,23 @@ These two dimensions live in fundamentally different coordinate systems. Any bor
 
 - **Two-pass rendering**: Render the outline as a separate, slightly larger solid line behind the main line. The "border" is the visible sliver of the back line. This avoids the parameterization problem entirely.
 
-## File Inventory
+## Retrieving the Code
 
-| File | Status | Purpose |
-|------|--------|---------|
-| `shaders/textured-line.vert.glsl` | New | Shared vertex shader (WORLD_UNITS + whole-node params) |
-| `shaders/textured-line.frag.glsl` | New | Alpha-matte texture sampling fragment shader |
-| `shaders/procedural-line.frag.glsl` | New | Procedural outline fragment shader |
-| `src/texturedLineMaterial.js` | New | ShaderMaterial for texture-based styles |
-| `src/proceduralLineMaterial.js` | New | ShaderMaterial for procedural styles |
-| `src/lineCanvasTextureFactory.js` | New | Canvas texture plugin factory |
-| `src/geometryManager.js` | Modified | Adds per-instance param/arcLength attributes |
-| `src/looks/look.js` | Modified | Uses TexturedLineMaterial for normal + emphasis |
-| `src/materialService.js` | Modified | Uses ProceduralLineMaterial for deemphasis |
+```bash
+# Browse a specific file
+git show experiment/node-shader-materials:src/texturedLineMaterial.js
+
+# Check out the full experiment
+git checkout experiment/node-shader-materials
+```
+
+## File Inventory (at tag `experiment/node-shader-materials`)
+
+| File | Purpose |
+|------|---------|
+| `shaders/textured-line.vert.glsl` | Shared vertex shader (WORLD_UNITS + whole-node params) |
+| `shaders/textured-line.frag.glsl` | Alpha-matte texture sampling fragment shader |
+| `shaders/procedural-line.frag.glsl` | Procedural outline fragment shader |
+| `src/texturedLineMaterial.js` | ShaderMaterial for texture-based styles |
+| `src/proceduralLineMaterial.js` | ShaderMaterial for procedural styles |
+| `src/lineCanvasTextureFactory.js` | Canvas texture plugin factory |
