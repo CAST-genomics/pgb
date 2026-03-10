@@ -22,8 +22,6 @@ class App {
 
         this.renderer = RendererFactory.createRenderer(container)
 
-        lineMaterialResolutionService.initialize(this.renderer)
-
         this.pangenomeService = pangenomeService
         this.genomicService = genomicService
         this.geometryManager = geometryManager
@@ -100,8 +98,6 @@ class App {
             const { clientWidth, clientHeight } = this.container
             this.cameraManager.windowResizeHelper(clientWidth/clientHeight)
             this.renderer.setSize(clientWidth, clientHeight)
-            // Update line material resolutions for worldUnits: false
-            lineMaterialResolutionService.handleResize()
         })
 
         // Setup drag and drop functionality
