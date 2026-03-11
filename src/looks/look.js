@@ -113,7 +113,7 @@ class Look {
     }
 
     /**
-     * Gets or creates a ribbon ShaderMaterial for a node's normal state.
+     * Gets or creates a ribbon ShaderMaterial for a node's default state.
      *
      * @param {string} nodeName - The node name
      * @returns {THREE.ShaderMaterial}
