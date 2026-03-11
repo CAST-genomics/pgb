@@ -58,13 +58,15 @@ function lerp(a, b, t) { return a + (b - a) * t; }
 export function colorFromStops(stops, p) {
   const v = clamp01(p);
   // fast paths
+  // Hex-decoded and lerp'd values are sRGB — use setRGB with SRGBColorSpace
+  // so Three.js converts to linear working space for correct rendering.
   if (v <= stops[0][0]) {
     const [r,g,b] = hexToRgb(stops[0][1]);
-    return new THREE.Color(r/255, g/255, b/255);
+    return new THREE.Color().setRGB(r/255, g/255, b/255, THREE.SRGBColorSpace);
   }
   if (v >= stops[stops.length-1][0]) {
     const [r,g,b] = hexToRgb(stops[stops.length-1][1]);
-    return new THREE.Color(r/255, g/255, b/255);
+    return new THREE.Color().setRGB(r/255, g/255, b/255, THREE.SRGBColorSpace);
   }
 
   // find surrounding stops
@@ -78,7 +80,7 @@ export function colorFromStops(stops, p) {
       const r = lerp(r0, r1, t) / 255;
       const g = lerp(g0, g1, t) / 255;
       const b = lerp(b0, b1, t) / 255;
-      return new THREE.Color(r, g, b);
+      return new THREE.Color().setRGB(r, g, b, THREE.SRGBColorSpace);
     }
   }
 

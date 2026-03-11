@@ -43,7 +43,8 @@ class PCLACoordinateService {
                 const [r, g, b] = pclai_ave_rgb;
                 // Validate RGB values are valid numbers
                 if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
-                    const color = new THREE.Color(r / 255, g / 255, b / 255);
+                    // Data file RGB values are sRGB — tag them so Three.js converts to linear working space
+                    const color = new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
                     this.aveRgb.set(nodeId, color);
                 }
             }
@@ -63,7 +64,7 @@ class PCLACoordinateService {
                 }
 
                 const [r, g, b] = RGB;
-                const rgbThreeJS = new THREE.Color(r / 255, g / 255, b / 255);
+                const rgbThreeJS = new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
                 const rgbString = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 
                 const coordinateData = { coordinates, rgbThreeJS, rgbString };

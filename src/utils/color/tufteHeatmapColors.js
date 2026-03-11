@@ -57,7 +57,7 @@ function oklabToRgb(L, a, b) {
     const r = Math.min(255, Math.max(0, linearToSrgb(R)));
     const g = Math.min(255, Math.max(0, linearToSrgb(G)));
     const b2 = Math.min(255, Math.max(0, linearToSrgb(B)));
-    return [r / 255, g / 255, b2 / 255]; // normalize to [0,1] for THREE.Color
+    return [r / 255, g / 255, b2 / 255]; // normalize to [0,1], values are sRGB
 }
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -90,8 +90,9 @@ function frequencyToColorContinuous(frequency) {
         a = lerp(MID_LAB.a, RED_LAB.a, t);
         b = lerp(MID_LAB.b, RED_LAB.b, t);
     }
+    // oklabToRgb returns sRGB values — tag them so Three.js converts to linear working space
     const [r, g, b2] = oklabToRgb(L, a, b);
-    return new THREE.Color(r, g, b2);
+    return new THREE.Color().setRGB(r, g, b2, THREE.SRGBColorSpace);
 }
 
 // Example:
