@@ -9,10 +9,12 @@ import {prettyPrint} from "../utils/utils.js"
 
 class Look {
 
-    static NODE_EMPHASIS_COLOR = '#dc3545'
+    static NODE_EMPHASIS_COLOR = '#c0311a'
+    static NODE_DEEMPHASIS_COLOR = '#a89292'
+    static NODE_ABSENCE_COLOR = '#7a92a3'
 
-    static DEFAULT_NODE_COLOR = getAppleCrayonColorByName('tin', true)
-    static DEFAULT_NODE_COLOR_THREE_JS = getAppleCrayonColorByName('tin')
+    static DEFAULT_NODE_COLOR = '#6e6e6e'
+    static DEFAULT_NODE_COLOR_THREE_JS = new THREE.Color('#6e6e6e')
 
     static DEFAULT_EDGE_COLOR_NAME = 'magnesium'
 
@@ -125,7 +127,7 @@ class Look {
             return this.materialCache.get(cacheKey)
         }
 
-        const material = RibbonMaterialFactory.createMaterial(this.getNodeColor(nodeName))
+        const material = RibbonMaterialFactory.createMaterial(Look.DEFAULT_NODE_COLOR_THREE_JS)
         lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
@@ -172,7 +174,7 @@ class Look {
             return this.materialCache.get(cacheKey)
         }
 
-        const material = RibbonMaterialFactory.createMaterial(getAppleCrayonColorByName('mercury'))
+        const material = RibbonMaterialFactory.createMaterial(Look.NODE_DEEMPHASIS_COLOR)
         lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
