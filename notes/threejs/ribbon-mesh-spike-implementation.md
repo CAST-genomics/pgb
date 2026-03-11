@@ -27,7 +27,7 @@ UV output: `vUv = vec2(uParam, side * 0.5 + 0.5)` maps `u ∈ [0,1]` along the n
 
 ### `shaders/ribbon.frag.glsl`
 
-The fragment shader is 8 lines. It outputs `diffuse` color at `opacity`, optionally multiplied by an alpha matte texture. The `useAlphaMap` uniform toggles texture sampling (0.0 = off, 1.0 = on). Fragments with alpha below 0.01 are discarded.
+The fragment shader outputs `diffuse` color at `opacity`, optionally multiplied by an alpha matte texture. The `useAlphaMap` uniform toggles texture sampling (0.0 = off, 1.0 = on). Fragments with alpha below 0.01 are discarded. Ends with `#include <colorspace_fragment>` to apply Three.js sRGB output encoding (required for `ShaderMaterial` when `renderer.outputColorSpace = SRGBColorSpace`).
 
 No distance computation, no endcap logic, no dash calculation.
 
@@ -196,6 +196,8 @@ On raycast hit:
 4. **HeatmapLook `getActiveScene` undefined** — `sceneManager` wasn't passed in HeatmapLook config in `main.js`. Fixed.
 
 5. **HeatmapLook all nodes same color** — `RibbonMaterialFactory.createMaterial` didn't clone the input `THREE.Color`, so all materials shared the same `uniforms.diffuse.value` reference. Fixed by cloning in `createMaterial`. Also rewrote `handleSelectionEvent` to walk scene meshes directly instead of using material cache.
+
+6. **Node colors too dark** — `ShaderMaterial` bypasses Three.js color management. With `renderer.outputColorSpace = SRGBColorSpace`, built-in materials automatically apply linear-to-sRGB conversion, but custom shaders do not. Fixed by adding `#include <colorspace_fragment>` at the end of `ribbon.frag.glsl`.
 
 ## What's Not Implemented Yet (Phase 2)
 

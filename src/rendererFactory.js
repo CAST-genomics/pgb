@@ -5,8 +5,18 @@ class RendererFactory {
 
         const canvas = document.createElement('canvas')
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', canvas })
+        // Configure Three.js color management
+        THREE.ColorManagement.enabled = true;
 
+        const webGLRenderConfig =
+            {
+                antialias: true,
+                alpha: true,
+                powerPreference: 'high-performance',
+                canvas
+            }
+        const renderer = new THREE.WebGLRenderer(webGLRenderConfig)
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.setPixelRatio(window.devicePixelRatio)
 
         const { clientWidth, clientHeight } = container

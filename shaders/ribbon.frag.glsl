@@ -15,4 +15,6 @@ void main() {
     if (alpha < 0.01) discard;
 
     gl_FragColor = vec4(diffuse, alpha);
+
+    #include <colorspace_fragment>
 }
