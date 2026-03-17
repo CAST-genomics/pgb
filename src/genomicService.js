@@ -56,6 +56,10 @@ class GenomicService {
 
         for (const assemblyKey of this.assemblySet){
 
+            const sequenceId = assemblyKey.split('#')[2] ?? '';
+            const isReference = (sequenceId === this.locus.chr);
+            const effectiveLocusStartBp = isReference ? this.locus.startBP : 0;
+            
             const assessmentConfig =
                 {
                     includeOffSpineComponents: "none",
@@ -64,7 +68,7 @@ class GenomicService {
                     maxRegionNodes: 4000,
                     maxRegionEdges: 4000,
                     operationBudget: 500000,
-                    locusStartBp: this.locus.startBP
+                    locusStartBp: effectiveLocusStartBp,
                 };
 
             const walkConfig =
@@ -135,6 +139,18 @@ class GenomicService {
 
     static tripleKey(a) {
         return `${a.assembly_name}#${a.haplotype}#${a.sequence_id}`
+    }
+
+    getSequenceId(assemblyKey) {
+        const sequenceId = assemblyKey.split('#')[2] ?? '';
+        const isReference = (sequenceId === this.locus.chr);
+        return isReference ? this.locus.chr : assemblyKey;
+    }
+
+    getGenomeLibraryKey(assemblyKey) {
+        const [ genomeId, haplotype, sequenceId ] = assemblyKey.split('#');
+        const isReference = (sequenceId === this.locus.chr);
+        return isReference ? genomeId : `${genomeId}#${haplotype}`;
     }
 
     static presentationAssemblyLabel(assemblyKey) {

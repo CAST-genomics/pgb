@@ -14,7 +14,7 @@ import {
     getGenomeConfig,
     isInitialized,
     resetRegistry,
-    setCustomRegistryURL,
+    setCustomGenomes,
 } from '../genome/genomeRegistry.js'
 import { initialize as initIgvOrg } from '../genome/igvOrgRegistrySource.js'
 import { initialize as initCustom } from '../genome/customRegistrySource.js'
@@ -140,18 +140,19 @@ describe('genomeRegistry', () => {
         })
     })
 
-    // setCustomRegistryURL
-    describe('setCustomRegistryURL', () => {
+    // setCustomGenomes
+    describe('setCustomGenomes', () => {
 
-        it('configures the custom source URL', async () => {
-            setCustomRegistryURL('https://example.com/custom-genomes.json')
+        it('configures the custom source with genome data', async () => {
+            const genomes = [{ id: 'custom1', name: 'Custom' }]
+            setCustomGenomes(genomes)
 
             await initializeGenomeRegistry()
 
-            expect(initCustom).toHaveBeenCalledWith('https://example.com/custom-genomes.json')
+            expect(initCustom).toHaveBeenCalledWith(genomes)
         })
 
-        it('custom source receives undefined when no URL is set', async () => {
+        it('custom source receives undefined when no genomes are set', async () => {
             await initializeGenomeRegistry()
 
             expect(initCustom).toHaveBeenCalledWith(undefined)

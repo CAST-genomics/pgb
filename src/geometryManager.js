@@ -35,6 +35,7 @@ class GeometryManager {
                 // Used during raycast.intersections to help calculate the "t" parameter
                 // for a line. We treat lines as one-dimensional parametric lines.
                 mesh.userData.arcLengthTable = buildArcLengthTable(mesh)
+
                 group.add(mesh);
             }
 

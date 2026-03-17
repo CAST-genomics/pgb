@@ -4,10 +4,10 @@ import { genomeIDAliases } from './genomeIDAliases.js'
 
 let registry = undefined
 let initialized = false
-let customRegistryURL = undefined
+let customGenomes = undefined
 
-function setCustomRegistryURL(url) {
-    customRegistryURL = url
+function setCustomGenomes(genomes) {
+    customGenomes = genomes
 }
 
 async function initializeGenomeRegistry() {
@@ -18,7 +18,7 @@ async function initializeGenomeRegistry() {
 
     const [igvOrgMap, customMap] = await Promise.all([
         initIgvOrg(),
-        initCustom(customRegistryURL),
+        Promise.resolve(initCustom(customGenomes)),
     ])
 
     // Merge: custom wins on ID collision
@@ -43,7 +43,7 @@ function isInitialized() {
 function resetRegistry() {
     registry = undefined
     initialized = false
-    customRegistryURL = undefined
+    customGenomes = undefined
 }
 
-export { initializeGenomeRegistry, getGenomeConfig, isInitialized, resetRegistry, setCustomRegistryURL }
+export { initializeGenomeRegistry, getGenomeConfig, isInitialized, resetRegistry, setCustomGenomes }

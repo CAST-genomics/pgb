@@ -8,7 +8,7 @@ import PopulationOnlyWidget from "./widgets/populationOnlyWidget.js"
 import PCAWidget from './widgets/pcaWidget.js'
 import WidgetService from './widgets/widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
-import { initializeGenomeRegistry, setCustomRegistryURL } from './igvCore/genome/genomeRegistry.js'
+import { initializeGenomeRegistry, setCustomGenomes } from './igvCore/genome/genomeRegistry.js'
 import materialService from './materialService.js'
 import LookManager from './looks/lookManager.js'
 import NodeEmphasisLook from './looks/nodeEmphasisLook.js'
@@ -19,7 +19,7 @@ import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
-import {loadConfig} from "./configService.js"
+import appConfig from './appConfig.js'
 import './styles/app.scss'
 
 let contextMenuService
@@ -42,7 +42,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     await materialService.initialize()
 
-    setCustomRegistryURL('http://localhost:8000/data/test-local.json')
+    const customAssemblies = await fetch(appConfig.customAssemblyRegistryURL).then(r => r.json()).catch(() => [])
+    setCustomGenomes(customAssemblies)
     await initializeGenomeRegistry()
     const genomeLibrary = new GenomeLibrary()
     const { genome } = await genomeLibrary.getGenomePayload('hg38')
@@ -85,11 +86,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 
-    // Load application configuration
-    const config = await loadConfig()
-
     // Initialize locus input from URL parameters and/or configuration
-    await locusInput.initializeFromConfig(config)
+    await locusInput.initializeFromConfig(appConfig)
 
 })
 
