@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { background: #F5F2ED; font-family: monospace; padding: 32px; }
+  .row { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+  .swatch { width: 200px; height: 28px; border-radius: 3px; flex-shrink: 0; }
+  .label { font-size: 13px; color: #555; }
+</style>
+</head>
+<body>
+<script>
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const c = (1 - Math.abs(2*l-1)) * s;
+  const x = c * (1 - Math.abs((h/60) % 2 - 1));
+  const m = l - c/2;
+  let r,g,b;
+  if (h < 60)      { r=c; g=x; b=0; }
+  else if (h < 120){ r=x; g=c; b=0; }
+  else if (h < 180){ r=0; g=c; b=x; }
+  else if (h < 240){ r=0; g=x; b=c; }
+  else if (h < 300){ r=x; g=0; b=c; }
+  else             { r=c; g=0; b=x; }
+  const toHex = v => Math.round((v+m)*255).toString(16).padStart(2,'0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+const H = 10, L = 43;
+const steps = 12;
+const container = document.body;
+
+for (let i = 0; i < steps; i++) {
+  const s = 75 * (1 - i / (steps - 1));
+  const hex = hslToHex(H, s, L);
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `
+    <div class="swatch" style="background:${hex}"></div>
+    <span class="label">${hex} &nbsp; hsl(${H}, ${Math.round(s)}%, ${L}%)</span>
+  `;
+  container.appendChild(row);
+}
+</script>
+</body>
+</html>

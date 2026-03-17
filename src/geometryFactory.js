@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import LineFactory, {adaptiveSplineDivisions, fixedSplineDivisions} from './lineFactory.js';
+import LineFactory from './lineFactory.js';
 import {prettyPrint} from "./utils/utils.js"
 
 class GeometryFactory {
@@ -71,11 +71,12 @@ class GeometryFactory {
             const spline = this.splines.get(nodeName);
             if (!spline) continue;
 
+            const geometry = LineFactory.createNodeRibbonGeometry(spline, GeometryFactory.NODE_LINE_Z_OFFSET);
+
             const payload =
                 {
                     type: 'node',
-                    // geometry: LineFactory.createNodeLineGeometry(spline, adaptiveSplineDivisions(spline, 4), GeometryFactory.NODE_LINE_Z_OFFSET),
-                    geometry: LineFactory.createNodeLineGeometry(spline, fixedSplineDivisions(spline, 32), GeometryFactory.NODE_LINE_Z_OFFSET),
+                    geometry,
                     spline,
                     nodeName,
                     assembly: this.genomicService.nodeMetadata.get(nodeName)?.assembly
@@ -277,8 +278,8 @@ class GeometryFactory {
         let totalPoints = 0;
 
         for (const [key, data] of geometryCache.entries()) {
-            if (data.type === 'node' && data.geometry) {
-                totalPoints += (1 + data.geometry.attributes.instanceStart.count)
+            if (data.type === 'node' && data.geometry?.userData.sampleCount) {
+                totalPoints += data.geometry.userData.sampleCount
             }
         }
 

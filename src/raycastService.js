@@ -1,29 +1,24 @@
 import * as THREE from 'three';
-import ParametricLine from "./parametricLine.js"
+import RibbonLine from "./ribbonLine.js"
 import {app} from "./main.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 import {getComplementaryThreeJSColor} from "./utils/color/color.js"
 
 class RayCastService {
 
-    // static VISUAL_FEEDBACK_NAME_COLOR_THREE_JS = new THREE.Color(0x00ff00)
     static VISUAL_FEEDBACK_NAME_COLOR_THREE_JS = getComplementaryThreeJSColor(new THREE.Color('#dc3545'))
     static VISUAL_FEEDBACK_NAME = 'VisualFeedback'
     static VISUAL_FEEDBACK_PIXELSIZE = 6
     static MOUSE_MOVEMENT_THRESHOLD = 5;
     static HOVER_STATIONARY_DELAY_MS = 175;
 
-    static DIRECT_LINE_INTERSECTION_STRATEGY = 'directLineIntersectionStrategy'
-    static SPLINE_INTERPOLATION_INTERSECTION_STRATEGY = 'splineInterpolationIntersectionStrategy'
-
-    constructor(container, threshold) {
+    constructor(container) {
 
         this.container = container
 
         this.pointer = new THREE.Vector2();
 
         this.raycaster = new THREE.Raycaster();
-        this.configureRaycaster(this.raycaster, threshold);
 
         this.isEnabled = true;
 
@@ -42,11 +37,6 @@ class RayCastService {
         this.hoverTimer = null;
         this.lastPointerPosition = { x: 0, y: 0 };
         this.lastHoverTargetId = null;
-    }
-
-    configureRaycaster(raycaster, threshold) {
-        raycaster.params.Line2 = {};
-        raycaster.params.Line2.threshold = threshold;
     }
 
     setupEventListeners(container) {
@@ -188,31 +178,6 @@ class RayCastService {
         return () => this.mouseOverCallbacks.delete(callback);
     }
 
-    updateLine2Threshold(camera) {
-
-        // Screen space
-        const screenPixelThreshold = 5
-
-        // NDC space
-        const { width } = this.container.getBoundingClientRect()
-        const v1 = new THREE.Vector3(0, 0, 0.5);
-        const v2 = new THREE.Vector3(screenPixelThreshold / (width * 2), 0, 0.5);
-
-        // NDC -> World space
-        v1.unproject(camera);
-        v2.unproject(camera);
-
-        // Delta in world space === updated raycast threshold
-        const updatedThreshold = v1.distanceTo(v2);
-        const currentThreshold = this.raycaster.params.Line2.threshold
-
-        if (updatedThreshold.toFixed(3) !== currentThreshold.toFixed(3)) {
-            console.log(`raycaster threshold update from ${currentThreshold} to ${updatedThreshold}`)
-        }
-
-        this.raycaster.params.Line2.threshold = updatedThreshold;
-    }
-
     updateRaycaster(camera, pointer) {
 
         const scene = app.sceneManager.getActiveScene()
@@ -306,10 +271,10 @@ class RayCastService {
         // Only node lines support parametric mapping; edges use basic hit info
         if (type === 'node') {
             try {
-                const processed = ParametricLine.getParameter(intersection);
+                const processed = RibbonLine.getParameter(intersection);
                 const line = hitObject;
                 const t = processed.t;
-                const pointOnLine = typeof line.getPoint === 'function' ? line.getPoint(t, 'world') : intersection.point;
+                const pointOnLine = line.getPoint(t, 'world');
 
                 this.currentIntersection = { ...processed, line, point: intersection.point, pointOnLine };
                 this.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS);
@@ -337,78 +302,9 @@ class RayCastService {
         return basic;
     }
 
-    #doSplineInterpolationIntersection(geometryManager, intersection){
-
-        const { faceIndex, pointOnLine, object:line } = intersection
-
-        const { userData } = line;
-        const { nodeName } = userData;
-        const spline = geometryManager.getSpline(nodeName);
-
-        const segments = line.geometry.getAttribute('instanceStart');
-        const t = this.findClosestT(spline, pointOnLine, faceIndex, segments.count);
-
-        return { t, nodeName, line }
-
-    }
-
     clearIntersection() {
         this.currentIntersection = undefined;
         this.hideVisualFeedback();
-    }
-
-    findClosestT(spline, targetPoint, segmentIndex, totalSegments, tolerance = 0.0001) {
-        // Convert segment index to parameter range
-        const segmentSize = 1 / totalSegments;
-        const left = segmentIndex * segmentSize;
-        const right = (segmentIndex + 1) * segmentSize;
-
-        // Do a local search within this segment
-        let iterations = 0;
-        const maxIterations = 16;
-        let bestT = left;
-        let bestDist = spline.getPoint(left).distanceTo(targetPoint);
-
-        // Sample points within the segment to find closest
-        const samples = 10;
-        for (let i = 0; i <= samples; i++) {
-            const t = left + (right - left) * (i / samples);
-            const dist = spline.getPoint(t).distanceTo(targetPoint);
-
-            if (dist < bestDist) {
-                bestDist = dist;
-                bestT = t;
-            }
-        }
-
-        return bestT;
-    }
-
-    // const { t, u, segmentIndex } = tFromHit(line, intersections[0])
-    calculateTParameterFromIntersection(intersection){
-
-        const { faceIndex, point, object:line } = intersection
-
-        const P = point.clone();
-        line.worldToLocal(P);
-
-        const A = new THREE.Vector3().fromBufferAttribute(line.geometry.attributes.instanceStart, faceIndex);
-        const B = new THREE.Vector3().fromBufferAttribute(line.geometry.attributes.instanceEnd,   faceIndex);
-
-        const AB = B.clone().sub(A);
-
-        const u = AB.lengthSq() > 0 ? THREE.MathUtils.clamp( AB.dot(P.clone().sub(A)) / AB.lengthSq(), 0, 1 ) : 0;
-
-        const { cum, segLen, total } = line.userData.arcLengthTable
-
-        const s = cum[ faceIndex ] + u * segLen[ faceIndex ];
-
-        const t = total > 0 ? s / total : 0;
-
-        const { userData } = line;
-        const { nodeName } = userData;
-
-        return { t, nodeName, line }
     }
 
     disable() {

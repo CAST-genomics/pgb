@@ -24,7 +24,8 @@ function getPerceptuallyDistinctColors(count, S = 90, L = 65) {
     colorConverter.hsluv_l = L;
     colorConverter.hsluvToRgb();
 
-    colors.push(new THREE.Color(colorConverter.rgb_r, colorConverter.rgb_g, colorConverter.rgb_b))
+    // HSLuv outputs sRGB values — tag them so Three.js converts to linear working space
+    colors.push(new THREE.Color().setRGB(colorConverter.rgb_r, colorConverter.rgb_g, colorConverter.rgb_b, THREE.SRGBColorSpace))
   }
 
   return colors;

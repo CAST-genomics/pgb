@@ -24,42 +24,32 @@ class HeatmapLook extends Look {
     handleSelectionEvent(data, eventType) {
         const { acronym } = data
 
-        for (const nodeName of [...this.geometryManager.geometryFactory.getNodeNameSet()]){
+        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        if (!nodeMeshGroup) return
+
+        for (const mesh of nodeMeshGroup.children) {
+            const nodeName = mesh.userData?.nodeName
+            if (!nodeName) continue
 
             const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
 
             let rawFrequency
-            let enhancedFrequency
             if (eventType === 'superpopulation') {
-                const { superpopulation } = frequency
-                rawFrequency = superpopulation[ acronym ]
+                rawFrequency = frequency.superpopulation[ acronym ]
             } else if (eventType === 'population') {
-                const { population } = frequency
-                rawFrequency = population[ acronym ]
-                enhancedFrequency = frequencyAnalysisService.getEnhancedFrequency(acronym, eventType, this.genomicService.nodeMetadata.get(nodeName))
+                rawFrequency = frequency.population[ acronym ]
             }
 
-            // let frequencyToUse
-            // if (undefined === enhancedFrequency) {
-            //     frequencyToUse = rawFrequency
-            // } else {
-            //     frequencyToUse = enhancedFrequency
-            // }
+            // const color = new THREE.Color(ylOrRd.hex(rawFrequency))
+            const color = frequencyToColorContinuous(rawFrequency)
+            console.log(`frequency ${ rawFrequency }`)
 
-            // const color = getHeatmapColorHSLInterpolation('aqua', colorComplements.get('aqua'), frequencyToUse)
-            // const color = frequencyToColorDiscrete(frequencyToUse)
-
-
-
-            // const color = frequencyToColorContinuous(rawFrequency)
-            // const color = new THREE.Color(blues.hex(rawFrequency))
-            const color = new THREE.Color(ylOrRd.hex(rawFrequency))
-
-            const key = Look.getCacheKey(nodeName)
-            const material = this.materialCache.get(key)
-            material.color.copy(color)
-            material.needsUpdate = true
-
+            if (mesh.material.uniforms?.diffuse) {
+                mesh.material.uniforms.diffuse.value.copy(color)
+            } else {
+                mesh.material.color.copy(color)
+            }
+            mesh.material.needsUpdate = true
         }
     }
 
