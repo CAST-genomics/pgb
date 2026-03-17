@@ -67,5 +67,20 @@
       background: rgba(73, 80, 87, 0.05);
     }
 
+    &:disabled {
+      color: #6c757d !important;
+      border-color: rgba(108, 117, 125, 0.3) !important;
+      background-color: transparent !important;
+      cursor: not-allowed;
+      opacity: 0.6;
+
+      &:hover {
+        transform: none;
+        border-color: rgba(108, 117, 125, 0.3) !important;
+        color: #6c757d !important;
+        background-color: transparent !important;
+      }
+    }
+
   }
 }

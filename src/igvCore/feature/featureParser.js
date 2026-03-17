@@ -23,8 +23,9 @@
  * THE SOFTWARE.
  */
 
-import { decodeGenePredExt } from "./decode/ucsc.js"
-import DecodeError from "./decode/decodeError.js"
+import { decodeGenePredExt, DecodeError } from "../codec/refGeneCodec.js"
+import { decodeGFF3 } from "../codec/gff/gffCodec.js"
+import GFFHelper from "../codec/gff/gffHelper.js"
 
 class FeatureParser {
 
@@ -89,13 +90,28 @@ class FeatureParser {
             }
         }
 
+        if (this._gffHelper) {
+            return this._gffHelper.combineFeatures(allFeatures)
+        }
+
         return allFeatures
     }
 
     setDecoder() {
-        this.decode = decodeGenePredExt
-        this.delimiter = this.config.delimiter || /\s+/
-        this.header.shift = 1
+        const format = this.header.format
+        switch (format) {
+            case 'gff3':
+            case 'gff':
+                this.decode = decodeGFF3
+                this.delimiter = "\t"
+                this._gffHelper = new GFFHelper({ format: format === 'gff' ? 'gff3' : format, nameField: this.config.nameField })
+                break
+            default:
+                this.decode = decodeGenePredExt
+                this.delimiter = this.config.delimiter || /\s+/
+                this.header.shift = 1
+                break
+        }
     }
 }
 

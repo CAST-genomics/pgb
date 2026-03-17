@@ -3,20 +3,23 @@ import RayCastService from './raycastService.js'
 import LocusInput from './locusInput.js'
 import GenomicService from './genomicService.js'
 import GeometryManager from './geometryManager.js'
-import AssemblyWidget from './assemblyWidget.js'
-import PopulationOnlyWidget from "./populationOnlyWidget.js"
-import WidgetService from './widgetService.js'
+import AssemblyWidget from './widgets/assemblyWidget.js'
+import PopulationOnlyWidget from "./widgets/populationOnlyWidget.js"
+import PCAWidget from './widgets/pcaWidget.js'
+import WidgetService from './widgets/widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
+import { initializeGenomeRegistry, setCustomRegistryURL } from './igvCore/genome/genomeRegistry.js'
 import materialService from './materialService.js'
-import LookManager from './lookManager.js'
-import AssemblyVisualizationLook from './assemblyVisualizationLook.js'
-import HeatmapLook from "./heatmapLook.js"
+import LookManager from './looks/lookManager.js'
+import NodeEmphasisLook from './looks/nodeEmphasisLook.js'
+import HeatmapLook from "./looks/heatmapLook.js"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
+import {loadConfig} from "./configService.js"
 import './styles/app.scss'
 
 let contextMenuService
@@ -39,6 +42,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     await materialService.initialize()
 
+    setCustomRegistryURL('http://localhost:8000/data/test-local.json')
+    await initializeGenomeRegistry()
     const genomeLibrary = new GenomeLibrary()
     const { genome } = await genomeLibrary.getGenomePayload('hg38')
     defaultGenome = genome
@@ -57,20 +62,19 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     contextMenuService = new ContextMenuService(threeJSContainer, raycastService, genomicService)
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
+    const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
+    const pcaWidget = new PCAWidget(document.getElementById('pgb-pca-card'), geometryManager);
+    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget, pcaWidget);
 
-    // AssemblyVisualizationLook
-    const assemblyVisualizationLook = AssemblyVisualizationLook.createAssemblyVisualizationLook('assemblyVisualizationLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
-    assemblyVisualizationLook.setAnimationEnabled(false)
-    sceneManager.createScene('assemblyVisualizationScene', rubinColors.rubinIvory)
-    sceneManager.lookManager.setLook('assemblyVisualizationScene', assemblyVisualizationLook);
+    // Node Emphasis Look & Scene
+    const nodeEmphasisLook = NodeEmphasisLook.createNodeEmphasisLook('nodeEmphasisLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
+    sceneManager.createScene('nodeEmphasisScene', rubinColors.rubinIvory)
+    sceneManager.lookManager.setLook('nodeEmphasisScene', nodeEmphasisLook);
 
-    // Heatmap Look
-    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', {genomicService, geometryManager, assemblyWidget})
+    // Heatmap Look & Scene
+    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, assemblyWidget })
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
-
-    const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
-    widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget);
 
     annotationRenderService = new AnnotationRenderService(document.querySelector('.pgb-gene-annotation-track-container'), genomicService, sceneManager, raycastService)
 
@@ -81,21 +85,11 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     locusInput = new LocusInput(document.getElementById('pgb-locus-input-container'), app)
 
-    const urlParameter = locusInput.getUrlParameter('locus');
-    let locus = null;
-    if (urlParameter) {
-        locusInput.inputElement.value = urlParameter
-        locus = locusInput.processLocusInput(locusInput.inputElement.value);
-    } else {
-        locusInput.inputElement.value = 'chr1:25240000-25460000';
-        locus = locusInput.processLocusInput(locusInput.inputElement.value);
-    }
+    // Load application configuration
+    const config = await loadConfig()
 
-    if (locus) {
-        await locusInput.ingestLocus(locus.chr, locus.startBP, locus.endBP);
-    } else {
-        locusInput.showError(`Invalid locus url parameter: ${urlParameter}`);
-    }
+    // Initialize locus input from URL parameters and/or configuration
+    await locusInput.initializeFromConfig(config)
 
 })
 

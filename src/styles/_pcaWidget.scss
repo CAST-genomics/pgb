@@ -1,0 +1,62 @@
+.pca-widget {
+  &__card {
+    z-index: 1000;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: 10rem;
+    margin-top: 10rem;
+    min-width: 300px;
+    height: 640px; // Fixed height for the card
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(0, 0);
+
+    &.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .card-body {
+      height: calc(100% - 120px);
+      padding: 0;
+      overflow: hidden;
+
+      .assembly-widget__list-container {
+        height: calc(100% - 70px); // Account for search box height
+        overflow-y: auto;
+
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums slashed-zero;
+
+      }
+    }
+  }
+
+  &__genome-selector {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+
+    &:hover {
+      transform: scale(1.5);
+    }
+  }
+
+  &__assembly-name {
+    font-size: 0.85rem;
+    //font-weight: 500;
+    // color: #212529;
+  }
+
+  &__assembly-haplotype {
+    font-size: 0.85rem;
+    //font-weight: 400;
+    // color: #6c757d;
+  }
+}

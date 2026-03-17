@@ -6,7 +6,7 @@ import textureService from './utils/textureService.js';
 import { textures } from './utils/textureLibrary.js';
 import {getAppleCrayonColorByName} from "./utils/color/color.js"
 import {LineMaterial} from "three/addons/lines/LineMaterial.js"
-import Look from "./look.js"
+import Look from "./looks/look.js"
 import lineMaterialResolutionService from './lineMaterialResolutionService.js'
 
 // Material type constants
