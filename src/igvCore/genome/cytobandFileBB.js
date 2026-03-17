@@ -1,5 +1,5 @@
 import {Cytoband} from "./cytoband.js"
-import BWSource from "../io/bigwig/bwSource.js"
+import BWSource from "../bigwig/bwSource.js"
 
 class CytobandFileBB {
 

@@ -1,5 +1,6 @@
 import LocusInput from "./locusInput.js"
 import {prettyPrint} from "./utils/utils.js"
+import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { frequencyAnalysisService } from "./frequencyAnalysisService.js"
 import {getAllSuperpopulationNames,getAllPopulationNames} from "./utils/populationUtils.js"
 
@@ -14,6 +15,8 @@ class GenomicService {
     }
 
     async initialize(json, pangenomeService) {
+
+        assemblyMetadataService.loadMetadata(json)
 
         const { locus:locusString, node:nodes, sequence:sequences } = json
 

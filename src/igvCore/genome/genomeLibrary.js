@@ -1,32 +1,33 @@
-import { getGenomeConfig } from './genomeRegistry.js';
+import { knownGenomes } from './knownGenomes.js';
 import Genome from './genome.js';
-import TextFeatureSource from '../io/textFeatureSource.js';
+import TextFeatureSource from '../feature/textFeatureSource.js';
 import QTLSelections from '../qtl/qtlSelections.js';
-import FeatureRenderer from '../rendering/featureRenderer.js';
+import FeatureRenderer from '../feature/featureRenderer.js';
+import { genomeIDAliases } from './genomeIDAliases.js';
 
 class GenomeLibrary {
     constructor() {
+        // for (const [ key, value ] of Object.entries(knownGenomes)){
+        //     const { name } = value
+        //     console.log(`${ key }#${ name }`)
+        // }
     }
 
     async getGenomePayload(genomeId) {
 
-        const config = getGenomeConfig(genomeId);
+        const config = knownGenomes[genomeId] || knownGenomes[genomeIDAliases.get(genomeId)] || undefined;
 
         if (!config) {
             return undefined
         }
 
-        console.log(`GenomeLibrary: creating genome "${genomeId}" ...`)
-        console.time(`GenomeLibrary: genome "${genomeId}" created`)
         const genome = await Genome.createGenome(config)
-        console.timeEnd(`GenomeLibrary: genome "${genomeId}" created`)
 
         const [ refseqSelectTrackConfig ] = genome.config.tracks
         const geneFeatureSource = new TextFeatureSource({ ...refseqSelectTrackConfig, type: "annotation", expandQuery: false }, genome)
 
         const browser = { genome, qtlSelections: new QTLSelections() }
-        const trackFormat = refseqSelectTrackConfig.format || "refgene"
-        const geneRendererConfig = { format: trackFormat, type: "annotation", displayMode: "COLLAPSED", browser }
+        const geneRendererConfig = { format: "refgene", type: "annotation", displayMode: "COLLAPSED", browser }
 
         const geneRenderer = new FeatureRenderer(geneRendererConfig)
 

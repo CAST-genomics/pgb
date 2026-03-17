@@ -1,3 +1,8 @@
+function scoreShade(score, color) {
+    const alpha = Math.min(1, 0.11 + 0.89 * (score / 779))
+    return alpha.toString()
+}
+
 function parseAutoSQL(str) {
 
     let table
@@ -34,4 +39,5 @@ function parseAutoSQL(str) {
     }
 }
 
-export {parseAutoSQL}
+
+export {scoreShade, parseAutoSQL}

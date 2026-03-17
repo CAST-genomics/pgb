@@ -1,5 +1,4 @@
 import NonIndexedFasta from "./nonIndexedFasta.js"
-import IndexedFasta from "./indexedFasta.js"
 import {isDataURL} from "../util/igvUtils.js"
 import ChromSizes from "./chromSizes.js"
 import Twobit from "./twobit.js"
@@ -10,7 +9,7 @@ import CachedSequence from "./cachedSequence.js"
  * fasta and 2bit URLs.  This is for backward compatibility, the 2bit URL has preference.
  *
  * @param reference
- * @returns {Promise<CachedSequence|ChromSizes|NonIndexedFasta|IndexedFasta>}
+ * @returns {Promise<CachedSequence|ChromSizes|NonIndexedFasta>}
  */
 async function loadSequence(reference) {
 
@@ -19,8 +18,6 @@ async function loadSequence(reference) {
         fasta = new ChromSizes(reference.fastaURL || reference.url)
     } else if ("2bit" === reference.format || reference.twoBitURL) {
         fasta = new CachedSequence(new Twobit(reference))
-    } else if (reference.indexURL && !isDataURL(reference.fastaURL)) {
-        fasta = new IndexedFasta(reference)
     } else if (isDataURL(reference.fastaURL) || !reference.indexURL) {
         fasta = new NonIndexedFasta(reference)
     } else if("gbk" === reference.format || reference.gbkURL) {

@@ -1,7 +1,6 @@
 @use 'locusInput';
 @use 'geneAnnotationTrackContainer';
 @use 'assemblyWidget';
-@use 'pcaWidget';
 @use 'metadataWidget';
 @use 'populationOnlyWidget';
 @use 'widgetService';
@@ -9,5 +8,3 @@
 @use 'populationToolTip';
 @use 'edgeToolTip';
 @use 'lookToolTip';
-@use 'pcaChart';
-@use 'dragAndDrop';

@@ -19,8 +19,7 @@ class AnnotationRenderService {
 
         this.splineParameterMap = new Map()
 
-        /** True when gene annotation data is available; false when falling back to extent markers only. */
-        this.hasGeneAnnotations = false
+        this.isSequenceRenderer = false
 
         this.createVisualFeedbackElement();
 
@@ -88,26 +87,18 @@ class AnnotationRenderService {
         }
 
         const [ genomeId, haplotype, sequence_id ] = this.assembly.split('#')
-        console.log(`AnnotationRenderService: loading genome payload for "${genomeId}" ...`)
-        console.time(`AnnotationRenderService: genome payload "${genomeId}"`)
         const result = await app.genomeLibrary.getGenomePayload(genomeId)
-        console.timeEnd(`AnnotationRenderService: genome payload "${genomeId}"`)
 
         if (undefined === result) {
-            // Unknown genome: no RefSeq/annotation data — fall back to extent markers only
-            this.hasGeneAnnotations = false
+            this.isSequenceRenderer = true
             this.drawConfig = { nodes, chr, bpStart, bpEnd }
             this.renderGenomicExtents(this.drawConfig)
         } else {
-            this.hasGeneAnnotations = true
+            this.isSequenceRenderer = false
             const {geneFeatureSource, geneRenderer} = result
             this.featureSource = geneFeatureSource
             this.featureRenderer = geneRenderer
-            console.log(`AnnotationRenderService: fetching features for ${chr}:${bpStart}-${bpEnd} ...`)
-            console.time(`AnnotationRenderService: features fetched`)
             const features = await this.getFeatures(chr, bpStart, bpEnd)
-            console.timeEnd(`AnnotationRenderService: features fetched`)
-            console.log(`AnnotationRenderService: ${features ? features.length : 0} features returned`)
             this.renderGeneAnnotation({ container: this.container, bpStart, bpEnd, features })
         }
 
@@ -119,7 +110,7 @@ class AnnotationRenderService {
 
         this.featureRenderer = undefined
 
-        this.hasGeneAnnotations = false
+        this.isSequenceRenderer = false
 
         this.drawConfig = undefined
 
@@ -168,7 +159,6 @@ class AnnotationRenderService {
         this.container.appendChild(this.visualFeedbackElement);
     }
 
-    /** Draw vertical tick marks at node boundaries when gene annotation data is unavailable. */
     renderGenomicExtents(config) {
 
         const { nodes, bpStart:assemblyBPStart, bpEnd:assemblyBPEnd } = config
@@ -206,7 +196,6 @@ class AnnotationRenderService {
 
     }
 
-    /** Draw gene features (exons, introns, etc.) when annotation data is available. */
     renderGeneAnnotation(renderConfig) {
 
         if (renderConfig) {
@@ -245,10 +234,9 @@ class AnnotationRenderService {
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`
 
-        // Re-render using the same mode as the last emphasis
-        if (this.hasGeneAnnotations && this.drawConfig) {
+        if (false === this.isSequenceRenderer && this.drawConfig) {
             this.renderGeneAnnotation(this.drawConfig);
-        } else if (!this.hasGeneAnnotations && this.drawConfig) {
+        } else if (true === this.isSequenceRenderer && this.drawConfig) {
             this.renderGenomicExtents(this.drawConfig)
         } else {
             ctx.clearRect(0, 0, width, height);

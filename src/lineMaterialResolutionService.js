@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
-import Look from "./looks/look.js"
+import Look from "./look.js"
 
 /**
  * Service to manage LineMaterial resolution updates for worldUnits: false

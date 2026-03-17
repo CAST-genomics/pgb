@@ -18,38 +18,17 @@ function prettyPrint(number) {
  */
 async function loadPath(url) {
     try {
-        console.log(`About to fetch URL: ${url}`);
         const response = await fetch(url);
         if (!response.ok) {
-            const errorText = await response.text().catch(() => 'Unable to read error response');
-            throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 200)}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         const json = await response.json();
         console.log(`Successfully loaded data from ${url}`);
 
         return json;
     } catch (error) {
-        // Provide more detailed error messages for common issues
-        let errorMessage = error.message;
-        
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-            // Network error - could be CORS, SSL certificate, or connection issue
-            errorMessage = `Network error: Unable to fetch from ${url}. This could be due to:
-- CORS (Cross-Origin Resource Sharing) restrictions
-- SSL certificate validation failure (self-signed certificate)
-- Network connectivity issues
-- Server not responding
-
-Original error: ${error.message}`;
-        } else if (error.name === 'SyntaxError' && error.message.includes('JSON')) {
-            errorMessage = `Invalid JSON response from ${url}. The server may not be returning valid JSON. Original error: ${error.message}`;
-        }
-        
         console.error(`Error loading ${url}:`, error);
-        const enhancedError = new Error(errorMessage);
-        enhancedError.name = error.name;
-        enhancedError.stack = error.stack;
-        throw enhancedError;
+        throw error;
     }
 }
 

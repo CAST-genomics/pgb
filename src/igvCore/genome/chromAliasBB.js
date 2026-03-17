@@ -1,4 +1,4 @@
-import BWReader from "../io/bigwig/bwReader.js"
+import BWReader from "../bigwig/bwReader.js"
 import ChromAliasDefaults from "./chromAliasDefaults.js"
 
 /**

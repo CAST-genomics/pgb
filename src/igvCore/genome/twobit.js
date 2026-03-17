@@ -5,8 +5,8 @@
 
 
 import {igvxhr} from 'igv-utils'
-import BinaryParser from "../io/binary.js"
-import BPTree from "../io/bigwig/bpTree.js"
+import BinaryParser from "../binary.js"
+import BPTree from "../bigwig/bpTree.js"
 
 const twoBit = ['T', 'C', 'A', 'G']
 const byteTo4Bases = []
