@@ -3,15 +3,18 @@ import CameraManager from './cameraManager.js'
 import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
-import {getWorldDistanceFromPixelDistance, loadPath} from './utils/utils.js'
+import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.js';
 import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
-import Look from "./look.js"
+import { assemblyMetadataService } from "./assemblyMetadataService.js"
+import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
+import { pcaChartService } from "./widgets/pcaChartService.js"
 
 let xxPre = undefined
 let yyPre = undefined
+
 class App {
 
     constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager) {
@@ -28,8 +31,6 @@ class App {
         this.genomeLibrary = genomeLibrary
         this.sceneManager = sceneManager
 
-        this.clock = new THREE.Clock()
-
         this.cameraManager = new CameraManager(frustumSize, container.clientWidth/container.clientHeight)
         this.mapControl = MapControlsFactory.create(this.cameraManager.camera, container)
 
@@ -38,23 +39,6 @@ class App {
         this.isTooltipEnabled = undefined
 
         this.tooltip = this.createTooltip();
-
-        // Register click callback to handle tooltip display
-        // this.raycastService.registerClickHandler((intersection, event) => {
-        //     const str = intersection ? 'hit' : 'miss'
-        //     console.log(`raycast click handler ${str}`)
-        //
-        //     if (intersection) {
-        //         const { line:object, point } = intersection
-        //         if ('node' === object.userData?.type) {
-        //             this.showTooltip(object, point, 'node')
-        //         } else if ('edge' === object.userData?.type) {
-        //             this.showTooltip(object, point, 'edge')
-        //         }
-        //     } else {
-        //         this.hideTooltip()
-        //     }
-        // })
 
         // Register mouse over callback (stationary hover)
         this.raycastService.registerMouseOverHandler((intersection, event) => {
@@ -67,6 +51,18 @@ class App {
 
             if ('node' === object.userData?.type) {
                 const { t, nodeName } = intersection
+
+                // Check if a coordinate key is selected and if this node has it
+                const selectedCoordinateKey = pcaChartService.selectedCoordinateKey;
+                if (selectedCoordinateKey) {
+                    const nodeCoordinates = pclaiCoordinateService.getCoordinatesForNode(nodeName);
+                    if (!nodeCoordinates || !nodeCoordinates.has(selectedCoordinateKey)) {
+                        // Node doesn't have the selected coordinate key, don't trigger hover
+                        this.clearIntersection();
+                        return;
+                    }
+                }
+
                 // Publish the vital lineIntersection event using processed intersection
                 eventBus.publish('lineIntersection', { t, nodeName, nodeLine: object })
                 this.showTooltip(object, point, 'node')
@@ -84,6 +80,18 @@ class App {
             const {object, point} = intersection
             if ('node' === object.userData?.type) {
                 const {t, nodeName} = intersection
+
+                // Check if a coordinate key is selected and if this node has it
+                const selectedCoordinateKey = pcaChartService.selectedCoordinateKey;
+                if (selectedCoordinateKey) {
+                    const nodeCoordinates = pclaiCoordinateService.getCoordinatesForNode(nodeName);
+                    if (!nodeCoordinates || !nodeCoordinates.has(selectedCoordinateKey)) {
+                        // Node doesn't have the selected coordinate key, don't trigger hover
+                        this.clearIntersection();
+                        return;
+                    }
+                }
+
                 eventBus.publish('lineIntersection', {t, nodeName, nodeLine: object})
             }
         })
@@ -95,6 +103,9 @@ class App {
             // Update line material resolutions for worldUnits: false
             lineMaterialResolutionService.handleResize()
         })
+
+        // Setup drag and drop functionality
+        this.setupDragAndDrop()
     }
 
     setActiveScene(sceneName, doPauseAnimation = false){
@@ -128,10 +139,7 @@ class App {
 
         this.mapControl.update()
 
-        const look = this.sceneManager.getActiveLook()
         const scene = this.sceneManager.getActiveScene()
-        look.updateBehavior(this.clock.getDelta(), scene)
-
         this.renderer.render(scene, this.cameraManager.camera)
     }
 
@@ -161,11 +169,25 @@ class App {
             json = await loadPath(url)
         } catch (error) {
             console.error(`Error loading ${url}:`, error)
+            this.showError(`Error loading ${url}: ${error.message}`)
             this.startAnimation()
-            return
+            // Re-throw the error so the caller (e.g., locusInput) can handle it
+            throw error
         }
 
+        await this.processData(json)
+    }
+
+    async processData(json) {
         this.pangenomeService.loadData(json)
+
+        assemblyMetadataService.loadMetadata(json)
+
+        pclaiCoordinateService.loadCoordinates(json)
+
+        // Initialize PCA Chart with global bounding box
+        pcaChartService.reset()
+        await pcaChartService.initializeGlobalBoundingBox()
 
         await this.genomicService.initialize(json, this.pangenomeService)
 
@@ -175,7 +197,7 @@ class App {
 
         this.geometryManager.createGeometry(json)
 
-        this.setActiveScene('assemblyVisualizationScene')
+        this.setActiveScene('nodeEmphasisScene')
 
         this.geometryManager.createAllSceneNodeMeshes(this.sceneManager.scenes, this.sceneManager.lookManager)
 
@@ -185,6 +207,9 @@ class App {
         this.updateViewToFitScene(scene, this.cameraManager, this.mapControl)
 
         this.startAnimation()
+
+        // Publish event indicating a new dataset has been loaded
+        eventBus.publish('datasetLoaded', { json })
     }
 
     updateViewToFitScene(scene, cameraManager, mapControl) {
@@ -371,6 +396,134 @@ class App {
 
         this.sceneManager.clearCurrentData()
 
+    }
+
+    setupDragAndDrop() {
+        let dragCounter = 0
+
+        this.container.addEventListener('dragover', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+
+            // Only show visual feedback for file drops
+            if (e.dataTransfer.types.includes('Files')) {
+                this.container.classList.add('drag-over')
+            }
+        })
+
+        this.container.addEventListener('dragenter', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            dragCounter++
+
+            if (e.dataTransfer.types.includes('Files')) {
+                this.container.classList.add('drag-over')
+            }
+        })
+
+        this.container.addEventListener('dragleave', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            dragCounter--
+
+            if (dragCounter === 0) {
+                this.container.classList.remove('drag-over')
+            }
+        })
+
+        this.container.addEventListener('drop', async (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            dragCounter = 0
+            this.container.classList.remove('drag-over')
+
+            const files = e.dataTransfer.files
+            if (!files || files.length === 0) {
+                return
+            }
+
+            // Process the first JSON file found
+            let jsonFile = null
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                if (file.type === 'application/json' || file.name.toLowerCase().endsWith('.json')) {
+                    jsonFile = file
+                    break
+                }
+            }
+
+            if (!jsonFile) {
+                this.showError('Please drop a JSON file. Other file types are not supported.')
+                return
+            }
+
+            // Read and parse the file
+            try {
+                const fileContent = await this.readFileAsText(jsonFile)
+                const json = JSON.parse(fileContent)
+
+                this.stopAnimation()
+                this.clearCurrentData()
+                await this.processData(json)
+
+                // Clear the locus input widget after successful file load
+                this.clearLocusInput()
+            } catch (error) {
+                console.error('Error reading or parsing dropped file:', error)
+                if (error instanceof SyntaxError) {
+                    this.showError(`Invalid JSON file: ${error.message}`)
+                } else {
+                    this.showError(`Error reading file: ${error.message}`)
+                }
+            }
+        })
+    }
+
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = (e) => resolve(e.target.result)
+            reader.onerror = (e) => reject(new Error('Failed to read file'))
+            reader.readAsText(file)
+        })
+    }
+
+    clearLocusInput() {
+        const locusInput = document.getElementById('pgb-locus-input')
+        const locusError = document.getElementById('pgb-locus-error')
+
+        if (locusInput) {
+            locusInput.value = ''
+            locusInput.classList.remove('is-invalid')
+        }
+
+        if (locusError) {
+            locusError.style.display = 'none'
+            locusError.textContent = ''
+        }
+    }
+
+    showError(message) {
+        console.error(message)
+
+        // Create or update error display
+        let errorDiv = document.getElementById('pgb-drag-drop-error')
+        if (!errorDiv) {
+            errorDiv = document.createElement('div')
+            errorDiv.id = 'pgb-drag-drop-error'
+            errorDiv.className = 'pgb-drag-drop-error'
+            document.body.appendChild(errorDiv)
+        }
+
+        errorDiv.textContent = message
+        errorDiv.classList.add('show')
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (errorDiv) {
+                errorDiv.classList.remove('show')
+            }
+        }, 5000)
     }
 
 }

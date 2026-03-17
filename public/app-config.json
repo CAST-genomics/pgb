@@ -1,0 +1,7 @@
+{
+  "preload": {
+    "enabled": false,
+    "locus": "chr1:25240000-25460000"
+  }
+}
+

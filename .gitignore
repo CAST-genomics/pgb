@@ -24,3 +24,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Generated CSS files (compiled from SCSS)
+src/styles/*.css
+src/styles/*.css.map
+
+# Local genome data (symlinks to large files)
+data/genomes/
+
