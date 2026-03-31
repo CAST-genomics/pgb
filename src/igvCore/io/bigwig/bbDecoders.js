@@ -2,12 +2,6 @@ import {IGVColor} from 'igv-utils'
 
 function getDecoder(definedFieldCount, fieldCount, autoSql, format) {
 
-    if ("bigbed" === format || (autoSql && ('bed' === autoSql.table))) {
-        return decodeBed
-    }
-    if ("biggenepred" === format || (autoSql && ('genePred' === autoSql.table))) {
-        return decodeGenePred
-    }
     const standardFieldCount = definedFieldCount - 3
     return function (feature, tokens) {
 

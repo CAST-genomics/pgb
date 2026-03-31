@@ -1,0 +1,13 @@
+{
+  "id": "HG00097#1",
+  "name": "HG00097_hap1_hprc_r2_v1.0.1",
+  "fastaURL": "https://human-pangenomics.s3.amazonaws.com/working/HPRC/HG00097/assemblies/release2/HG00097_hap1_hprc_r2_v1.0.1.fa.gz",
+  "indexURL": "https://human-pangenomics.s3.amazonaws.com/working/HPRC/HG00097/assemblies/release2/HG00097_hap1_hprc_r2_v1.0.1.fa.gz.fai",
+  "tracks": [
+    {
+      "name": "Gene annotations (BigBed)",
+      "url": "https://raw.githubusercontent.com/turner/hprc-annotations/main/bigbed/HG00097_hap1_hprc_r2_v1.0.1_cat_v1.1.bb",
+      "format": "bigbed"
+    }
+  ]
+}
