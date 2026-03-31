@@ -1,8 +1,11 @@
 import { getGenomeConfig } from './genomeRegistry.js';
 import Genome from './genome.js';
 import TextFeatureSource from '../io/textFeatureSource.js';
+import BWSource from '../io/bigwig/bwSource.js';
 import QTLSelections from '../qtl/qtlSelections.js';
 import FeatureRenderer from '../rendering/featureRenderer.js';
+
+const bbFormats = new Set(['bigwig', 'bw', 'bigbed', 'bb', 'biginteract', 'biggenepred', 'bignarrowpeak']);
 
 class GenomeLibrary {
     constructor() {
@@ -22,11 +25,14 @@ class GenomeLibrary {
         console.timeEnd(`GenomeLibrary: genome "${genomeId}" created`)
 
         const [ refseqSelectTrackConfig ] = genome.config.tracks
-        const geneFeatureSource = new TextFeatureSource({ ...refseqSelectTrackConfig, type: "annotation", expandQuery: false }, genome)
+        const trackFormat = refseqSelectTrackConfig.format ? refseqSelectTrackConfig.format.toLowerCase() : undefined
+        const geneFeatureSource = bbFormats.has(trackFormat)
+            ? new BWSource({ ...refseqSelectTrackConfig, type: "annotation" }, genome)
+            : new TextFeatureSource({ ...refseqSelectTrackConfig, type: "annotation", expandQuery: false }, genome)
 
         const browser = { genome, qtlSelections: new QTLSelections() }
-        const trackFormat = refseqSelectTrackConfig.format || "refgene"
-        const geneRendererConfig = { format: trackFormat, type: "annotation", displayMode: "COLLAPSED", browser }
+        const rendererFormat = trackFormat || "refgene"
+        const geneRendererConfig = { format: rendererFormat, type: "annotation", displayMode: "COLLAPSED", browser }
 
         const geneRenderer = new FeatureRenderer(geneRendererConfig)
 
