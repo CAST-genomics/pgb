@@ -23,6 +23,8 @@ class NodeEmphasisLook extends Look {
             const nodeName = objectId.replace('node:', '');
             const state = this.emphasisStates.get(nodeName) || 'normal';
             switch (state) {
+                case 'absent':
+                    return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
                 case 'deemphasized':
                     return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
                 case 'emphasized':
@@ -72,9 +74,9 @@ class NodeEmphasisLook extends Look {
 
         // PCA Widget Events
         this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
-            const { assembly, nodeSet, edgeSet } = data
+            const { assembly, nodeSet, edgeSet, absentNodeSet } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color);
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color, absentNodeSet);
         });
 
         this.restorePCAWidgetUnsub = eventBus.subscribe('pcaWidget:normal', data => {

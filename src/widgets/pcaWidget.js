@@ -129,8 +129,9 @@ class PCAWidget {
 
         const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
         const edgeSet = new Set()
+        const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
 
-        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet });
+        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet, absentNodeSet });
     }
 
     initializeSearchInput() {

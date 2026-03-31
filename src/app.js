@@ -181,6 +181,12 @@ class App {
 
         pclaiCoordinateService.loadCoordinates(json)
 
+        // Push absent node set to all looks before mesh creation
+        const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
+        for (const look of this.sceneManager.lookManager.looks.values()) {
+            look.absentNodeSet = absentNodeSet
+        }
+
         // Initialize PCA Chart with global bounding box
         pcaChartService.reset()
         await pcaChartService.initializeGlobalBoundingBox()

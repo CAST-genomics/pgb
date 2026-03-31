@@ -11,7 +11,7 @@ class Look {
 
     static NODE_EMPHASIS_COLOR = '#c0311a'
     static NODE_DEEMPHASIS_COLOR = '#a89292'
-    static NODE_ABSENCE_COLOR = '#7a92a3'
+    static NODE_ABSENCE_COLOR = '#c8cdd3'
 
     static DEFAULT_NODE_COLOR = '#6e6e6e'
     static DEFAULT_NODE_COLOR_THREE_JS = new THREE.Color('#6e6e6e')
@@ -39,6 +39,11 @@ class Look {
 
         // Emphasis state tracking
         this.emphasisStates = new Map();
+
+        // Nodes that lack the attribute category entirely — set once at data load,
+        // immutable for the life of the dataset. Used at mesh creation time to
+        // assign the absence color before any look manipulation occurs.
+        this.absentNodeSet = new Set();
 
         // Event subscription cleanup
         this.deemphasizeUnsub = null;
@@ -116,11 +121,17 @@ class Look {
 
     /**
      * Gets or creates a ribbon ShaderMaterial for a node's default state.
+     * Absent nodes receive the absence color at creation time.
      *
      * @param {string} nodeName - The node name
      * @returns {THREE.ShaderMaterial}
      */
     getNodeRibbonMaterial(nodeName) {
+
+        if (this.absentNodeSet.has(nodeName)) {
+            return this.getNodeRibbonAbsenceMaterial(nodeName)
+        }
+
         const cacheKey = `ribbon:${nodeName}:normal`
 
         if (this.materialCache.has(cacheKey)) {
@@ -175,6 +186,23 @@ class Look {
         }
 
         const material = RibbonMaterialFactory.createMaterial(Look.NODE_DEEMPHASIS_COLOR)
+        lineMaterialResolutionService.registerRibbonMaterial(material)
+        this.materialCache.set(cacheKey, material)
+
+        return material
+    }
+
+    /**
+     * Gets or creates a ribbon absence material for a node.
+     */
+    getNodeRibbonAbsenceMaterial(nodeName) {
+        const cacheKey = `ribbon:${nodeName}:absence`
+
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey)
+        }
+
+        const material = RibbonMaterialFactory.createMaterial(Look.NODE_ABSENCE_COLOR)
         lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
@@ -326,17 +354,28 @@ class Look {
      * @param {Set<string>} nodeSet - Set of node names to emphasize
      * @param {Set<string>} edgeSet - Set of edge keys to emphasize
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
+     * @param {Set<string>} [absentNodeSet] - Set of node names that lack the attribute category entirely
      */
-    setNodeAndEdgeEmphasis(assemblyName, nodeSet, edgeSet, nodeColor) {
+    setNodeAndEdgeEmphasis(assemblyName, nodeSet, edgeSet, nodeColor, absentNodeSet) {
 
         this.emphasisStates.clear()
 
-        const deemphasisNodeSet = this.geometryManager.geometryFactory.getNodeNameSet().difference(nodeSet);
+        const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
+
+        // Three-way partition: emphasized, absent, deemphasized (remainder)
+        const absentNodes = absentNodeSet || new Set()
+
+        const deemphasisNodeSet = allNodes.difference(nodeSet).difference(absentNodes);
+
+        for (const nodeName of absentNodes) {
+            this.setEmphasisState(nodeName, 'absent');
+        }
 
         for (const nodeName of deemphasisNodeSet) {
             this.setEmphasisState(nodeName, 'deemphasized');
         }
 
+        this.updateNodeEmphasis(absentNodes, 'absent', undefined);
         this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined);
         this.updateNodeEmphasis(nodeSet, 'emphasized', assemblyName, nodeColor);
 
@@ -415,6 +454,12 @@ class Look {
                 const startColor = getAppleCrayonColorByName('magnesium')
                 const endColor = getAppleCrayonColorByName('magnesium')
                 mesh.material = this.getEdgeMaterial(startColor, endColor)
+            }
+
+        } else if (emphasisState === 'absent') {
+
+            if (type === 'node') {
+                mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName);
             }
 
         }  else if (emphasisState === 'normal') {
