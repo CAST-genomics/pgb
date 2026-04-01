@@ -45,6 +45,8 @@ class AssemblyWidget {
 
     populateList() {
 
+        this.selectedAssembly = null;
+
         for (const item of this.listGroup.querySelectorAll('.list-group-item')) {
             this.cleanupListItem(item);
         }

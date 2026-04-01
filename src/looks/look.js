@@ -13,7 +13,7 @@ class Look {
 
     static NODE_DEEMPHASIS_COLOR = '#afafaf'
 
-    static NODE_ABSENCE_COLOR = '#7a92a3'
+    static NODE_ABSENCE_COLOR = '#dce4e8'
     // static NODE_ABSENCE_COLOR = '#c8cdd3'
     // static NODE_ABSENCE_COLOR = '#ff0289'
 
