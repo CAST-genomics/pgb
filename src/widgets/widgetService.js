@@ -118,6 +118,7 @@ class WidgetService {
         if (this.activeButton === this.pcaButton) {
             console.log('hide widget - PCA')
             this.pcaWidget.hideCard();
+            this.pcaWidget.reset();
             this.setActiveButton(null);
         } else {
             console.log('show widget - PCA')

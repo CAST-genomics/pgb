@@ -10,8 +10,11 @@ import {prettyPrint} from "../utils/utils.js"
 class Look {
 
     static NODE_EMPHASIS_COLOR = '#c0311a'
+
     static NODE_DEEMPHASIS_COLOR = '#a89292'
+
     static NODE_ABSENCE_COLOR = '#c8cdd3'
+    // static NODE_ABSENCE_COLOR = '#ff0289'
 
     static DEFAULT_NODE_COLOR = '#6e6e6e'
     static DEFAULT_NODE_COLOR_THREE_JS = new THREE.Color('#6e6e6e')
@@ -39,11 +42,6 @@ class Look {
 
         // Emphasis state tracking
         this.emphasisStates = new Map();
-
-        // Nodes that lack the attribute category entirely — set once at data load,
-        // immutable for the life of the dataset. Used at mesh creation time to
-        // assign the absence color before any look manipulation occurs.
-        this.absentNodeSet = new Set();
 
         // Event subscription cleanup
         this.deemphasizeUnsub = null;
@@ -121,17 +119,11 @@ class Look {
 
     /**
      * Gets or creates a ribbon ShaderMaterial for a node's default state.
-     * Absent nodes receive the absence color at creation time.
      *
      * @param {string} nodeName - The node name
      * @returns {THREE.ShaderMaterial}
      */
     getNodeRibbonMaterial(nodeName) {
-
-        if (this.absentNodeSet.has(nodeName)) {
-            return this.getNodeRibbonAbsenceMaterial(nodeName)
-        }
-
         const cacheKey = `ribbon:${nodeName}:normal`
 
         if (this.materialCache.has(cacheKey)) {
@@ -288,6 +280,7 @@ class Look {
     createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData
         const { length } = this.genomicService.nodeMetadata.get(nodeName)
+        const emphasisState = this.emphasisStates.get(nodeName) || 'normal'
         const html = `<div class="look-tooltip">
             <div class="node-section">
                 <table class="node-details-table">
@@ -298,6 +291,10 @@ class Look {
                     <tr class="node-detail-row">
                         <td class="node-detail-label">Length:</td>
                         <td class="node-detail-value">${ prettyPrint(length) } bp</td>
+                    </tr>
+                    <tr class="node-detail-row">
+                        <td class="node-detail-label">State:</td>
+                        <td class="node-detail-value">${emphasisState}</td>
                     </tr>
                 </table>
             </div>
@@ -343,6 +340,32 @@ class Look {
         console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.materialCache.size }`)
         this.materialCache.clear()
         console.log(`${ this.constructor.name } dispose.  material cache post ${ this.materialCache.size }`)
+    }
+
+    /**
+     * Applies absence to a set of nodes and restores all other nodes to normal.
+     * This is the "PCA widget is open but no dot is selected" state.
+     *
+     * @param {Set<string>} absentNodeSet - Set of node names that lack the attribute category
+     */
+    setNodeAbsence(absentNodeSet) {
+
+        this.emphasisStates.clear()
+
+        const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
+        const normalNodeSet = allNodes.difference(absentNodeSet)
+
+        for (const nodeName of absentNodeSet) {
+            this.setEmphasisState(nodeName, 'absent');
+        }
+
+        for (const nodeName of normalNodeSet) {
+            this.setEmphasisState(nodeName, 'normal');
+        }
+
+        this.updateNodeEmphasis(absentNodeSet, 'absent', undefined);
+        this.updateNodeEmphasis(normalNodeSet, 'normal', undefined);
+        this.updateGeometryPositions();
     }
 
     /**

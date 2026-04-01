@@ -73,6 +73,11 @@ class NodeEmphasisLook extends Look {
         });
 
         // PCA Widget Events
+        this.pcaWidgetAbsenceUnsub = eventBus.subscribe('pcaWidget:absence', data => {
+            const { absentNodeSet } = data
+            this.setNodeAbsence(absentNodeSet);
+        });
+
         this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
             const { assembly, nodeSet, edgeSet, absentNodeSet } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
@@ -128,6 +133,11 @@ class NodeEmphasisLook extends Look {
         if (this.restorePCAChartUnsub) {
             this.restorePCAChartUnsub();
             this.restorePCAChartUnsub = null;
+        }
+
+        if (this.pcaWidgetAbsenceUnsub) {
+            this.pcaWidgetAbsenceUnsub();
+            this.pcaWidgetAbsenceUnsub = null;
         }
 
         if (this.deemphasizePCAWidgetUnsub) {
