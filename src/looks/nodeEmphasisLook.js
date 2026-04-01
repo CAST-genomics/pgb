@@ -63,8 +63,8 @@ class NodeEmphasisLook extends Look {
 
         // Assembly Viz Events
         this.deemphasizeAssemblyUnsub = eventBus.subscribe('assembly:emphasis', data => {
-            const { assembly, nodeSet, edgeSet } = data
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, Look.NODE_EMPHASIS_COLOR);
+            const { assembly, nodeSet, edgeSet, deemphasisColor } = data
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
         });
 
         this.restoreAssemblyUnsub = eventBus.subscribe('assembly:normal', data => {
@@ -79,9 +79,9 @@ class NodeEmphasisLook extends Look {
         });
 
         this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
-            const { assembly, nodeSet, edgeSet, absentNodeSet } = data
+            const { assembly, nodeSet, edgeSet, absentNodeSet, deemphasisColor } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color, absentNodeSet);
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color, absentNodeSet, deemphasisColor);
         });
 
         this.restorePCAWidgetUnsub = eventBus.subscribe('pcaWidget:normal', data => {

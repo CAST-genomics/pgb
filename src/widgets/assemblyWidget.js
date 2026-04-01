@@ -6,6 +6,7 @@ import Look from "../looks/look.js"
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
     static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
+    static NODE_DEEMPHASIS_COLOR = '#a89292';
 
     constructor(assemblyWidgetContainer, genomicService, geometryManager) {
 
@@ -147,7 +148,7 @@ class AssemblyWidget {
             edgeSet = new Set([...edges]);
         }
 
-        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, edgeSet });
+        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, edgeSet, deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR });
     }
 
     initializeSearchInput() {

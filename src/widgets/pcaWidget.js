@@ -5,6 +5,8 @@ import Look from "../looks/look.js"
 
 class PCAWidget {
 
+    static NODE_DEEMPHASIS_COLOR = '#aaaaaa';
+
     constructor(pcaWidgetContainer, geometryManager) {
 
         this.pcaWidgetContainer = pcaWidgetContainer;
@@ -135,12 +137,10 @@ class PCAWidget {
     }
 
     emphasizeAssembly(coordinateKey) {
-
         const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
         const edgeSet = new Set()
         const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-
-        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet, absentNodeSet });
+        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
     }
 
     initializeSearchInput() {
