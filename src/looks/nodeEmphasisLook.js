@@ -23,6 +23,8 @@ class NodeEmphasisLook extends Look {
             const nodeName = objectId.replace('node:', '');
             const state = this.emphasisStates.get(nodeName) || 'normal';
             switch (state) {
+                case 'absent':
+                    return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
                 case 'deemphasized':
                     return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
                 case 'emphasized':
@@ -61,8 +63,8 @@ class NodeEmphasisLook extends Look {
 
         // Assembly Viz Events
         this.deemphasizeAssemblyUnsub = eventBus.subscribe('assembly:emphasis', data => {
-            const { assembly, nodeSet, edgeSet } = data
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, Look.NODE_EMPHASIS_COLOR);
+            const { assembly, nodeSet, edgeSet, deemphasisColor } = data
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
         });
 
         this.restoreAssemblyUnsub = eventBus.subscribe('assembly:normal', data => {
@@ -71,10 +73,15 @@ class NodeEmphasisLook extends Look {
         });
 
         // PCA Widget Events
+        this.pcaWidgetAbsenceUnsub = eventBus.subscribe('pcaWidget:absence', data => {
+            const { absentNodeSet } = data
+            this.setNodeAbsence(absentNodeSet);
+        });
+
         this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
-            const { assembly, nodeSet, edgeSet } = data
+            const { assembly, nodeSet, edgeSet, absentNodeSet, deemphasisColor } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color);
+            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color, absentNodeSet, deemphasisColor);
         });
 
         this.restorePCAWidgetUnsub = eventBus.subscribe('pcaWidget:normal', data => {
@@ -126,6 +133,11 @@ class NodeEmphasisLook extends Look {
         if (this.restorePCAChartUnsub) {
             this.restorePCAChartUnsub();
             this.restorePCAChartUnsub = null;
+        }
+
+        if (this.pcaWidgetAbsenceUnsub) {
+            this.pcaWidgetAbsenceUnsub();
+            this.pcaWidgetAbsenceUnsub = null;
         }
 
         if (this.deemphasizePCAWidgetUnsub) {

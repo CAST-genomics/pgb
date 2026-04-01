@@ -17,6 +17,7 @@ class PCLACoordinateService {
         this.aveRgb = new Map(); // nodeId -> {rgb: [r, g, b], color: THREE.Color}
         this.boundingBox = null; // { x: {min, max, centroid}, y: {min, max, centroid} }
         this.coordinateKeys = new Set(); // Set of all coordinate keys (union across all nodes)
+        this.absentNodeSet = new Set(); // nodes with no valid pclai_coordinates
 
         PCLACoordinateService.instance = this;
     }
@@ -30,6 +31,7 @@ class PCLACoordinateService {
         this.aveRgb.clear();
         this.boundingBox = null;
         this.coordinateKeys.clear();
+        this.absentNodeSet.clear();
 
         const allXCoords = [];
         const allYCoords = [];
@@ -107,7 +109,18 @@ class PCLACoordinateService {
             };
         }
 
-        console.log(`PCLACoordinateService: Loaded coordinates for ${nodesProcessed} nodes`);
+        // Compute absent node set — nodes with no valid pclai_coordinates.
+        // Only meaningful when the dataset has pclai data; otherwise absence
+        // as a concept does not apply and the set stays empty.
+        if (this.coordinates.size > 0) {
+            for (const nodeId of Object.keys(jsonData.node)) {
+                if (!this.coordinates.has(nodeId)) {
+                    this.absentNodeSet.add(nodeId)
+                }
+            }
+        }
+
+        console.log(`PCLACoordinateService: Loaded coordinates for ${nodesProcessed} nodes, ${this.absentNodeSet.size} absent nodes`);
         if (this.boundingBox) {
             console.log(`PCLACoordinateService: Bounding box - x: [${this.boundingBox.x.min.toFixed(3)}, ${this.boundingBox.x.max.toFixed(3)}], y: [${this.boundingBox.y.min.toFixed(3)}, ${this.boundingBox.y.max.toFixed(3)}]`);
         }
@@ -282,6 +295,14 @@ class PCLACoordinateService {
     }
 
     /**
+     * Get the set of node IDs that have no pclai_coordinates
+     * @returns {Set<string>} Set of absent node IDs
+     */
+    getAbsentNodeSet() {
+        return this.absentNodeSet;
+    }
+
+    /**
      * Clear all stored coordinate data
      */
     clear() {
@@ -289,6 +310,7 @@ class PCLACoordinateService {
         this.aveRgb.clear();
         this.boundingBox = null;
         this.coordinateKeys.clear();
+        this.absentNodeSet.clear();
     }
 }
 

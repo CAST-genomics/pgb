@@ -10,8 +10,12 @@ import {prettyPrint} from "../utils/utils.js"
 class Look {
 
     static NODE_EMPHASIS_COLOR = '#c0311a'
-    static NODE_DEEMPHASIS_COLOR = '#a89292'
+
+    static NODE_DEEMPHASIS_COLOR = '#afafaf'
+
     static NODE_ABSENCE_COLOR = '#7a92a3'
+    // static NODE_ABSENCE_COLOR = '#c8cdd3'
+    // static NODE_ABSENCE_COLOR = '#ff0289'
 
     static DEFAULT_NODE_COLOR = '#6e6e6e'
     static DEFAULT_NODE_COLOR_THREE_JS = new THREE.Color('#6e6e6e')
@@ -166,15 +170,35 @@ class Look {
 
     /**
      * Gets or creates a ribbon deemphasis material for a node.
+     * @param {string} nodeName - The node name
+     * @param {string|THREE.Color} [deemphasisColor] - Optional override color; defaults to NODE_DEEMPHASIS_COLOR
      */
-    getNodeRibbonDeemphasisMaterial(nodeName) {
-        const cacheKey = `ribbon:${nodeName}:deemphasis`
+    getNodeRibbonDeemphasisMaterial(nodeName, deemphasisColor) {
+        const color = deemphasisColor || Look.NODE_DEEMPHASIS_COLOR
+        const cacheKey = deemphasisColor ? `ribbon:${nodeName}:deemphasis:${color}` : `ribbon:${nodeName}:deemphasis`
 
         if (this.materialCache.has(cacheKey)) {
             return this.materialCache.get(cacheKey)
         }
 
-        const material = RibbonMaterialFactory.createMaterial(Look.NODE_DEEMPHASIS_COLOR)
+        const material = RibbonMaterialFactory.createMaterial(color)
+        lineMaterialResolutionService.registerRibbonMaterial(material)
+        this.materialCache.set(cacheKey, material)
+
+        return material
+    }
+
+    /**
+     * Gets or creates a ribbon absence material for a node.
+     */
+    getNodeRibbonAbsenceMaterial(nodeName) {
+        const cacheKey = `ribbon:${nodeName}:absence`
+
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey)
+        }
+
+        const material = RibbonMaterialFactory.createMaterial(Look.NODE_ABSENCE_COLOR)
         lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
@@ -260,6 +284,7 @@ class Look {
     createNodeTooltipContent(nodeObject) {
         const { nodeName } = nodeObject.userData
         const { length } = this.genomicService.nodeMetadata.get(nodeName)
+        const emphasisState = this.emphasisStates.get(nodeName) || 'normal'
         const html = `<div class="look-tooltip">
             <div class="node-section">
                 <table class="node-details-table">
@@ -270,6 +295,10 @@ class Look {
                     <tr class="node-detail-row">
                         <td class="node-detail-label">Length:</td>
                         <td class="node-detail-value">${ prettyPrint(length) } bp</td>
+                    </tr>
+                    <tr class="node-detail-row">
+                        <td class="node-detail-label">State:</td>
+                        <td class="node-detail-value">${emphasisState}</td>
                     </tr>
                 </table>
             </div>
@@ -318,6 +347,32 @@ class Look {
     }
 
     /**
+     * Applies absence to a set of nodes and restores all other nodes to normal.
+     * This is the "PCA widget is open but no dot is selected" state.
+     *
+     * @param {Set<string>} absentNodeSet - Set of node names that lack the attribute category
+     */
+    setNodeAbsence(absentNodeSet) {
+
+        this.emphasisStates.clear()
+
+        const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
+        const normalNodeSet = allNodes.difference(absentNodeSet)
+
+        for (const nodeName of absentNodeSet) {
+            this.setEmphasisState(nodeName, 'absent');
+        }
+
+        for (const nodeName of normalNodeSet) {
+            this.setEmphasisState(nodeName, 'normal');
+        }
+
+        this.updateNodeEmphasis(absentNodeSet, 'absent', undefined);
+        this.updateNodeEmphasis(normalNodeSet, 'normal', undefined);
+        this.updateGeometryPositions();
+    }
+
+    /**
      * Sets emphasis state for nodes and edges based on an assembly selection.
      * Nodes and edges in the provided sets are emphasized, while others are deemphasized.
      * Updates materials and Z-positions accordingly.
@@ -326,18 +381,30 @@ class Look {
      * @param {Set<string>} nodeSet - Set of node names to emphasize
      * @param {Set<string>} edgeSet - Set of edge keys to emphasize
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
+     * @param {Set<string>} [absentNodeSet] - Set of node names that lack the attribute category entirely
+     * @param {string|THREE.Color} [deemphasisColor] - Optional override for deemphasis color
      */
-    setNodeAndEdgeEmphasis(assemblyName, nodeSet, edgeSet, nodeColor) {
+    setNodeAndEdgeEmphasis(assemblyName, nodeSet, edgeSet, nodeColor, absentNodeSet, deemphasisColor) {
 
         this.emphasisStates.clear()
 
-        const deemphasisNodeSet = this.geometryManager.geometryFactory.getNodeNameSet().difference(nodeSet);
+        const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
+
+        // Three-way partition: emphasized, absent, deemphasized (remainder)
+        const absentNodes = absentNodeSet || new Set()
+
+        const deemphasisNodeSet = allNodes.difference(nodeSet).difference(absentNodes);
+
+        for (const nodeName of absentNodes) {
+            this.setEmphasisState(nodeName, 'absent');
+        }
 
         for (const nodeName of deemphasisNodeSet) {
             this.setEmphasisState(nodeName, 'deemphasized');
         }
 
-        this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined);
+        this.updateNodeEmphasis(absentNodes, 'absent', undefined);
+        this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined, undefined, deemphasisColor);
         this.updateNodeEmphasis(nodeSet, 'emphasized', assemblyName, nodeColor);
 
         const deemphasisEdgeSet = this.geometryManager.geometryFactory.getEdgeNameSet().difference(edgeSet);
@@ -394,15 +461,16 @@ class Look {
      * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
      * @param {string} assemblyName - The assembly name (required for 'emphasized' state)
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
+     * @param {string|THREE.Color} [deemphasisColor] - Optional override for deemphasis color.
      */
-    applyEmphasisState(mesh, emphasisState, assemblyName, nodeColor) {
+    applyEmphasisState(mesh, emphasisState, assemblyName, nodeColor, deemphasisColor) {
         if (!mesh.userData) return;
 
         const { type } = mesh.userData;
 
         if (emphasisState === 'deemphasized') {
             if (type === 'node') {
-                mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName);
+                mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName, deemphasisColor);
             } else if (type === 'edge') {
                 mesh.material = materialService.getEdgeDeemphasisMaterial();
             }
@@ -415,6 +483,12 @@ class Look {
                 const startColor = getAppleCrayonColorByName('magnesium')
                 const endColor = getAppleCrayonColorByName('magnesium')
                 mesh.material = this.getEdgeMaterial(startColor, endColor)
+            }
+
+        } else if (emphasisState === 'absent') {
+
+            if (type === 'node') {
+                mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName);
             }
 
         }  else if (emphasisState === 'normal') {
@@ -461,13 +535,14 @@ class Look {
      * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
      * @param {string} assemblyName - The assembly name (used for 'emphasized' state)
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
+     * @param {string|THREE.Color} [deemphasisColor] - Optional override for deemphasis color.
      */
-    updateNodeEmphasis(nodeNameSet, emphasisState, assemblyName, nodeColor) {
+    updateNodeEmphasis(nodeNameSet, emphasisState, assemblyName, nodeColor, deemphasisColor) {
 
         const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
         nodeMeshGroup.traverse((object) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
-                this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor);
+                this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor);
             }
         });
     }

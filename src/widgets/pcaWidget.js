@@ -5,6 +5,8 @@ import Look from "../looks/look.js"
 
 class PCAWidget {
 
+    static NODE_DEEMPHASIS_COLOR = '#aaaaaa';
+
     constructor(pcaWidgetContainer, geometryManager) {
 
         this.pcaWidgetContainer = pcaWidgetContainer;
@@ -98,18 +100,19 @@ class PCAWidget {
 
         if (this.selectedCoordinateKey && this.selectedCoordinateKey === coordinateKey) {
 
-            // Deselect current assembly selector
+            // Deselect current assembly selector — return to absence-only state
             this.selectedCoordinateKey = null;
+            this.clearAllSelectorStyles()
 
-            const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-            const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-            eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
+            const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
+            eventBus.publish('pcaWidget:absence', { absentNodeSet })
         } else {
             // Deselect previous assembly selector if one exists
             if (this.selectedCoordinateKey !== null) {
-                const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-                const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-                eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
+                this.clearAllSelectorStyles()
+
+                const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
+                eventBus.publish('pcaWidget:absence', { absentNodeSet })
             }
 
             console.log(`selected coordinate key ${ coordinateKey }`)
@@ -125,12 +128,19 @@ class PCAWidget {
         }
     }
 
-    emphasizeAssembly(coordinateKey) {
+    clearAllSelectorStyles() {
+        const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
+        for (const selector of selectors) {
+            selector.style.border = '2px solid transparent'
+            selector.style.transform = ''
+        }
+    }
 
+    emphasizeAssembly(coordinateKey) {
         const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
         const edgeSet = new Set()
-
-        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet });
+        const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
+        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
     }
 
     initializeSearchInput() {
@@ -186,6 +196,13 @@ class PCAWidget {
         this.pcaWidgetContainer.style.display = '';
         this.pcaWidgetContainer.style.top = '0px'
         this.pcaWidgetContainer.style.left = '0px'
+
+        // Paint absent nodes immediately when PCA widget opens
+        const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
+        if (absentNodeSet.size > 0) {
+            eventBus.publish('pcaWidget:absence', { absentNodeSet })
+        }
+
         setTimeout(() => {
             this.pcaWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
@@ -226,21 +243,14 @@ class PCAWidget {
     }
 
     reset() {
-        // Clear any selected coordinate key
-        if (this.selectedCoordinateKey) {
-            // Clear visual state of selected selector before clearing selection
-            const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'));
-            const selectedSelector = selectors.find(selector => selector.dataset.assembly === this.selectedCoordinateKey);
-            if (selectedSelector) {
-                selectedSelector.style.border = '2px solid transparent';
-                selectedSelector.style.transform = '';
-            }
-            
-            const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-            const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-            eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
-            this.selectedCoordinateKey = null;
-        }
+        // Clear visual state of any selected selector
+        this.clearAllSelectorStyles()
+        this.selectedCoordinateKey = null;
+
+        // Restore all nodes (including absent) to default color
+        const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
+        const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
+        eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
     }
 
     destroy() {

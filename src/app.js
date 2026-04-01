@@ -50,17 +50,6 @@ class App {
             if ('node' === object.userData?.type) {
                 const { t, nodeName } = intersection
 
-                // Check if a coordinate key is selected and if this node has it
-                const selectedCoordinateKey = pcaChartService.selectedCoordinateKey;
-                if (selectedCoordinateKey) {
-                    const nodeCoordinates = pclaiCoordinateService.getCoordinatesForNode(nodeName);
-                    if (!nodeCoordinates || !nodeCoordinates.has(selectedCoordinateKey)) {
-                        // Node doesn't have the selected coordinate key, don't trigger hover
-                        this.clearIntersection();
-                        return;
-                    }
-                }
-
                 // Publish the vital lineIntersection event using processed intersection
                 eventBus.publish('lineIntersection', { t, nodeName, nodeLine: object })
                 this.showTooltip(object, point, 'node')
