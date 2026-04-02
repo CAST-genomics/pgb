@@ -38,6 +38,8 @@ class PCAWidget {
 
     populateList() {
 
+        this.selectedCoordinateKey = null;
+
         for (const item of this.listGroup.querySelectorAll('.list-group-item')) {
             this.cleanupListItem(item);
         }

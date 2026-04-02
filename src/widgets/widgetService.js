@@ -61,6 +61,7 @@ class WidgetService {
         if (this.activeButton === this.assemblyButton) {
             console.log('hide widget - assembly')
             this.assemblyWidget.hideCard();
+            this.assemblyWidget.reset();
             this.setActiveButton(null);
         } else {
             console.log('show widget- assembly')
@@ -123,7 +124,7 @@ class WidgetService {
         } else {
             console.log('show widget - PCA')
             app.setActiveScene('nodeEmphasisScene', true);
-            this.pcaWidget.configure();
+            // this.pcaWidget.configure();
             this.pcaWidget.showCard();
             this.setActiveButton(this.pcaButton);
         }
@@ -181,7 +182,7 @@ class WidgetService {
         this.populationWidget.reset()
 
         this.pcaWidget.hideCard()
-        this.pcaWidget.reset()
+        // this.pcaWidget.reset()
         this.pcaWidget.configure()
 
         // Update PCA button state based on PCLAI data availability
