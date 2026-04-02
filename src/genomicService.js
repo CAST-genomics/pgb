@@ -56,9 +56,22 @@ class GenomicService {
 
         for (const assemblyKey of this.assemblySet){
 
-            const sequenceId = assemblyKey.split('#')[2] ?? '';
+            const [ genomeId, haplotype, sequenceId ] = assemblyKey.split('#');
             const isReference = (sequenceId === this.locus.chr);
-            const effectiveLocusStartBp = isReference ? this.locus.startBP : 0;
+
+            let effectiveLocusStartBp = isReference ? this.locus.startBP : 0;
+
+            // v2 datasets provide per-assembly region coordinates in the assemblyIndex
+            if (dataset.assemblyIndex) {
+                const indexKey = `${genomeId}#${haplotype}`;
+                const entry = dataset.assemblyIndex.get(indexKey);
+                if (entry?.region) {
+                    const regionStart = parseInt(entry.region.split('-')[0], 10);
+                    if (Number.isFinite(regionStart)) {
+                        effectiveLocusStartBp = regionStart;
+                    }
+                }
+            }
             
             const assessmentConfig =
                 {

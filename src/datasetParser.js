@@ -161,15 +161,162 @@ function normalizeV1(json) {
     };
 }
 
-// ── V2 normalizer (Phase 2 — stub) ──────────────────────────────────
+// ── V2 normalizer ────────────────────────────────────────────────────
+
+/**
+ * Strip genome prefix from v2 locus strings.
+ * "GRCh38#0#chr1:25240000-25460000" → "chr1:25240000-25460000"
+ */
+function stripGenomePrefix(locusString) {
+    if (!locusString) return null;
+    const hashIdx = locusString.lastIndexOf('#');
+    if (hashIdx >= 0) {
+        const tail = locusString.slice(hashIdx + 1);
+        // Only strip if what remains looks like a locus (starts with chr)
+        if (/^chr/i.test(tail)) return tail;
+    }
+    return locusString;
+}
+
+/**
+ * Normalize a v2 assembly array (either assembly or duplicated_assembly)
+ * into flat AssemblyEntry[] and extract PCLAI coordinates.
+ *
+ * @param {Array} assemblyArray  Raw v2 assembly or duplicated_assembly array
+ * @param {Map<string, Array>} pclaiCoordinates  Map to populate (mutated)
+ * @returns {AssemblyEntry[]}
+ */
+function normalizeV2Assemblies(assemblyArray, pclaiCoordinates) {
+    const entries = [];
+
+    for (const asm of assemblyArray) {
+        const assemblyName = String(asm.assembly_name ?? '');
+        const haplotype    = String(asm.haplotype ?? '');
+        const coordKey     = `${assemblyName}#${haplotype}`;
+
+        for (const meta of (asm.metadata || [])) {
+            entries.push({
+                assemblyName,
+                haplotype,
+                sequenceId:  String(meta.sequence_id ?? ''),
+                pathStrand:  meta.path_strand ?? null,
+                nodeStrand:  meta.node_strand ?? null,
+                start:       meta.start ?? null,
+                end:         meta.end ?? null,
+                take:        meta.take ?? null,
+            });
+
+            // Extract PCLAI windows from this metadata entry
+            if (Array.isArray(meta.pclai) && meta.pclai.length > 0 && meta.take === 'yes') {
+                const windows = meta.pclai
+                    .filter(w => Array.isArray(w.coordinates) && Array.isArray(w.RGB))
+                    .map(w => ({
+                        coordinates: w.coordinates,
+                        rgb:         w.RGB,
+                        start:       w.start ?? null,
+                        end:         w.end ?? null,
+                        percentage:  w.percentage ?? 1,
+                    }));
+
+                if (windows.length > 0) {
+                    // Accumulate — a coordKey may appear in multiple metadata entries
+                    const existing = pclaiCoordinates.get(coordKey) || [];
+                    pclaiCoordinates.set(coordKey, existing.concat(windows));
+                }
+            }
+        }
+    }
+
+    return entries;
+}
 
 /**
  * @param {Object} json
  * @returns {import('./datasetModel.js').DatasetModel}
  */
 function normalizeV2(json) {
-    throw new DatasetParseError(
-        'V2 dataset format detected but the v2 normalizer is not yet implemented. ' +
-        'This will be added in Phase 2.'
-    );
+
+    // -- Sequences --
+    const sequences = new Map();
+    if (json.sequence) {
+        for (const [id, seq] of Object.entries(json.sequence)) {
+            sequences.set(String(id), String(seq ?? ''));
+        }
+    }
+
+    // -- Top-level assembly index --
+    const assemblyIndex = new Map();
+    if (json.assembly && typeof json.assembly === 'object') {
+        for (const [key, val] of Object.entries(json.assembly)) {
+            assemblyIndex.set(key, {
+                sequenceId: String(val.sequence_id ?? ''),
+                region:     String(val.region ?? ''),
+            });
+        }
+    }
+
+    // -- Nodes --
+    const nodes = new Map();
+    const nodeBag = json.node || {};
+
+    for (const [key, raw] of Object.entries(nodeBag)) {
+        const name = String(raw?.name ?? key);
+
+        const length = Number.isFinite(raw?.length)
+            ? Number(raw.length)
+            : (sequences.get(name)?.length ?? 0);
+
+        // PCLAI coordinates are extracted during assembly normalization
+        const pclaiCoordinates = new Map();
+
+        // Assemblies (unique mappings)
+        const assemblies = normalizeV2Assemblies(raw.assembly || [], pclaiCoordinates);
+
+        // Duplicated assemblies (multi-region mappings)
+        const duplicatedAssemblies = normalizeV2Assemblies(raw.duplicated_assembly || [], pclaiCoordinates);
+
+        // Assembly metadata — pass through as-is (unchanged between formats)
+        const assemblyMetadata = raw.assembly_metadata
+            ? { count: raw.assembly_metadata.count || {}, frequency: raw.assembly_metadata.frequency || {} }
+            : null;
+
+        // OGDF coordinates
+        const ogdfCoordinates = Array.isArray(raw.ogdf_coordinates) ? raw.ogdf_coordinates : [];
+
+        // Default range
+        const defaultRange = raw.default_range ?? null;
+
+        nodes.set(name, {
+            name,
+            length,
+            assemblies,
+            duplicatedAssemblies,
+            assemblyMetadata,
+            pclaiCoordinates,
+            pclaiAveRgb: null,  // v2 does not have pclai_ave_rgb at node level
+            ogdfCoordinates,
+            defaultRange,
+        });
+    }
+
+    // -- Edges --
+    const edges = (json.edge || []).map(e => ({
+        startingNode: String(e.starting_node),
+        endingNode:   String(e.ending_node),
+    }));
+
+    // -- Locus (strip genome prefix so downstream parseLocusString works) --
+    const locus = {
+        queriedLocus: stripGenomePrefix(json.queried_locus),
+        actualLocus:  stripGenomePrefix(json.actual_locus),
+    };
+
+    return {
+        formatVersion: 'v2',
+        locus,
+        assemblyIndex: assemblyIndex.size > 0 ? assemblyIndex : null,
+        sequences,
+        nodes,
+        edges,
+    };
 }

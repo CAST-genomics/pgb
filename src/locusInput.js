@@ -13,7 +13,7 @@ const default_domain = 'pangenome-api.ucsd.edu:8000';
 const hprc_domain = '3.145.184.140:8443';
 const current_domain = hprc_domain;
 
-const pangenomeURLTemplate = `https://${current_domain}/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=_VERSION_&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000`
+const pangenomeURLTemplate = `https://${current_domain}/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=_VERSION_&api=v2&pca=assembly&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000`
 
 class LocusInput {
     constructor(container, sceneManager) {
