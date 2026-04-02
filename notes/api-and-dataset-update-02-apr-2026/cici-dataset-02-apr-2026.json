@@ -5,7 +5,7 @@
     "5504+": {
       "name": "5504+",
       "length": 35895,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -12672,7 +12672,7 @@
     "5505+": {
       "name": "5505+",
       "length": 15123,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -25335,7 +25335,7 @@
     "5506+": {
       "name": "5506+",
       "length": 173,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -37983,7 +37983,7 @@
     "5507+": {
       "name": "5507+",
       "length": 13382,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -50646,7 +50646,7 @@
     "5508+": {
       "name": "5508+",
       "length": 6288,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -62004,7 +62004,7 @@
     "5509+": {
       "name": "5509+",
       "length": 16035,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -73362,7 +73362,7 @@
     "5510+": {
       "name": "5510+",
       "length": 6,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -84690,7 +84690,7 @@
     "5511+": {
       "name": "5511+",
       "length": 12212,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -101117,7 +101117,7 @@
     "5512+": {
       "name": "5512+",
       "length": 9,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -112205,7 +112205,7 @@
     "5513+": {
       "name": "5513+",
       "length": 1244,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -123428,7 +123428,7 @@
     "5514+": {
       "name": "5514+",
       "length": 7967,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -134651,7 +134651,7 @@
     "5515+": {
       "name": "5515+",
       "length": 13328,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -145874,7 +145874,7 @@
     "5516+": {
       "name": "5516+",
       "length": 6462,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -157097,7 +157097,7 @@
     "5517+": {
       "name": "5517+",
       "length": 702,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -168125,7 +168125,7 @@
     "5518+": {
       "name": "5518+",
       "length": 1316,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -179213,7 +179213,7 @@
     "5519+": {
       "name": "5519+",
       "length": 600,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -190241,7 +190241,7 @@
     "5520+": {
       "name": "5520+",
       "length": 4150,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -201329,7 +201329,7 @@
     "5521+": {
       "name": "5521+",
       "length": 4,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -212417,7 +212417,7 @@
     "5522+": {
       "name": "5522+",
       "length": 26622,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -224814,7 +224814,7 @@
     "5523+": {
       "name": "5523+",
       "length": 6440,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -237342,7 +237342,7 @@
     "5524+": {
       "name": "5524+",
       "length": 987,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -249660,7 +249660,7 @@
     "5525+": {
       "name": "5525+",
       "length": 21313,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -262192,7 +262192,7 @@
     "5526+": {
       "name": "5526+",
       "length": 652,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -274675,7 +274675,7 @@
     "5527+": {
       "name": "5527+",
       "length": 1256,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -287203,7 +287203,7 @@
     "5528+": {
       "name": "5528+",
       "length": 288,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -299716,7 +299716,7 @@
     "5529+": {
       "name": "5529+",
       "length": 12237,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -312244,7 +312244,7 @@
     "5530+": {
       "name": "5530+",
       "length": 1,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00597",
           "haplotype": "1",
@@ -319087,7 +319087,7 @@
     "5531+": {
       "name": "5531+",
       "length": 51836,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -338146,7 +338146,7 @@
     "5532+": {
       "name": "5532+",
       "length": 72067,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -352141,7 +352141,7 @@
     "5533+": {
       "name": "5533+",
       "length": 52959,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -372530,7 +372530,7 @@
     "354719+": {
       "name": "354719+",
       "length": 110,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -392911,7 +392911,7 @@
     "354720+": {
       "name": "354720+",
       "length": 962,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00408",
           "haplotype": "1",
@@ -406864,7 +406864,7 @@
     "470948+": {
       "name": "470948+",
       "length": 70372,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG01106",
           "haplotype": "1",
@@ -406999,7 +406999,7 @@
     "470949+": {
       "name": "470949+",
       "length": 9,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG01106",
           "haplotype": "1",
@@ -407122,7 +407122,7 @@
     "493032+": {
       "name": "493032+",
       "length": 21828,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG01884",
           "haplotype": "1",
@@ -407414,7 +407414,7 @@
     "493033+": {
       "name": "493033+",
       "length": 12,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG00544",
           "haplotype": "1",
@@ -407567,7 +407567,7 @@
     "519405+": {
       "name": "519405+",
       "length": 11568,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG01884",
           "haplotype": "1",
@@ -407810,7 +407810,7 @@
     "618382+": {
       "name": "618382+",
       "length": 332,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG01884",
           "haplotype": "1",
@@ -408053,7 +408053,7 @@
     "626344+": {
       "name": "626344+",
       "length": 353,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "NA18959",
           "haplotype": "1",
@@ -408176,7 +408176,7 @@
     "644132+": {
       "name": "644132+",
       "length": 297,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "NA18959",
           "haplotype": "1",
@@ -408299,7 +408299,7 @@
     "644133+": {
       "name": "644133+",
       "length": 653,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG02145",
           "haplotype": "2",
@@ -408527,7 +408527,7 @@
     "644134+": {
       "name": "644134+",
       "length": 979,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG02145",
           "haplotype": "2",
@@ -408665,7 +408665,7 @@
     "652987+": {
       "name": "652987+",
       "length": 115,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG02145",
           "haplotype": "2",
@@ -408803,7 +408803,7 @@
     "706338+": {
       "name": "706338+",
       "length": 281,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "HG02145",
           "haplotype": "2",
@@ -408941,7 +408941,7 @@
     "750140+": {
       "name": "750140+",
       "length": 1817,
-      "non_duplicated_assembly": [
+      "assembly": [
         {
           "assembly_name": "NA19391",
           "haplotype": "1",
