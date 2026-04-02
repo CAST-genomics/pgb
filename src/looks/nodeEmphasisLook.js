@@ -89,24 +89,6 @@ class NodeEmphasisLook extends Look {
             this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
         });
 
-
-
-
-
-        // PCA Chart Events
-        // this.deemphasizePCAChartUnsub = eventBus.subscribe('pcaChart:emphasis', data => {
-        //     const { assembly, nodeSet, edgeSet } = data
-        //
-        //     const color = (0 === pclaiCoordinateService.aveRgb.size) ? Look.DEFAULT_NODE_COLOR : pclaiCoordinateService.aveRgb
-        //     this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color);
-        // });
-        //
-        // this.restorePCAChartUnsub = eventBus.subscribe('pcaChart:normal', data => {
-        //     const { nodeSet, edgeSet } = data
-        //     this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
-        // });
-
-
     }
 
     /**

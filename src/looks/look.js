@@ -390,6 +390,10 @@ class Look {
             this.setEmphasisState(nodeName, 'deemphasized');
         }
 
+        for (const nodeName of nodeSet) {
+            this.setEmphasisState(nodeName, 'emphasized');
+        }
+
         this.updateNodeEmphasis(absentNodes, 'absent', undefined);
         this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined, undefined, deemphasisColor);
         this.updateNodeEmphasis(nodeSet, 'emphasized', assemblyName, nodeColor);
