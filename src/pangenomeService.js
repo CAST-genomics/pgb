@@ -9,7 +9,7 @@ class PangenomeService {
 
     // ---------- Public API ----------
 
-    loadData(json, { assemblyKeyDelim = "#" } = {}) {
+    loadData(dataset, { assemblyKeyDelim = "#" } = {}) {
         const nodes = new Map();
         const edges = new Map();
         const out   = new Map();
@@ -19,28 +19,19 @@ class PangenomeService {
         const addOut=(a,b)=>{ if(!out.has(a)) out.set(a,new Set()); out.get(a).add(b); };
         const addAdj=(a,b)=>{ if(!adj.has(a)) adj.set(a,new Set()); if(!adj.has(b)) adj.set(b,new Set()); adj.get(a).add(b); adj.get(b).add(a); };
 
-        // optional sequences (for lengths fallback)
-        const seqs = new Map();
-        if (json?.sequence) for (const [id, seq] of Object.entries(json.sequence)) seqs.set(String(id), String(seq ?? ""));
-
-        const nodeBag = json?.node || {};
-        for (const [k, raw] of Object.entries(nodeBag)) {
-            const id = String(raw?.name ?? k);
-            const seq = seqs.get(id) ?? null;
-            const lengthBp = Number.isFinite(raw?.length) ? Number(raw.length) : (seq ? seq.length : 0);
+        for (const [nodeId, node] of dataset.nodes) {
+            const id = node.name;
+            const lengthBp = node.length || (dataset.sequences.get(id)?.length ?? 0);
 
             const assemblies = new Set();
-            for (const a of (raw?.assembly || [])) {
-                const asm = String(a.assembly_name ?? "");
-                const hap = String(a.haplotype ?? "");
-                const sid = String(a.sequence_id ?? "");
-                const key = `${asm}${assemblyKeyDelim}${hap}${assemblyKeyDelim}${sid}`;
+            for (const a of node.assemblies) {
+                const key = `${a.assemblyName}${assemblyKeyDelim}${a.haplotype}${assemblyKeyDelim}${a.sequenceId}`;
                 assemblies.add(key);
                 if (!assembliesIndex.has(key)) assembliesIndex.set(key, new Set());
                 assembliesIndex.get(key).add(id);
             }
 
-            nodes.set(id, { id, lengthBp, assemblies, raw });
+            nodes.set(id, { id, lengthBp, assemblies });
             if (!out.has(id)) out.set(id, new Set());
             if (!adj.has(id)) adj.set(id, new Set());
         }
@@ -59,15 +50,15 @@ class PangenomeService {
             return null;
         };
 
-        for (const e of (json?.edge || [])) {
-            const from = resolveNodeId(e.starting_node);
-            const to   = resolveNodeId(e.ending_node);
+        for (const e of dataset.edges) {
+            const from = resolveNodeId(e.startingNode);
+            const to   = resolveNodeId(e.endingNode);
             if (!from || !to) continue;
             const key = `edge:${from}:${to}`;
             if (!edges.has(key)) { edges.set(key, { from, to }); addOut(from, to); addAdj(from, to); }
         }
 
-        this.graph = { nodes, edges, out, adj, assembliesIndex, locus: json?.locus ?? null };
+        this.graph = { nodes, edges, out, adj, assembliesIndex, locus: dataset.locus?.queriedLocus ?? null };
         this._dirOut = null;
         return true;
     }

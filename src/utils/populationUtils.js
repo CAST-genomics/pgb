@@ -160,15 +160,15 @@ export function getHierarchicalPopulationStructure(ignoreNA = true) {
  * @param {boolean} ignoreNA - Whether to ignore N/A populations
  * @returns {Array} Array of superpopulation objects with their populations from the actual dataset
  */
-export function getHierarchicalPopulationStructureFromData(jsonData, ignoreNA = true) {
+export function getHierarchicalPopulationStructureFromData(dataset, ignoreNA = true) {
     // Extract actual populations and superpopulations from the dataset
     const actualPopulations = new Set();
     const actualSuperpopulations = new Set();
 
-    // Collect from node assembly_metadata counts
-    for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
-        if (nodeData.assembly_metadata?.count) {
-            const { superpopulation, population } = nodeData.assembly_metadata.count;
+    // Collect from node assemblyMetadata counts
+    for (const [nodeId, node] of dataset.nodes) {
+        if (node.assemblyMetadata?.count) {
+            const { superpopulation, population } = node.assemblyMetadata.count;
 
             if (superpopulation) {
                 Object.keys(superpopulation).forEach(acronym => actualSuperpopulations.add(acronym));

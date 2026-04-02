@@ -187,11 +187,10 @@ class PopulationOnlyWidget {
 
     /**
      * Update the widget with new data
-     * @param {Object} jsonData - The JSON data containing assembly metadata
+     * @param {import('../datasetModel.js').DatasetModel} dataset
      */
-    updateData(jsonData) {
-        this.jsonData = jsonData;
-        this.hierarchicalData = jsonData ? getHierarchicalPopulationStructureFromData(jsonData) : [];
+    updateData(dataset) {
+        this.hierarchicalData = dataset ? getHierarchicalPopulationStructureFromData(dataset) : [];
         this.clearAllSelections();
         this.populateList();
     }

@@ -14,20 +14,17 @@ class GeometryFactory {
         this.geometryCache = new Map(); // Cache geometries by node name
     }
 
-    createGeometryData(json) {
+    createGeometryData(dataset) {
         this.splines.clear();
         this.geometryCache.clear();
 
-        const bbox = this.#calculateBoundingBox(json);
+        const bbox = this.#calculateBoundingBox(dataset);
 
-        // pretty print the bbox
-        // console.log(`bbox: ${ prettyPrint(bbox.x.min) } ${ prettyPrint(bbox.x.max) } ${ prettyPrint(bbox.y.min) } ${ prettyPrint(bbox.y.max) }`)
+        this.#createSplines(bbox, dataset.nodes);
 
-        this.#createSplines(bbox, json.node);
+        this.#createNodeGeometries(dataset.nodes);
 
-        this.#createNodeGeometries(json.node);
-
-        this.#createEdgeGeometries(json.edge);
+        this.#createEdgeGeometries(dataset.edges);
 
         const result = {
             splines: this.splines,
@@ -50,11 +47,9 @@ class GeometryFactory {
      * Create splines from node coordinates
      */
     #createSplines(bbox, nodes) {
-        for (const [nodeName, nodeData] of Object.entries(nodes)) {
-            const { ogdf_coordinates } = nodeData;
-
+        for (const [nodeName, node] of nodes) {
             // Build spline from coordinates recentered around origin
-            const coordinates = ogdf_coordinates.map(({ x, y }) =>
+            const coordinates = node.ogdfCoordinates.map(({ x, y }) =>
                 new THREE.Vector3(x - bbox.x.centroid, y - bbox.y.centroid, 0)
             );
             const spline = new THREE.CatmullRomCurve3(coordinates);
@@ -67,7 +62,7 @@ class GeometryFactory {
      * Create node line geometries without materials
      */
     #createNodeGeometries(nodes) {
-        for (const [nodeName, nodeData] of Object.entries(nodes)) {
+        for (const [nodeName, node] of nodes) {
             const spline = this.splines.get(nodeName);
             if (!spline) continue;
 
@@ -91,16 +86,16 @@ class GeometryFactory {
      */
     #createEdgeGeometries(edges) {
 
-        for (const { starting_node, ending_node } of Object.values(edges)) {
+        for (const { startingNode, endingNode } of edges) {
 
-            const startNodeName = this.getActualSignedNodeName(starting_node);
-            const startParam = this.getSplineParameter(starting_node, 'starting');
+            const startNodeName = this.getActualSignedNodeName(startingNode);
+            const startParam = this.getSplineParameter(startingNode, 'starting');
             const startSpline = this.splines.get(startNodeName);
             const xyzStart = startSpline.getPoint(startParam);
             xyzStart.z = GeometryFactory.EDGE_LINE_Z_OFFSET;
 
-            const endNodeName = this.getActualSignedNodeName(ending_node);
-            const endParam = this.getSplineParameter(ending_node, 'ending');
+            const endNodeName = this.getActualSignedNodeName(endingNode);
+            const endParam = this.getSplineParameter(endingNode, 'ending');
             const endSpline = this.splines.get(endNodeName);
             const xyzEnd = endSpline.getPoint(endParam);
             xyzEnd.z = GeometryFactory.EDGE_LINE_Z_OFFSET;
@@ -245,10 +240,10 @@ class GeometryFactory {
     /**
      * Calculate bounding box from JSON data
      */
-    #calculateBoundingBox(json) {
+    #calculateBoundingBox(dataset) {
         const acc = [];
-        for (const { ogdf_coordinates } of Object.values(json.node)) {
-            const xyzList = ogdf_coordinates.map(({ x, y }) => [x, y]);
+        for (const [, node] of dataset.nodes) {
+            const xyzList = node.ogdfCoordinates.map(({ x, y }) => [x, y]);
             acc.push(...xyzList);
         }
 

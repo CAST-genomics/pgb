@@ -26,7 +26,7 @@ class PCLACoordinateService {
      * Load PCA coordinates from JSON data
      * @param {Object} jsonData - The JSON data containing node information
      */
-    loadCoordinates(jsonData) {
+    loadCoordinates(dataset) {
         this.coordinates.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
@@ -37,13 +37,11 @@ class PCLACoordinateService {
         const allYCoords = [];
         let nodesProcessed = 0;
 
-        for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
-            const { pclai_coordinates, pclai_ave_rgb } = nodeData;
+        for (const [nodeId, node] of dataset.nodes) {
 
-            // Process pclai_ave_rgb if present
-            if (Array.isArray(pclai_ave_rgb) && pclai_ave_rgb.length === 3) {
-                const [r, g, b] = pclai_ave_rgb;
-                // Validate RGB values are valid numbers
+            // Process pclaiAveRgb if present
+            if (Array.isArray(node.pclaiAveRgb) && node.pclaiAveRgb.length === 3) {
+                const [r, g, b] = node.pclaiAveRgb;
                 if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
                     // Data file RGB values are sRGB — tag them so Three.js converts to linear working space
                     const color = new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
@@ -51,32 +49,33 @@ class PCLACoordinateService {
                 }
             }
 
-            // Skip nodes with null, undefined, or empty pclai_coordinates
-            if (!pclai_coordinates || typeof pclai_coordinates !== 'object' || Object.keys(pclai_coordinates).length === 0) {
+            // Skip nodes with no pclai coordinates
+            if (!node.pclaiCoordinates || node.pclaiCoordinates.size === 0) {
                 continue;
             }
 
             const nodeCoordData = new Map();
 
-            // Process each entry in pclai_coordinates
-            for (const [coordinateKey, {coordinates, RGB}] of Object.entries(pclai_coordinates)) {
-
-                if (!Array.isArray(coordinates) || coordinates.length !== 2 || !Array.isArray(RGB) || RGB.length !== 3) {
+            // Process each entry in pclaiCoordinates (Map<coordKey, PclaiEntry[]>)
+            for (const [coordinateKey, entries] of node.pclaiCoordinates) {
+                // Use the first (primary) entry for the coordinate/color
+                const entry = entries[0];
+                if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2 || !Array.isArray(entry.rgb) || entry.rgb.length !== 3) {
                     continue;
                 }
 
-                const [r, g, b] = RGB;
+                const [r, g, b] = entry.rgb;
                 const rgbThreeJS = new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
                 const rgbString = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 
-                const coordinateData = { coordinates, rgbThreeJS, rgbString };
+                const coordinateData = { coordinates: entry.coordinates, rgbThreeJS, rgbString };
                 nodeCoordData.set(coordinateKey, coordinateData);
 
                 // Add coordinate key to the Set (union of all keys across all nodes)
                 this.coordinateKeys.add(coordinateKey);
 
                 // Collect coordinates for bounding box calculation
-                const [x, y] = coordinates;
+                const [x, y] = entry.coordinates;
                 allXCoords.push(x);
                 allYCoords.push(y);
             }
@@ -109,11 +108,11 @@ class PCLACoordinateService {
             };
         }
 
-        // Compute absent node set — nodes with no valid pclai_coordinates.
+        // Compute absent node set — nodes with no valid pclai coordinates.
         // Only meaningful when the dataset has pclai data; otherwise absence
         // as a concept does not apply and the set stays empty.
         if (this.coordinates.size > 0) {
-            for (const nodeId of Object.keys(jsonData.node)) {
+            for (const nodeId of dataset.nodes.keys()) {
                 if (!this.coordinates.has(nodeId)) {
                     this.absentNodeSet.add(nodeId)
                 }

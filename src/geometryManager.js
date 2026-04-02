@@ -12,8 +12,8 @@ class GeometryManager {
         this.geometryData = null;
     }
 
-    createGeometry(json) {
-        this.geometryData = this.geometryFactory.createGeometryData(json);
+    createGeometry(dataset) {
+        this.geometryData = this.geometryFactory.createGeometryData(dataset);
     }
 
     createAllSceneNodeMeshes(scenes, lookManager){

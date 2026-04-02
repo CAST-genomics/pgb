@@ -13,9 +13,9 @@ class GenomicService {
         this.startNode = undefined
     }
 
-    async initialize(json, pangenomeService) {
+    async initialize(dataset, pangenomeService) {
 
-        const { locus:locusString, node:nodes, sequence:sequences } = json
+        const locusString = dataset.locus.queriedLocus
 
         this.locus = LocusInput.parseLocusString(locusString)
 
@@ -24,19 +24,19 @@ class GenomicService {
         console.log(`locus length ${ prettyPrint(this.locus.endBP - this.locus.startBP) }`)
 
         this.startNode = undefined
-        for (const [nodeName, { length, assembly, assembly_metadata }] of Object.entries(nodes)) {
+        for (const [nodeName, node] of dataset.nodes) {
 
             if (undefined === this.startNode) {
                 this.startNode = nodeName
             }
 
             const assemblySet = new Set()
-            for(const item of assembly){
+            for (const item of node.assemblies) {
                 assemblySet.add(GenomicService.tripleKey(item))
             }
 
-            const { frequency, count } = assembly_metadata
-            this.nodeMetadata.set(nodeName, { assemblySet, frequency, count, length, sequence: sequences[nodeName] });
+            const { frequency, count } = node.assemblyMetadata || {}
+            this.nodeMetadata.set(nodeName, { assemblySet, frequency, count, length: node.length, sequence: dataset.sequences.get(nodeName) });
 
         }
 
@@ -138,7 +138,7 @@ class GenomicService {
     }
 
     static tripleKey(a) {
-        return `${a.assembly_name}#${a.haplotype}#${a.sequence_id}`
+        return `${a.assemblyName}#${a.haplotype}#${a.sequenceId}`
     }
 
     getSequenceId(assemblyKey) {

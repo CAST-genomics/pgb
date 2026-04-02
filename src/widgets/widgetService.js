@@ -145,10 +145,10 @@ class WidgetService {
 
     /**
      * Update the population widget with new data
-     * @param {Object} jsonData - The JSON data containing assembly metadata
+     * @param {import('../datasetModel.js').DatasetModel} dataset
      */
-    updatePopulationWidget(jsonData) {
-        this.populationWidget.updateData(jsonData);
+    updatePopulationWidget(dataset) {
+        this.populationWidget.updateData(dataset);
     }
 
     /**
