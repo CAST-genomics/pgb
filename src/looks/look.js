@@ -4,21 +4,20 @@ import GeometryFactory from "../geometryFactory.js"
 import RibbonLine from "../ribbonLine.js"
 import RibbonMaterialFactory from "../ribbonMaterialFactory.js"
 import materialService, {colorRampArrowMaterialFactory} from "../materialService.js"
-import {getAppleCrayonColorByName} from "../utils/color/color.js"
+import {getAppleCrayonColorByName, rubinColorsHexStrings} from "../utils/color/color.js"
 import {prettyPrint} from "../utils/utils.js"
 
 class Look {
 
     static NODE_EMPHASIS_COLOR = '#c0311a'
 
-    static NODE_DEEMPHASIS_COLOR = '#afafaf'
+    static NODE_DEEMPHASIS_COLOR = '#B2B1A9'
 
-    static NODE_ABSENCE_COLOR = '#dce4e8'
-    // static NODE_ABSENCE_COLOR = '#c8cdd3'
+    // static NODE_ABSENCE_COLOR = '#dce4e8'
+    static NODE_ABSENCE_COLOR = rubinColorsHexStrings.get('rubinIvoryDark')
     // static NODE_ABSENCE_COLOR = '#ff0289'
 
-    static DEFAULT_NODE_COLOR = '#6e6e6e'
-    static DEFAULT_NODE_COLOR_THREE_JS = new THREE.Color('#6e6e6e')
+    static DEFAULT_NODE_COLOR = rubinColorsHexStrings.get('rubinGray')
 
     static DEFAULT_EDGE_COLOR_NAME = 'magnesium'
 
@@ -131,7 +130,7 @@ class Look {
             return this.materialCache.get(cacheKey)
         }
 
-        const material = RibbonMaterialFactory.createMaterial(Look.DEFAULT_NODE_COLOR_THREE_JS)
+        const material = RibbonMaterialFactory.createMaterial(Look.DEFAULT_NODE_COLOR)
         lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
@@ -204,18 +203,6 @@ class Look {
 
         return material
     }
-
-    /**
-     * Gets the color for a node in its normal (non-emphasized) state.
-     * Subclasses can override this to provide node-specific coloring.
-     *
-     * @param {string} nodeName - The name/identifier of the node
-     * @returns {THREE.Color} The Three.js Color object for the node
-     */
-    getNodeColor(nodeName) {
-        return Look.DEFAULT_NODE_COLOR_THREE_JS
-    }
-
     /**
      * Creates a mesh for an edge (connection between nodes) using the provided geometry.
      * Edges use gradient materials that transition from start to end colors.
