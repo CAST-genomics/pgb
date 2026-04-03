@@ -140,9 +140,8 @@ class PCAWidget {
 
     emphasizeAssembly(coordinateKey) {
         const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
-        const edgeSet = new Set()
         const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, edgeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
+        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
     }
 
     initializeSearchInput() {
@@ -251,8 +250,7 @@ class PCAWidget {
 
         // Restore all nodes (including absent) to default color
         const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-        const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-        eventBus.publish('pcaWidget:normal', { nodeSet, edgeSet })
+        eventBus.publish('pcaWidget:normal', { nodeSet })
     }
 
     destroy() {

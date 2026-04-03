@@ -1,18 +1,10 @@
 import * as THREE from 'three';
 import vertexShader from '../shaders/animated-arrow.vert.glsl?raw';
 import fragmentShader from '../shaders/animated-arrow.frag.glsl?raw';
+import arrowFragmentShader from '../shaders/arrow.frag.glsl?raw';
 import { createGradientTexture } from './utils/textureService.js';
 import textureService from './utils/textureService.js';
 import { textures } from './utils/textureLibrary.js';
-import {getAppleCrayonColorByName} from "./utils/color/color.js"
-
-// Material type constants
-const MATERIAL_TYPES =
-    {
-        DEEMPHASIS: 'deemphasisMaterial',
-        EMPHASIS: 'emphasisMaterial'
-    };
-
 class MaterialService {
 
     constructor() {
@@ -28,14 +20,6 @@ class MaterialService {
 
     async initialize() {
         await this.initializeTextureService({ textures });
-    }
-
-    getEdgeDeemphasisMaterial() {
-        return colorRampArrowMaterialFactory(getAppleCrayonColorByName('mercury'), getAppleCrayonColorByName('mercury'), this.getTexture('arrow-white'), 1, MATERIAL_TYPES.DEEMPHASIS);
-    }
-
-    getEdgeEmphasisMaterial(color) {
-        return colorRampArrowMaterialFactory(color, color, this.getTexture('arrow-white'), 1, MATERIAL_TYPES.EMPHASIS);
     }
 
     getTexture(name) {
@@ -60,7 +44,7 @@ class MaterialService {
  * @param {string} [materialType] - Optional material type identifier
  * @returns {THREE.ShaderMaterial} The configured material instance
  */
-function colorRampArrowMaterialFactory(startColor, endColor, heroTexture, opacity = 1, materialType = null) {
+function colorRampArrowMaterialFactory(startColor, endColor, heroTexture, opacity = 1) {
 
     // Configure hero texture wrapping
     heroTexture.wrapS = THREE.RepeatWrapping;
@@ -85,55 +69,40 @@ function colorRampArrowMaterialFactory(startColor, endColor, heroTexture, opacit
             {
                 value: createGradientTexture()
             },
-        uvOffset:
-            {
-                value: new THREE.Vector2(0.0, 0.0)
-            },
         opacity:
             {
                 value: opacity
             }
     }
 
-    // Create the shader material
-    const material = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader, transparent:true, side:THREE.DoubleSide, alphaTest:0.1, depthWrite:true });
-
-    // Set material type if provided
-    if (materialType) {
-        material.materialType = materialType;
-    }
-
-    return material;
+    return new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader, transparent:true, side:THREE.DoubleSide, alphaTest:0.1, depthWrite:true });
 }
 
 /**
- * Creates a basic material for an arrow with a single color tint.
+ * Creates an arrow material with a single color and the arrow texture shape.
  *
- * @param {THREE.Texture} heroTexture - The texture to use for the arrow shape (e.g., arrow-white)
- * @param {THREE.Color} color - The color to tint the arrow
- * @returns {THREE.MeshBasicMaterial} The configured material instance
+ * @param {THREE.Color|string} color - The arrow color
+ * @param {THREE.Texture} heroTexture - The texture for the arrow shape (e.g., arrow-white)
+ * @param {number} [opacity=1] - The opacity (0.0 to 1.0)
+ * @returns {THREE.ShaderMaterial}
  */
-function arrowMaterialFactory(heroTexture, color) {
+function arrowMaterialFactory(color, heroTexture, opacity = 1) {
 
-    const material = new THREE.MeshBasicMaterial({
-        color,
-        map: heroTexture,
-        side: THREE.DoubleSide,
-        transparent: true,
-        alphaTest: 0.1,
-        opacity: 1,
-        depthWrite: true,
-    });
+    heroTexture.wrapS = THREE.RepeatWrapping;
+    heroTexture.wrapT = THREE.RepeatWrapping;
+    heroTexture.needsUpdate = true;
 
-    // Enable texture wrapping
-    material.map.wrapS = THREE.RepeatWrapping;
-    material.map.wrapT = THREE.RepeatWrapping;
+    const uniforms = {
+        color: { value: new THREE.Color(color) },
+        map: { value: heroTexture },
+        opacity: { value: opacity }
+    }
 
-    return material;
+    return new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader: arrowFragmentShader, transparent: true, side: THREE.DoubleSide, alphaTest: 0.1, depthWrite: true });
 }
 
 // Create and export a singleton instance
 const materialService = new MaterialService(textureService);
 export default materialService;
 
-export { arrowMaterialFactory, colorRampArrowMaterialFactory, MATERIAL_TYPES }
+export { arrowMaterialFactory, colorRampArrowMaterialFactory }
