@@ -108,14 +108,12 @@ class AssemblyWidget {
             this.selectedAssembly = null;
 
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-            const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-            eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+            eventBus.publish('assembly:normal', { nodeSet })
         } else {
             // Deselect previous assembly selector if one exists
             if (this.selectedAssembly !== null) {
                 const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-                const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-                eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+                eventBus.publish('assembly:normal', { nodeSet })
             }
 
             console.log(`selected ${ assembly }`)
@@ -135,22 +133,20 @@ class AssemblyWidget {
     }
 
     emphasizeAssembly(selectedAssembly) {
-        let nodeSet, edgeSet;
+        let nodeSet;
 
         if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
             // Use spine features data
             const { spine } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).spineFeatures;
-            const { nodes, edges } = spine;
+            const { nodes } = spine;
             nodeSet = new Set([...(nodes.map(({ id }) => id))]);
-            edgeSet = new Set([...edges]);
         } else {
             // Use assembly subgraph data (default)
-            const { nodes, edges } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).assemblySubgraph;
+            const { nodes } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).assemblySubgraph;
             nodeSet = new Set([...nodes]);
-            edgeSet = new Set([...edges]);
         }
 
-        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, edgeSet, deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR });
+        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR });
     }
 
     initializeSearchInput() {
@@ -290,8 +286,7 @@ class AssemblyWidget {
         // Clear any selected assembly
         if (this.selectedAssembly) {
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-            const edgeSet = this.geometryManager.geometryFactory.getEdgeNameSet()
-            eventBus.publish('assembly:normal', { nodeSet, edgeSet })
+            eventBus.publish('assembly:normal', { nodeSet })
             this.selectedAssembly = null;
         }
     }

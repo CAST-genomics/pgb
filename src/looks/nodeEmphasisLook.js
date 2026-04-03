@@ -19,7 +19,6 @@ class NodeEmphasisLook extends Look {
     getZOffset(objectId) {
 
         if (objectId.startsWith('node:')) {
-            // Node emphasis behavior
             const nodeName = objectId.replace('node:', '');
             const state = this.emphasisStates.get(nodeName) || 'normal';
             switch (state) {
@@ -33,21 +32,7 @@ class NodeEmphasisLook extends Look {
                     return GeometryFactory.NODE_LINE_Z_OFFSET;
                 default:
                     console.error(`getZOffset: object ${ objectId } has invalid emphasis state`);
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
-            }
-        } else if (objectId.startsWith('edge:')) {
-
-            const state = this.emphasisStates.get(objectId) || 'normal';
-            switch (state) {
-                case 'deemphasized':
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET - 4;
-                case 'emphasized':
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
-                case 'normal':
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
-                default:
-                    console.error(`getZOffset: object ${ objectId } has invalid emphasis state`);
-                    return GeometryFactory.EDGE_LINE_Z_OFFSET;
+                    return GeometryFactory.NODE_LINE_Z_OFFSET;
             }
         }
 
@@ -63,13 +48,13 @@ class NodeEmphasisLook extends Look {
 
         // Assembly Viz Events
         this.deemphasizeAssemblyUnsub = eventBus.subscribe('assembly:emphasis', data => {
-            const { assembly, nodeSet, edgeSet, deemphasisColor } = data
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
+            const { assembly, nodeSet, deemphasisColor } = data
+            this.setNodeEmphasis(assembly.name, nodeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
         });
 
         this.restoreAssemblyUnsub = eventBus.subscribe('assembly:normal', data => {
-            const { nodeSet, edgeSet } = data
-            this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
+            const { nodeSet } = data
+            this.restoreNodes(nodeSet)
         });
 
         // PCA Widget Events
@@ -79,14 +64,14 @@ class NodeEmphasisLook extends Look {
         });
 
         this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
-            const { assembly, nodeSet, edgeSet, absentNodeSet, deemphasisColor } = data
+            const { assembly, nodeSet, absentNodeSet, deemphasisColor } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
-            this.setNodeAndEdgeEmphasis(assembly.name, nodeSet, edgeSet, color, absentNodeSet, deemphasisColor);
+            this.setNodeEmphasis(assembly.name, nodeSet, color, absentNodeSet, deemphasisColor);
         });
 
         this.restorePCAWidgetUnsub = eventBus.subscribe('pcaWidget:normal', data => {
-            const { nodeSet, edgeSet } = data
-            this.restoreLinesandEdgesViaZOffset(nodeSet, edgeSet)
+            const { nodeSet } = data
+            this.restoreNodes(nodeSet)
         });
 
     }

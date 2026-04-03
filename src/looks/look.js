@@ -3,8 +3,8 @@ import lineMaterialResolutionService from "../lineMaterialResolutionService.js"
 import GeometryFactory from "../geometryFactory.js"
 import RibbonLine from "../ribbonLine.js"
 import RibbonMaterialFactory from "../ribbonMaterialFactory.js"
-import materialService, {colorRampArrowMaterialFactory} from "../materialService.js"
-import {getAppleCrayonColorByName, rubinColorsHexStrings} from "../utils/color/color.js"
+import materialService, {arrowMaterialFactory} from "../materialService.js"
+import {rubinColorsHexStrings} from "../utils/color/color.js"
 import {prettyPrint} from "../utils/utils.js"
 
 class Look {
@@ -202,6 +202,7 @@ class Look {
 
         return material
     }
+
     /**
      * Creates a mesh for an edge (connection between nodes) using the provided geometry.
      * Edges use gradient materials that transition from start to end colors.
@@ -217,8 +218,7 @@ class Look {
 
         const { startNode, endNode, edgeKey } = context;
 
-        const [ startColor, endColor ] = this.getEdgeColors(startNode, endNode, edgeKey)
-        const material = this.getEdgeMaterial(startColor, endColor)
+        const material = this.getEdgeMaterial(Look.DEFAULT_EDGE_COLOR)
 
         const mesh = new THREE.Mesh(geometry, material);
 
@@ -234,30 +234,13 @@ class Look {
     }
 
     /**
-     * Creates a gradient material for an edge that transitions from start to end color.
-     * Uses a color ramp with arrow texture for directional visualization.
+     * Creates a material for an edge arrow with a single color.
      *
-     * @param {THREE.Color} startColor - The color at the start of the edge
-     * @param {THREE.Color} endColor - The color at the end of the edge
-     * @returns {THREE.ShaderMaterial} The gradient material for the edge
+     * @param {THREE.Color|string} color - The edge color
+     * @returns {THREE.ShaderMaterial}
      */
-    getEdgeMaterial(startColor, endColor) {
-        return colorRampArrowMaterialFactory(startColor, endColor, materialService.getTexture('arrow-white'), 1);
-    }
-
-    /**
-     * Gets the start and end colors for an edge.
-     * Subclasses can override this to provide edge-specific coloring based on nodes or edge properties.
-     *
-     * @param {string} startNode - The name of the starting node
-     * @param {string} endNode - The name of the ending node
-     * @param {string} edgeKey - Unique identifier for this edge
-     * @returns {Array<THREE.Color>} Array containing [startColor, endColor]
-     */
-    getEdgeColors(startNode, endNode, edgeKey) {
-        const startColor = Look.DEFAULT_EDGE_COLOR
-        const endColor = Look.DEFAULT_EDGE_COLOR
-        return [ startColor, endColor ]
+    getEdgeMaterial(color) {
+        return arrowMaterialFactory(color, materialService.getTexture('arrow-white'), 1);
     }
 
     /**
@@ -359,18 +342,17 @@ class Look {
     }
 
     /**
-     * Sets emphasis state for nodes and edges based on an assembly selection.
-     * Nodes and edges in the provided sets are emphasized, while others are deemphasized.
+     * Sets emphasis state for nodes based on an assembly selection.
+     * Nodes in the provided set are emphasized, while others are deemphasized.
      * Updates materials and Z-positions accordingly.
      *
      * @param {string} assemblyName - The name of the assembly being emphasized
      * @param {Set<string>} nodeSet - Set of node names to emphasize
-     * @param {Set<string>} edgeSet - Set of edge keys to emphasize
      * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
      * @param {Set<string>} [absentNodeSet] - Set of node names that lack the attribute category entirely
      * @param {string|THREE.Color} [deemphasisColor] - Optional override for deemphasis color
      */
-    setNodeAndEdgeEmphasis(assemblyName, nodeSet, edgeSet, nodeColor, absentNodeSet, deemphasisColor) {
+    setNodeEmphasis(assemblyName, nodeSet, nodeColor, absentNodeSet, deemphasisColor) {
 
         this.emphasisStates.clear()
 
@@ -397,37 +379,22 @@ class Look {
         this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined, undefined, deemphasisColor);
         this.updateNodeEmphasis(nodeSet, 'emphasized', assemblyName, nodeColor);
 
-        const deemphasisEdgeSet = this.geometryManager.geometryFactory.getEdgeNameSet().difference(edgeSet);
-
-        for (const edgeKey of deemphasisEdgeSet) {
-            this.setEmphasisState(edgeKey, 'deemphasized');
-        }
-
-        this.updateEdgeEmphasis(deemphasisEdgeSet, 'deemphasized', undefined);
-        this.updateEdgeEmphasis(edgeSet, 'emphasized', assemblyName);
-
         this.updateGeometryPositions();
     }
 
     /**
-     * Restores nodes and edges to their normal (non-emphasized) state.
-     * Resets materials and Z-positions for the specified nodes and edges.
+     * Restores nodes to their normal (non-emphasized) state.
+     * Resets materials and Z-positions for the specified nodes.
      *
      * @param {Set<string>} nodeSet - Set of node names to restore to normal state
-     * @param {Set<string>} edgeSet - Set of edge keys to restore to normal state
      */
-    restoreLinesandEdgesViaZOffset(nodeSet, edgeSet) {
+    restoreNodes(nodeSet) {
 
         for (const nodeName of nodeSet) {
             this.setEmphasisState(nodeName, 'normal');
         }
 
-        for (const key of edgeSet) {
-            this.setEmphasisState(key, 'normal');
-        }
-
         this.updateNodeEmphasis(nodeSet, 'normal', undefined, undefined);
-        this.updateEdgeEmphasis(edgeSet, 'normal', undefined);
 
         this.updateGeometryPositions();
     }
@@ -456,65 +423,17 @@ class Look {
     applyEmphasisState(mesh, emphasisState, assemblyName, nodeColor, deemphasisColor) {
         if (!mesh.userData) return;
 
-        const { type } = mesh.userData;
-
         if (emphasisState === 'deemphasized') {
-            if (type === 'node') {
-                mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName, deemphasisColor);
-            } else if (type === 'edge') {
-                mesh.material = materialService.getEdgeDeemphasisMaterial();
-            }
+            mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName, deemphasisColor);
         } else if (emphasisState === 'emphasized') {
-
-            if (type === 'node') {
-                mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName, mesh.userData.nodeName, nodeColor);
-            } else if (type === 'edge') {
-
-                const startColor = getAppleCrayonColorByName('magnesium')
-                const endColor = getAppleCrayonColorByName('magnesium')
-                mesh.material = this.getEdgeMaterial(startColor, endColor)
-            }
-
+            mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName, mesh.userData.nodeName, nodeColor);
         } else if (emphasisState === 'absent') {
-
-            if (type === 'node') {
-                mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName);
-            }
-
-        }  else if (emphasisState === 'normal') {
-
-            if (type === 'node') {
-                mesh.material = this.getNodeRibbonMaterial(mesh.userData.nodeName);
-            } else if (type === 'edge') {
-                const startColor = getAppleCrayonColorByName('steel')
-                const endColor = getAppleCrayonColorByName('steel')
-                mesh.material = this.getEdgeMaterial(startColor, endColor)
-            }
-
+            mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName);
+        } else if (emphasisState === 'normal') {
+            mesh.material = this.getNodeRibbonMaterial(mesh.userData.nodeName);
         } else {
             console.warn('DANGER! Should not get here')
         }
-    }
-
-    /**
-     * Updates the emphasis state for a set of edges in the scene.
-     * Traverses the EdgeMeshGroup and applies the emphasis state to matching edges.
-     *
-     * @param {Set<string>} edgeSet - Set of edge keys to update
-     * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
-     * @param {string} assembly - The assembly name (used for 'emphasized' state)
-     */
-    updateEdgeEmphasis(edgeSet, emphasisState, assembly) {
-
-        const edgeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('EdgeMeshGroup')
-        edgeMeshGroup.traverse((object) => {
-            if (object.userData?.type === 'edge') {
-                if (edgeSet.has(object.userData.geometryKey)) {
-                    this.applyEmphasisState(object, emphasisState, assembly, undefined);
-                }
-            }
-        })
-
     }
 
     /**
@@ -550,14 +469,6 @@ class Look {
                 const zOffset = this.getZOffset(`node:${nodeName}`);
                 const baseZ = object.userData.zOffset || GeometryFactory.NODE_LINE_Z_OFFSET
                 object.position.z = zOffset - baseZ
-            }
-        });
-
-        const edgeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('EdgeMeshGroup')
-        edgeMeshGroup.traverse((object) => {
-            if (object.userData?.type === 'edge') {
-                const edgeKey = object.userData.geometryKey;
-                object.position.z = this.getZOffset(edgeKey);
             }
         });
     }
