@@ -9,6 +9,7 @@
  */
 
 import { DatasetParseError } from './datasetModel.js';
+import { validateRawDataset } from './datasetValidator.js';
 
 // ── Public API ───────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ export function parseDataset(json) {
     }
 
     const version = detectFormat(json);
+    validateRawDataset(json, version);
 
     switch (version) {
         case 'v1': return normalizeV1(json);
