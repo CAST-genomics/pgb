@@ -1,0 +1,25 @@
+- generic [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "PGB" [ref=e4] [cursor=pointer]:
+        - /url: "#"
+      - generic [ref=e5]:
+        - generic [ref=e16]:
+          - combobox "Version" [ref=e17]:
+            - option "Version 1"
+            - option "Version 2" [selected]
+          - textbox "Genomic locus, gene name, or URL" [ref=e18]:
+            - /placeholder: Enter locus, gene name, URL, or local file (e.g., chr8:30,000-50,000, daz1.json)
+            - text: chr20:13995516-16053197
+          - button "Go" [active] [ref=e19] [cursor=pointer]
+        - generic [ref=e6]:
+          - button "PCA Chart" [disabled]
+          - button "" [ref=e7] [cursor=pointer]:
+            - generic [ref=e8]: 
+  - generic [ref=e9]:
+    - generic [ref=e21]:
+      - button "Assembly" [ref=e22] [cursor=pointer]
+      - button "Population" [ref=e23] [cursor=pointer]
+      - button "PCA" [ref=e24] [cursor=pointer]
+    - text:  
+  - generic [ref=e26]: "Error loading https://3.145.184.140:8443/json?chrom=chr20&start=13995516&end=16053197&graphtype=minigraph&version=v2&api=v2&pca=assembly&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000: Network error: Unable to fetch from https://3.145.184.140:8443/json?chrom=chr20&start=13995516&end=16053197&graphtype=minigraph&version=v2&api=v2&pca=assembly&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000. This could be due to: - CORS (Cross-Origin Resource Sharing) restrictions - SSL certificate validation failure (self-signed certificate) - Network connectivity issues - Server not responding Original error: Failed to fetch"
