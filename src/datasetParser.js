@@ -101,7 +101,8 @@ function normalizeV1(json) {
         const pclaiDict = raw.pclai_coordinates;
         if (pclaiDict && typeof pclaiDict === 'object') {
             for (const [coordKey, entry] of Object.entries(pclaiDict)) {
-                if (!entry || !Array.isArray(entry.coordinates) || !Array.isArray(entry.RGB)) continue;
+                if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2
+                    || !Array.isArray(entry.RGB) || entry.RGB.length !== 3) continue;
                 pclaiCoordinates.set(coordKey, [{
                     coordinates: entry.coordinates,
                     rgb:         entry.RGB,
@@ -211,7 +212,8 @@ function normalizeV2Assemblies(assemblyArray, pclaiCoordinates) {
             // Extract PCLAI windows from this metadata entry
             if (Array.isArray(meta.pclai) && meta.pclai.length > 0 && meta.take === 'yes') {
                 const windows = meta.pclai
-                    .filter(w => Array.isArray(w.coordinates) && Array.isArray(w.RGB))
+                    .filter(w => Array.isArray(w.coordinates) && w.coordinates.length === 2
+                        && Array.isArray(w.RGB) && w.RGB.length === 3)
                     .map(w => ({
                         coordinates: w.coordinates,
                         rgb:         w.RGB,
