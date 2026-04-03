@@ -17,7 +17,7 @@ https://3.145.184.140:8443/json?chrom=chr1&start=25240000&end=25460000&graphtype
 
 `pclai_information` and `assembly` have been merged and reorganized into two separate lists per node:
 
-- **`non_duplicated_assembly`** — assemblies that map to exactly one region; always have a single item in `metadata`.
+- **`assembly`** — assemblies that map to exactly one region; always have a single item in `metadata`.
 - **`duplicated_assembly`** — assemblies that map to the same region more than once (see §2 below); have multiple items in `metadata`.
 
 Each assembly entry now looks like this:

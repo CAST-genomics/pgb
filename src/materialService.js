@@ -67,13 +67,32 @@ function colorRampArrowMaterialFactory(startColor, endColor, heroTexture, opacit
     heroTexture.wrapT = THREE.RepeatWrapping;
     heroTexture.needsUpdate = true;
 
-    const uniforms = {
-        startColor: { value: startColor },
-        endColor: { value: endColor },
-        map: { value: heroTexture },
-        gradientMap: { value: createGradientTexture() },
-        uvOffset: { value: new THREE.Vector2(0.0, 0.0) },
-        opacity: { value: opacity }
+    const uniforms =
+        {
+        startColor:
+            {
+                value: new THREE.Color(startColor)
+            },
+        endColor:
+            {
+                value: new THREE.Color(endColor)
+            },
+        map:
+            {
+                value: heroTexture
+            },
+        gradientMap:
+            {
+                value: createGradientTexture()
+            },
+        uvOffset:
+            {
+                value: new THREE.Vector2(0.0, 0.0)
+            },
+        opacity:
+            {
+                value: opacity
+            }
     }
 
     // Create the shader material

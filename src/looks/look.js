@@ -18,8 +18,7 @@ class Look {
     // static NODE_ABSENCE_COLOR = '#ff0289'
 
     static DEFAULT_NODE_COLOR = rubinColorsHexStrings.get('rubinGray')
-
-    static DEFAULT_EDGE_COLOR_NAME = 'magnesium'
+    static DEFAULT_EDGE_COLOR = rubinColorsHexStrings.get('rubinGray')
 
     // Apparent line width in screen pixels (constant regardless of zoom).
     // Converted to world units per frame by lineMaterialResolutionService.
@@ -256,8 +255,8 @@ class Look {
      * @returns {Array<THREE.Color>} Array containing [startColor, endColor]
      */
     getEdgeColors(startNode, endNode, edgeKey) {
-        const startColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
-        const endColor = getAppleCrayonColorByName(Look.DEFAULT_EDGE_COLOR_NAME)
+        const startColor = Look.DEFAULT_EDGE_COLOR
+        const endColor = Look.DEFAULT_EDGE_COLOR
         return [ startColor, endColor ]
     }
 
@@ -388,6 +387,10 @@ class Look {
 
         for (const nodeName of deemphasisNodeSet) {
             this.setEmphasisState(nodeName, 'deemphasized');
+        }
+
+        for (const nodeName of nodeSet) {
+            this.setEmphasisState(nodeName, 'emphasized');
         }
 
         this.updateNodeEmphasis(absentNodes, 'absent', undefined);

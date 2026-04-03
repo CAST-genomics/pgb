@@ -37,17 +37,17 @@ class AssemblyMetadataService {
      * Load assembly metadata from JSON data
      * @param {Object} jsonData - The JSON data containing node information
      */
-    loadMetadata(jsonData) {
+    loadMetadata(dataset) {
         this.metadata.clear();
         this.totalAssemblies = 0;
 
-        for (const [nodeId, nodeData] of Object.entries(jsonData.node)) {
-            if (nodeData.assembly_metadata) {
-                const nodeTotalAssemblies = this.calculateTotalAssemblies(nodeData.assembly_metadata.count);
+        for (const [nodeId, node] of dataset.nodes) {
+            if (node.assemblyMetadata) {
+                const nodeTotalAssemblies = this.calculateTotalAssemblies(node.assemblyMetadata.count);
 
                 this.metadata.set(nodeId, {
-                    count: nodeData.assembly_metadata.count || {},
-                    frequency: nodeData.assembly_metadata.frequency || {},
+                    count: node.assemblyMetadata.count || {},
+                    frequency: node.assemblyMetadata.frequency || {},
                     totalAssemblies: nodeTotalAssemblies
                 });
 

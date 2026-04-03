@@ -11,6 +11,7 @@ import materialService from './materialService.js'
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
 import { pcaChartService } from "./widgets/pcaChartService.js"
+import { parseDataset } from './datasetParser.js'
 
 let xxPre = undefined
 let yyPre = undefined
@@ -164,23 +165,25 @@ class App {
     }
 
     async processData(json) {
-        this.pangenomeService.loadData(json)
+        const dataset = parseDataset(json)
 
-        assemblyMetadataService.loadMetadata(json)
+        this.pangenomeService.loadData(dataset)
 
-        pclaiCoordinateService.loadCoordinates(json)
+        assemblyMetadataService.loadMetadata(dataset)
+
+        pclaiCoordinateService.loadCoordinates(dataset)
 
         // Initialize PCA Chart with global bounding box
         pcaChartService.reset()
         await pcaChartService.initializeGlobalBoundingBox()
 
-        await this.genomicService.initialize(json, this.pangenomeService)
+        await this.genomicService.initialize(dataset, this.pangenomeService)
 
-        this.widgetService.updatePopulationWidget(json)
+        this.widgetService.updatePopulationWidget(dataset)
 
         this.widgetService.reset()
 
-        this.geometryManager.createGeometry(json)
+        this.geometryManager.createGeometry(dataset)
 
         this.setActiveScene('nodeEmphasisScene')
 
@@ -194,7 +197,7 @@ class App {
         this.startAnimation()
 
         // Publish event indicating a new dataset has been loaded
-        eventBus.publish('datasetLoaded', { json })
+        eventBus.publish('datasetLoaded', { dataset })
     }
 
     updateViewToFitScene(scene, cameraManager, mapControl) {

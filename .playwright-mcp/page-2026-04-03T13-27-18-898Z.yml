@@ -1,0 +1,41 @@
+- generic [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "PGB" [ref=e4] [cursor=pointer]:
+        - /url: "#"
+      - generic [ref=e5]:
+        - generic [ref=e16]:
+          - combobox "Version" [ref=e17]:
+            - option "Version 1"
+            - option "Version 2" [selected]
+          - textbox "Genomic locus, gene name, or URL" [ref=e18]:
+            - /placeholder: Enter locus, gene name, URL, or local file (e.g., chr8:30,000-50,000, daz1.json)
+          - button "Go" [ref=e19] [cursor=pointer]
+        - generic [ref=e6]:
+          - button "PCA Chart" [ref=e27] [cursor=pointer]
+          - button "" [ref=e7] [cursor=pointer]:
+            - generic [ref=e8]: 
+  - generic [ref=e9]:
+    - generic [ref=e21]:
+      - button "Assembly" [ref=e22] [cursor=pointer]
+      - button "Population" [ref=e23] [cursor=pointer]
+      - button "PCA" [ref=e24] [cursor=pointer]
+    - generic [ref=e28]:
+      - heading "Assembly" [level=5] [ref=e30]
+      - generic [ref=e31]:
+        - generic [ref=e33]:
+          - generic [ref=e35]: 
+          - textbox "Search assemblies" [active] [ref=e36]:
+            - /placeholder: Search assemblies...
+            - text: HG00097
+        - generic [ref=e38]:
+          - generic [ref=e976]:
+            - generic [ref=e977]: HG00097
+            - generic [ref=e978]: hap1
+          - generic [ref=e2056]:
+            - generic [ref=e2057]: HG00097
+            - generic [ref=e2058]: hap2
+      - generic [ref=e2370]:
+        - switch [ref=e2372]
+        - generic [ref=e2373]: Assembly Subgraph
+    - text: 
