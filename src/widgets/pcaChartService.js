@@ -306,7 +306,7 @@ class PCAChartService {
      */
     async loadReferenceData() {
         try {
-            const response = await fetch('/hprc-project/hprc-reference-pca.tsv');
+            const response = await fetch('/datasets/hprc-reference-pca.tsv');
             if (!response.ok) {
                 console.warn('PCAChartService: Failed to load reference PCA data:', response.statusText);
                 return;
