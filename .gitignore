@@ -32,3 +32,4 @@ src/styles/*.css.map
 data/genomes/
 
 .wrangler
+.playwright-mcp
