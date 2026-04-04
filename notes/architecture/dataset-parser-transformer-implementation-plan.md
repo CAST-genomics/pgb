@@ -16,17 +16,17 @@ The current ingestion in `processData` (`src/app.js:166`) passes raw JSON to 6+ 
 
 ## New Modules
 
-### `src/datasetParser.js` (~200 lines)
+### `src/datasetParser.ts` (~260 lines)
 The single parse point. Exported function:
-```js
-export function parseDataset(json) → DatasetModel
+```ts
+export function parseDataset(json: unknown): DatasetModel
 ```
 - Detects format version (v1 vs v2) via structural heuristics (`json.queried_locus` → v2, `json.locus` string → v1)
 - Validates required fields, throws `DatasetParseError` with JSON path on failure
 - Calls internal `normalizeV1(json)` or `normalizeV2(json)` to produce a common `DatasetModel`
 
-### `src/datasetModel.js` (~60 lines)
-JSDoc typedefs for the normalized model + `DatasetParseError` class. Serves as the canonical contract documentation.
+### `src/datasetModel.ts` (~70 lines)
+TypeScript interfaces (`DatasetModel`, `NodeModel`, `AssemblyEntry`, `PclaiEntry`, `AssemblyMetadata`), `FormatVersion` type, and `DatasetParseError` class. These are compiler-enforced contracts — not just documentation, but guarantees checked by `tsc --noEmit`.
 
 ---
 
@@ -88,32 +88,22 @@ async processData(json) {
 
 ## Phased Approach
 
-### Phase 1 — Refactor: parser + v1 normalizer + rewire all consumers
-**What this is**: A refactoring step. Same behavior, new internal plumbing. No new capabilities.
-**What this is NOT**: It does not add v2 support or change the API URL.
+### Phase 1 — Refactor: parser + v1 normalizer + rewire all consumers ✓ Complete
 
-1. Create `src/datasetModel.js` (typedefs + DatasetParseError)
-2. Create `src/datasetParser.js` with `parseDataset()`, format detection, and `normalizeV1()`
-3. Update `src/app.js:processData` to call `parseDataset(json)` and pass `dataset` downstream
-4. Update each consumer service (pangenomeService → assemblyMetadataService → pclaiCoordinateService → genomicService → geometryFactory → populationUtils/widgetService)
-5. **Verify**: Load existing v1 datasets via file drop (e.g. `public/hprc-project/chr6-160531482-160664275.json`). Confirm identical rendering, widgets, PCA chart, assembly walks. This is the critical gate before moving on.
+### Phase 2 — New capability: v2 normalizer + new API URL ✓ Complete
 
-### Phase 2 — New capability: v2 normalizer + new API URL
-**What this is**: The payoff. Locus queries work against CiCi's new API.
+### Phase 3 — Validation hardening ✓ Complete
 
-1. Add `normalizeV2()` to `src/datasetParser.js`
-2. Handle: merged assembly/metadata/pclai nesting, windowed PCLAI, duplicated_assembly, take flag, split locus, top-level assembly index
-3. Update the API URL to the new v2 endpoint (currently in `notes/api-and-dataset-update-02-apr-2026/api-02-apr-2026-url.txt`)
-4. **Verify**: Load `notes/api-and-dataset-update-02-apr-2026/cici-dataset-02-apr-2026.json` via file drop. Enter a locus in the input widget and hit Go against the new API. Confirm rendering + PCLAI chart + population widget.
+### Phase 4 — Tests ✓ Complete
+`src/__tests__/datasetParser.test.js` — 188 tests covering format detection, v1/v2 normalization, missing fields, edge cases.
 
-### Phase 3 — Validation hardening
-1. Extract validation into `src/datasetValidator.js`
-2. Required-field checks, type checks on coordinates/RGB, clear error paths
-3. **Verify**: Feed malformed JSON via file drop. Confirm meaningful error messages instead of deep TypeErrors.
+### Phase 5 — TypeScript conversion ✓ Complete
+Converted the three ingestion-layer files from JavaScript to TypeScript:
+- `src/datasetModel.ts` — JSDoc typedefs replaced with compiler-enforced TypeScript interfaces
+- `src/datasetParser.ts` — `parseDataset(json: unknown): DatasetModel` signature enforces the contract at compile time
+- `src/datasetValidator.ts` — typed validation helpers with assertion functions
 
-### Phase 4 — Tests
-1. Create `src/__tests__/datasetParser.test.js`
-2. Test: format detection, v1 normalization, v2 normalization, missing fields, edge cases (empty nodes, missing optional fields, multi-window PCLAI)
+Infrastructure: `tsconfig.json` added with `strict: true`, `noEmit: true` (Vite handles transpilation; `tsc` is the type checker only). `npm run typecheck` runs `tsc --noEmit`. The rest of the app remains JavaScript — TypeScript is used only at the ingestion boundary where it adds the most value.
 
 ---
 

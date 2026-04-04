@@ -145,7 +145,7 @@ class WidgetService {
 
     /**
      * Update the population widget with new data
-     * @param {import('../datasetModel.js').DatasetModel} dataset
+     * @param {import('../datasetModel.ts').DatasetModel} dataset
      */
     updatePopulationWidget(dataset) {
         this.populationWidget.updateData(dataset);

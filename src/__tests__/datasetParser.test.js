@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { parseDataset } from '../datasetParser.js'
-import { DatasetParseError } from '../datasetModel.js'
+import { parseDataset } from '../datasetParser.ts'
+import { DatasetParseError } from '../datasetModel.ts'
 
 // ── Minimal v1 fixture ──────────────────────────────────────────────
 

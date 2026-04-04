@@ -8,13 +8,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "hsluv": "^1.0.1",
     "igv-utils": "github:igvteam/igv-utils#v1.5.10",
     "sass": "^1.88.0",
     "three": "^0.176.0",
+    "typescript": "^6.0.2",
     "vite": "^7.1.7",
     "vitest": "^4.0.18"
   }

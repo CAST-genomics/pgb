@@ -187,7 +187,7 @@ class PopulationOnlyWidget {
 
     /**
      * Update the widget with new data
-     * @param {import('../datasetModel.js').DatasetModel} dataset
+     * @param {import('../datasetModel.ts').DatasetModel} dataset
      */
     updateData(dataset) {
         this.hierarchicalData = dataset ? getHierarchicalPopulationStructureFromData(dataset) : [];

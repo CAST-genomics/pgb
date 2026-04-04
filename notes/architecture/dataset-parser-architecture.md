@@ -15,7 +15,7 @@ Each service reached into the raw JSON with its own assumptions about field name
 
 ## Solution: Parse Once, Distribute Domain Objects
 
-A single module (`datasetParser.js`) now sits between the raw JSON and all consumers. It:
+A single module (`datasetParser.ts`) now sits between the raw JSON and all consumers. It:
 
 1. **Detects** the format version (v1 vs v2) via structural heuristics
 2. **Validates** required fields, throwing `DatasetParseError` with the JSON path on failure
@@ -33,7 +33,7 @@ pclaiCoordinateService.loadCoordinates(dataset)
 
 ## The Domain Model
 
-The `DatasetModel` (defined in `datasetModel.js` as JSDoc typedefs) provides a stable contract:
+The `DatasetModel` (defined in `datasetModel.ts` as TypeScript interfaces) provides a stable, compiler-enforced contract:
 
 ```
 DatasetModel
@@ -66,7 +66,7 @@ Key normalizations:
 
 **Validation happens early.** A malformed payload throws a clear error at parse time, not as a cryptic TypeError deep in a rendering call.
 
-**The contract is explicit.** The JSDoc typedefs in `datasetModel.js` document exactly what every consumer can rely on. This replaces the implicit contracts that were previously scattered across six different service methods.
+**The contract is compiler-enforced.** The TypeScript interfaces in `datasetModel.ts` define exactly what every consumer can rely on. Unlike the original JSDoc typedefs, these are checked at compile time — the TypeScript compiler guarantees that every normalizer code path produces a complete, correctly-shaped `DatasetModel`. This replaces the implicit contracts that were previously scattered across six different service methods.
 
 ## When a New Format Concept Requires Consumer Changes
 
@@ -78,6 +78,7 @@ The principle: the parser handles all structural differences between formats. Co
 
 | File | Role |
 |------|------|
-| `src/datasetParser.js` | Format detection, v1/v2 normalizers, `parseDataset()` entry point |
-| `src/datasetModel.js` | JSDoc typedefs for DatasetModel, NodeModel, AssemblyEntry, PclaiEntry; `DatasetParseError` class |
+| `src/datasetParser.ts` | Format detection, v1/v2 normalizers, `parseDataset(json: unknown): DatasetModel` entry point |
+| `src/datasetModel.ts` | TypeScript interfaces (`DatasetModel`, `NodeModel`, `AssemblyEntry`, `PclaiEntry`, `AssemblyMetadata`), `FormatVersion` type, `DatasetParseError` class |
+| `src/datasetValidator.ts` | Validates raw JSON before normalization; throws `DatasetParseError` with JSON path on failure |
 | `src/app.js` | `processData` calls `parseDataset(json)` and distributes the result |
