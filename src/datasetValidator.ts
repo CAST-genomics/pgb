@@ -1,25 +1,16 @@
 /**
- * datasetValidator.js — Validates raw JSON datasets before normalization.
+ * datasetValidator.ts — Validates raw JSON datasets before normalization.
  *
  * Checks required fields, structural shapes, and value types for both
  * v1 and v2 formats.  Throws DatasetParseError with a JSON path on the
  * first problem found.
- *
- * @module datasetValidator
  */
 
-import { DatasetParseError } from './datasetModel.js';
+import { DatasetParseError, type FormatVersion } from './datasetModel.js';
 
 // ── Public API ───────────────────────────────────────────────────────
 
-/**
- * Validate a raw JSON dataset.
- *
- * @param {Object} json     Raw JSON payload
- * @param {'v1'|'v2'} version  Detected format version
- * @throws {DatasetParseError} on the first validation failure
- */
-export function validateRawDataset(json, version) {
+export function validateRawDataset(json: Record<string, unknown>, version: FormatVersion): void {
     if (version === 'v1') {
         validateV1(json);
     } else {
@@ -29,32 +20,32 @@ export function validateRawDataset(json, version) {
 
 // ── Shared helpers ──────────────────────────────────────────────────
 
-function requireField(obj, field, path) {
+function requireField(obj: Record<string, unknown>, field: string, path: string): unknown {
     if (obj[field] === undefined || obj[field] === null) {
         throw new DatasetParseError(`Missing required field "${field}"`, path);
     }
     return obj[field];
 }
 
-function requireType(value, type, path) {
+function requireType(value: unknown, type: string, path: string): void {
     if (typeof value !== type) {
         throw new DatasetParseError(`Expected ${type}, got ${typeof value}`, path);
     }
 }
 
-function requireArray(value, path) {
+function requireArray(value: unknown, path: string): asserts value is unknown[] {
     if (!Array.isArray(value)) {
         throw new DatasetParseError(`Expected array`, path);
     }
 }
 
-function requireObject(value, path) {
+function requireObject(value: unknown, path: string): asserts value is Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         throw new DatasetParseError(`Expected object`, path);
     }
 }
 
-function validateOgdfCoordinates(coords, path) {
+function validateOgdfCoordinates(coords: unknown, path: string): void {
     requireArray(coords, path);
     for (let i = 0; i < coords.length; i++) {
         const pt = coords[i];
@@ -69,7 +60,7 @@ function validateOgdfCoordinates(coords, path) {
     }
 }
 
-function validateEdges(edges, path) {
+function validateEdges(edges: unknown, path: string): void {
     requireArray(edges, path);
     for (let i = 0; i < edges.length; i++) {
         const e = edges[i];
@@ -82,7 +73,7 @@ function validateEdges(edges, path) {
 
 // ── V1 validation ───────────────────────────────────────────────────
 
-function validateV1(json) {
+function validateV1(json: Record<string, unknown>): void {
     // Locus
     requireField(json, 'locus', 'root');
     requireType(json.locus, 'string', 'locus');
@@ -136,7 +127,7 @@ function validateV1(json) {
 
 // ── V2 validation ───────────────────────────────────────────────────
 
-function validateV2(json) {
+function validateV2(json: Record<string, unknown>): void {
     // Locus — at least one of queried_locus / actual_locus required
     if (!json.queried_locus && !json.actual_locus) {
         throw new DatasetParseError('Missing required field "queried_locus" or "actual_locus"', 'root');

@@ -11,7 +11,7 @@ import materialService from './materialService.js'
 import { assemblyMetadataService } from "./assemblyMetadataService.js"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
 import { pcaChartService } from "./widgets/pcaChartService.js"
-import { parseDataset } from './datasetParser.js'
+import { parseDataset } from './datasetParser.ts'
 
 let xxPre = undefined
 let yyPre = undefined
