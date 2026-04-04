@@ -25,10 +25,7 @@ class AssemblyWidget {
         this.restoreUnsub = eventBus.subscribe('assembly:normal', data => {
             const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
             for (const selector of selectors) {
-                selector.style.border = '2px solid transparent'
-                selector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
-                // Remove inline transform to allow CSS hover effects to work
-                selector.style.transform = ''
+                selector.classList.remove('assembly-widget__genome-selector--selected')
             }
         })
 
@@ -70,7 +67,7 @@ class AssemblyWidget {
         container.appendChild(assemblySelector);
 
         assemblySelector.className = 'assembly-widget__genome-selector';
-        assemblySelector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
+        // background-color set via CSS
         assemblySelector.dataset.assembly = assemblyKey;  // Use data attribute instead of direct property
 
         const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, assemblyKey);
@@ -124,9 +121,7 @@ class AssemblyWidget {
                     name: assembly,
                     color: Look.NODE_EMPHASIS_COLOR
                 };
-            event.target.style.border = '2px solid #000';
-            event.target.style.backgroundColor = Look.NODE_EMPHASIS_COLOR
-            event.target.style.transform = 'scale(1.5)'
+            event.target.classList.add('assembly-widget__genome-selector--selected')
 
             this.emphasizeAssembly(this.selectedAssembly);
         }

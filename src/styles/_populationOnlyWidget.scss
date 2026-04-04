@@ -1,14 +1,15 @@
 .superpopulation-widget {
   &__card {
+    font-size: 16px; // SCALE KNOB — change this one value to resize the entire widget
     z-index: 1000;
     position: absolute;
     top: 0;
     left: 0;
-    margin-left: 10rem;
-    margin-top: 10rem;
-    min-width: 300px;
+    margin-left: 10em;
+    margin-top: 10em;
+    min-width: 18.75em;
     min-height: fit-content;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0.25em 0.375em rgba(0, 0, 0, 0.1);
     transition: opacity 0.2s ease;
     opacity: 0;
     pointer-events: none;
@@ -20,7 +21,7 @@
     }
 
     .card-body {
-      height: calc(100% - 60px);
+      height: calc(100% - 3.75em);
       padding: 0;
       overflow: hidden;
 
@@ -36,17 +37,17 @@
 
   &__button-container {
 
-    margin-left: 1rem;
-    margin-right: 1rem;
+    margin-left: 1em;
+    margin-right: 1em;
 
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
   }
 
   &__button {
 
     width: 100%;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5em 0.75em;
 
     background: transparent;
 
@@ -55,7 +56,7 @@
     //border-radius: 6px;
 
     //tweaked widget service
-    border-radius: 6px;
+    border-radius: 0.375em;
     border-style: solid;
     border-width: thin;
     border-color: transparent;
@@ -64,7 +65,7 @@
 
     transition: all 0.2s ease;
 
-    font-size: 0.85rem;
+    font-size: 0.85em;
     color: #495057;
 
     text-align: left;
@@ -87,24 +88,24 @@
 
   // Hierarchical container styles (only for spacing/indentation)
   &__superpopulation-container {
-    margin-left: 1rem;
-    margin-right: 1rem;
-    margin-top: 0.25rem;
-    margin-bottom: 0.125rem;
+    margin-left: 1em;
+    margin-right: 1em;
+    margin-top: 0.25em;
+    margin-bottom: 0.125em;
 
     // Add thin dividing line between superpopulation groups
     &:not(:first-child) {
-      border-top: 1px solid rgba(0, 0, 0, 0.08);
-      padding-top: 0.75rem;
-      margin-top: 0.75rem;
+      border-top: 0.0625em solid rgba(0, 0, 0, 0.08);
+      padding-top: 0.75em;
+      margin-top: 0.75em;
     }
   }
 
   &__population-container {
-    margin-left: 1rem;
-    margin-right: 1rem;
-    margin-top: 0.125rem;
-    margin-bottom: 0.125rem;
+    margin-left: 1em;
+    margin-right: 1em;
+    margin-top: 0.125em;
+    margin-bottom: 0.125em;
   }
 
   // Unified button styles - all buttons look identical
@@ -112,11 +113,11 @@
   &__population-button {
 
     width: 100%;
-    //padding: 0.25rem 0.5rem;
+    //padding: 0.25em 0.5em;
 
     background-color: #ffffff;
 
-    border-radius: 6px;
+    border-radius: 0.375em;
     border-style: solid;
     border-width: thin;
     border-color: transparent;
@@ -125,7 +126,7 @@
 
     transition: all 0.2s ease;
 
-    font-size: 0.7rem;
+    font-size: 0.7em;
     color: #495057;
 
     text-align: left;

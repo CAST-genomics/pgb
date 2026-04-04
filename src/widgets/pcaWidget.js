@@ -1,7 +1,6 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.js';
 import { pclaiCoordinateService, PCLACoordinateService } from "./pclaiCoordinateService.js"
-import Look from "../looks/look.js"
 
 class PCAWidget {
 
@@ -20,10 +19,7 @@ class PCAWidget {
         this.restoreUnsub = eventBus.subscribe('pcaWidget:normal', data => {
             const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
             for (const selector of selectors) {
-                selector.style.border = '2px solid transparent'
-                // selector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
-                // Remove inline transform to allow CSS hover effects to work
-                selector.style.transform = ''
+                selector.classList.remove('pca-widget__genome-selector--selected')
             }
         })
 
@@ -68,7 +64,7 @@ class PCAWidget {
         //       occasionally be more then one color for a given coordinateKey and node id
         // const colorMap = pclaiCoordinateService.getNodeColorMapForCoordinateKey(coordinateKey)
 
-        assemblySelector.style.backgroundColor = Look.DEFAULT_NODE_COLOR
+        // background-color set via CSS
         assemblySelector.dataset.assembly = coordinateKey;  // Use data attribute instead of direct property
 
         const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, coordinateKey);
@@ -122,9 +118,7 @@ class PCAWidget {
             // Select new genome and store its name and color
             this.selectedCoordinateKey = coordinateKey
 
-            event.target.style.border = '2px solid #000';
-            // event.target.style.backgroundColor = Look.NODE_EMPHASIS_COLOR
-            event.target.style.transform = 'scale(1.5)'
+            event.target.classList.add('pca-widget__genome-selector--selected')
 
             this.emphasizeAssembly(this.selectedCoordinateKey);
         }
@@ -133,8 +127,7 @@ class PCAWidget {
     clearAllSelectorStyles() {
         const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
         for (const selector of selectors) {
-            selector.style.border = '2px solid transparent'
-            selector.style.transform = ''
+            selector.classList.remove('pca-widget__genome-selector--selected')
         }
     }
 
@@ -224,9 +217,7 @@ class PCAWidget {
             const selectedSelector = selectors.find(selector => selector.dataset.assembly === this.selectedCoordinateKey);
 
             if (selectedSelector) {
-                // Restore the visual state (border and transform)
-                selectedSelector.style.border = '2px solid #000';
-                selectedSelector.style.transform = 'scale(1.5)';
+                selectedSelector.classList.add('pca-widget__genome-selector--selected');
             }
         }
     }
