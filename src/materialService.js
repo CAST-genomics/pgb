@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import vertexShader from '../shaders/animated-arrow.vert.glsl?raw';
-import fragmentShader from '../shaders/animated-arrow.frag.glsl?raw';
+import vertexShader from '../shaders/arrow.vert.glsl?raw';
+import animatedArrowFragmentShader from '../shaders/animated-arrow.frag.glsl?raw';
 import arrowFragmentShader from '../shaders/arrow.frag.glsl?raw';
 import { createGradientTexture } from './utils/textureService.js';
 import textureService from './utils/textureService.js';
@@ -75,7 +75,7 @@ function colorRampArrowMaterialFactory(startColor, endColor, heroTexture, opacit
             }
     }
 
-    return new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader, transparent:true, side:THREE.DoubleSide, alphaTest:0.1, depthWrite:true });
+    return new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader: animatedArrowFragmentShader, transparent:true, side:THREE.DoubleSide, alphaTest:0.1, depthWrite:true });
 }
 
 /**
