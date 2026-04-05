@@ -1,7 +1,7 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.ts';
 import { getHierarchicalPopulationStructureFromData } from '../utils/populationUtils.js';
-import {app} from "../main.js"
+import {globals} from "../main.js"
 
 class PopulationWidget {
     constructor(populationWidgetContainer, jsonData = null) {
@@ -99,7 +99,7 @@ class PopulationWidget {
             const deselectedSuperpopulation = this.selectedSuperpopulation;
             this.selectedSuperpopulation = null;
 
-            app.setActiveScene('nodeEmphasisScene', true);
+            globals.app.setActiveScene('nodeEmphasisScene', true);
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
         } else {
             // Clear all previous selections
@@ -111,7 +111,7 @@ class PopulationWidget {
 
             console.log(`Selected superpopulation: ${superpopulation.name}`);
 
-            app.setActiveScene('heatmapScene', true);
+            globals.app.setActiveScene('heatmapScene', true);
             eventBus.publish('superpopulation:selected', { acronym: superpopulation.acronym });
         }
     }
@@ -125,7 +125,7 @@ class PopulationWidget {
             const deselectedPopulation = this.selectedPopulation;
             this.selectedPopulation = null;
 
-            app.setActiveScene('nodeEmphasisScene', true);
+            globals.app.setActiveScene('nodeEmphasisScene', true);
             eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
         } else {
             // Clear all previous selections
@@ -137,7 +137,7 @@ class PopulationWidget {
 
             console.log(`Selected population: ${population.name}`);
 
-            app.setActiveScene('heatmapScene', true);
+            globals.app.setActiveScene('heatmapScene', true);
             eventBus.publish('population:selected', { acronym: population.acronym });
         }
     }

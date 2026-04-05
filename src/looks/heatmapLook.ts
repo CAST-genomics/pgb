@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import Look from "./look.ts"
-import {assemblyMetadataService } from "../assemblyMetadataService.js"
+import {assemblyMetadataService } from "../assemblyMetadataService.ts"
 import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
 import { ylGnBu, ylOrRd, blues } from "../utils/color/color-ramps.js"

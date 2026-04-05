@@ -5,10 +5,10 @@ import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.ts';
-import { annotationRenderService } from "./main.js"
+import { globals } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
-import { assemblyMetadataService } from "./assemblyMetadataService.js"
+import { assemblyMetadataService } from "./assemblyMetadataService.ts"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
 import { pcaChartService } from "./widgets/pcaChartService.js"
 import { parseDataset } from './datasetParser.ts'
@@ -372,7 +372,7 @@ class App {
 
     clearCurrentData() {
 
-        annotationRenderService.clear()
+        globals.annotationRenderService.clear()
 
         this.genomicService.clear()
 

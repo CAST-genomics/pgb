@@ -1,4 +1,4 @@
-import {app} from "./main.js"
+import {globals} from "./main.js"
 import eventBus from "./utils/eventBus.ts"
 import {getAppleCrayonColorByName} from "./utils/color/color.js"
 import { getLineXYZWithTrackBasepair, buildBpIndex, buildNodeEndpointMap, makeNodeRecordMap, getTrackParameterWithLineParameter } from "./utils/annotationTrackUtils.js"
@@ -6,7 +6,41 @@ import RayCastService from "./raycastService.js"
 
 class AnnotationRenderService {
 
-    constructor(container, genomicService, sceneManager, raycastService) {
+    container: HTMLElement
+    genomicService: any
+    sceneManager: any
+    raycastService: any
+
+    bpIndex: any
+    bpIndexMap: Map<string, any>
+    endpointMap: Map<string, any>
+    splineParameterMap: Map<string, { startParam: number; endParam: number }>
+
+    hasGeneAnnotations: boolean
+
+    visualFeedbackElement!: HTMLElement
+    spinnerElement!: HTMLElement
+
+    assembly: string | undefined
+    bpStart: number | undefined
+    bpEnd: number | undefined
+    featureSource: any
+    featureRenderer: any
+    drawConfig: any
+
+    private boundResizeHandler: () => void
+    private boundMouseMoveHandler: (event: MouseEvent) => void
+    private boundMouseEnterHandler: (event: MouseEvent) => void
+    private boundMouseLeaveHandler: (event: MouseEvent) => void
+
+    private emphasizeUnsub!: () => void
+    private normalUnsub!: () => void
+    private lineIntersectionUnsub!: () => void
+    private clearIntersectioUnsub!: () => void
+
+    private verticalBar: HTMLElement | null = null
+
+    constructor(container: HTMLElement, genomicService: any, sceneManager: any, raycastService: any) {
 
         this.container = container;
         this.genomicService = genomicService;
@@ -22,6 +56,11 @@ class AnnotationRenderService {
         /** True when gene annotation data is available; false when falling back to extent markers only. */
         this.hasGeneAnnotations = false
 
+        this.boundResizeHandler = () => {}
+        this.boundMouseMoveHandler = () => {}
+        this.boundMouseEnterHandler = () => {}
+        this.boundMouseLeaveHandler = () => {}
+
         this.createVisualFeedbackElement();
 
         this.createSpinnerElement();
@@ -34,7 +73,7 @@ class AnnotationRenderService {
 
     }
 
-    setupEventHandlers() {
+    setupEventHandlers(): void {
 
         this.boundResizeHandler = this.resizeCanvas.bind(this, this.container);
         window.addEventListener('resize', this.boundResizeHandler);
@@ -49,14 +88,14 @@ class AnnotationRenderService {
         this.container.addEventListener('mouseleave', this.boundMouseLeaveHandler);
     }
 
-    setupEventBusSubscriptions() {
+    setupEventBusSubscriptions(): void {
         this.emphasizeUnsub = eventBus.subscribe('assembly:emphasis', this.handleAssemblyEmphasis.bind(this))
         this.normalUnsub = eventBus.subscribe('assembly:normal', this.handleAssemblyNormal.bind(this))
         this.lineIntersectionUnsub = eventBus.subscribe('lineIntersection', this.handleLineIntersection.bind(this))
         this.clearIntersectioUnsub = eventBus.subscribe('clearIntersection', this.handleClearIntersection.bind(this))
     }
 
-    async handleAssemblyEmphasis(data) {
+    async handleAssemblyEmphasis(data: { assembly: { name: string } }): Promise<void> {
 
         this.splineParameterMap.clear()
 
@@ -70,7 +109,7 @@ class AnnotationRenderService {
         this.bpIndex = buildBpIndex(spine);
         this.bpIndexMap = makeNodeRecordMap(this.bpIndex)
 
-        const walkNodes = spine.nodes.map(n => n.id);
+        const walkNodes = spine.nodes.map((n: any) => n.id);
 
         this.endpointMap = buildNodeEndpointMap(walkNodes, this.sceneManager);
 
@@ -95,7 +134,8 @@ class AnnotationRenderService {
 
         console.log(`AnnotationRenderService: loading genome payload for "${genomeLibraryKey}" ...`)
         console.time(`AnnotationRenderService: genome payload "${genomeLibraryKey}"`)
-        const result = await app.genomeLibrary.getGenomePayload(genomeLibraryKey)
+        // @ts-ignore — app is a late-bound export from unchecked JS
+        const result = await globals.app.genomeLibrary.getGenomePayload(genomeLibraryKey)
         console.timeEnd(`AnnotationRenderService: genome payload "${genomeLibraryKey}"`)
 
         if (undefined === result) {
@@ -120,7 +160,7 @@ class AnnotationRenderService {
 
     }
 
-    handleAssemblyNormal(data) {
+    handleAssemblyNormal(data: any): void {
 
         this.featureSource = undefined
 
@@ -141,7 +181,7 @@ class AnnotationRenderService {
         this.clear()
     }
 
-    handleLineIntersection(data) {
+    handleLineIntersection(data: { t: number; nodeName: string }): void {
 
         if (0 === this.splineParameterMap.size) {
             return
@@ -155,7 +195,7 @@ class AnnotationRenderService {
 
         const { bp, u:tOriented } = getTrackParameterWithLineParameter(nodeName, t, this.bpIndex, this.endpointMap, this.bpIndexMap)
 
-        const { startParam, endParam } = this.splineParameterMap.get(nodeName)
+        const { startParam, endParam } = this.splineParameterMap.get(nodeName)!
         const param = startParam * ( 1 - tOriented) + endParam * tOriented
 
         this.visualFeedbackElement.style.display = 'block';
@@ -164,41 +204,41 @@ class AnnotationRenderService {
         this.visualFeedbackElement.style.left = `${ Math.floor(width * param) }px`;
     }
 
-    handleClearIntersection(data) {
+    handleClearIntersection(data: Record<string, never>): void {
         this.visualFeedbackElement.style.display = 'none';
         this.visualFeedbackElement.style.left = '-8px';
     }
 
-    createVisualFeedbackElement() {
+    createVisualFeedbackElement(): void {
         this.visualFeedbackElement = document.createElement('div');
         this.visualFeedbackElement.className = 'pgb-gene-annotation-track-container__visual-feedback';
         this.container.appendChild(this.visualFeedbackElement);
     }
 
-    createSpinnerElement() {
+    createSpinnerElement(): void {
         this.spinnerElement = document.createElement('div');
         this.spinnerElement.className = 'pgb-gene-annotation-track-container__spinner';
         this.spinnerElement.innerHTML = '<div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div>';
         this.container.appendChild(this.spinnerElement);
     }
 
-    showSpinner() {
+    showSpinner(): void {
         this.spinnerElement.style.display = 'block';
     }
 
-    hideSpinner() {
+    hideSpinner(): void {
         this.spinnerElement.style.display = 'none';
     }
 
     /** Draw vertical tick marks at node boundaries when gene annotation data is unavailable. */
-    renderGenomicExtents(config) {
+    renderGenomicExtents(config: any): void {
 
         const { nodes, bpStart:assemblyBPStart, bpEnd:assemblyBPEnd } = config
 
-        const canvas = this.container.querySelector('canvas')
+        const canvas = this.container.querySelector('canvas')!
         const { width, height } = canvas.getBoundingClientRect();
 
-        const ctx = canvas.getContext('2d')
+        const ctx = (canvas as HTMLCanvasElement).getContext('2d')!
         ctx.clearRect(0, 0, width, height);
 
         const bpLength = Math.max(1, assemblyBPEnd - assemblyBPStart);
@@ -229,7 +269,7 @@ class AnnotationRenderService {
     }
 
     /** Draw gene features (exons, introns, etc.) when annotation data is available. */
-    renderGeneAnnotation(renderConfig) {
+    renderGeneAnnotation(renderConfig: any): void {
 
         if (renderConfig) {
             const {container, bpStart, bpEnd} = renderConfig
@@ -246,21 +286,21 @@ class AnnotationRenderService {
         }
     }
 
-    async getFeatures(chr, start, end) {
+    async getFeatures(chr: string, start: number, end: number): Promise<any> {
         return await this.featureSource.getFeatures({chr, start, end})
     }
 
-    resizeCanvas(container) {
+    resizeCanvas(container: HTMLElement): void {
         const dpr = window.devicePixelRatio || 1;
         const {width, height} = container.getBoundingClientRect();
 
         // Set the canvas size in pixels
-        const canvas = container.querySelector('canvas')
+        const canvas = container.querySelector('canvas') as HTMLCanvasElement
         canvas.width = width * dpr;
         canvas.height = height * dpr;
 
         // Scale the canvas context to match the device pixel ratio
-        const ctx = canvas.getContext('2d')
+        const ctx = canvas.getContext('2d')!
         ctx.scale(dpr, dpr);
 
         // Set the canvas CSS size to match the container
@@ -278,19 +318,19 @@ class AnnotationRenderService {
 
     }
 
-    handleMouseEnter(event) {
+    handleMouseEnter(event: MouseEvent): void {
         this.raycastService.disable()
         this.visualFeedbackElement.style.display = 'block'
         this.visualFeedbackElement.style.left = '-8px'
     }
 
-    handleMouseLeave(event) {
+    handleMouseLeave(event: MouseEvent): void {
         this.raycastService.enable()
         this.visualFeedbackElement.style.display = 'none'
         this.visualFeedbackElement.style.left = '-8px'
     }
 
-    handleMouseMove(event) {
+    handleMouseMove(event: MouseEvent): void {
 
         if (0 === this.splineParameterMap.size) {
             return
@@ -303,9 +343,11 @@ class AnnotationRenderService {
 
         const param = (exe / width)
 
-        const bp= Math.floor(this.bpStart * ( 1 - param) + this.bpEnd * param)
+        const bp= Math.floor(this.bpStart! * ( 1 - param) + this.bpEnd! * param)
 
-        const { nodeId, t, xyz:pointOnLine, u } = getLineXYZWithTrackBasepair(bp, this.bpIndex, this.endpointMap, this.sceneManager);
+        const result = getLineXYZWithTrackBasepair(bp, this.bpIndex, this.endpointMap, this.sceneManager);
+        if (!result) return;
+        const { nodeId, t, xyz:pointOnLine, u } = result;
 
 
         /*
@@ -334,7 +376,7 @@ class AnnotationRenderService {
         this.raycastService.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
     }
 
-    clear() {
+    clear(): void {
 
         this.splineParameterMap.clear()
 
@@ -345,12 +387,12 @@ class AnnotationRenderService {
         this.endpointMap.clear()
 
         const { width, height } = this.container.getBoundingClientRect();
-        const canvas = this.container.querySelector('canvas')
-        const ctx = canvas.getContext('2d')
+        const canvas = this.container.querySelector('canvas') as HTMLCanvasElement
+        const ctx = canvas.getContext('2d')!
         ctx.clearRect(0, 0, width, height);
     }
 
-    dispose() {
+    dispose(): void {
 
         this.emphasizeUnsub()
 
@@ -377,7 +419,7 @@ class AnnotationRenderService {
 
         if (this.spinnerElement && this.spinnerElement.parentNode) {
             this.spinnerElement.parentNode.removeChild(this.spinnerElement);
-            this.spinnerElement = null;
+            (this as any).spinnerElement = null;
         }
 
         this.drawConfig = null;

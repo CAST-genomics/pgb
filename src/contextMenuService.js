@@ -1,4 +1,4 @@
-import { app } from "./main.js"
+import { globals } from "./main.js"
 
 class ContextMenuService {
     constructor(container, raycastService, genomicService) {
@@ -52,11 +52,11 @@ class ContextMenuService {
         for (const listItem of listItems) {
 
             listItem.addEventListener('mouseover', () => {
-                app.disableTooltip()
+                globals.app.disableTooltip()
                 listItem.style.backgroundColor = '#f0f0f0'
             });
             listItem.addEventListener('mouseout', () => {
-                app.enableTooltip()
+                globals.app.enableTooltip()
                 listItem.style.backgroundColor = 'white'
             });
 
@@ -116,15 +116,15 @@ class ContextMenuService {
             this.contextMenu.style.display = 'none';
         }
         // Re-enable tooltip when context menu is dismissed
-        app.enableTooltip();
+        globals.app.enableTooltip();
     }
 
     raycastClickHandler(intersection, event) {
 
         if (event && event.type === 'contextmenu') {
 
-            app.hideTooltip()
-            app.disableTooltip()
+            globals.app.hideTooltip()
+            globals.app.disableTooltip()
 
             const { nodeName } = intersection
             this.currentNodeName = nodeName
