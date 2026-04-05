@@ -1,4 +1,4 @@
-import eventBus from '../utils/eventBus.js';
+import eventBus from '../utils/eventBus.ts';
 import { pclaiCoordinateService } from './pclaiCoordinateService.js';
 import { Draggable } from '../utils/draggable.js';
 

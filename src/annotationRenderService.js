@@ -1,5 +1,5 @@
 import {app} from "./main.js"
-import eventBus from "./utils/eventBus.js"
+import eventBus from "./utils/eventBus.ts"
 import {getAppleCrayonColorByName} from "./utils/color/color.js"
 import { getLineXYZWithTrackBasepair, buildBpIndex, buildNodeEndpointMap, makeNodeRecordMap, getTrackParameterWithLineParameter } from "./utils/annotationTrackUtils.js"
 import RayCastService from "./raycastService.js"

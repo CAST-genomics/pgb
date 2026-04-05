@@ -1,5 +1,5 @@
 import Look from './look.js';
-import eventBus from "../utils/eventBus.js"
+import eventBus from "../utils/eventBus.ts"
 import materialService from '../materialService.js';
 import GeometryFactory from "../geometryFactory.js"
 import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"

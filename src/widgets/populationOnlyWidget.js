@@ -1,5 +1,5 @@
 import { Draggable } from '../utils/draggable.js';
-import eventBus from '../utils/eventBus.js';
+import eventBus from '../utils/eventBus.ts';
 import { getHierarchicalPopulationStructureFromData } from '../utils/populationUtils.js';
 import {app} from "../main.js"
 

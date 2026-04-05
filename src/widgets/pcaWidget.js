@@ -1,5 +1,5 @@
 import { Draggable } from '../utils/draggable.js';
-import eventBus from '../utils/eventBus.js';
+import eventBus from '../utils/eventBus.ts';
 import { pclaiCoordinateService, PCLACoordinateService } from "./pclaiCoordinateService.js"
 
 class PCAWidget {

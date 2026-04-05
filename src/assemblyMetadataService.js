@@ -1,6 +1,6 @@
 import { getSuperpopulationName, getPopulationName, findSuperpopulationForPopulation } from './utils/populationUtils.js';
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
-import eventBus from "./utils/eventBus.js"
+import eventBus from "./utils/eventBus.ts"
 
 /**
  * AssemblyMetadataService - Manages and provides access to assembly metadata

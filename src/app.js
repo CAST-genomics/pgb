@@ -4,7 +4,7 @@ import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
-import eventBus from './utils/eventBus.js';
+import eventBus from './utils/eventBus.ts';
 import { annotationRenderService } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'

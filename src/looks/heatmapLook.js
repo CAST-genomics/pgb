@@ -4,7 +4,7 @@ import {assemblyMetadataService } from "../assemblyMetadataService.js"
 import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
 import { ylGnBu, ylOrRd, blues } from "../utils/color/color-ramps.js"
-import eventBus from "../utils/eventBus.js"
+import eventBus from "../utils/eventBus.ts"
 
 class HeatmapLook extends Look {
 
