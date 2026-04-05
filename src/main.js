@@ -11,8 +11,8 @@ import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import { initializeGenomeRegistry, setCustomGenomes } from './igvCore/genome/genomeRegistry.js'
 import materialService from './materialService.js'
 import LookManager from './looks/lookManager.js'
-import NodeEmphasisLook from './looks/nodeEmphasisLook.js'
-import HeatmapLook from "./looks/heatmapLook.js"
+import NodeEmphasisLook from './looks/nodeEmphasisLook.ts'
+import HeatmapLook from "./looks/heatmapLook.ts"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import AnnotationRenderService from "./annotationRenderService.js"

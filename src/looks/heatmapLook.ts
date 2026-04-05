@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import Look from "./look.js"
+import Look from "./look.ts"
 import {assemblyMetadataService } from "../assemblyMetadataService.js"
 import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
@@ -8,20 +8,25 @@ import eventBus from "../utils/eventBus.ts"
 
 class HeatmapLook extends Look {
 
-    constructor(name, config) {
+    private superpopDeselectUnsub: (() => void) | null = null
+    private popDeselectUnsub: (() => void) | null = null
+    private superpopSelectUnsub: (() => void) | null = null
+    private popSelectUnsub: (() => void) | null = null
+
+    constructor(name: string, config: any) {
         super(name, config)
     }
 
-    static createHeatmapLook(name, config) {
+    static createHeatmapLook(name: string, config: any): HeatmapLook {
         return new HeatmapLook(name, config);
     }
 
-    createNodeTooltipContent(nodeObject) {
+    createNodeTooltipContent(nodeObject: any): string {
         const { nodeName } = nodeObject.userData;
         return assemblyMetadataService.getPopulationTooltip(nodeName)
     }
 
-    handleSelectionEvent(data, eventType) {
+    handleSelectionEvent(data: { acronym: string }, eventType: string): void {
         const { acronym } = data
 
         const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
@@ -53,7 +58,7 @@ class HeatmapLook extends Look {
         }
     }
 
-    activate() {
+    activate(): void {
         super.activate();
 
         // Handle deselection events for both superpopulation and population
@@ -75,7 +80,7 @@ class HeatmapLook extends Look {
         });
     }
 
-    deactivate() {
+    deactivate(): void {
         super.deactivate();
 
         if (this.superpopDeselectUnsub) {
@@ -99,7 +104,7 @@ class HeatmapLook extends Look {
         }
     }
 
-    dispose() {
+    dispose(): void {
 
         super.dispose()
 

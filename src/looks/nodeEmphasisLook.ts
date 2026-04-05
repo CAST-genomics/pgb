@@ -1,4 +1,4 @@
-import Look from './look.js';
+import Look from './look.ts';
 import eventBus from "../utils/eventBus.ts"
 import materialService from '../materialService.js';
 import GeometryFactory from "../geometryFactory.js"
@@ -6,17 +6,25 @@ import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
 class NodeEmphasisLook extends Look {
 
-    constructor(name, config) {
+    sceneManager: any
+
+    private deemphasizeAssemblyUnsub: (() => void) | null = null
+    private restoreAssemblyUnsub: (() => void) | null = null
+    private pcaWidgetAbsenceUnsub: (() => void) | null = null
+    private deemphasizePCAWidgetUnsub: (() => void) | null = null
+    private restorePCAWidgetUnsub: (() => void) | null = null
+
+    constructor(name: string, config: any) {
         super(name, config);
 
         this.sceneManager = config.sceneManager
     }
 
-    static createNodeEmphasisLook(name, config) {
+    static createNodeEmphasisLook(name: string, config: any): NodeEmphasisLook {
         return new NodeEmphasisLook(name, config);
     }
 
-    getZOffset(objectId) {
+    getZOffset(objectId: string): number {
 
         if (objectId.startsWith('node:')) {
             const nodeName = objectId.replace('node:', '');
@@ -43,7 +51,7 @@ class NodeEmphasisLook extends Look {
     /**
      * Activate this look - subscribe to events
      */
-    activate() {
+    activate(): void {
         super.activate();
 
         // Assembly Viz Events
@@ -79,7 +87,7 @@ class NodeEmphasisLook extends Look {
     /**
      * Deactivate this look - unsubscribe from events
      */
-    deactivate() {
+    deactivate(): void {
         super.deactivate();
 
         if (this.deemphasizeAssemblyUnsub) {
@@ -90,16 +98,6 @@ class NodeEmphasisLook extends Look {
         if (this.restoreAssemblyUnsub) {
             this.restoreAssemblyUnsub();
             this.restoreAssemblyUnsub = null;
-        }
-
-        if (this.deemphasizePCAChartUnsub) {
-            this.deemphasizePCAChartUnsub();
-            this.deemphasizePCAChartUnsub = null;
-        }
-
-        if (this.restorePCAChartUnsub) {
-            this.restorePCAChartUnsub();
-            this.restorePCAChartUnsub = null;
         }
 
         if (this.pcaWidgetAbsenceUnsub) {
@@ -118,7 +116,7 @@ class NodeEmphasisLook extends Look {
         }
     }
 
-    dispose() {
+    dispose(): void {
 
         super.dispose()
 
