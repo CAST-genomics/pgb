@@ -24,7 +24,19 @@ class Look {
     // Converted to world units per frame by lineMaterialResolutionService.
     static NODE_LINE_WIDTH_PIXELS = 2*2;
 
-    constructor(name, config) {
+    name: string
+    genomicService: any
+    geometryManager: any
+    assemblyWidget: any
+    sceneManager: any
+    zOffset: number
+    isActive: boolean
+    materialCache: Map<string, any>
+    emphasisStates: Map<string, string>
+    deemphasizeUnsub: (() => void) | null
+    restoreUnsub: (() => void) | null
+
+    constructor(name: string, config: any) {
         this.name = name
 
         this.genomicService = config.genomicService
@@ -52,10 +64,10 @@ class Look {
      * Gets the Z-offset for a given object based on its ID.
      * Nodes and edges are rendered at different Z depths to control visual layering.
      *
-     * @param {string} objectId - The object identifier, must start with 'node:' or 'edge:'
-     * @returns {number} The Z-offset value for the object type
+     * @param objectId - The object identifier, must start with 'node:' or 'edge:'
+     * @returns The Z-offset value for the object type
      */
-    getZOffset(objectId) {
+    getZOffset(objectId: string): number {
 
         if (objectId.startsWith('node:')) {
             return GeometryFactory.NODE_LINE_Z_OFFSET;
@@ -71,14 +83,8 @@ class Look {
     /**
      * Creates a Three.js mesh from geometry and context information.
      * Routes to the appropriate creation method based on context type.
-     *
-     * @param {THREE.BufferGeometry} geometry - The geometry to use for the mesh
-     * @param {Object} context - Context object containing type and metadata
-     * @param {string} context.type - Either 'node' or 'edge'
-     * @returns {THREE.Mesh|RibbonLine} The created mesh object
-     * @throws {Error} If context.type is not 'node' or 'edge'
      */
-    createMesh(geometry, context) {
+    createMesh(geometry: any, context: any): any {
         if (context.type === 'node') {
             return this.createNodeMesh(geometry, context);
         } else if (context.type === 'edge') {
@@ -90,14 +96,8 @@ class Look {
 
     /**
      * Creates a ribbon mesh for a node.
-     *
-     * @param {THREE.BufferGeometry} geometry - Ribbon geometry from LineFactory.createNodeRibbonGeometry
-     * @param {Object} context - Context object
-     * @param {string} context.nodeName - Node name
-     * @param {THREE.CatmullRomCurve3} context.spline - The node's spline for getPoint()
-     * @returns {RibbonLine}
      */
-    createNodeMesh(geometry, context) {
+    createNodeMesh(geometry: any, context: any): any {
 
         const { nodeName, spline } = context
 
@@ -118,11 +118,8 @@ class Look {
 
     /**
      * Gets or creates a ribbon ShaderMaterial for a node's default state.
-     *
-     * @param {string} nodeName - The node name
-     * @returns {THREE.ShaderMaterial}
      */
-    getNodeRibbonMaterial(nodeName) {
+    getNodeRibbonMaterial(nodeName: string): any {
         const cacheKey = `ribbon:${nodeName}:normal`
 
         if (this.materialCache.has(cacheKey)) {
@@ -138,13 +135,8 @@ class Look {
 
     /**
      * Gets or creates a ribbon ShaderMaterial for a node's emphasized state.
-     *
-     * @param {string} assemblyName - Assembly name
-     * @param {string} nodeName - Node name
-     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Emphasis color(s)
-     * @returns {THREE.ShaderMaterial}
      */
-    getNodeRibbonEmphasisMaterial(assemblyName, nodeName, nodeColor) {
+    getNodeRibbonEmphasisMaterial(assemblyName: string, nodeName: string, nodeColor: any): any {
         const cacheKey = `ribbon:${nodeName}:assembly:${assemblyName}`
 
         if (this.materialCache.has(cacheKey)) {
@@ -168,10 +160,8 @@ class Look {
 
     /**
      * Gets or creates a ribbon deemphasis material for a node.
-     * @param {string} nodeName - The node name
-     * @param {string|THREE.Color} [deemphasisColor] - Optional override color; defaults to NODE_DEEMPHASIS_COLOR
      */
-    getNodeRibbonDeemphasisMaterial(nodeName, deemphasisColor) {
+    getNodeRibbonDeemphasisMaterial(nodeName: string, deemphasisColor?: string): any {
         const color = deemphasisColor || Look.NODE_DEEMPHASIS_COLOR
         const cacheKey = deemphasisColor ? `ribbon:${nodeName}:deemphasis:${color}` : `ribbon:${nodeName}:deemphasis`
 
@@ -189,7 +179,7 @@ class Look {
     /**
      * Gets or creates a ribbon absence material for a node.
      */
-    getNodeRibbonAbsenceMaterial(nodeName) {
+    getNodeRibbonAbsenceMaterial(nodeName: string): any {
         const cacheKey = `ribbon:${nodeName}:absence`
 
         if (this.materialCache.has(cacheKey)) {
@@ -206,15 +196,8 @@ class Look {
     /**
      * Creates a mesh for an edge (connection between nodes) using the provided geometry.
      * Edges use gradient materials that transition from start to end colors.
-     *
-     * @param {THREE.BufferGeometry} geometry - The geometry for the edge
-     * @param {Object} context - Context object containing edge information
-     * @param {string} context.startNode - The name of the starting node
-     * @param {string} context.endNode - The name of the ending node
-     * @param {string} context.edgeKey - Unique identifier for this edge
-     * @returns {THREE.Mesh} The created edge mesh with userData populated
      */
-    createEdgeMesh(geometry, context) {
+    createEdgeMesh(geometry: any, context: any): any {
 
         const { startNode, endNode, edgeKey } = context;
 
@@ -235,22 +218,16 @@ class Look {
 
     /**
      * Creates a material for an edge arrow with a single color.
-     *
-     * @param {THREE.Color|string} color - The edge color
-     * @returns {THREE.ShaderMaterial}
      */
-    getEdgeMaterial(color) {
+    getEdgeMaterial(color: any): any {
         return arrowMaterialFactory(color, materialService.getTexture('arrow-white'), 1);
     }
 
     /**
      * Creates HTML content for a node tooltip that appears on hover.
      * Displays node name and length information.
-     *
-     * @param {THREE.Object3D} nodeObject - The Three.js object representing the node
-     * @returns {string} HTML string for the tooltip content
      */
-    createNodeTooltipContent(nodeObject) {
+    createNodeTooltipContent(nodeObject: any): string {
         const { nodeName } = nodeObject.userData
         const { length } = this.genomicService.nodeMetadata.get(nodeName)
         const emphasisState = this.emphasisStates.get(nodeName) || 'normal'
@@ -281,7 +258,7 @@ class Look {
      * Sets the active flag and can be overridden by subclasses to enable
      * event subscriptions, start animations, or perform other activation logic.
      */
-    activate() {
+    activate(): void {
         this.isActive = true;
         console.log(`${this.constructor.name} is now active`)
     }
@@ -291,7 +268,7 @@ class Look {
      * Sets the active flag to false and can be overridden by subclasses to disable
      * event subscriptions, stop animations, or perform cleanup logic.
      */
-    deactivate() {
+    deactivate(): void {
         this.isActive = false;
     }
 
@@ -300,7 +277,7 @@ class Look {
      * Deactivates the look, unregisters all materials from the resolution service,
      * and clears the material cache. Should be called when the look is no longer needed.
      */
-    dispose() {
+    dispose(): void {
 
         this.deactivate(); // Ensure we unsubscribe before disposing
 
@@ -318,10 +295,8 @@ class Look {
     /**
      * Applies absence to a set of nodes and restores all other nodes to normal.
      * This is the "PCA widget is open but no dot is selected" state.
-     *
-     * @param {Set<string>} absentNodeSet - Set of node names that lack the attribute category
      */
-    setNodeAbsence(absentNodeSet) {
+    setNodeAbsence(absentNodeSet: Set<string>): void {
 
         this.emphasisStates.clear()
 
@@ -345,21 +320,15 @@ class Look {
      * Sets emphasis state for nodes based on an assembly selection.
      * Nodes in the provided set are emphasized, while others are deemphasized.
      * Updates materials and Z-positions accordingly.
-     *
-     * @param {string} assemblyName - The name of the assembly being emphasized
-     * @param {Set<string>} nodeSet - Set of node names to emphasize
-     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
-     * @param {Set<string>} [absentNodeSet] - Set of node names that lack the attribute category entirely
-     * @param {string|THREE.Color} [deemphasisColor] - Optional override for deemphasis color
      */
-    setNodeEmphasis(assemblyName, nodeSet, nodeColor, absentNodeSet, deemphasisColor) {
+    setNodeEmphasis(assemblyName: string, nodeSet: Set<string>, nodeColor: any, absentNodeSet?: Set<string>, deemphasisColor?: string): void {
 
         this.emphasisStates.clear()
 
         const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
 
         // Three-way partition: emphasized, absent, deemphasized (remainder)
-        const absentNodes = absentNodeSet || new Set()
+        const absentNodes = absentNodeSet || new Set<string>()
 
         const deemphasisNodeSet = allNodes.difference(nodeSet).difference(absentNodes);
 
@@ -385,10 +354,8 @@ class Look {
     /**
      * Restores nodes to their normal (non-emphasized) state.
      * Resets materials and Z-positions for the specified nodes.
-     *
-     * @param {Set<string>} nodeSet - Set of node names to restore to normal state
      */
-    restoreNodes(nodeSet) {
+    restoreNodes(nodeSet: Set<string>): void {
 
         for (const nodeName of nodeSet) {
             this.setEmphasisState(nodeName, 'normal');
@@ -402,31 +369,22 @@ class Look {
     /**
      * Sets the emphasis state for a node or edge.
      * States can be: 'normal', 'emphasized', or 'deemphasized'.
-     *
-     * @param {string} nodeName - The name/key of the node or edge
-     * @param {string} state - The emphasis state ('normal', 'emphasized', or 'deemphasized')
      */
-    setEmphasisState(nodeName, state) {
+    setEmphasisState(nodeName: string, state: string): void {
         this.emphasisStates.set(nodeName, state);
     }
 
     /**
      * Applies an emphasis state to a mesh by updating its material.
      * Handles both node and edge meshes, applying appropriate materials based on state.
-     *
-     * @param {THREE.Mesh|RibbonLine} mesh - The mesh to update
-     * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
-     * @param {string} assemblyName - The assembly name (required for 'emphasized' state)
-     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
-     * @param {string|THREE.Color} [deemphasisColor] - Optional override for deemphasis color.
      */
-    applyEmphasisState(mesh, emphasisState, assemblyName, nodeColor, deemphasisColor) {
+    applyEmphasisState(mesh: any, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string): void {
         if (!mesh.userData) return;
 
         if (emphasisState === 'deemphasized') {
             mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName, deemphasisColor);
         } else if (emphasisState === 'emphasized') {
-            mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName, mesh.userData.nodeName, nodeColor);
+            mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName!, mesh.userData.nodeName, nodeColor);
         } else if (emphasisState === 'absent') {
             mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName);
         } else if (emphasisState === 'normal') {
@@ -439,17 +397,11 @@ class Look {
     /**
      * Updates the emphasis state for a set of nodes in the scene.
      * Traverses the NodeMeshGroup and applies the emphasis state to matching nodes.
-     *
-     * @param {Set<string>} nodeNameSet - Set of node names to update
-     * @param {string} emphasisState - The state to apply ('normal', 'emphasized', or 'deemphasized')
-     * @param {string} assemblyName - The assembly name (used for 'emphasized' state)
-     * @param {THREE.Color|Map<string, THREE.Color>} nodeColor - Color(s) for emphasized nodes.
-     * @param {string|THREE.Color} [deemphasisColor] - Optional override for deemphasis color.
      */
-    updateNodeEmphasis(nodeNameSet, emphasisState, assemblyName, nodeColor, deemphasisColor) {
+    updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string): void {
 
         const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
-        nodeMeshGroup.traverse((object) => {
+        nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
                 this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor);
             }
@@ -460,10 +412,10 @@ class Look {
      * Updates the Z-position (depth) of all nodes and edges in the scene.
      * Uses emphasis states to determine appropriate Z-offsets for visual layering.
      */
-    updateGeometryPositions() {
+    updateGeometryPositions(): void {
 
         const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
-        nodeMeshGroup.traverse((object) => {
+        nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName) {
                 const nodeName = object.userData.nodeName;
                 const zOffset = this.getZOffset(`node:${nodeName}`);

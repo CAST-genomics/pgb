@@ -1,18 +1,27 @@
 import { Draggable } from '../utils/draggable.js';
-import eventBus from '../utils/eventBus.js';
+import eventBus from '../utils/eventBus.ts';
 import { pclaiCoordinateService, PCLACoordinateService } from "./pclaiCoordinateService.js"
 
 class PCAWidget {
 
     static NODE_DEEMPHASIS_COLOR = '#aaaaaa';
 
-    constructor(pcaWidgetContainer, geometryManager) {
+    pcaWidgetContainer: HTMLElement
+    draggable: any
+    geometryManager: any
+    listGroup: HTMLElement
+    searchInput: HTMLInputElement | null
+    selectedCoordinateKey: string | null
+    allListItems: Map<string, HTMLElement>
+    private restoreUnsub: () => void
+
+    constructor(pcaWidgetContainer: HTMLElement, geometryManager: any) {
 
         this.pcaWidgetContainer = pcaWidgetContainer;
         this.draggable = new Draggable(this.pcaWidgetContainer);
         this.geometryManager = geometryManager
 
-        this.listGroup = this.pcaWidgetContainer.querySelector('.list-group');
+        this.listGroup = this.pcaWidgetContainer.querySelector('.list-group')!;
 
         this.searchInput = null; // Will be initialized when card is shown
 
@@ -28,16 +37,16 @@ class PCAWidget {
 
     }
 
-    configure() {
+    configure(): void {
         this.populateList()
     }
 
-    populateList() {
+    populateList(): void {
 
         this.selectedCoordinateKey = null;
 
         for (const item of this.listGroup.querySelectorAll('.list-group-item')) {
-            this.cleanupListItem(item);
+            this.cleanupListItem(item as HTMLElement);
         }
 
         this.listGroup.innerHTML = '';
@@ -50,7 +59,7 @@ class PCAWidget {
         }
     }
 
-    createListItem(coordinateKey) {
+    createListItem(coordinateKey: string): HTMLElement {
         const container = document.createElement('div');
         container.className = 'list-group-item d-flex align-items-center gap-3';
 
@@ -68,7 +77,7 @@ class PCAWidget {
         assemblySelector.dataset.assembly = coordinateKey;  // Use data attribute instead of direct property
 
         const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, coordinateKey);
-        assemblySelector.onAssemblySelectorClick = onAssemblySelectorClick;
+        (assemblySelector as any).onAssemblySelectorClick = onAssemblySelectorClick;
         assemblySelector.addEventListener('click', onAssemblySelectorClick);
 
         // assembly name and haplotype container
@@ -93,7 +102,7 @@ class PCAWidget {
         return container;
     }
 
-    async onAssemblySelectorClick(coordinateKey, event) {
+    async onAssemblySelectorClick(coordinateKey: string, event: Event): Promise<void> {
         event.stopPropagation();
 
         if (this.selectedCoordinateKey && this.selectedCoordinateKey === coordinateKey) {
@@ -118,26 +127,26 @@ class PCAWidget {
             // Select new genome and store its name and color
             this.selectedCoordinateKey = coordinateKey
 
-            event.target.classList.add('pca-widget__genome-selector--selected')
+            ;(event.target as HTMLElement).classList.add('pca-widget__genome-selector--selected')
 
             this.emphasizeAssembly(this.selectedCoordinateKey);
         }
     }
 
-    clearAllSelectorStyles() {
+    clearAllSelectorStyles(): void {
         const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
         for (const selector of selectors) {
             selector.classList.remove('pca-widget__genome-selector--selected')
         }
     }
 
-    emphasizeAssembly(coordinateKey) {
+    emphasizeAssembly(coordinateKey: string): void {
         const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
         const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
         eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
     }
 
-    initializeSearchInput() {
+    initializeSearchInput(): void {
         if (!this.searchInput) {
             this.searchInput = this.pcaWidgetContainer.querySelector('#pca-search');
             if (this.searchInput) {
@@ -149,8 +158,8 @@ class PCAWidget {
         }
     }
 
-    onSearchInput(event) {
-        const searchTerm = event.target.value.toLowerCase().trim();
+    onSearchInput(event: Event): void {
+        const searchTerm = (event.target as HTMLInputElement).value.toLowerCase().trim();
         console.log('Search term:', searchTerm);
 
         if (searchTerm === '') {
@@ -165,7 +174,7 @@ class PCAWidget {
         }
     }
 
-    filterAssemblies(searchTerm) {
+    filterAssemblies(searchTerm: string): void {
         this.allListItems.forEach((item, assembly) => {
             const matches = assembly.toLowerCase().includes(searchTerm);
             if (matches) {
@@ -176,9 +185,9 @@ class PCAWidget {
         });
     }
 
-    cleanupListItem(item) {
+    cleanupListItem(item: HTMLElement): void {
 
-        const assemblySelector = item.querySelector('.assembly-widget__genome-selector');
+        const assemblySelector = item.querySelector('.assembly-widget__genome-selector') as any;
         if (assemblySelector && assemblySelector.onAssemblySelectorClick) {
             assemblySelector.removeEventListener('click', assemblySelector.onAssemblySelectorClick);
             delete assemblySelector.onAssemblySelectorClick;
@@ -186,7 +195,7 @@ class PCAWidget {
 
     }
 
-    showCard() {
+    showCard(): void {
         this.pcaWidgetContainer.style.display = '';
         this.pcaWidgetContainer.style.top = '0px'
         this.pcaWidgetContainer.style.left = '0px'
@@ -210,10 +219,10 @@ class PCAWidget {
      * Restore the visual state of the selected coordinate key when card is shown
      * This ensures the selection persists when the widget is dismissed and re-opened
      */
-    restoreSelectedCoordinateKeyVisualState() {
+    restoreSelectedCoordinateKeyVisualState(): void {
         if (this.selectedCoordinateKey) {
             // Find the selector for the selected coordinate key
-            const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'));
+            const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector')) as HTMLElement[];
             const selectedSelector = selectors.find(selector => selector.dataset.assembly === this.selectedCoordinateKey);
 
             if (selectedSelector) {
@@ -222,7 +231,7 @@ class PCAWidget {
         }
     }
 
-    hideCard() {
+    hideCard(): void {
         this.pcaWidgetContainer.classList.remove('show');
         setTimeout(() => {
             this.pcaWidgetContainer.style.display = 'none';
@@ -234,7 +243,7 @@ class PCAWidget {
         }, 200);
     }
 
-    reset() {
+    reset(): void {
         // Clear visual state of any selected selector
         this.clearAllSelectorStyles()
         this.selectedCoordinateKey = null;
@@ -244,7 +253,7 @@ class PCAWidget {
         eventBus.publish('pcaWidget:normal', { nodeSet })
     }
 
-    destroy() {
+    destroy(): void {
         this.draggable.destroy();
         if (this.searchInput) {
             this.searchInput.removeEventListener('input', this.onSearchInput.bind(this));

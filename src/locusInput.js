@@ -1,7 +1,7 @@
 import { template, ELEMENT_IDS } from './locusInput.template.js';
 import { prettyPrint } from './utils/utils.js';
 import {searchFeatures} from "./igvCore/search/geneSearch.js"
-import {defaultGenome} from "./main.js"
+import {globals} from "./main.js"
 
 // Regular expressions for parsing genomic loci and URLs
 const LOCUS_PATTERN = { REGION: /^(chr[0-9XY]+):([0-9,]+)-([0-9,]+)$/i };
@@ -61,7 +61,7 @@ class LocusInput {
                 await this.ingestLocus(locus.chr, locus.startBP, locus.endBP);
             } else {
                 // Finally try gene name search
-                const result = await searchFeatures({ genome: defaultGenome }, candidateInput)
+                const result = await searchFeatures({ genome: globals.defaultGenome }, candidateInput)
                 if (result) {
                     const { chr, start, end, name } = result
                     await this.ingestLocus(chr, start, end);

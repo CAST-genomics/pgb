@@ -1,4 +1,4 @@
-import Look from "./looks/look.js"
+import Look from "./looks/look.ts"
 import RibbonMaterialFactory from "./ribbonMaterialFactory.js"
 
 /**

@@ -1,14 +1,25 @@
 import { Draggable } from '../utils/draggable.js';
-import eventBus from '../utils/eventBus.js';
+import eventBus from '../utils/eventBus.ts';
 import { getHierarchicalPopulationStructureFromData } from '../utils/populationUtils.js';
-import {app} from "../main.js"
+import {globals} from "../main.js"
 
-class PopulationOnlyWidget {
-    constructor(populationWidgetContainer, jsonData = null) {
+class PopulationWidget {
+
+    populationWidgetContainer: HTMLElement
+    draggable: any
+    listGroup: HTMLElement
+    selectedSuperpopulation: any
+    selectedPopulation: any
+    allSuperpopulationItems: Map<string, HTMLElement>
+    allPopulationItems: Map<string, HTMLElement>
+    jsonData: any
+    hierarchicalData: any[]
+
+    constructor(populationWidgetContainer: HTMLElement, jsonData: any = null) {
         this.populationWidgetContainer = populationWidgetContainer;
         this.draggable = new Draggable(this.populationWidgetContainer);
 
-        this.listGroup = this.populationWidgetContainer.querySelector('.list-group');
+        this.listGroup = this.populationWidgetContainer.querySelector('.list-group')!;
 
         this.selectedSuperpopulation = null;
         this.selectedPopulation = null;
@@ -21,14 +32,14 @@ class PopulationOnlyWidget {
         this.configure();
     }
 
-    configure() {
+    configure(): void {
         this.populateList();
     }
 
-    populateList() {
+    populateList(): void {
         // Clean up existing items
         for (const item of this.listGroup.querySelectorAll('.list-group-item')) {
-            this.cleanupListItem(item);
+            this.cleanupListItem(item as HTMLElement);
         }
 
         this.listGroup.innerHTML = '';
@@ -36,8 +47,9 @@ class PopulationOnlyWidget {
         this.allPopulationItems.clear();
 
         for (const superpopulation of this.hierarchicalData) {
-            // Skip creating superpopulation items - only show populations
-            // But keep the superpopulation reference for the dividing lines
+            const superpopulationItem = this.createSuperpopulationItem(superpopulation);
+            this.listGroup.appendChild(superpopulationItem);
+            this.allSuperpopulationItems.set(superpopulation.name, superpopulationItem);
 
             // Always add populations for each superpopulation
             for (const population of superpopulation.populations) {
@@ -48,7 +60,7 @@ class PopulationOnlyWidget {
         }
     }
 
-    createSuperpopulationItem(superpopulation) {
+    createSuperpopulationItem(superpopulation: any): HTMLElement {
         const container = document.createElement('div');
         container.className = 'superpopulation-widget__superpopulation-container';
 
@@ -62,13 +74,13 @@ class PopulationOnlyWidget {
         superpopulationButton.dataset.acronym = superpopulation.acronym;
 
         const onSuperpopulationButtonClick = this.onSuperpopulationButtonClick.bind(this, superpopulation);
-        superpopulationButton.onSuperpopulationButtonClick = onSuperpopulationButtonClick;
+        (superpopulationButton as any).onSuperpopulationButtonClick = onSuperpopulationButtonClick;
         superpopulationButton.addEventListener('click', onSuperpopulationButtonClick);
 
         return container;
     }
 
-    createPopulationItem(population, superpopulation) {
+    createPopulationItem(population: any, superpopulation: any): HTMLElement {
         const container = document.createElement('div');
         container.className = 'superpopulation-widget__population-container';
 
@@ -83,81 +95,81 @@ class PopulationOnlyWidget {
         populationButton.dataset.superpopulation = superpopulation.acronym;
 
         const onPopulationButtonClick = this.onPopulationButtonClick.bind(this, population);
-        populationButton.onPopulationButtonClick = onPopulationButtonClick;
+        (populationButton as any).onPopulationButtonClick = onPopulationButtonClick;
         populationButton.addEventListener('click', onPopulationButtonClick);
 
         return container;
     }
 
-    onSuperpopulationButtonClick(superpopulation, event) {
+    onSuperpopulationButtonClick(superpopulation: any, event: Event): void {
         event.stopPropagation();
 
         if (this.selectedSuperpopulation && this.selectedSuperpopulation.name === superpopulation.name) {
             // Deselect current superpopulation
-            event.target.classList.remove('widget-service__button--active');
+            (event.target as HTMLElement).classList.remove('widget-service__button--active');
             const deselectedSuperpopulation = this.selectedSuperpopulation;
             this.selectedSuperpopulation = null;
 
-            app.setActiveScene('nodeEmphasisScene', true);
+            globals.app!.setActiveScene('nodeEmphasisScene', true);
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
         } else {
             // Clear all previous selections
             this.clearAllSelections();
 
             // Select new superpopulation
-            event.target.classList.add('widget-service__button--active');
+            (event.target as HTMLElement).classList.add('widget-service__button--active');
             this.selectedSuperpopulation = superpopulation;
 
             console.log(`Selected superpopulation: ${superpopulation.name}`);
 
-            app.setActiveScene('heatmapScene', true);
+            globals.app!.setActiveScene('heatmapScene', true);
             eventBus.publish('superpopulation:selected', { acronym: superpopulation.acronym });
         }
     }
 
-    onPopulationButtonClick(population, event) {
+    onPopulationButtonClick(population: any, event: Event): void {
         event.stopPropagation();
 
         if (this.selectedPopulation && this.selectedPopulation.name === population.name) {
             // Deselect current population
-            event.target.classList.remove('widget-service__button--active');
+            (event.target as HTMLElement).classList.remove('widget-service__button--active');
             const deselectedPopulation = this.selectedPopulation;
             this.selectedPopulation = null;
 
-            app.setActiveScene('nodeEmphasisScene', true);
+            globals.app!.setActiveScene('nodeEmphasisScene', true);
             eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
         } else {
             // Clear all previous selections
             this.clearAllSelections();
 
             // Select new population
-            event.target.classList.add('widget-service__button--active');
+            (event.target as HTMLElement).classList.add('widget-service__button--active');
             this.selectedPopulation = population;
 
             console.log(`Selected population: ${population.name}`);
 
-            app.setActiveScene('heatmapScene', true);
+            globals.app!.setActiveScene('heatmapScene', true);
             eventBus.publish('population:selected', { acronym: population.acronym });
         }
     }
 
-    cleanupListItem(item) {
+    cleanupListItem(item: HTMLElement): void {
         // Clean up superpopulation buttons
-        const superpopulationButton = item.querySelector('.superpopulation-widget__superpopulation-button');
+        const superpopulationButton = item.querySelector('.superpopulation-widget__superpopulation-button') as any;
         if (superpopulationButton && superpopulationButton.onPopulationButtonClick) {
             superpopulationButton.removeEventListener('click', superpopulationButton.onPopulationButtonClick);
             delete superpopulationButton.onPopulationButtonClick;
         }
 
         // Clean up population buttons
-        const populationButton = item.querySelector('.superpopulation-widget__population-button');
+        const populationButton = item.querySelector('.superpopulation-widget__population-button') as any;
         if (populationButton && populationButton.onPopulationButtonClick) {
             populationButton.removeEventListener('click', populationButton.onPopulationButtonClick);
             delete populationButton.onPopulationButtonClick;
         }
     }
 
-    showCard() {
+    showCard(): void {
         this.populationWidgetContainer.style.display = '';
         this.populationWidgetContainer.style.top = '0px';
         this.populationWidgetContainer.style.left = '0px';
@@ -166,14 +178,14 @@ class PopulationOnlyWidget {
         }, 0);
     }
 
-    hideCard() {
+    hideCard(): void {
         this.populationWidgetContainer.classList.remove('show');
         setTimeout(() => {
             this.populationWidgetContainer.style.display = 'none';
         }, 200);
     }
 
-    clearAllSelections() {
+    clearAllSelections(): void {
         // Clear all button active states
         const allButtons = this.listGroup.querySelectorAll('.superpopulation-widget__superpopulation-button, .superpopulation-widget__population-button');
         allButtons.forEach(button => {
@@ -187,22 +199,20 @@ class PopulationOnlyWidget {
 
     /**
      * Update the widget with new data
-     * @param {import('../datasetModel.ts').DatasetModel} dataset
      */
-    updateData(dataset) {
+    updateData(dataset: any): void {
         this.hierarchicalData = dataset ? getHierarchicalPopulationStructureFromData(dataset) : [];
         this.clearAllSelections();
         this.populateList();
     }
 
-    reset() {
+    reset(): void {
         this.clearAllSelections();
     }
 
-    destroy() {
+    destroy(): void {
         this.draggable.destroy();
     }
 }
 
-export default PopulationOnlyWidget;
-
+export default PopulationWidget;

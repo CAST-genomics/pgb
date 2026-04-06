@@ -4,21 +4,35 @@ import MapControlsFactory from './mapControlsFactory.js'
 import RendererFactory from './rendererFactory.js'
 import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
-import eventBus from './utils/eventBus.js';
-import { annotationRenderService } from "./main.js"
+import eventBus from './utils/eventBus.ts';
+import { globals } from "./main.js"
 import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
-import { assemblyMetadataService } from "./assemblyMetadataService.js"
+import { assemblyMetadataService } from "./assemblyMetadataService.ts"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
 import { pcaChartService } from "./widgets/pcaChartService.js"
 import { parseDataset } from './datasetParser.ts'
 
-let xxPre = undefined
-let yyPre = undefined
+let xxPre: number | undefined = undefined
+let yyPre: number | undefined = undefined
 
 class App {
 
-    constructor(container, frustumSize, pangenomeService, raycastService, genomicService, geometryManager, widgetService, genomeLibrary, sceneManager) {
+    container: HTMLElement
+    renderer: any
+    pangenomeService: any
+    genomicService: any
+    geometryManager: any
+    widgetService: any
+    genomeLibrary: any
+    sceneManager: any
+    cameraManager: any
+    mapControl: any
+    raycastService: any
+    isTooltipEnabled: boolean | undefined
+    tooltip!: HTMLElement
+
+    constructor(container: HTMLElement, frustumSize: number, pangenomeService: any, raycastService: any, genomicService: any, geometryManager: any, widgetService: any, genomeLibrary: any, sceneManager: any) {
         this.container = container
 
         this.renderer = RendererFactory.createRenderer(container)
@@ -40,7 +54,7 @@ class App {
         this.tooltip = this.createTooltip();
 
         // Register mouse over callback (stationary hover)
-        this.raycastService.registerMouseOverHandler((intersection, event) => {
+        this.raycastService.registerMouseOverHandler((intersection: any, event: any) => {
             if (!intersection) {
                 this.clearIntersection()
                 return
@@ -60,7 +74,7 @@ class App {
         })
 
         // Register continuous move tracking to publish lineIntersection while over an object
-        this.raycastService.registerMouseMoveHandler((intersection, event) => {
+        this.raycastService.registerMouseMoveHandler((intersection: any, event: any) => {
             if (!intersection) {
                 this.clearIntersection()
                 return
@@ -94,7 +108,7 @@ class App {
         this.setupDragAndDrop()
     }
 
-    setActiveScene(sceneName, doPauseAnimation = false){
+    setActiveScene(sceneName: string, doPauseAnimation: boolean = false): void {
 
         if (sceneName !== this.sceneManager.getActiveSceneName()) {
 
@@ -119,7 +133,7 @@ class App {
         }
     }
 
-    animate() {
+    animate(): void {
 
         lineMaterialResolutionService.update(this.cameraManager.camera, this.container)
 
@@ -129,22 +143,22 @@ class App {
         this.renderer.render(scene, this.cameraManager.camera)
     }
 
-    clearIntersection() {
+    clearIntersection(): void {
         this.raycastService.clearIntersection()
         this.renderer.domElement.style.cursor = '';
         this.hideTooltip()
-        eventBus.publish('clearIntersection', {})
+        eventBus.publish('clearIntersection', {} as Record<string, never>)
     }
 
-    startAnimation() {
+    startAnimation(): void {
         this.renderer.setAnimationLoop(() => this.animate())
     }
 
-    stopAnimation() {
+    stopAnimation(): void {
         this.renderer.setAnimationLoop(null)
     }
 
-    async handleSearch(url) {
+    async handleSearch(url: string): Promise<void> {
 
         this.stopAnimation()
 
@@ -153,7 +167,7 @@ class App {
         let json
         try {
             json = await loadPath(url)
-        } catch (error) {
+        } catch (error: any) {
             console.error(`Error loading ${url}:`, error)
             this.showError(`Error loading ${url}: ${error.message}`)
             this.startAnimation()
@@ -164,7 +178,7 @@ class App {
         await this.processData(json)
     }
 
-    async processData(json) {
+    async processData(json: any): Promise<void> {
         const dataset = parseDataset(json)
 
         this.pangenomeService.loadData(dataset)
@@ -200,12 +214,12 @@ class App {
         eventBus.publish('datasetLoaded', { dataset })
     }
 
-    updateViewToFitScene(scene, cameraManager, mapControl) {
+    updateViewToFitScene(scene: any, cameraManager: any, mapControl: any): void {
 
         const bbox = new THREE.Box3()
 
         let foundObjects = 0;
-        scene.traverse((object) => {
+        scene.traverse((object: any) => {
 
             // Handle Line2 objects (both node lines and edge lines) - check constructor name since isLine2 might not be set
             if ((object.isLine2 || object.constructor.name === 'Line2') && object.name !== 'boundingSphereHelper') {
@@ -253,7 +267,7 @@ class App {
         // this.raycastService.updateLine2Threshold(cameraManager.camera)
     }
 
-    #createBoundingSphereHelper(boundingSphere) {
+    private createBoundingSphereHelper(boundingSphere: any): any {
         const materialConfig = {
             color: 0xdddddd,
             wireframe: true,
@@ -270,15 +284,15 @@ class App {
         return boundingSphereHelper
     }
 
-    enableTooltip(){
+    enableTooltip(): void {
         this.isTooltipEnabled = true
     }
 
-    disableTooltip(){
+    disableTooltip(): void {
         this.isTooltipEnabled = false
     }
 
-    createTooltip() {
+    createTooltip(): HTMLElement {
 
         const tooltip = document.createElement('div')
         this.container.appendChild(tooltip)
@@ -289,7 +303,7 @@ class App {
         return tooltip;
     }
 
-    showTooltip(object, point, type) {
+    showTooltip(object: any, point: any, type: string): void {
 
         if (true === this.isTooltipEnabled){
 
@@ -363,16 +377,16 @@ class App {
         }
     }
 
-    hideTooltip() {
+    hideTooltip(): void {
 
         if ('none' !== this.tooltip.style.display) {
             this.tooltip.style.display = 'none';
         }
     }
 
-    clearCurrentData() {
+    clearCurrentData(): void {
 
-        annotationRenderService.clear()
+        globals.annotationRenderService.clear()
 
         this.genomicService.clear()
 
@@ -386,7 +400,7 @@ class App {
 
     }
 
-    setupDragAndDrop() {
+    setupDragAndDrop(): void {
         let dragCounter = 0
 
         this.container.addEventListener('dragover', (e) => {
@@ -394,7 +408,7 @@ class App {
             e.stopPropagation()
 
             // Only show visual feedback for file drops
-            if (e.dataTransfer.types.includes('Files')) {
+            if (e.dataTransfer!.types.includes('Files')) {
                 this.container.classList.add('drag-over')
             }
         })
@@ -404,7 +418,7 @@ class App {
             e.stopPropagation()
             dragCounter++
 
-            if (e.dataTransfer.types.includes('Files')) {
+            if (e.dataTransfer!.types.includes('Files')) {
                 this.container.classList.add('drag-over')
             }
         })
@@ -425,13 +439,13 @@ class App {
             dragCounter = 0
             this.container.classList.remove('drag-over')
 
-            const files = e.dataTransfer.files
+            const files = e.dataTransfer!.files
             if (!files || files.length === 0) {
                 return
             }
 
             // Process the first JSON file found
-            let jsonFile = null
+            let jsonFile: File | null = null
             for (let i = 0; i < files.length; i++) {
                 const file = files[i]
                 if (file.type === 'application/json' || file.name.toLowerCase().endsWith('.json')) {
@@ -456,7 +470,7 @@ class App {
 
                 // Clear the locus input widget after successful file load
                 this.clearLocusInput()
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error reading or parsing dropped file:', error)
                 if (error instanceof SyntaxError) {
                     this.showError(`Invalid JSON file: ${error.message}`)
@@ -467,17 +481,17 @@ class App {
         })
     }
 
-    readFileAsText(file) {
+    readFileAsText(file: File): Promise<string> {
         return new Promise((resolve, reject) => {
             const reader = new FileReader()
-            reader.onload = (e) => resolve(e.target.result)
+            reader.onload = (e) => resolve(e.target!.result as string)
             reader.onerror = (e) => reject(new Error('Failed to read file'))
             reader.readAsText(file)
         })
     }
 
-    clearLocusInput() {
-        const locusInput = document.getElementById('pgb-locus-input')
+    clearLocusInput(): void {
+        const locusInput = document.getElementById('pgb-locus-input') as HTMLInputElement | null
         const locusError = document.getElementById('pgb-locus-error')
 
         if (locusInput) {
@@ -491,7 +505,7 @@ class App {
         }
     }
 
-    showError(message) {
+    showError(message: string): void {
         console.error(message)
 
         // Create or update error display

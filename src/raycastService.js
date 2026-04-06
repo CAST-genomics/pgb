@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import RibbonLine from "./ribbonLine.js"
-import {app} from "./main.js"
+import {globals} from "./main.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 import {getComplementaryThreeJSColor} from "./utils/color/color.js"
 
@@ -84,7 +84,7 @@ class RayCastService {
         this.pointer.x = ((clientX - left) / width) * 2 - 1;
         this.pointer.y = -((clientY - top) / height) * 2 + 1;
 
-        this.updateRaycaster(app.cameraManager.camera, this.pointer);
+        this.updateRaycaster(globals.app.cameraManager.camera, this.pointer);
 
         this.lastPointerPosition = { x: clientX, y: clientY };
 
@@ -180,7 +180,7 @@ class RayCastService {
 
     updateRaycaster(camera, pointer) {
 
-        const scene = app.sceneManager.getActiveScene()
+        const scene = globals.app.sceneManager.getActiveScene()
         if (!scene) {
             return
         }
@@ -196,7 +196,7 @@ class RayCastService {
     }
 
     #getRaycastTargets(){
-        const scene = app.sceneManager.getActiveScene()
+        const scene = globals.app.sceneManager.getActiveScene()
         if (!scene) return [];
         const nodeMeshGroup = scene.getObjectByName('NodeMeshGroup')
         const edgeMeshGroup = scene.getObjectByName('EdgeMeshGroup')
@@ -206,7 +206,7 @@ class RayCastService {
 
     #raycastClosest(){
         // Always ensure raycaster is up-to-date before raycasting
-        this.updateRaycaster(app.cameraManager.camera, this.pointer);
+        this.updateRaycaster(globals.app.cameraManager.camera, this.pointer);
 
         const targets = this.#getRaycastTargets();
         if (0 === targets.length) {
@@ -240,7 +240,7 @@ class RayCastService {
 
     showVisualFeedback(pointOnLine, visualFeedbackColor) {
 
-        const scene = app.sceneManager.getActiveScene()
+        const scene = globals.app.sceneManager.getActiveScene()
         if (scene){
             const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
 
@@ -254,7 +254,7 @@ class RayCastService {
 
     hideVisualFeedback() {
 
-        const scene = app.sceneManager.getActiveScene()
+        const scene = globals.app.sceneManager.getActiveScene()
         if (scene){
             const raycastVisualFeedback = scene.getObjectByName(this.getVisualFeedbackName())
             if (raycastVisualFeedback){

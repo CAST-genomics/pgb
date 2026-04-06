@@ -1,6 +1,6 @@
 import { getSuperpopulationName, getPopulationName, findSuperpopulationForPopulation } from './utils/populationUtils.js';
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
-import eventBus from "./utils/eventBus.js"
+import eventBus from "./utils/eventBus.ts"
 
 /**
  * AssemblyMetadataService - Manages and provides access to assembly metadata
@@ -8,6 +8,15 @@ import eventBus from "./utils/eventBus.js"
  * Implemented as a singleton to ensure single instance across the application.
  */
 class AssemblyMetadataService {
+
+    private static instance: AssemblyMetadataService
+
+    metadata!: Map<string, any>
+    totalAssemblies!: number
+    selectedPopulation!: string | null
+    private popSelectUnsub!: (() => void) | null
+    private popDeselectUnsub!: (() => void) | null
+
     constructor() {
         if (AssemblyMetadataService.instance) {
             return AssemblyMetadataService.instance;
@@ -28,16 +37,15 @@ class AssemblyMetadataService {
         AssemblyMetadataService.instance = this;
     }
 
-    handleSelectionEvent(data, eventType) {
+    handleSelectionEvent(data: { acronym: string }, eventType: string): void {
         const { acronym } = data
         this.selectedPopulation = acronym;
     }
 
     /**
      * Load assembly metadata from JSON data
-     * @param {Object} jsonData - The JSON data containing node information
      */
-    loadMetadata(dataset) {
+    loadMetadata(dataset: any): void {
         this.metadata.clear();
         this.totalAssemblies = 0;
 
@@ -60,22 +68,18 @@ class AssemblyMetadataService {
 
     /**
      * Calculate total assemblies from count data
-     * @param {Object} countData - The count object from metadata
-     * @returns {number} Total count of assemblies
      */
-    calculateTotalAssemblies(countData) {
+    calculateTotalAssemblies(countData: any): number {
         if (!countData?.sex) return 0;
 
         // Sum up all sex counts (should be the same as any other category)
-        return Object.values(countData.sex).reduce((sum, count) => sum + count, 0);
+        return Object.values(countData.sex).reduce((sum: number, count: any) => sum + count, 0) as number;
     }
 
     /**
      * Get superpopulation frequencies for a given node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with superpopulation frequencies or null if not found
      */
-    getSuperPopulationFrequencies(nodeId) {
+    getSuperPopulationFrequencies(nodeId: string): Record<string, number> | null {
         const nodeData = this.metadata.get(nodeId);
         if (!nodeData?.frequency?.superpopulation) {
             return null;
@@ -86,10 +90,8 @@ class AssemblyMetadataService {
 
     /**
      * Get population frequencies for a given node
-     * @param {string} nodeId - The node identifier
-     * @returns {Object|null} Object with population frequencies or null if not found
      */
-    getPopulationFrequencies(nodeId) {
+    getPopulationFrequencies(nodeId: string): Record<string, number> | null {
         const nodeData = this.metadata.get(nodeId);
         if (!nodeData?.frequency?.population) {
             return null;
@@ -101,10 +103,8 @@ class AssemblyMetadataService {
     /**
      * Generate HTML snippet showing demographic breakdown for a node
      * Simple presentation of frequency values as percentages with hierarchical organization
-     * @param {string} nodeId - The node identifier
-     * @returns {string} HTML snippet with demographic breakdown
      */
-    getDemographicBreakdownHTML(nodeId) {
+    getDemographicBreakdownHTML(nodeId: string): string {
         const nodeMetadata = this.metadata.get(nodeId);
         if (!nodeMetadata) {
             return '<div>No metadata available for this node</div>';
@@ -123,18 +123,18 @@ class AssemblyMetadataService {
 
         let html = '<div class="demographic-breakdown">';
 
-        const superpopGroups = {};
+        const superpopGroups: Record<string, Record<string, number>> = {};
         for (const [population, frequency] of Object.entries(popFrequencies)) {
             const superpop = findSuperpopulationForPopulation(population);
             if (superpop) {
                 if (!superpopGroups[superpop]) {
                     superpopGroups[superpop] = {};
                 }
-                superpopGroups[superpop][population] = frequency;
+                superpopGroups[superpop][population] = frequency as number;
             }
         }
 
-        const sortedSuperPops = Object.entries(superPopFrequencies).sort(([, a], [, b]) => b - a)
+        const sortedSuperPops = Object.entries(superPopFrequencies).sort(([, a]: [string, any], [, b]: [string, any]) => b - a)
         for (const [superPop, superPopFrequency] of sortedSuperPops) {
 
             if ('N/A' === superPop){
@@ -142,7 +142,7 @@ class AssemblyMetadataService {
             }
 
             html += `<div class="superpopulation-section">`;
-            html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${ AssemblyMetadataService.formatNumber(superPopFrequency) }</span></h5>`;
+            html += `<h5 class="superpopulation-title"><span class="title-text">${getSuperpopulationName(superPop)}</span><span class="title-percentage">${ AssemblyMetadataService.formatNumber(superPopFrequency as number) }</span></h5>`;
 
             html += '<ul class="population-list">';
 
@@ -168,10 +168,8 @@ class AssemblyMetadataService {
     /**
      * Generate HTML snippet showing population breakdown for a node
      * Simple presentation of population frequency values as percentages
-     * @param {string} nodeId - The node identifier
-     * @returns {string} HTML snippet with population breakdown
      */
-    getPopulationTooltip(nodeId) {
+    getPopulationTooltip(nodeId: string): string {
 
         let html = '<div class="population-tooltip">'
 
@@ -191,7 +189,7 @@ class AssemblyMetadataService {
 
             const emphasisStyle = acronym === this.selectedPopulation ? 'style="font-size: 0.9rem; font-weight: bold;"' : '';
 
-            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(acronym)}</span><span class="population-count" ${emphasisStyle}>${count}</span><span class="population-percentage" ${emphasisStyle}>${ AssemblyMetadataService.formatNumber(frequency) }</span></div>`;
+            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(acronym)}</span><span class="population-count" ${emphasisStyle}>${count}</span><span class="population-percentage" ${emphasisStyle}>${ AssemblyMetadataService.formatNumber(frequency as number) }</span></div>`;
         }
 
         html += '</div>';
@@ -201,16 +199,15 @@ class AssemblyMetadataService {
 
     /**
      * Get the singleton instance
-     * @returns {AssemblyMetadataService} The singleton instance
      */
-    static getInstance() {
+    static getInstance(): AssemblyMetadataService {
         if (!AssemblyMetadataService.instance) {
             AssemblyMetadataService.instance = new AssemblyMetadataService();
         }
         return AssemblyMetadataService.instance;
     }
 
-    static formatNumber(frequency) {
+    static formatNumber(frequency: number): string {
 
         if (0 === frequency) {
             return 'none'

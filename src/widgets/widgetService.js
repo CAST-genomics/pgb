@@ -1,4 +1,4 @@
-import { app } from "../main.js"
+import { globals } from "../main.js"
 import { pclaiCoordinateService } from "./pclaiCoordinateService.js"
 
 class WidgetService {
@@ -65,7 +65,7 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget- assembly')
-            app.setActiveScene('nodeEmphasisScene', true);
+            globals.app.setActiveScene('nodeEmphasisScene', true);
             this.assemblyWidget.showCard();
             this.setActiveButton(this.assemblyButton);
         }
@@ -90,9 +90,9 @@ class WidgetService {
             console.log('show widget - population')
 
             if (null === this.populationWidget.selectedSuperpopulation && null === this.populationWidget.selectedPopulation){
-                app.setActiveScene('nodeEmphasisScene', true)
+                globals.app.setActiveScene('nodeEmphasisScene', true)
             } else {
-                app.setActiveScene('heatmapScene', true)
+                globals.app.setActiveScene('heatmapScene', true)
             }
 
             this.populationWidget.showCard();
@@ -123,7 +123,7 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget - PCA')
-            app.setActiveScene('nodeEmphasisScene', true);
+            globals.app.setActiveScene('nodeEmphasisScene', true);
             // this.pcaWidget.configure();
             this.pcaWidget.showCard();
             this.setActiveButton(this.pcaButton);
