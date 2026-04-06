@@ -1,4 +1,4 @@
-import App from './app.js'
+import App from './app.ts'
 import RayCastService from './raycastService.js'
 import LocusInput from './locusInput.js'
 import GenomicService from './genomicService.js'
