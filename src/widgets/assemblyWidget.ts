@@ -19,8 +19,6 @@ class AssemblyWidget {
     selectedAssembly: { name: string; color: string } | null
     allAssemblyItems: Map<string, HTMLElement>
     emphasisMode: string
-    private restoreUnsub: () => void
-
     constructor(assemblyWidgetContainer: HTMLElement, genomicService: any, geometryManager: any) {
 
         this.assemblyWidgetContainer = assemblyWidgetContainer;
@@ -35,18 +33,18 @@ class AssemblyWidget {
         this.switchInput = null; // Will be initialized when card is shown
         this.modeLabel = null; // Will be initialized when card is shown
 
-        this.restoreUnsub = eventBus.subscribe('assembly:normal', data => {
-            const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
-            for (const selector of selectors) {
-                selector.classList.remove('assembly-widget__genome-selector--selected')
-            }
-        })
-
         this.selectedAssembly = null; // Track selected assembly as { name, color } object
         this.allAssemblyItems = new Map(); // Store all items for filtering
 
         this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS; // Default to subgraph emphasis
 
+    }
+
+    private clearSelection(): void {
+        const selectors = this.listGroup.querySelectorAll('.assembly-widget__genome-selector--selected');
+        for (const selector of selectors) {
+            selector.classList.remove('assembly-widget__genome-selector--selected');
+        }
     }
 
     configure(): void {
@@ -115,6 +113,7 @@ class AssemblyWidget {
 
         if (this.selectedAssembly && this.selectedAssembly.name === assembly) {
             // Deselect current assembly selector
+            this.clearSelection();
             this.selectedAssembly = null;
 
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
@@ -122,6 +121,7 @@ class AssemblyWidget {
         } else {
             // Deselect previous assembly selector if one exists
             if (this.selectedAssembly !== null) {
+                this.clearSelection();
                 const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
                 eventBus.publish('assembly:normal', { nodeSet })
             }
@@ -293,6 +293,7 @@ class AssemblyWidget {
     reset(): void {
         // Clear any selected assembly
         if (this.selectedAssembly) {
+            this.clearSelection();
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
             eventBus.publish('assembly:normal', { nodeSet })
             this.selectedAssembly = null;

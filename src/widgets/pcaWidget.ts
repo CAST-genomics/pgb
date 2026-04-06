@@ -13,7 +13,6 @@ class PCAWidget {
     searchInput: HTMLInputElement | null
     selectedCoordinateKey: string | null
     allListItems: Map<string, HTMLElement>
-    private restoreUnsub: () => void
 
     constructor(pcaWidgetContainer: HTMLElement, geometryManager: any) {
 
@@ -24,13 +23,6 @@ class PCAWidget {
         this.listGroup = this.pcaWidgetContainer.querySelector('.list-group')!;
 
         this.searchInput = null; // Will be initialized when card is shown
-
-        this.restoreUnsub = eventBus.subscribe('pcaWidget:normal', data => {
-            const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
-            for (const selector of selectors) {
-                selector.classList.remove('pca-widget__genome-selector--selected')
-            }
-        })
 
         this.selectedCoordinateKey = null; // Track selected coordinate key
         this.allListItems = new Map(); // Store all items for filtering
