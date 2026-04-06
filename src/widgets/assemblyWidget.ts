@@ -8,7 +8,20 @@ class AssemblyWidget {
     static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
     static NODE_DEEMPHASIS_COLOR = '#a89292';
 
-    constructor(assemblyWidgetContainer, genomicService, geometryManager) {
+    assemblyWidgetContainer: HTMLElement
+    draggable: any
+    genomicService: any
+    geometryManager: any
+    listGroup: HTMLElement
+    searchInput: HTMLInputElement | null
+    switchInput: HTMLInputElement | null
+    modeLabel: HTMLElement | null
+    selectedAssembly: { name: string; color: string } | null
+    allAssemblyItems: Map<string, HTMLElement>
+    emphasisMode: string
+    private restoreUnsub: () => void
+
+    constructor(assemblyWidgetContainer: HTMLElement, genomicService: any, geometryManager: any) {
 
         this.assemblyWidgetContainer = assemblyWidgetContainer;
         this.draggable = new Draggable(this.assemblyWidgetContainer);
@@ -16,7 +29,7 @@ class AssemblyWidget {
         this.genomicService = genomicService;
         this.geometryManager = geometryManager
 
-        this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group');
+        this.listGroup = this.assemblyWidgetContainer.querySelector('.list-group')!;
 
         this.searchInput = null; // Will be initialized when card is shown
         this.switchInput = null; // Will be initialized when card is shown
@@ -36,16 +49,16 @@ class AssemblyWidget {
 
     }
 
-    configure() {
+    configure(): void {
         this.populateList()
     }
 
-    populateList() {
+    populateList(): void {
 
         this.selectedAssembly = null;
 
         for (const item of this.listGroup.querySelectorAll('.list-group-item')) {
-            this.cleanupListItem(item);
+            this.cleanupListItem(item as HTMLElement);
         }
 
         this.listGroup.innerHTML = '';
@@ -58,7 +71,7 @@ class AssemblyWidget {
         }
     }
 
-    createListItem(assemblyKey) {
+    createListItem(assemblyKey: string): HTMLElement {
         const container = document.createElement('div');
         container.className = 'list-group-item d-flex align-items-center gap-3';
 
@@ -71,7 +84,7 @@ class AssemblyWidget {
         assemblySelector.dataset.assembly = assemblyKey;  // Use data attribute instead of direct property
 
         const onAssemblySelectorClick = this.onAssemblySelectorClick.bind(this, assemblyKey);
-        assemblySelector.onAssemblySelectorClick = onAssemblySelectorClick;
+        (assemblySelector as any).onAssemblySelectorClick = onAssemblySelectorClick;
         assemblySelector.addEventListener('click', onAssemblySelectorClick);
 
         // assembly name and haplotype container
@@ -97,7 +110,7 @@ class AssemblyWidget {
         return container;
     }
 
-    async onAssemblySelectorClick(assembly, event) {
+    async onAssemblySelectorClick(assembly: string, event: Event): Promise<void> {
         event.stopPropagation();
 
         if (this.selectedAssembly && this.selectedAssembly.name === assembly) {
@@ -121,20 +134,20 @@ class AssemblyWidget {
                     name: assembly,
                     color: Look.NODE_EMPHASIS_COLOR
                 };
-            event.target.classList.add('assembly-widget__genome-selector--selected')
+            (event.target as HTMLElement).classList.add('assembly-widget__genome-selector--selected')
 
             this.emphasizeAssembly(this.selectedAssembly);
         }
     }
 
-    emphasizeAssembly(selectedAssembly) {
+    emphasizeAssembly(selectedAssembly: { name: string; color: string }): void {
         let nodeSet;
 
         if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
             // Use spine features data
             const { spine } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).spineFeatures;
             const { nodes } = spine;
-            nodeSet = new Set([...(nodes.map(({ id }) => id))]);
+            nodeSet = new Set([...(nodes.map(({ id }: { id: string }) => id))]);
         } else {
             // Use assembly subgraph data (default)
             const { nodes } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).assemblySubgraph;
@@ -144,7 +157,7 @@ class AssemblyWidget {
         eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR });
     }
 
-    initializeSearchInput() {
+    initializeSearchInput(): void {
         if (!this.searchInput) {
             this.searchInput = this.assemblyWidgetContainer.querySelector('#assembly-search');
             if (this.searchInput) {
@@ -156,7 +169,7 @@ class AssemblyWidget {
         }
     }
 
-    initializeSwitchInput() {
+    initializeSwitchInput(): void {
         if (!this.switchInput) {
             this.switchInput = this.assemblyWidgetContainer.querySelector('.form-check-input[type="checkbox"]');
             if (this.switchInput) {
@@ -168,7 +181,7 @@ class AssemblyWidget {
         }
     }
 
-    initializeModeLabel() {
+    initializeModeLabel(): void {
         if (!this.modeLabel) {
             this.modeLabel = this.assemblyWidgetContainer.querySelector('#emphasis-mode-label');
             if (this.modeLabel) {
@@ -181,8 +194,8 @@ class AssemblyWidget {
         }
     }
 
-    onSearchInput(event) {
-        const searchTerm = event.target.value.toLowerCase().trim();
+    onSearchInput(event: Event): void {
+        const searchTerm = (event.target as HTMLInputElement).value.toLowerCase().trim();
         console.log('Search term:', searchTerm);
 
         if (searchTerm === '') {
@@ -197,7 +210,7 @@ class AssemblyWidget {
         }
     }
 
-    filterAssemblies(searchTerm) {
+    filterAssemblies(searchTerm: string): void {
         this.allAssemblyItems.forEach((item, assembly) => {
             const matches = assembly.toLowerCase().includes(searchTerm);
             if (matches) {
@@ -208,7 +221,7 @@ class AssemblyWidget {
         });
     }
 
-    updateModeLabel() {
+    updateModeLabel(): void {
         if (this.modeLabel) {
             if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
                 this.modeLabel.textContent = 'Assembly Walk';
@@ -218,8 +231,8 @@ class AssemblyWidget {
         }
     }
 
-    onSwitchChange(event) {
-        const isChecked = event.target.checked;
+    onSwitchChange(event: Event): void {
+        const isChecked = (event.target as HTMLInputElement).checked;
         console.log('Switch toggled:', isChecked);
 
         // Toggle between the two emphasis modes
@@ -240,9 +253,9 @@ class AssemblyWidget {
         }
     }
 
-    cleanupListItem(item) {
+    cleanupListItem(item: HTMLElement): void {
 
-        const assemblySelector = item.querySelector('.assembly-widget__genome-selector');
+        const assemblySelector = item.querySelector('.assembly-widget__genome-selector') as any;
         if (assemblySelector && assemblySelector.onAssemblySelectorClick) {
             assemblySelector.removeEventListener('click', assemblySelector.onAssemblySelectorClick);
             delete assemblySelector.onAssemblySelectorClick;
@@ -250,7 +263,7 @@ class AssemblyWidget {
 
     }
 
-    showCard() {
+    showCard(): void {
         this.assemblyWidgetContainer.style.display = '';
         this.assemblyWidgetContainer.style.top = '0px'
         this.assemblyWidgetContainer.style.left = '0px'
@@ -265,7 +278,7 @@ class AssemblyWidget {
         }, 0);
     }
 
-    hideCard() {
+    hideCard(): void {
         this.assemblyWidgetContainer.classList.remove('show');
         setTimeout(() => {
             this.assemblyWidgetContainer.style.display = 'none';
@@ -277,7 +290,7 @@ class AssemblyWidget {
         }, 200);
     }
 
-    reset() {
+    reset(): void {
         // Clear any selected assembly
         if (this.selectedAssembly) {
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
@@ -286,7 +299,7 @@ class AssemblyWidget {
         }
     }
 
-    destroy() {
+    destroy(): void {
         this.draggable.destroy();
         if (this.searchInput) {
             this.searchInput.removeEventListener('input', this.onSearchInput.bind(this));

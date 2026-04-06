@@ -3,9 +3,9 @@ import RayCastService from './raycastService.js'
 import LocusInput from './locusInput.js'
 import GenomicService from './genomicService.js'
 import GeometryManager from './geometryManager.js'
-import AssemblyWidget from './widgets/assemblyWidget.js'
-import PopulationOnlyWidget from "./widgets/populationOnlyWidget.js"
-import PCAWidget from './widgets/pcaWidget.js'
+import AssemblyWidget from './widgets/assemblyWidget.ts'
+import PopulationOnlyWidget from "./widgets/populationOnlyWidget.ts"
+import PCAWidget from './widgets/pcaWidget.ts'
 import WidgetService from './widgets/widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import { initializeGenomeRegistry, setCustomGenomes } from './igvCore/genome/genomeRegistry.js'
@@ -24,6 +24,7 @@ import './styles/app.scss'
 
 let contextMenuService
 
+/** @type {{ app: any, locusInput: any, defaultGenome: any, annotationRenderService: any, widgetService: any }} */
 export const globals = {
     app: null,
     locusInput: null,
