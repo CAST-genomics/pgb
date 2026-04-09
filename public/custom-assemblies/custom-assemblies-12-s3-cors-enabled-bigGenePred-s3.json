@@ -7,7 +7,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00097_hap1_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00097_hap1_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -20,7 +20,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00097_hap2_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00097_hap2_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -33,7 +33,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00099_hap1_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00099_hap1_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -46,7 +46,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00099_hap2_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00099_hap2_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -59,7 +59,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00126_hap1_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00126_hap1_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -72,7 +72,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00126_hap2_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00126_hap2_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -85,7 +85,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00128_hap1_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00128_hap1_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -98,7 +98,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00128_hap2_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00128_hap2_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -111,7 +111,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00133_hap1_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00133_hap1_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -124,7 +124,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00133_hap2_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00133_hap2_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -137,7 +137,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00140_hap1_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00140_hap1_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
@@ -150,7 +150,7 @@
     "tracks": [
       {
         "name": "Gene annotations",
-        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00140_hap2_hprc_r2_v1.0.1_cat_v1.1.bb",
+        "url": "https://pgb-bigbed.s3.amazonaws.com/HG00140_hap2_hprc_r2_v1.0.1_cat_v1.1_bigGenePred.bb",
         "format": "bigbed"
       }
     ]
