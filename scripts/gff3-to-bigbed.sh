@@ -19,13 +19,15 @@
 # What it does:
 #   1. Downloads a GFF3 annotation file (gzipped) from a URL
 #   2. Extracts chromosome sizes from the companion FASTA index (.fai)
-#   3. Converts GFF3 → BED12 using gffread (preserves gene structure)
-#   4. Sorts the BED12 file by chromosome and position
-#   5. Converts sorted BED12 → BigBed using UCSC's bedToBigBed
-#   6. Optionally creates a PGB-compatible JSON assembly config
+#   3. Converts GFF3 → genePred using gff3ToGenePred
+#   4. Converts genePred → bigGenePred using genePredToBigGenePred
+#   5. Sorts the bigGenePred file by chromosome and position
+#   6. Converts sorted bigGenePred → BigBed using UCSC's bedToBigBed
+#      with bed12+8 type and bigGenePred.as AutoSQL schema
+#   7. Optionally creates a PGB-compatible JSON assembly config
 #
 # Conversion pipeline:
-#   .gff3.gz → gffread → .bed12 → sort → bedToBigBed → .bb
+#   .gff3.gz → gff3ToGenePred → .genePred → genePredToBigGenePred → .bigGenePred → sort → bedToBigBed -type=bed12+8 → .bb
 #
 # Output:
 #   data/genomes/<assembly-name>.bb         — the BigBed file
@@ -47,14 +49,13 @@
 #     --assembly-json public/single-custom-assembly-s3-cors-enabled.json
 #
 # Prerequisites:
-#   conda create -n bigbed -y --override-channels -c bioconda -c conda-forge gffread ucsc-bedtobigbed
+#   conda create -n bigbed -y --override-channels -c bioconda -c conda-forge ucsc-gff3togenepred ucsc-genepredtobiggenepred ucsc-bedtobigbed
 #   conda activate bigbed
 #
-#   Alternatively, install via Homebrew or download binaries directly:
-#     brew install gffread
-#     Download bedToBigBed from UCSC:
-#       https://hgdownload.soe.ucsc.edu/admin/exe/macOSX.arm64/bedToBigBed
-#       (make it executable and place on your PATH)
+#   Alternatively, download UCSC binaries directly:
+#     https://hgdownload.soe.ucsc.edu/admin/exe/macOSX.arm64/
+#     (download gff3ToGenePred, genePredToBigGenePred, bedToBigBed;
+#      make them executable and place on your PATH)
 #
 # ============================================================================
 
@@ -87,7 +88,7 @@ done
 # --- Check prerequisites ----------------------------------------------------
 
 MISSING=""
-for cmd in gffread bedToBigBed curl python3; do
+for cmd in gff3ToGenePred genePredToBigGenePred bedToBigBed curl python3; do
     if ! command -v "$cmd" &> /dev/null; then
         MISSING="$MISSING $cmd"
     fi
@@ -97,10 +98,10 @@ if [ -n "$MISSING" ]; then
     echo "Error: missing required tools:$MISSING"
     echo ""
     echo "Install with:"
-    echo "  brew install gffread       # GFF3 → BED conversion"
-    echo "  brew install kent-tools    # bedToBigBed"
-    echo "  — or download bedToBigBed from UCSC:"
-    echo "    https://hgdownload.soe.ucsc.edu/admin/exe/macOSX.arm64/bedToBigBed"
+    echo "  conda create -n bigbed -y --override-channels -c bioconda -c conda-forge \\"
+    echo "    ucsc-gff3togenepred ucsc-genepredtobiggenepred ucsc-bedtobigbed"
+    echo "  — or download from UCSC:"
+    echo "    https://hgdownload.soe.ucsc.edu/admin/exe/macOSX.arm64/"
     exit 1
 fi
 
@@ -127,7 +128,7 @@ echo ""
 
 # --- Step 1: Download the FASTA index and extract chrom sizes ---------------
 
-echo "Step 1/5: Downloading FASTA index and extracting chrom sizes ..."
+echo "Step 1/6: Downloading FASTA index and extracting chrom sizes ..."
 FAI_FILE="$GENOMES_DIR/${STEM}.fai"
 curl -# -L -o "$FAI_FILE" "$FAI_URL"
 
@@ -142,7 +143,7 @@ echo "  Found $NCHROM chromosomes/contigs."
 # --- Step 2: Download the GFF3 file ----------------------------------------
 
 echo ""
-echo "Step 2/5: Downloading GFF3 annotation ..."
+echo "Step 2/6: Downloading GFF3 annotation ..."
 GFF3_GZ="$GENOMES_DIR/$GFF3_FNAME"
 curl -# -L -o "$GFF3_GZ" "$GFF3_URL"
 
@@ -153,43 +154,53 @@ if [[ "$GFF3_GZ" == *.gz ]]; then
     gunzip -f "$GFF3_GZ"
 fi
 
-# --- Step 3: Convert GFF3 → BED12 using gffread ----------------------------
+# --- Step 3: Convert GFF3 → genePred using gff3ToGenePred ------------------
 
 echo ""
-echo "Step 3/5: Converting GFF3 → BED12 with gffread ..."
-BED_FILE="$GENOMES_DIR/${STEM}.bed"
+echo "Step 3/6: Converting GFF3 → genePred with gff3ToGenePred ..."
+GENEPRED_FILE="$GENOMES_DIR/${STEM}.genePred"
+gff3ToGenePred -warnAndContinue "$GFF3_PLAIN" "$GENEPRED_FILE"
 
-# gffread --bed outputs BED12+ format (preserving transcript→exon block structure).
-# It appends a 13th column with gene metadata — we strip it to get standard BED12
-# since bedToBigBed -type=bed12 requires exactly 12 columns.
-gffread "$GFF3_PLAIN" --bed -o /dev/stdout | cut -f1-12 > "$BED_FILE"
+NLINES=$(wc -l < "$GENEPRED_FILE" | tr -d ' ')
+echo "  Produced $NLINES genePred records."
 
-NLINES=$(wc -l < "$BED_FILE" | tr -d ' ')
-echo "  Produced $NLINES BED12 records."
-
-# --- Step 4: Sort the BED file ----------------------------------------------
+# --- Step 4: Convert genePred → bigGenePred ---------------------------------
 
 echo ""
-echo "Step 4/5: Sorting BED by chromosome and position ..."
-SORTED_BED="$GENOMES_DIR/${STEM}.sorted.bed"
-sort -k1,1 -k2,2n "$BED_FILE" > "$SORTED_BED"
+echo "Step 4/6: Converting genePred → bigGenePred with genePredToBigGenePred ..."
+BIGGENEPRED_FILE="$GENOMES_DIR/${STEM}.bigGenePred"
+genePredToBigGenePred "$GENEPRED_FILE" "$BIGGENEPRED_FILE"
 
-# --- Step 5: Convert sorted BED12 → BigBed ----------------------------------
+# --- Step 5: Sort the bigGenePred file --------------------------------------
 
 echo ""
-echo "Step 5/5: Converting to BigBed with bedToBigBed ..."
+echo "Step 5/6: Sorting bigGenePred by chromosome and position ..."
+SORTED_BIGGENEPRED="$GENOMES_DIR/${STEM}.sorted.bigGenePred"
+sort -k1,1 -k2,2n "$BIGGENEPRED_FILE" > "$SORTED_BIGGENEPRED"
+
+# --- Step 6: Convert sorted bigGenePred → BigBed ----------------------------
+
+echo ""
+echo "Step 6/6: Converting to BigBed with bedToBigBed ..."
 BB_FILE="$GENOMES_DIR/${STEM}.bb"
 
-# bedToBigBed requires: input.bed chrom.sizes output.bb
-# -type=bed12 tells it to expect 12-column BED (gene structure with blocks)
-bedToBigBed -type=bed12 "$SORTED_BED" "$CHROM_SIZES" "$BB_FILE"
+# Download the bigGenePred AutoSQL schema if not already present
+AS_FILE="$GENOMES_DIR/bigGenePred.as"
+if [ ! -f "$AS_FILE" ]; then
+    echo "  Downloading bigGenePred.as AutoSQL schema ..."
+    curl -# -L -o "$AS_FILE" \
+        "https://genome.ucsc.edu/goldenPath/help/examples/bigGenePred.as"
+fi
+
+# bedToBigBed with bed12+8 type and AutoSQL schema for the 8 extra genePred columns
+bedToBigBed -type=bed12+8 -tab "$SORTED_BIGGENEPRED" "$CHROM_SIZES" "$BB_FILE" -as="$AS_FILE"
 
 BB_SIZE=$(ls -lh "$BB_FILE" | awk '{print $5}')
 echo "  BigBed file: $BB_FILE ($BB_SIZE)"
 
 # --- Clean up intermediate files --------------------------------------------
 
-rm -f "$GFF3_PLAIN" "$FAI_FILE" "$BED_FILE" "$SORTED_BED"
+rm -f "$GFF3_PLAIN" "$FAI_FILE" "$GENEPRED_FILE" "$BIGGENEPRED_FILE" "$SORTED_BIGGENEPRED"
 echo ""
 echo "  Cleaned up intermediate files (kept chrom.sizes for reference)."
 
