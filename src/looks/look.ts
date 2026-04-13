@@ -314,7 +314,7 @@ class Look {
      *   or 'normal' if nothing is emphasized (the "PCA widget open, no dot
      *   selected" case).
      */
-    applyPartition(
+    setNodeEmphasis(
         assemblyName: string | undefined,
         emphasizedSet: Set<string>,
         emphasisColor: any,
