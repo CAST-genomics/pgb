@@ -69,26 +69,6 @@ class Look {
     }
 
     /**
-     * Gets the Z-offset for a given object based on its ID.
-     * Nodes and edges are rendered at different Z depths to control visual layering.
-     *
-     * @param objectId - The object identifier, must start with 'node:' or 'edge:'
-     * @returns The Z-offset value for the object type
-     */
-    getZOffset(objectId: string): number {
-
-        if (objectId.startsWith('node:')) {
-            return GeometryFactory.NODE_LINE_Z_OFFSET;
-        } else if (objectId.startsWith('edge:')) {
-            return GeometryFactory.EDGE_LINE_Z_OFFSET;
-        } else {
-            console.error(`ERROR: object ID ${ objectId } is not valid.`)
-            return GeometryFactory.NODE_LINE_Z_OFFSET;
-        }
-
-    }
-
-    /**
      * Creates a Three.js mesh from geometry and context information.
      * Routes to the appropriate creation method based on context type.
      */
@@ -344,13 +324,10 @@ class Look {
         if (emphasizedSet.size > 0) {
             this.updateNodeEmphasis(emphasizedSet, 'emphasized', assemblyName, emphasisColor)
         }
-
-        this.updateGeometryPositions()
     }
 
     /**
      * Restores nodes to their normal (non-emphasized) state.
-     * Resets materials and Z-positions for the specified nodes.
      */
     restoreNodes(nodeSet: Set<string>): void {
 
@@ -359,8 +336,6 @@ class Look {
         }
 
         this.updateNodeEmphasis(nodeSet, 'normal', undefined, undefined);
-
-        this.updateGeometryPositions();
     }
 
     /**
@@ -403,25 +378,6 @@ class Look {
         nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
                 this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor);
-            }
-        });
-    }
-
-    /**
-     * Updates the Z-position (depth) of all nodes and edges in the scene.
-     * Uses emphasis states to determine appropriate Z-offsets for visual layering.
-     */
-    updateGeometryPositions(): void {
-
-        if (!this.activeScene) return;
-        const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
-        if (!nodeMeshGroup) return;
-        nodeMeshGroup.traverse((object: any) => {
-            if (object.userData?.nodeName) {
-                const nodeName = object.userData.nodeName;
-                const zOffset = this.getZOffset(`node:${nodeName}`);
-                const baseZ = object.userData.zOffset || GeometryFactory.NODE_LINE_Z_OFFSET
-                object.position.z = zOffset - baseZ
             }
         });
     }

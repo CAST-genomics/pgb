@@ -6,7 +6,6 @@ class GeometryFactory {
 
     static EDGE_LINE_Z_OFFSET = -12;
     static NODE_LINE_Z_OFFSET = -8;
-    static NODE_LINE_DEEMPHASIS_Z_OFFSET = -16;
 
     constructor(genomicService) {
         this.genomicService = genomicService;

@@ -1,6 +1,5 @@
 import Look from './look.ts';
 import materialService from '../materialService.js';
-import GeometryFactory from "../geometryFactory.js"
 import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
 class NodeEmphasisLook extends Look {
@@ -11,30 +10,6 @@ class NodeEmphasisLook extends Look {
 
     static createNodeEmphasisLook(name: string, config: any): NodeEmphasisLook {
         return new NodeEmphasisLook(name, config);
-    }
-
-    getZOffset(objectId: string): number {
-
-        if (objectId.startsWith('node:')) {
-            const nodeName = objectId.replace('node:', '');
-            const state = this.emphasisStates.get(nodeName) || 'normal';
-            switch (state) {
-                case 'absent':
-                    return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
-                case 'deemphasized':
-                    return GeometryFactory.NODE_LINE_DEEMPHASIS_Z_OFFSET;
-                case 'emphasized':
-                    return GeometryFactory.NODE_LINE_Z_OFFSET;
-                case 'normal':
-                    return GeometryFactory.NODE_LINE_Z_OFFSET;
-                default:
-                    console.error(`getZOffset: object ${ objectId } has invalid emphasis state`);
-                    return GeometryFactory.NODE_LINE_Z_OFFSET;
-            }
-        }
-
-        // Fallback to parent implementation
-        return super.getZOffset(objectId);
     }
 
     activate(activeScene: any): void {
