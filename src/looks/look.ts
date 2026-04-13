@@ -305,62 +305,47 @@ class Look {
     }
 
     /**
-     * Applies absence to a set of nodes and restores all other nodes to normal.
-     * This is the "PCA widget is open but no dot is selected" state.
+     * Unified partition of all nodes into emphasized / absent / remainder.
+     *
+     * Behavior matches the prior setNodeEmphasis + setNodeAbsence pair:
+     * - Nodes in `emphasizedSet` become 'emphasized' with `emphasisColor`.
+     * - Nodes in `absentSet` become 'absent'.
+     * - All remaining nodes become 'deemphasized' if any nodes are emphasized,
+     *   or 'normal' if nothing is emphasized (the "PCA widget open, no dot
+     *   selected" case).
      */
-    setNodeAbsence(absentNodeSet: Set<string>): void {
+    applyPartition(
+        assemblyName: string | undefined,
+        emphasizedSet: Set<string>,
+        emphasisColor: any,
+        absentSet: Set<string> | undefined,
+        deemphasisColor: string | undefined,
+    ): void {
 
         this.emphasisStates.clear()
 
         const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
-        const normalNodeSet = allNodes.difference(absentNodeSet)
+        const absent = absentSet || new Set<string>()
+        const remainder = allNodes.difference(emphasizedSet).difference(absent)
+        const remainderState = emphasizedSet.size > 0 ? 'deemphasized' : 'normal'
 
-        for (const nodeName of absentNodeSet) {
-            this.setEmphasisState(nodeName, 'absent');
+        for (const nodeName of absent) {
+            this.setEmphasisState(nodeName, 'absent')
+        }
+        for (const nodeName of remainder) {
+            this.setEmphasisState(nodeName, remainderState)
+        }
+        for (const nodeName of emphasizedSet) {
+            this.setEmphasisState(nodeName, 'emphasized')
         }
 
-        for (const nodeName of normalNodeSet) {
-            this.setEmphasisState(nodeName, 'normal');
+        this.updateNodeEmphasis(absent, 'absent', undefined)
+        this.updateNodeEmphasis(remainder, remainderState, undefined, undefined, deemphasisColor)
+        if (emphasizedSet.size > 0) {
+            this.updateNodeEmphasis(emphasizedSet, 'emphasized', assemblyName, emphasisColor)
         }
 
-        this.updateNodeEmphasis(absentNodeSet, 'absent', undefined);
-        this.updateNodeEmphasis(normalNodeSet, 'normal', undefined);
-        this.updateGeometryPositions();
-    }
-
-    /**
-     * Sets emphasis state for nodes based on an assembly selection.
-     * Nodes in the provided set are emphasized, while others are deemphasized.
-     * Updates materials and Z-positions accordingly.
-     */
-    setNodeEmphasis(assemblyName: string, nodeSet: Set<string>, nodeColor: any, absentNodeSet?: Set<string>, deemphasisColor?: string): void {
-
-        this.emphasisStates.clear()
-
-        const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
-
-        // Three-way partition: emphasized, absent, deemphasized (remainder)
-        const absentNodes = absentNodeSet || new Set<string>()
-
-        const deemphasisNodeSet = allNodes.difference(nodeSet).difference(absentNodes);
-
-        for (const nodeName of absentNodes) {
-            this.setEmphasisState(nodeName, 'absent');
-        }
-
-        for (const nodeName of deemphasisNodeSet) {
-            this.setEmphasisState(nodeName, 'deemphasized');
-        }
-
-        for (const nodeName of nodeSet) {
-            this.setEmphasisState(nodeName, 'emphasized');
-        }
-
-        this.updateNodeEmphasis(absentNodes, 'absent', undefined);
-        this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined, undefined, deemphasisColor);
-        this.updateNodeEmphasis(nodeSet, 'emphasized', assemblyName, nodeColor);
-
-        this.updateGeometryPositions();
+        this.updateGeometryPositions()
     }
 
     /**

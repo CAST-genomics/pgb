@@ -42,7 +42,7 @@ class NodeEmphasisLook extends Look {
 
         this.subscribe('assembly:emphasis', data => {
             const { assembly, nodeSet, deemphasisColor } = data
-            this.setNodeEmphasis(assembly.name, nodeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
+            this.applyPartition(assembly.name, nodeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
         });
 
         this.subscribe('assembly:normal', data => {
@@ -50,13 +50,13 @@ class NodeEmphasisLook extends Look {
         });
 
         this.subscribe('pcaWidget:absence', data => {
-            this.setNodeAbsence(data.absentNodeSet);
+            this.applyPartition(undefined, new Set(), undefined, data.absentNodeSet, undefined);
         });
 
         this.subscribe('pcaWidget:emphasis', data => {
             const { assembly, nodeSet, absentNodeSet, deemphasisColor } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
-            this.setNodeEmphasis(assembly.name, nodeSet, color, absentNodeSet, deemphasisColor);
+            this.applyPartition(assembly.name, nodeSet, color, absentNodeSet, deemphasisColor);
         });
 
         this.subscribe('pcaWidget:normal', data => {
