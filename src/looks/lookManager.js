@@ -31,8 +31,9 @@ class LookManager {
     /**
      * Activate a look for a specific scene and deactivate others
      * @param {string} sceneName - The name of the scene to activate
+     * @param {THREE.Scene} activeScene - The scene instance becoming active
      */
-    activateLook(sceneName) {
+    activateLook(sceneName, activeScene) {
         // Deactivate all other looks
         this.looks.forEach((look, name) => {
             if (name !== sceneName) {
@@ -43,7 +44,7 @@ class LookManager {
         // Activate the specified look
         const look = this.looks.get(sceneName);
         if (look) {
-            look.activate();
+            look.activate(activeScene);
         }
     }
 

@@ -70,12 +70,12 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     globals.widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget, pcaWidget);
 
     // Node Emphasis Look & Scene
-    const nodeEmphasisLook = NodeEmphasisLook.createNodeEmphasisLook('nodeEmphasisLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
+    const nodeEmphasisLook = NodeEmphasisLook.createNodeEmphasisLook('nodeEmphasisLook', { genomicService, geometryManager, assemblyWidget })
     sceneManager.createScene('nodeEmphasisScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('nodeEmphasisScene', nodeEmphasisLook);
 
     // Heatmap Look & Scene
-    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, sceneManager, assemblyWidget })
+    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, assemblyWidget })
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 

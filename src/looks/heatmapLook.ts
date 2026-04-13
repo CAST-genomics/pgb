@@ -4,14 +4,7 @@ import {assemblyMetadataService } from "../assemblyMetadataService.ts"
 import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
 import { ylGnBu, ylOrRd, blues } from "../utils/color/color-ramps.js"
-import eventBus from "../utils/eventBus.ts"
-
 class HeatmapLook extends Look {
-
-    private superpopDeselectUnsub: (() => void) | null = null
-    private popDeselectUnsub: (() => void) | null = null
-    private superpopSelectUnsub: (() => void) | null = null
-    private popSelectUnsub: (() => void) | null = null
 
     constructor(name: string, config: any) {
         super(name, config)
@@ -29,7 +22,8 @@ class HeatmapLook extends Look {
     handleSelectionEvent(data: { acronym: string }, eventType: string): void {
         const { acronym } = data
 
-        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        if (!this.activeScene) return
+        const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
         if (!nodeMeshGroup) return
 
         for (const mesh of nodeMeshGroup.children) {
@@ -58,50 +52,24 @@ class HeatmapLook extends Look {
         }
     }
 
-    activate(): void {
-        super.activate();
+    activate(activeScene: any): void {
+        super.activate(activeScene);
 
-        // Handle deselection events for both superpopulation and population
-        this.superpopDeselectUnsub = eventBus.subscribe('superpopulation:deselected', data => {
+        this.subscribe('superpopulation:deselected', () => {
             console.log('Population Look received superpopulation button deselection')
         });
 
-        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
+        this.subscribe('population:deselected', () => {
             console.log('Population Look received population button deselection')
         });
 
-        // Handle selection events for both superpopulation and population with shared handler
-        this.superpopSelectUnsub = eventBus.subscribe('superpopulation:selected', data => {
+        this.subscribe('superpopulation:selected', data => {
             this.handleSelectionEvent(data, 'superpopulation');
         });
 
-        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
+        this.subscribe('population:selected', data => {
             this.handleSelectionEvent(data, 'population');
         });
-    }
-
-    deactivate(): void {
-        super.deactivate();
-
-        if (this.superpopDeselectUnsub) {
-            this.superpopDeselectUnsub();
-            this.superpopDeselectUnsub = null;
-        }
-
-        if (this.popDeselectUnsub) {
-            this.popDeselectUnsub();
-            this.popDeselectUnsub = null;
-        }
-
-        if (this.superpopSelectUnsub) {
-            this.superpopSelectUnsub();
-            this.superpopSelectUnsub = null;
-        }
-
-        if (this.popSelectUnsub) {
-            this.popSelectUnsub();
-            this.popSelectUnsub = null;
-        }
     }
 
     dispose(): void {

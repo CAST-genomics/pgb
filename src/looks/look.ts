@@ -6,6 +6,8 @@ import RibbonMaterialFactory from "../ribbonMaterialFactory.js"
 import materialService, {arrowMaterialFactory} from "../materialService.js"
 import {rubinColorsHexStrings} from "../utils/color/color.js"
 import {prettyPrint} from "../utils/utils.js"
+import eventBus from "../utils/eventBus.ts"
+import type { EventMap } from "../utils/eventMap.ts"
 
 class Look {
 
@@ -28,13 +30,12 @@ class Look {
     genomicService: any
     geometryManager: any
     assemblyWidget: any
-    sceneManager: any
+    activeScene: any
     zOffset: number
     isActive: boolean
     materialCache: Map<string, any>
     emphasisStates: Map<string, string>
-    deemphasizeUnsub: (() => void) | null
-    restoreUnsub: (() => void) | null
+    protected unsubs: Array<() => void>
 
     constructor(name: string, config: any) {
         this.name = name
@@ -42,7 +43,7 @@ class Look {
         this.genomicService = config.genomicService
         this.geometryManager = config.geometryManager
         this.assemblyWidget = config.assemblyWidget; // Access to assembly widget for selected assembly info
-        this.sceneManager = config.sceneManager; // Optional, may be undefined
+        this.activeScene = null;
 
         this.zOffset = config.zOffset || 0;
 
@@ -54,30 +55,17 @@ class Look {
         // Emphasis state tracking
         this.emphasisStates = new Map();
 
-        // Event subscription cleanup
-        this.deemphasizeUnsub = null;
-        this.restoreUnsub = null;
-
+        // Active-event subscriptions; unsubscribed en masse in deactivate().
+        this.unsubs = [];
     }
 
     /**
-     * Gets the Z-offset for a given object based on its ID.
-     * Nodes and edges are rendered at different Z depths to control visual layering.
-     *
-     * @param objectId - The object identifier, must start with 'node:' or 'edge:'
-     * @returns The Z-offset value for the object type
+     * Subscribe to an event bus event for the lifetime of this look's active
+     * window. All subscriptions registered here are automatically cleaned up
+     * when deactivate() runs, so subclasses never need to track unsubs.
      */
-    getZOffset(objectId: string): number {
-
-        if (objectId.startsWith('node:')) {
-            return GeometryFactory.NODE_LINE_Z_OFFSET;
-        } else if (objectId.startsWith('edge:')) {
-            return GeometryFactory.EDGE_LINE_Z_OFFSET;
-        } else {
-            console.error(`ERROR: object ID ${ objectId } is not valid.`)
-            return GeometryFactory.NODE_LINE_Z_OFFSET;
-        }
-
+    protected subscribe<K extends keyof EventMap>(event: K, handler: (data: EventMap[K]) => void): void {
+        this.unsubs.push(eventBus.subscribe(event, handler));
     }
 
     /**
@@ -258,8 +246,9 @@ class Look {
      * Sets the active flag and can be overridden by subclasses to enable
      * event subscriptions, start animations, or perform other activation logic.
      */
-    activate(): void {
+    activate(activeScene: any): void {
         this.isActive = true;
+        this.activeScene = activeScene;
         console.log(`${this.constructor.name} is now active`)
     }
 
@@ -269,6 +258,9 @@ class Look {
      * event subscriptions, stop animations, or perform cleanup logic.
      */
     deactivate(): void {
+        for (const unsub of this.unsubs) unsub();
+        this.unsubs.length = 0;
+        this.activeScene = null;
         this.isActive = false;
     }
 
@@ -293,67 +285,49 @@ class Look {
     }
 
     /**
-     * Applies absence to a set of nodes and restores all other nodes to normal.
-     * This is the "PCA widget is open but no dot is selected" state.
+     * Unified partition of all nodes into emphasized / absent / remainder.
+     *
+     * Behavior matches the prior setNodeEmphasis + setNodeAbsence pair:
+     * - Nodes in `emphasizedSet` become 'emphasized' with `emphasisColor`.
+     * - Nodes in `absentSet` become 'absent'.
+     * - All remaining nodes become 'deemphasized' if any nodes are emphasized,
+     *   or 'normal' if nothing is emphasized (the "PCA widget open, no dot
+     *   selected" case).
      */
-    setNodeAbsence(absentNodeSet: Set<string>): void {
+    setNodeEmphasis(
+        assemblyName: string | undefined,
+        emphasizedSet: Set<string>,
+        emphasisColor: any,
+        absentSet: Set<string> | undefined,
+        deemphasisColor: string | undefined,
+    ): void {
 
         this.emphasisStates.clear()
 
         const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
-        const normalNodeSet = allNodes.difference(absentNodeSet)
+        const absent = absentSet || new Set<string>()
+        const remainder = allNodes.difference(emphasizedSet).difference(absent)
+        const remainderState = emphasizedSet.size > 0 ? 'deemphasized' : 'normal'
 
-        for (const nodeName of absentNodeSet) {
-            this.setEmphasisState(nodeName, 'absent');
+        for (const nodeName of absent) {
+            this.setEmphasisState(nodeName, 'absent')
+        }
+        for (const nodeName of remainder) {
+            this.setEmphasisState(nodeName, remainderState)
+        }
+        for (const nodeName of emphasizedSet) {
+            this.setEmphasisState(nodeName, 'emphasized')
         }
 
-        for (const nodeName of normalNodeSet) {
-            this.setEmphasisState(nodeName, 'normal');
+        this.updateNodeEmphasis(absent, 'absent', undefined)
+        this.updateNodeEmphasis(remainder, remainderState, undefined, undefined, deemphasisColor)
+        if (emphasizedSet.size > 0) {
+            this.updateNodeEmphasis(emphasizedSet, 'emphasized', assemblyName, emphasisColor)
         }
-
-        this.updateNodeEmphasis(absentNodeSet, 'absent', undefined);
-        this.updateNodeEmphasis(normalNodeSet, 'normal', undefined);
-        this.updateGeometryPositions();
-    }
-
-    /**
-     * Sets emphasis state for nodes based on an assembly selection.
-     * Nodes in the provided set are emphasized, while others are deemphasized.
-     * Updates materials and Z-positions accordingly.
-     */
-    setNodeEmphasis(assemblyName: string, nodeSet: Set<string>, nodeColor: any, absentNodeSet?: Set<string>, deemphasisColor?: string): void {
-
-        this.emphasisStates.clear()
-
-        const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
-
-        // Three-way partition: emphasized, absent, deemphasized (remainder)
-        const absentNodes = absentNodeSet || new Set<string>()
-
-        const deemphasisNodeSet = allNodes.difference(nodeSet).difference(absentNodes);
-
-        for (const nodeName of absentNodes) {
-            this.setEmphasisState(nodeName, 'absent');
-        }
-
-        for (const nodeName of deemphasisNodeSet) {
-            this.setEmphasisState(nodeName, 'deemphasized');
-        }
-
-        for (const nodeName of nodeSet) {
-            this.setEmphasisState(nodeName, 'emphasized');
-        }
-
-        this.updateNodeEmphasis(absentNodes, 'absent', undefined);
-        this.updateNodeEmphasis(deemphasisNodeSet, 'deemphasized', undefined, undefined, deemphasisColor);
-        this.updateNodeEmphasis(nodeSet, 'emphasized', assemblyName, nodeColor);
-
-        this.updateGeometryPositions();
     }
 
     /**
      * Restores nodes to their normal (non-emphasized) state.
-     * Resets materials and Z-positions for the specified nodes.
      */
     restoreNodes(nodeSet: Set<string>): void {
 
@@ -362,8 +336,6 @@ class Look {
         }
 
         this.updateNodeEmphasis(nodeSet, 'normal', undefined, undefined);
-
-        this.updateGeometryPositions();
     }
 
     /**
@@ -392,6 +364,11 @@ class Look {
         } else {
             console.warn('DANGER! Should not get here')
         }
+
+        // Draw emphasized nodes last so they visually cover any overlapping
+        // deemphasized / absent / normal neighbours. Three.js sorts meshes by
+        // renderOrder ascending; higher values draw on top.
+        mesh.renderOrder = emphasisState === 'emphasized' ? 1 : 0;
     }
 
     /**
@@ -400,27 +377,12 @@ class Look {
      */
     updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string): void {
 
-        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        if (!this.activeScene) return;
+        const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
+        if (!nodeMeshGroup) return;
         nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
                 this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor);
-            }
-        });
-    }
-
-    /**
-     * Updates the Z-position (depth) of all nodes and edges in the scene.
-     * Uses emphasis states to determine appropriate Z-offsets for visual layering.
-     */
-    updateGeometryPositions(): void {
-
-        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
-        nodeMeshGroup.traverse((object: any) => {
-            if (object.userData?.nodeName) {
-                const nodeName = object.userData.nodeName;
-                const zOffset = this.getZOffset(`node:${nodeName}`);
-                const baseZ = object.userData.zOffset || GeometryFactory.NODE_LINE_Z_OFFSET
-                object.position.z = zOffset - baseZ
             }
         });
     }
