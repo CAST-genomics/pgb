@@ -80,7 +80,7 @@ class SceneManager {
         this.activeSceneName = sceneName
         const scene = this.getScene(sceneName)
 
-        this.lookManager.activateLook(sceneName)
+        this.lookManager.activateLook(sceneName, scene)
 
         renderer.compile(scene, camera);
 

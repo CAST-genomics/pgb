@@ -29,7 +29,8 @@ class HeatmapLook extends Look {
     handleSelectionEvent(data: { acronym: string }, eventType: string): void {
         const { acronym } = data
 
-        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        if (!this.activeScene) return
+        const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
         if (!nodeMeshGroup) return
 
         for (const mesh of nodeMeshGroup.children) {
@@ -58,8 +59,8 @@ class HeatmapLook extends Look {
         }
     }
 
-    activate(): void {
-        super.activate();
+    activate(activeScene: any): void {
+        super.activate(activeScene);
 
         // Handle deselection events for both superpopulation and population
         this.superpopDeselectUnsub = eventBus.subscribe('superpopulation:deselected', data => {

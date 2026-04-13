@@ -28,7 +28,7 @@ class Look {
     genomicService: any
     geometryManager: any
     assemblyWidget: any
-    sceneManager: any
+    activeScene: any
     zOffset: number
     isActive: boolean
     materialCache: Map<string, any>
@@ -42,7 +42,7 @@ class Look {
         this.genomicService = config.genomicService
         this.geometryManager = config.geometryManager
         this.assemblyWidget = config.assemblyWidget; // Access to assembly widget for selected assembly info
-        this.sceneManager = config.sceneManager; // Optional, may be undefined
+        this.activeScene = null;
 
         this.zOffset = config.zOffset || 0;
 
@@ -258,8 +258,9 @@ class Look {
      * Sets the active flag and can be overridden by subclasses to enable
      * event subscriptions, start animations, or perform other activation logic.
      */
-    activate(): void {
+    activate(activeScene: any): void {
         this.isActive = true;
+        this.activeScene = activeScene;
         console.log(`${this.constructor.name} is now active`)
     }
 
@@ -270,6 +271,7 @@ class Look {
      */
     deactivate(): void {
         this.isActive = false;
+        this.activeScene = null;
     }
 
     /**
@@ -400,7 +402,9 @@ class Look {
      */
     updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string): void {
 
-        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        if (!this.activeScene) return;
+        const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
+        if (!nodeMeshGroup) return;
         nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
                 this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor);
@@ -414,7 +418,9 @@ class Look {
      */
     updateGeometryPositions(): void {
 
-        const nodeMeshGroup = this.sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
+        if (!this.activeScene) return;
+        const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
+        if (!nodeMeshGroup) return;
         nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName) {
                 const nodeName = object.userData.nodeName;

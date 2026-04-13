@@ -6,8 +6,6 @@ import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
 class NodeEmphasisLook extends Look {
 
-    sceneManager: any
-
     private deemphasizeAssemblyUnsub: (() => void) | null = null
     private restoreAssemblyUnsub: (() => void) | null = null
     private pcaWidgetAbsenceUnsub: (() => void) | null = null
@@ -16,8 +14,6 @@ class NodeEmphasisLook extends Look {
 
     constructor(name: string, config: any) {
         super(name, config);
-
-        this.sceneManager = config.sceneManager
     }
 
     static createNodeEmphasisLook(name: string, config: any): NodeEmphasisLook {
@@ -51,8 +47,8 @@ class NodeEmphasisLook extends Look {
     /**
      * Activate this look - subscribe to events
      */
-    activate(): void {
-        super.activate();
+    activate(activeScene: any): void {
+        super.activate(activeScene);
 
         // Assembly Viz Events
         this.deemphasizeAssemblyUnsub = eventBus.subscribe('assembly:emphasis', data => {
