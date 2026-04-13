@@ -364,6 +364,11 @@ class Look {
         } else {
             console.warn('DANGER! Should not get here')
         }
+
+        // Draw emphasized nodes last so they visually cover any overlapping
+        // deemphasized / absent / normal neighbours. Three.js sorts meshes by
+        // renderOrder ascending; higher values draw on top.
+        mesh.renderOrder = emphasisState === 'emphasized' ? 1 : 0;
     }
 
     /**
