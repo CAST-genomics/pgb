@@ -1,16 +1,9 @@
 import Look from './look.ts';
-import eventBus from "../utils/eventBus.ts"
 import materialService from '../materialService.js';
 import GeometryFactory from "../geometryFactory.js"
 import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
 class NodeEmphasisLook extends Look {
-
-    private deemphasizeAssemblyUnsub: (() => void) | null = null
-    private restoreAssemblyUnsub: (() => void) | null = null
-    private pcaWidgetAbsenceUnsub: (() => void) | null = null
-    private deemphasizePCAWidgetUnsub: (() => void) | null = null
-    private restorePCAWidgetUnsub: (() => void) | null = null
 
     constructor(name: string, config: any) {
         super(name, config);
@@ -44,72 +37,31 @@ class NodeEmphasisLook extends Look {
         return super.getZOffset(objectId);
     }
 
-    /**
-     * Activate this look - subscribe to events
-     */
     activate(activeScene: any): void {
         super.activate(activeScene);
 
-        // Assembly Viz Events
-        this.deemphasizeAssemblyUnsub = eventBus.subscribe('assembly:emphasis', data => {
+        this.subscribe('assembly:emphasis', data => {
             const { assembly, nodeSet, deemphasisColor } = data
             this.setNodeEmphasis(assembly.name, nodeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
         });
 
-        this.restoreAssemblyUnsub = eventBus.subscribe('assembly:normal', data => {
-            const { nodeSet } = data
-            this.restoreNodes(nodeSet)
+        this.subscribe('assembly:normal', data => {
+            this.restoreNodes(data.nodeSet)
         });
 
-        // PCA Widget Events
-        this.pcaWidgetAbsenceUnsub = eventBus.subscribe('pcaWidget:absence', data => {
-            const { absentNodeSet } = data
-            this.setNodeAbsence(absentNodeSet);
+        this.subscribe('pcaWidget:absence', data => {
+            this.setNodeAbsence(data.absentNodeSet);
         });
 
-        this.deemphasizePCAWidgetUnsub = eventBus.subscribe('pcaWidget:emphasis', data => {
+        this.subscribe('pcaWidget:emphasis', data => {
             const { assembly, nodeSet, absentNodeSet, deemphasisColor } = data
             const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
             this.setNodeEmphasis(assembly.name, nodeSet, color, absentNodeSet, deemphasisColor);
         });
 
-        this.restorePCAWidgetUnsub = eventBus.subscribe('pcaWidget:normal', data => {
-            const { nodeSet } = data
-            this.restoreNodes(nodeSet)
+        this.subscribe('pcaWidget:normal', data => {
+            this.restoreNodes(data.nodeSet)
         });
-
-    }
-
-    /**
-     * Deactivate this look - unsubscribe from events
-     */
-    deactivate(): void {
-        super.deactivate();
-
-        if (this.deemphasizeAssemblyUnsub) {
-            this.deemphasizeAssemblyUnsub();
-            this.deemphasizeAssemblyUnsub = null;
-        }
-
-        if (this.restoreAssemblyUnsub) {
-            this.restoreAssemblyUnsub();
-            this.restoreAssemblyUnsub = null;
-        }
-
-        if (this.pcaWidgetAbsenceUnsub) {
-            this.pcaWidgetAbsenceUnsub();
-            this.pcaWidgetAbsenceUnsub = null;
-        }
-
-        if (this.deemphasizePCAWidgetUnsub) {
-            this.deemphasizePCAWidgetUnsub();
-            this.deemphasizePCAWidgetUnsub = null;
-        }
-
-        if (this.restorePCAWidgetUnsub) {
-            this.restorePCAWidgetUnsub();
-            this.restorePCAWidgetUnsub = null;
-        }
     }
 
     dispose(): void {

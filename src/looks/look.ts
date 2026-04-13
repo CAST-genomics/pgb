@@ -6,6 +6,8 @@ import RibbonMaterialFactory from "../ribbonMaterialFactory.js"
 import materialService, {arrowMaterialFactory} from "../materialService.js"
 import {rubinColorsHexStrings} from "../utils/color/color.js"
 import {prettyPrint} from "../utils/utils.js"
+import eventBus from "../utils/eventBus.ts"
+import type { EventMap } from "../utils/eventMap.ts"
 
 class Look {
 
@@ -33,8 +35,7 @@ class Look {
     isActive: boolean
     materialCache: Map<string, any>
     emphasisStates: Map<string, string>
-    deemphasizeUnsub: (() => void) | null
-    restoreUnsub: (() => void) | null
+    protected unsubs: Array<() => void>
 
     constructor(name: string, config: any) {
         this.name = name
@@ -54,10 +55,17 @@ class Look {
         // Emphasis state tracking
         this.emphasisStates = new Map();
 
-        // Event subscription cleanup
-        this.deemphasizeUnsub = null;
-        this.restoreUnsub = null;
+        // Active-event subscriptions; unsubscribed en masse in deactivate().
+        this.unsubs = [];
+    }
 
+    /**
+     * Subscribe to an event bus event for the lifetime of this look's active
+     * window. All subscriptions registered here are automatically cleaned up
+     * when deactivate() runs, so subclasses never need to track unsubs.
+     */
+    protected subscribe<K extends keyof EventMap>(event: K, handler: (data: EventMap[K]) => void): void {
+        this.unsubs.push(eventBus.subscribe(event, handler));
     }
 
     /**
@@ -270,8 +278,10 @@ class Look {
      * event subscriptions, stop animations, or perform cleanup logic.
      */
     deactivate(): void {
-        this.isActive = false;
+        for (const unsub of this.unsubs) unsub();
+        this.unsubs.length = 0;
         this.activeScene = null;
+        this.isActive = false;
     }
 
     /**
