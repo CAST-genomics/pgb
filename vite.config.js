@@ -33,4 +33,8 @@ export default defineConfig({
     },
 
     base: '', // Use relative paths to ensure the app works in preview and deploys correctly
+
+    test: {
+        environment: 'node',
+    },
 });
