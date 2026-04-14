@@ -18,6 +18,10 @@ class WidgetService {
         this.createButtons();
     }
 
+    activateLook(sceneName) {
+        globals.app.setActiveScene(sceneName, true);
+    }
+
     createButtons() {
 
         const buttonContainer = document.createElement('div');
@@ -65,7 +69,7 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget- assembly')
-            globals.app.setActiveScene('nodeEmphasisScene', true);
+            this.activateLook('nodeEmphasisScene');
             this.assemblyWidget.showCard();
             this.setActiveButton(this.assemblyButton);
         }
@@ -90,9 +94,9 @@ class WidgetService {
             console.log('show widget - population')
 
             if (null === this.populationWidget.selectedSuperpopulation && null === this.populationWidget.selectedPopulation){
-                globals.app.setActiveScene('nodeEmphasisScene', true)
+                this.activateLook('nodeEmphasisScene')
             } else {
-                globals.app.setActiveScene('heatmapScene', true)
+                this.activateLook('heatmapScene')
             }
 
             this.populationWidget.showCard();
@@ -123,7 +127,7 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget - PCA')
-            globals.app.setActiveScene('nodeEmphasisScene', true);
+            this.activateLook('nodeEmphasisScene');
             // this.pcaWidget.configure();
             this.pcaWidget.showCard();
             this.setActiveButton(this.pcaButton);

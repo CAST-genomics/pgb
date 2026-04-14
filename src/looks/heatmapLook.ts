@@ -4,6 +4,23 @@ import {assemblyMetadataService } from "../assemblyMetadataService.ts"
 import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
 import { ylGnBu, ylOrRd, blues } from "../utils/color/color-ramps.js"
+
+/**
+ * Parameter-binding events (the Look's "shader uniforms" — inputs that drive
+ * its appearance while active). Subscribed in `activate()`, drained in
+ * `Look.deactivate()`.
+ *
+ *   superpopulation:selected    — color nodes by frequency within the chosen
+ *                                 superpopulation (from PopulationWidget).
+ *                                 Payload: { acronym }.
+ *   superpopulation:deselected  — clear superpopulation heatmap colors.
+ *                                 Payload: {}.
+ *   population:selected         — color nodes by frequency within the chosen
+ *                                 population (from PopulationWidget).
+ *                                 Payload: { acronym }.
+ *   population:deselected       — clear population heatmap colors.
+ *                                 Payload: {}.
+ */
 class HeatmapLook extends Look {
 
     constructor(name: string, config: any) {
