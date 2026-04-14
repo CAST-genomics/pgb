@@ -2,6 +2,25 @@ import Look from './look.ts';
 import materialService from '../materialService.js';
 import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
+/**
+ * Parameter-binding events (the Look's "shader uniforms" — inputs that drive
+ * its appearance while active). Subscribed in `activate()`, drained in
+ * `Look.deactivate()`.
+ *
+ *   assembly:emphasis   — emphasize a set of nodes for a given assembly
+ *                         (from AssemblyWidget). Payload: { assembly, nodeSet,
+ *                         deemphasisColor }.
+ *   assembly:normal     — restore a set of nodes to normal (from AssemblyWidget).
+ *                         Payload: { nodeSet }.
+ *   pcaWidget:emphasis  — emphasize a set of nodes for a PCA coordinate key,
+ *                         with optional absent set (from PCAWidget). Payload:
+ *                         { assembly, nodeSet, absentNodeSet, deemphasisColor }.
+ *   pcaWidget:absence   — mark a set of nodes absent with no emphasis (from
+ *                         PCAWidget, widget open but no coordinate selected).
+ *                         Payload: { absentNodeSet }.
+ *   pcaWidget:normal    — restore a set of nodes to normal (from PCAWidget).
+ *                         Payload: { nodeSet }.
+ */
 class NodeEmphasisLook extends Look {
 
     constructor(name: string, config: any) {
