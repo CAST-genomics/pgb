@@ -10,6 +10,7 @@ import {
     DatasetParseError,
     type FormatVersion,
     type DatasetModel,
+    type DatasetIndex,
     type AssemblyEntry,
     type PclaiEntry,
     type AssemblyMetadata,
@@ -166,6 +167,7 @@ function normalizeV1(json: Record<string, unknown>): DatasetModel {
         sequences,
         nodes,
         edges,
+        index: buildDatasetIndex(nodes),
     };
 }
 
@@ -333,5 +335,82 @@ function normalizeV2(json: Record<string, unknown>): DatasetModel {
         sequences,
         nodes,
         edges,
+        index: buildDatasetIndex(nodes),
     };
+}
+
+// ── Dataset index ────────────────────────────────────────────────────
+
+function buildDatasetIndex(nodes: Map<string, NodeModel>): DatasetIndex {
+    const pclaiCoordinateKeys = new Set<string>();
+    const pclaiAbsentNodes = new Set<string>();
+    const nodesWithPclai = new Set<string>();
+
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let sawAnyCoord = false;
+
+    let totalAssemblies = 0;
+    let hasAssemblyMetadata = false;
+
+    for (const [nodeId, node] of nodes) {
+        if (node.assemblyMetadata) {
+            hasAssemblyMetadata = true;
+            totalAssemblies += countAssembliesFromMetadata(node.assemblyMetadata);
+        }
+
+        let nodeHasValidPclai = false;
+        for (const [coordKey, entries] of node.pclaiCoordinates) {
+            const entry = entries[0];
+            if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2
+                || !Array.isArray(entry.rgb) || entry.rgb.length !== 3) continue;
+
+            pclaiCoordinateKeys.add(coordKey);
+            nodeHasValidPclai = true;
+
+            const [x, y] = entry.coordinates;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            sawAnyCoord = true;
+        }
+
+        if (nodeHasValidPclai) {
+            nodesWithPclai.add(nodeId);
+        }
+    }
+
+    // absentNodes are only meaningful when the dataset has *any* pclai data
+    if (nodesWithPclai.size > 0) {
+        for (const nodeId of nodes.keys()) {
+            if (!nodesWithPclai.has(nodeId)) pclaiAbsentNodes.add(nodeId);
+        }
+    }
+
+    const pclaiBoundingBox = sawAnyCoord
+        ? {
+            x: { min: minX, max: maxX, centroid: (minX + maxX) / 2 },
+            y: { min: minY, max: maxY, centroid: (minY + maxY) / 2 },
+        }
+        : null;
+
+    return {
+        pclaiBoundingBox,
+        pclaiCoordinateKeys,
+        pclaiAbsentNodes,
+        assemblyTotals: { totalAssemblies },
+        hasPclaiData: nodesWithPclai.size > 0,
+        hasAssemblyMetadata,
+    };
+}
+
+function countAssembliesFromMetadata(meta: AssemblyMetadata): number {
+    const sex = (meta.count as Record<string, unknown>)?.sex as Record<string, number> | undefined;
+    if (!sex) return 0;
+    let sum = 0;
+    for (const v of Object.values(sex)) {
+        if (typeof v === 'number') sum += v;
+    }
+    return sum;
 }
