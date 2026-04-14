@@ -14,32 +14,35 @@ class PCLACoordinateService {
         }
 
         this.coordinates = new Map(); // nodeId -> Map<coordnateKey, coordinateData>
-        this.aveRgb = new Map(); // nodeId -> {rgb: [r, g, b], color: THREE.Color}
+        this.aveRgb = new Map(); // nodeId -> THREE.Color
+        // The following three are populated from dataset.index on loadCoordinates().
         this.boundingBox = null; // { x: {min, max, centroid}, y: {min, max, centroid} }
-        this.coordinateKeys = new Set(); // Set of all coordinate keys (union across all nodes)
+        this.coordinateKeys = new Set(); // union of coordinate keys across nodes
         this.absentNodeSet = new Set(); // nodes with no valid pclai_coordinates
 
         PCLACoordinateService.instance = this;
     }
 
     /**
-     * Load PCA coordinates from JSON data
-     * @param {Object} jsonData - The JSON data containing node information
+     * Load PCA coordinates from a parsed DatasetModel.
+     *
+     * Dataset-derived facts (bounding box, coordinate-key union, absent-node
+     * set) are read from `dataset.index`. This service only builds the
+     * runtime-only structures the index can't express: per-node THREE.Color
+     * maps and the pclai_ave_rgb color map.
      */
     loadCoordinates(dataset) {
         this.coordinates.clear();
         this.aveRgb.clear();
-        this.boundingBox = null;
-        this.coordinateKeys.clear();
-        this.absentNodeSet.clear();
 
-        const allXCoords = [];
-        const allYCoords = [];
-        let nodesProcessed = 0;
+        // Index-derived state
+        this.boundingBox = dataset.index.pclaiBoundingBox;
+        this.coordinateKeys = dataset.index.pclaiCoordinateKeys;
+        this.absentNodeSet = dataset.index.pclaiAbsentNodes;
 
+        // Build runtime THREE.Color maps — can't live in the index.
         for (const [nodeId, node] of dataset.nodes) {
 
-            // Process pclaiAveRgb if present
             if (Array.isArray(node.pclaiAveRgb) && node.pclaiAveRgb.length === 3) {
                 const [r, g, b] = node.pclaiAveRgb;
                 if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
@@ -49,16 +52,11 @@ class PCLACoordinateService {
                 }
             }
 
-            // Skip nodes with no pclai coordinates
-            if (!node.pclaiCoordinates || node.pclaiCoordinates.size === 0) {
-                continue;
-            }
+            if (!node.pclaiCoordinates || node.pclaiCoordinates.size === 0) continue;
 
             const nodeCoordData = new Map();
 
-            // Process each entry in pclaiCoordinates (Map<coordKey, PclaiEntry[]>)
             for (const [coordinateKey, entries] of node.pclaiCoordinates) {
-                // Use the first (primary) entry for the coordinate/color
                 const entry = entries[0];
                 if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2 || !Array.isArray(entry.rgb) || entry.rgb.length !== 3) {
                     continue;
@@ -68,58 +66,15 @@ class PCLACoordinateService {
                 const rgbThreeJS = new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
                 const rgbString = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 
-                const coordinateData = { coordinates: entry.coordinates, rgbThreeJS, rgbString };
-                nodeCoordData.set(coordinateKey, coordinateData);
-
-                // Add coordinate key to the Set (union of all keys across all nodes)
-                this.coordinateKeys.add(coordinateKey);
-
-                // Collect coordinates for bounding box calculation
-                const [x, y] = entry.coordinates;
-                allXCoords.push(x);
-                allYCoords.push(y);
+                nodeCoordData.set(coordinateKey, { coordinates: entry.coordinates, rgbThreeJS, rgbString });
             }
 
-            // Only store node if it has at least one valid coordinate entry
             if (nodeCoordData.size > 0) {
                 this.coordinates.set(nodeId, nodeCoordData);
-                nodesProcessed++;
             }
         }
 
-        // Calculate bounding box from all collected coordinates
-        if (allXCoords.length > 0 && allYCoords.length > 0) {
-            const minX = Math.min(...allXCoords);
-            const maxX = Math.max(...allXCoords);
-            const minY = Math.min(...allYCoords);
-            const maxY = Math.max(...allYCoords);
-
-            this.boundingBox = {
-                x: {
-                    min: minX,
-                    max: maxX,
-                    centroid: (minX + maxX) / 2
-                },
-                y: {
-                    min: minY,
-                    max: maxY,
-                    centroid: (minY + maxY) / 2
-                }
-            };
-        }
-
-        // Compute absent node set — nodes with no valid pclai coordinates.
-        // Only meaningful when the dataset has pclai data; otherwise absence
-        // as a concept does not apply and the set stays empty.
-        if (this.coordinates.size > 0) {
-            for (const nodeId of dataset.nodes.keys()) {
-                if (!this.coordinates.has(nodeId)) {
-                    this.absentNodeSet.add(nodeId)
-                }
-            }
-        }
-
-        console.log(`PCLACoordinateService: Loaded coordinates for ${nodesProcessed} nodes, ${this.absentNodeSet.size} absent nodes`);
+        console.log(`PCLACoordinateService: Loaded coordinates for ${this.coordinates.size} nodes, ${this.absentNodeSet.size} absent nodes`);
         if (this.boundingBox) {
             console.log(`PCLACoordinateService: Bounding box - x: [${this.boundingBox.x.min.toFixed(3)}, ${this.boundingBox.x.max.toFixed(3)}], y: [${this.boundingBox.y.min.toFixed(3)}, ${this.boundingBox.y.max.toFixed(3)}]`);
         }
@@ -308,8 +263,8 @@ class PCLACoordinateService {
         this.coordinates.clear();
         this.aveRgb.clear();
         this.boundingBox = null;
-        this.coordinateKeys.clear();
-        this.absentNodeSet.clear();
+        this.coordinateKeys = new Set();
+        this.absentNodeSet = new Set();
     }
 }
 
