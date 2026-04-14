@@ -181,21 +181,7 @@ class App {
     async processData(json: any): Promise<void> {
         const dataset = parseDataset(json)
 
-        this.pangenomeService.loadData(dataset)
-
-        assemblyMetadataService.loadMetadata(dataset)
-
-        pclaiCoordinateService.loadCoordinates(dataset)
-
-        // Initialize PCA Chart with global bounding box
-        pcaChartService.reset()
-        await pcaChartService.initializeGlobalBoundingBox()
-
-        await this.genomicService.initialize(dataset, this.pangenomeService)
-
-        this.widgetService.updatePopulationWidget(dataset)
-
-        this.widgetService.reset()
+        await this.loadDataset(dataset)
 
         this.geometryManager.createGeometry(dataset)
 
@@ -212,6 +198,29 @@ class App {
 
         // Publish event indicating a new dataset has been loaded
         eventBus.publish('datasetLoaded', { dataset })
+    }
+
+    /**
+     * Fan out a parsed DatasetModel to every dataset-consuming service.
+     *
+     * Owns the ordering so callers don't have to. Covers the data side
+     * of a dataset swap only — geometry creation, scene activation, and
+     * camera fitting remain in processData.
+     */
+    async loadDataset(dataset: any): Promise<void> {
+        this.pangenomeService.loadData(dataset)
+
+        assemblyMetadataService.loadMetadata(dataset)
+
+        pclaiCoordinateService.loadCoordinates(dataset)
+
+        pcaChartService.reset()
+        await pcaChartService.initializeGlobalBoundingBox()
+
+        await this.genomicService.initialize(dataset, this.pangenomeService)
+
+        this.widgetService.updatePopulationWidget(dataset)
+        this.widgetService.reset()
     }
 
     updateViewToFitScene(scene: any, cameraManager: any, mapControl: any): void {
