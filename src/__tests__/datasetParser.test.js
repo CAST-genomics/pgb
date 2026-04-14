@@ -383,3 +383,79 @@ describe('validation', () => {
         expect(result.nodes.get('1+').pclaiCoordinates.size).toBe(0)
     })
 })
+
+// ── Dataset index ───────────────────────────────────────────────────
+
+describe('dataset index', () => {
+
+    it('v1: empty pclai → no bbox, absent set is empty, flags off', () => {
+        const result = parseDataset(makeV1())
+        const idx = result.index
+        expect(idx.pclaiBoundingBox).toBeNull()
+        expect(idx.pclaiCoordinateKeys.size).toBe(0)
+        expect(idx.pclaiAbsentNodes.size).toBe(0)
+        expect(idx.hasPclaiData).toBe(false)
+    })
+
+    it('v1: computes bbox, coordinate-key union, and absent-node set', () => {
+        const v1 = makeV1()
+        v1.node['1+'].pclai_coordinates = {
+            'A#1': { coordinates: [0.2, 0.4], RGB: [10, 20, 30] },
+            'B#1': { coordinates: [0.8, 0.1], RGB: [40, 50, 60] },
+        }
+        // '2+' has no pclai — it should land in absentNodes
+        const result = parseDataset(v1)
+        const idx = result.index
+
+        expect(idx.hasPclaiData).toBe(true)
+        expect(Array.from(idx.pclaiCoordinateKeys).sort()).toEqual(['A#1', 'B#1'])
+
+        expect(idx.pclaiBoundingBox).not.toBeNull()
+        expect(idx.pclaiBoundingBox.x.min).toBeCloseTo(0.2)
+        expect(idx.pclaiBoundingBox.x.max).toBeCloseTo(0.8)
+        expect(idx.pclaiBoundingBox.x.centroid).toBeCloseTo(0.5)
+        expect(idx.pclaiBoundingBox.y.min).toBeCloseTo(0.1)
+        expect(idx.pclaiBoundingBox.y.max).toBeCloseTo(0.4)
+        expect(idx.pclaiBoundingBox.y.centroid).toBeCloseTo(0.25)
+
+        expect(idx.pclaiAbsentNodes.has('2+')).toBe(true)
+        expect(idx.pclaiAbsentNodes.has('1+')).toBe(false)
+    })
+
+    it('v1: sums assemblyTotals from sex counts across nodes', () => {
+        const v1 = makeV1()
+        v1.node['1+'].assembly_metadata = {
+            count: { sex: { male: 3, female: 5 } },
+            frequency: {},
+        }
+        v1.node['2+'].assembly_metadata = {
+            count: { sex: { male: 1, female: 2 } },
+            frequency: {},
+        }
+        const result = parseDataset(v1)
+        expect(result.index.assemblyTotals.totalAssemblies).toBe(11)
+        expect(result.index.hasAssemblyMetadata).toBe(true)
+    })
+
+    it('v1: absent-node set is empty when no node has pclai', () => {
+        const v1 = makeV1()
+        // Neither node has pclai_coordinates
+        const result = parseDataset(v1)
+        expect(result.index.pclaiAbsentNodes.size).toBe(0)
+        expect(result.index.hasPclaiData).toBe(false)
+    })
+
+    it('v2: extracts bbox and coordinate keys from nested pclai windows', () => {
+        const result = parseDataset(makeV2())
+        const idx = result.index
+
+        expect(idx.hasPclaiData).toBe(true)
+        expect(idx.pclaiCoordinateKeys.has('HG00597#1')).toBe(true)
+
+        expect(idx.pclaiBoundingBox).not.toBeNull()
+        expect(idx.pclaiBoundingBox.x.min).toBeCloseTo(0.5)
+        expect(idx.pclaiBoundingBox.x.max).toBeCloseTo(0.5)
+        expect(idx.pclaiBoundingBox.y.min).toBeCloseTo(0.7)
+        expect(idx.pclaiBoundingBox.y.max).toBeCloseTo(0.7)
+    })
+})

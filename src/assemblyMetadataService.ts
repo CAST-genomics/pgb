@@ -43,37 +43,26 @@ class AssemblyMetadataService {
     }
 
     /**
-     * Load assembly metadata from JSON data
+     * Load assembly metadata from a parsed DatasetModel.
+     *
+     * Dataset-wide totalAssemblies is read from dataset.index. This service
+     * still walks nodes to build the per-node metadata lookup used by
+     * tooltip/breakdown renderers.
      */
     loadMetadata(dataset: any): void {
         this.metadata.clear();
-        this.totalAssemblies = 0;
+        this.totalAssemblies = dataset.index.assemblyTotals.totalAssemblies;
 
         for (const [nodeId, node] of dataset.nodes) {
             if (node.assemblyMetadata) {
-                const nodeTotalAssemblies = this.calculateTotalAssemblies(node.assemblyMetadata.count);
-
                 this.metadata.set(nodeId, {
                     count: node.assemblyMetadata.count || {},
                     frequency: node.assemblyMetadata.frequency || {},
-                    totalAssemblies: nodeTotalAssemblies
                 });
-
-                this.totalAssemblies += nodeTotalAssemblies;
             }
         }
 
         console.log(`AssemblyMetadataService: Loaded metadata for ${this.metadata.size} nodes`);
-    }
-
-    /**
-     * Calculate total assemblies from count data
-     */
-    calculateTotalAssemblies(countData: any): number {
-        if (!countData?.sex) return 0;
-
-        // Sum up all sex counts (should be the same as any other category)
-        return Object.values(countData.sex).reduce((sum: number, count: any) => sum + count, 0) as number;
     }
 
     /**

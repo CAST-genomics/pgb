@@ -48,6 +48,18 @@ export interface NodeModel {
     defaultRange: string | null;
 }
 
+export interface DatasetIndex {
+    pclaiBoundingBox: {
+        x: { min: number; max: number; centroid: number };
+        y: { min: number; max: number; centroid: number };
+    } | null;
+    pclaiCoordinateKeys: Set<string>;
+    pclaiAbsentNodes: Set<string>;
+    assemblyTotals: { totalAssemblies: number };
+    hasPclaiData: boolean;
+    hasAssemblyMetadata: boolean;
+}
+
 export interface DatasetModel {
     formatVersion: FormatVersion;
     locus: { queriedLocus: string | null; actualLocus: string | null };
@@ -55,6 +67,7 @@ export interface DatasetModel {
     sequences: Map<string, string>;
     nodes: Map<string, NodeModel>;
     edges: Array<{ startingNode: string; endingNode: string }>;
+    index: DatasetIndex;
 }
 
 // ── Error class ─────────────────────────────────────────────────────

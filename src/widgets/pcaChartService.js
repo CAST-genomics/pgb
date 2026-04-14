@@ -367,45 +367,29 @@ class PCAChartService {
             await this.referenceDataPromise;
         }
 
-        const allXCoords = [];
-        const allYCoords = [];
+        // Start from the dataset bbox computed in the parser; widen it with
+        // reference data (which lives outside the dataset).
+        const datasetBbox = pclaiCoordinateService.getBoundingBox();
 
-        // Get all node IDs that have coordinates
-        const nodeIds = pclaiCoordinateService.getNodeIdsWithPCLAICoordinates();
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
 
-        if (nodeIds.length === 0) {
-            console.warn('PCAChartService: No nodes with coordinates found');
-            return;
+        if (datasetBbox) {
+            minX = datasetBbox.x.min; maxX = datasetBbox.x.max;
+            minY = datasetBbox.y.min; maxY = datasetBbox.y.max;
         }
 
-        // Traverse all nodes and collect all coordinates
-        for (const nodeId of nodeIds) {
-            const coordinatesMap = pclaiCoordinateService.getCoordinatesForNode(nodeId);
-            if (!coordinatesMap) continue;
-
-            for (const [assemblyKey, assemblyData] of coordinatesMap) {
-                const [x, y] = assemblyData.coordinates;
-                allXCoords.push(x);
-                allYCoords.push(y);
-            }
-        }
-
-        // Also include reference data coordinates in bounding box calculation
         for (const refPoint of this.referenceData) {
-            allXCoords.push(refPoint.x);
-            allYCoords.push(refPoint.y);
+            if (refPoint.x < minX) minX = refPoint.x;
+            if (refPoint.x > maxX) maxX = refPoint.x;
+            if (refPoint.y < minY) minY = refPoint.y;
+            if (refPoint.y > maxY) maxY = refPoint.y;
         }
 
-        if (allXCoords.length === 0 || allYCoords.length === 0) {
+        if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
             console.warn('PCAChartService: No valid coordinates found');
             return;
         }
-
-        // Calculate global min/max
-        const minX = Math.min(...allXCoords);
-        const maxX = Math.max(...allXCoords);
-        const minY = Math.min(...allYCoords);
-        const maxY = Math.max(...allYCoords);
 
         const xRange = maxX - minX;
         const yRange = maxY - minY;
