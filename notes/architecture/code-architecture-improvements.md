@@ -6,43 +6,64 @@ The meta-pattern across all six: **event-bus-mediated coordination where the com
 
 ---
 
-## 1. Look + Scene activation lifecycle
+## Guiding philosophy — Looks as shade trees
 
-**Files:**
-- `src/looks/look.ts` (~430 lines — sprawling `updateNodeEmphasis`, `setNodeEmphasis`, `applyEmphasisState`)
-- `src/looks/lookManager.js`
-- `src/sceneManager.js` (~268 lines)
+Every entry in this document is subordinate to the following philosophy. Refactor proposals that violate it should be rejected regardless of how clean they look on paper.
 
-**Cluster / concept co-owned:** the emphasis state machine (normal / emphasized / deemphasized / absent) and scene lifecycle.
+**Intellectual lineage.** PGB's visual architecture is modeled on Rob Cook's shade trees and the RenderMan-era shader model developed at ILM / Pixar in the 1980s. In that model, appearance authorship belongs in a small, self-contained unit — the shader — that is *allowed to grow rich* in exchange for the rest of the pipeline staying simple. Complexity is managed by **offloading it into a library of shaders**, not by wrapping the library in coordinators.
 
-**Why the seams are awkward:**
-- Bidirectional dependency chain: Look → SceneManager → LookManager → Look.
-- Each Look holds a `sceneManager` reference and directly traverses the scene's `NodeMeshGroup` to mutate materials.
-- Emphasis transitions live on Look but are driven from 5+ unrelated event handlers (assembly, PCA widget, population, hover, …).
-- Z-offset logic is split between `GeometryFactory` constants and Look's `getZOffset()` override.
+**How this maps to PGB.** A `Look` is a "shader" in this conceptual sense (not the GL sense). `NodeEmphasisLook`, `HeatmapLook`, and future looks are entries in PGB's shader library. Each one owns its materials, its emphasis semantics, and the user interactions that drive its appearance. The Look system is the heart and soul of the app and is where visual complexity is *meant* to accumulate.
 
-**Test surface that would shrink:** today you need a full scene graph to unit-test emphasis transitions. A deepened state-machine object would let you test transitions as pure functions and separately verify that a single adapter applies them to meshes.
+**Consequences for refactoring.**
 
-**Leverage note:** deepening this naturally shrinks clusters #2 and #6. Highest-leverage candidate.
+- **Deepen Looks; do not decompose them.** If a Look is getting larger because it's absorbing appearance logic, that is the architecture working correctly. Growth *inside* a Look is fine; growth in the negotiation *between* Looks and the rest of the app is the smell.
+- **Reject refactors that pull logic out of Looks into generic coordinators, reducers, command pipelines, or hexagonal cores.** These inversions take appearance ownership away from the shader library and hand it to a scene graph telling shaders what to be — the opposite of a shade tree. An earlier RFC draft in #40 proposed exactly this and was rejected in review. Entry #2 below was reframed for the same reason.
+- **New visualizations are new Looks or new Look parameters — never ad-hoc hacks outside the framework.** The genomics collaborators this app serves regularly request new visualization modes. Each request should be met by either creating a new Look subclass or introducing new uniforms/parameters on an existing one.
+- **A Look's subscribed events are its parameter-binding interface.** Analogous to the uniforms a RenderMan shader declares. "What can this Look be driven by?" should be answerable by reading the Look's `activate()` body — not by tracing a command bus.
+- **The Look surface must remain the easiest part of the system to manipulate, extend, and alter.** Minimal needless abstraction around it. If a proposed change makes Looks harder to write or harder to reason about locally, it is the wrong change even if it improves some other metric.
 
 ---
 
-## 2. Widget event coordination hub
+## 1. Look + Scene activation lifecycle — ✅ COMPLETED (PR #41)
+
+**Landed in PR #41** (merged; closed issue #40). Approach: **deepening, not decomposition.** An earlier RFC draft proposed a hexagonal core with a reducer/controller pipeline — that direction was rejected in review because it took appearance-authorship ownership away from Looks, which is the opposite of the shade-tree philosophy laid out above.
+
+**What changed:**
+- **Broke the Look → SceneManager → LookManager → Look cycle.** `LookManager` now hands the scene in via `Look.activate(scene)`; Looks no longer carry a `sceneManager` field. `Look.deactivate()` nulls `activeScene`, making stale-scene bugs across dataset swaps structurally impossible.
+- **Lifted subscription lifecycle into the `Look` base class.** New protected `subscribe<K>(event, handler)` helper records unsubscribes; `Look.deactivate()` drains them. `NodeEmphasisLook` and `HeatmapLook` dropped their per-subclass unsub bookkeeping and `deactivate()` overrides (−71 lines).
+- **Collapsed `setNodeEmphasis` + `setNodeAbsence` into one method.** Signature: `setNodeEmphasis(assembly, emphasizedSet, color, absentSet, deemphasisColor)`. The remainder-bucket rule (deemphasized if anything is emphasized, normal otherwise) moved inside the method.
+- **Deleted state-aware Z-offset machinery entirely.** `NODE_LINE_DEEMPHASIS_Z_OFFSET`, `NodeEmphasisLook.getZOffset()`, `Look.getZOffset()`, `Look.updateGeometryPositions()` — all gone (−70 lines). Replaced by a single `mesh.renderOrder` integer per mesh, which guarantees emphasized nodes paint on top without Z-buffer games.
+
+**Net diff:** roughly −150 / +30 lines. No new files, no new abstractions, no new tests.
+
+**Lesson worth preserving:** each change followed the same shape — find a piece of knowledge that callers had to hold and push it *into* the module. Circular refs, cleanup bookkeeping, emphasis-vs-absence branching, Z-offset coordination — all were things the outside had to understand. After #41 they're things only `Look` understands. Deepening here did *not* mean "introduce a state-machine object" — it often meant "delete the negotiation and let `Look` own the concept outright." Apply this pattern to future Look work.
+
+---
+
+## 2. Active-Look selection (reframed)
 
 **Files:**
 - `src/widgets/widgetService.js` (~150 lines)
+- `src/looks/lookManager.js`
 - `src/widgets/assemblyWidget.ts` (~314 lines)
 - `src/widgets/pcaWidget.ts` (~256 lines)
 - `src/widgets/populationWidget.ts` (~218 lines)
 
-**Cluster / concept co-owned:** "which widget is active, and what scene/look should be showing as a result."
+**Framing note — this entry was reframed after PR #41.** The original version lumped two different problems together and proposed an `ActivateWidgetCommand` coordinator. That proposal is **rejected** for the same reason the hexagonal-core RFC was rejected in #40: it would pull shader-parameter logic into a generic command layer and leave Looks as passive recipients, which inverts the shade-tree philosophy above.
 
-**Why the seams are awkward:**
-- Flow is circular: button click → widget event → widgetService → `globals.app.setActiveScene()` → lookManager activates look → look subscribes to event.
-- Several widgets also directly manipulate scene state (e.g., AssemblyWidget publishes `assembly:emphasis` which NodeEmphasisLook listens to).
-- No single module owns "scene selection" — it's implicit in the event wiring.
+**The cluster actually contains two problems — only one is a real deepening opportunity:**
 
-**Test surface that would shrink:** an explicit coordinator / command boundary (e.g., `ActivateWidgetCommand`) replaces brittle per-widget tests that currently have to stub the event bus, scene manager, and look manager together.
+### Problem A — Shader selection (the real opportunity)
+"Which Look is bound right now?" has no single owner today. The answer is implicit in the chain: button click → widget event → `widgetService` → `globals.app.setActiveScene()` → `lookManager` activates look. No module owns "active Look" as a first-class concept.
+
+**Deepening move:** give `LookManager` direct ownership via a method like `lookManager.activate(lookName)`. Widgets (or `widgetService` on their behalf) call it directly. No command objects, no coordinator class, no new abstraction layer — just `LookManager` absorbing a concept that's currently diffused across event wiring. This is the same shape as the PR #41 changes: a deepening of one existing module, not a new one.
+
+### Problem B — Shader parameterization (leave alone, on purpose)
+`AssemblyWidget` publishes `assembly:emphasis` → `NodeEmphasisLook` consumes it. `PCAWidget` publishes coordinate selections → same Look consumes them. Under the shade-tree lens, **this is not a smell — it is the architecture working correctly.** Widgets are the parameter panel for the active shader; a parameter panel talking to its shader is the whole point.
+
+**Instead of refactoring this away, formalize it.** Document that a Look's subscribed events *are* its parameter-binding interface — analogous to the uniforms a RenderMan shader declares. "What can this Look be driven by?" should be answered by reading the Look's `activate()` body, not by tracing a command bus. A short doc block on each concrete Look listing the events it binds to would make this explicit without touching code structure.
+
+**Test surface that would shrink (revised):** once Problem A is fixed, widget tests only need to stub the event bus — they can assert on the parameter events directly, which is what you want to test anyway. No coordinator is needed to get that win.
 
 ---
 
@@ -124,4 +145,6 @@ The meta-pattern across all six: **event-bus-mediated coordination where the com
 
 ## How to use this document
 
-When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order, though #1 has the most downstream leverage and #3 is the lowest-risk standalone win.
+When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. #1 is done (PR #41); #3 remains the lowest-risk standalone win.
+
+**Philosophy constraint on all remaining entries:** PGB is built on a shade-tree model of appearance (Rob Cook / RenderMan lineage). Looks are conceptual shaders; the Look system is where visual complexity is *meant* to accumulate. Refactors that pull logic *out* of Looks into generic coordinators, reducers, or command pipelines should be rejected by default — that's the move that was rejected in #40 and reframed in #2. Deepen existing modules instead of introducing coordinator layers around them.
