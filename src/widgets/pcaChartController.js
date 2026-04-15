@@ -1,16 +1,18 @@
 /**
- * PcaChartController — owns the event subscriptions and interaction state
- * for the PCA chart.
+ * PcaChartController — owns event subscriptions and interaction state for
+ * the PCA chart.
  *
- * Phase 3a of the PCA triangle refactor (issue #46) extracts this file as a
- * pure move: the behavior is bug-for-bug identical to what pcaChartService
- * did previously, including the #47 bug where re-clicking a widget assembly
- * does not toggle off. Phase 3c fixes that inside this file once the
- * extraction has settled.
+ * Phase 3d of the PCA triangle refactor (issue #46) reshapes this into a
+ * small state machine so the rendered chart is a pure function of
+ * `{ hoveredNodeId, selectedCoordinateKey }`. Every event handler updates
+ * that state and calls `render()`; the render path decides what dots to
+ * draw. This fixes issue #47:
  *
- * Today the controller delegates view updates back to pcaChartService. Phase
- * 3b moves those view concerns into PcaChart, at which point the delegate
- * collapses to a `PcaChart` reference.
+ *   - Clicking the same coordinate key twice toggles it off (widget fires
+ *     `pcaWidget:deselect`, controller clears `selectedCoordinateKey`).
+ *   - Reference-dot desaturation is implicit: any non-idle state calls
+ *     `chart.renderDots(...)` which de-emphasizes the reference layer;
+ *     returning to idle calls `chart.clearChart()` which restores it.
  */
 
 import eventBus from '../utils/eventBus.ts'
@@ -28,136 +30,121 @@ export class PcaChartController {
      */
     constructor(chartDelegate) {
         this.chartDelegate = chartDelegate
-        this.currentNodeId = null
+        this.hoveredNodeId = null
         this.selectedCoordinateKey = null
         this.unsubscribes = []
     }
 
-    get hoveredNodeId() {
-        return this.currentNodeId
+    /** Back-compat accessor. Prefer reading `hoveredNodeId` directly. */
+    get currentNodeId() {
+        return this.hoveredNodeId
+    }
+    set currentNodeId(value) {
+        this.hoveredNodeId = value
     }
 
     start() {
         this.unsubscribes.push(
             eventBus.subscribe('lineIntersection', (data) => {
                 if (!data || !data.nodeName) {
-                    this.chartDelegate.clearChart()
-                    return
+                    this.hoveredNodeId = null
+                } else {
+                    this.hoveredNodeId = data.nodeName
                 }
-                this.updateChartForNode(data.nodeName)
+                this.render()
             }),
         )
 
         this.unsubscribes.push(
             eventBus.subscribe('clearIntersection', () => {
-                this.currentNodeId = null
-                if (this.selectedCoordinateKey && this.chartDelegate.isVisible()) {
-                    this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey)
-                } else {
-                    this.chartDelegate.clearChart()
-                }
+                this.hoveredNodeId = null
+                this.render()
             }),
         )
 
         this.unsubscribes.push(
             eventBus.subscribe('pcaWidget:emphasis', (data) => {
-                const { assembly } = data
-                this.selectedCoordinateKey = assembly.name
+                this.selectedCoordinateKey = data.assembly.name
+                this.render()
+            }),
+        )
 
-                if (!this.chartDelegate.isVisible()) return
-
-                if (this.currentNodeId) {
-                    this.updateChartForNode(this.currentNodeId)
-                } else {
-                    this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey)
-                }
+        this.unsubscribes.push(
+            eventBus.subscribe('pcaWidget:deselect', () => {
+                this.selectedCoordinateKey = null
+                this.render()
             }),
         )
 
         this.unsubscribes.push(
             eventBus.subscribe('pcaWidget:normal', () => {
                 this.selectedCoordinateKey = null
-                if (!this.chartDelegate.isVisible()) return
-
-                this.chartDelegate.restoreReferenceDots()
-
-                if (this.currentNodeId) {
-                    this.updateChartForNode(this.currentNodeId)
-                } else {
-                    this.chartDelegate.clearChart()
-                }
+                this.render()
             }),
         )
     }
 
     /**
-     * Render dots for a hovered node, filtered by the currently-selected
-     * coordinate key if one exists.
+     * Render the chart as a pure function of
+     * `(hoveredNodeId, selectedCoordinateKey)`.
+     *
+     *   both null                       → idle (full-color reference only)
+     *   hover set, no selection         → all keys for the hovered node
+     *   selection set, no hover         → all nodes for the selected key
+     *   hover + selection               → single dot for (node, key) if
+     *                                     present, else idle
      */
-    updateChartForNode(nodeId) {
-        if (!this.chartDelegate.isInitialized()) {
-            console.warn('PcaChartController: chart not initialized')
-            return
-        }
+    render() {
+        if (!this.chartDelegate.isInitialized()) return
+        if (!this.chartDelegate.isVisible()) return
 
-        let coordinatesMap = pclaiCoordinateService.getCoordinatesForNode(nodeId)
-        if (!coordinatesMap || coordinatesMap.size === 0) {
+        const hovered = this.hoveredNodeId
+        const selected = this.selectedCoordinateKey
+
+        if (!hovered && !selected) {
             this.chartDelegate.clearChart()
             return
         }
 
-        if (this.selectedCoordinateKey) {
-            if (coordinatesMap.has(this.selectedCoordinateKey)) {
-                coordinatesMap = new Map([
-                    [this.selectedCoordinateKey, coordinatesMap.get(this.selectedCoordinateKey)],
-                ])
-            } else {
+        if (hovered && !selected) {
+            const map = pclaiCoordinateService.getCoordinatesForNode(hovered)
+            if (!map || map.size === 0) {
                 this.chartDelegate.clearChart()
                 return
             }
-        }
-
-        this.currentNodeId = nodeId
-        this.chartDelegate.renderCoordinateMap(coordinatesMap)
-    }
-
-    /**
-     * Render every node's dots for a given coordinate key.
-     */
-    renderAllDotsForCoordinateKey(coordinateKey) {
-        if (!this.chartDelegate.isInitialized()) {
-            console.warn('PcaChartController: chart not initialized')
+            this.chartDelegate.renderCoordinateMap(map)
             return
         }
 
-        const nodeCoordinatesMap = pclaiCoordinateService.getCoordinatesForCoordinateKey(coordinateKey)
-        if (!nodeCoordinatesMap || nodeCoordinatesMap.size === 0) {
+        if (!hovered && selected) {
+            const map = pclaiCoordinateService.getCoordinatesForCoordinateKey(selected)
+            if (!map || map.size === 0) {
+                this.chartDelegate.clearChart()
+                return
+            }
+            this.chartDelegate.renderCoordinateMap(map)
+            return
+        }
+
+        // hovered && selected
+        const map = pclaiCoordinateService.getCoordinatesForNode(hovered)
+        if (!map || !map.has(selected)) {
             this.chartDelegate.clearChart()
             return
         }
-
-        this.chartDelegate.renderCoordinateMap(nodeCoordinatesMap)
+        const filtered = new Map([[selected, map.get(selected)]])
+        this.chartDelegate.renderCoordinateMap(filtered)
     }
 
-    /**
-     * Called by the service when the chart is re-shown. If state is present,
-     * re-render so the chart reflects the current hover/selection.
-     */
+    /** Called by the facade when the chart is re-shown. */
     refreshForVisibilityChange() {
-        if (!this.chartDelegate.isVisible()) return
-        if (this.selectedCoordinateKey) {
-            if (this.currentNodeId) {
-                this.updateChartForNode(this.currentNodeId)
-            } else {
-                this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey)
-            }
-        }
+        this.render()
     }
 
     destroy() {
         for (const unsub of this.unsubscribes) unsub()
         this.unsubscribes = []
-        this.currentNodeId = null
+        this.hoveredNodeId = null
         this.selectedCoordinateKey = null
     }
 }

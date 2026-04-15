@@ -16,6 +16,9 @@ import { pclaiCoordinateService } from './pclaiCoordinateService.js'
 import { PcaCoordinateSpace } from './pcaCoordinateSpace.js'
 import { PcaChart } from './pcaChart.js'
 import { PcaChartController } from './pcaChartController.js'
+import { acquireAbsence, releaseAbsence } from './pcaAbsenceCoordinator.js'
+
+const ABSENCE_PRESENTER_ID = 'pcaChart'
 
 const DOT_SIZE_PERCENT = 1
 const CHART_PADDING = 20
@@ -80,11 +83,14 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
             }
             controller.refreshForVisibilityChange()
         }
+
+        acquireAbsence(ABSENCE_PRESENTER_ID)
     }
 
     function hideChart() {
         chartContainer.style.display = 'none'
         isVisible = false
+        releaseAbsence(ABSENCE_PRESENTER_ID)
     }
 
     function toggleChart() {

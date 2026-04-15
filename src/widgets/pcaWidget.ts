@@ -1,6 +1,9 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.ts';
 import { pclaiCoordinateService, PCLACoordinateService } from "./pclaiCoordinateService.js"
+import { acquireAbsence, releaseAbsence } from './pcaAbsenceCoordinator.js'
+
+const ABSENCE_PRESENTER_ID = 'pcaWidget'
 
 class PCAWidget {
 
@@ -105,6 +108,7 @@ class PCAWidget {
 
             const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
             eventBus.publish('pcaWidget:absence', { absentNodeSet })
+            eventBus.publish('pcaWidget:deselect', {})
         } else {
             // Deselect previous assembly selector if one exists
             if (this.selectedCoordinateKey !== null) {
@@ -192,11 +196,7 @@ class PCAWidget {
         this.pcaWidgetContainer.style.top = '0px'
         this.pcaWidgetContainer.style.left = '0px'
 
-        // Paint absent nodes immediately when PCA widget opens
-        const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-        if (absentNodeSet.size > 0) {
-            eventBus.publish('pcaWidget:absence', { absentNodeSet })
-        }
+        acquireAbsence(ABSENCE_PRESENTER_ID)
 
         setTimeout(() => {
             this.pcaWidgetContainer.classList.add('show');
@@ -225,6 +225,7 @@ class PCAWidget {
 
     hideCard(): void {
         this.pcaWidgetContainer.classList.remove('show');
+        releaseAbsence(ABSENCE_PRESENTER_ID)
         setTimeout(() => {
             this.pcaWidgetContainer.style.display = 'none';
             // Clear search input when hiding card
@@ -237,12 +238,18 @@ class PCAWidget {
 
     reset(): void {
         // Clear visual state of any selected selector
+        const previouslySelected = this.selectedCoordinateKey
         this.clearAllSelectorStyles()
         this.selectedCoordinateKey = null;
 
-        // Restore all nodes (including absent) to default color
-        const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-        eventBus.publish('pcaWidget:normal', { nodeSet })
+        // Clear emphasis for the previously-selected coordinate key only.
+        // Absence state is owned by pcaAbsenceCoordinator and must not be
+        // disturbed here — another presenter (e.g. PCA chart) may still
+        // need the 3D graph painted in absence mode.
+        if (previouslySelected) {
+            const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(previouslySelected))
+            eventBus.publish('pcaWidget:normal', { nodeSet })
+        }
     }
 
     destroy(): void {
