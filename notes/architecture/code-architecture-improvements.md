@@ -138,26 +138,27 @@ This is a deepening of `widgetService`, not `LookManager`. The earlier framing o
 
 ---
 
-## 6. PCA triangle
+## 6. PCA triangle — ✅ COMPLETED (PR #48, closes #46 and #47)
 
-**Files:**
-- `src/widgets/pcaWidget.ts` (~256 lines)
-- `src/widgets/pclaiCoordinateService.js` (~200 lines)
-- `src/widgets/pcaChartService.js` (~1000 lines)
+**Landed in PR #48.** The 970-line `pcaChartService.js` singleton was split into a four-part deep-module structure and then a long-standing event-wiring bug (#47) was fixed on top of the new shape.
 
-**Cluster / concept co-owned:** PCA visualization — key list, coordinate-space bookkeeping, 2D scatter rendering.
+**What changed:**
+- **`PcaCoordinateSpace`** (phase 1) — pure, immutable projection math. `project(x, y) → {left, top, size}` with per-axis linear scaling, padding, and edge clamping. Pinned by 8 characterization tests retargeted from the pre-refactor jsdom tests — no DOM, no singleton, no fetch stub, runs in ~3ms.
+- **`PcaChart`** (phases 2 + 3b) — owns the chart surface, axes, dataset dots, and reference dots. Knows nothing about the event bus, the dataset model, or the card chrome. Hover emphasis and reference desaturation live here.
+- **`PcaChartController`** (phases 3a + 3d) — owns event subscriptions and interaction state. Reshaped in 3d into a small state machine: every handler updates `{hoveredNodeId, selectedCoordinateKey}` and calls a single `render()` path, so the rendered chart is a pure function of that state.
+- **`mountPcaChart()` facade** (phase 3c) — replaces the auto-instantiating `pcaChartService` singleton. `App` constructs it explicitly in its constructor and stores the handle as `this.pcaChart`. `pcaChartService.js` was deleted.
+- **`pcaAbsenceCoordinator`** (phase 3d) — tiny refcount gatekeeper for the 3D graph's absence mode. Both the PCA widget card and the PCA chart panel `acquire`/`release` through it, so presenting either one paints absence and absence stays visible until the last presenter is dismissed. Previously, dismissing the widget while the chart was still open would wipe the absence state the chart still needed.
+- **`pcaWidget:deselect` event** — new event the widget fires when the user re-clicks the already-selected coordinate key. The controller subscribes to it and clears `selectedCoordinateKey`, which (via the pure `render()` path) returns the chart to idle. This fixes the toggle-off half of #47.
+- **`pcaWidget.reset()` narrowed** — now only clears emphasis for the previously-selected key instead of all nodes, so it no longer stomps absence state another presenter still needs.
 
-**Why the seams are awkward:**
-- Three modules interact; `pclaiCoordinateService` holds the bounding box, color maps, and absence set, but only `pcaChartService` uses the bbox for scaling.
-- `pclaiCoordinateService` also computes `nodeColorMapForCoordinateKey`, passed to Look's emphasis methods — the data flow `nodeId → coordinateKey → color → mesh material` is hard to trace.
-- Chart coord-space sync with the coordinate service currently requires rendering the full chart DOM to verify.
+**Net diff:** roughly +1170 / −1040 lines across the branch. `pcaChartService.js` deleted (−1031). All 201 tests pass; new characterization tests added for `PcaCoordinateSpace`.
 
-**Test surface that would shrink:** a deepened coord service could be tested headlessly; the chart becomes a thin renderer over a trusted coord-space object.
+**Lesson worth preserving:** the refactor was staged as *characterize → split → visually confirm* across seven independently committable phases (1, 2, 3a, 3b, 3c, 3d plus the pre-refactor characterization). Each phase was bug-for-bug identical to the one before it, except the explicitly-scoped bug fix in 3d. This let the RFC's scope stay small at every step — the #47 fix was deferred until after the controller had been pulled out, so the fix landed in the right module on day one without double-patching the old tangled service.
 
 ---
 
 ## How to use this document
 
-When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. #1 is done (PR #41); #3 remains the lowest-risk standalone win.
+When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. #1 is done (PR #41); #6 is done (PR #48); #3 remains the lowest-risk standalone win among the remaining entries.
 
 **Philosophy constraint on all remaining entries:** PGB is built on a shade-tree model of appearance (Rob Cook / RenderMan lineage). Looks are conceptual shaders; the Look system is where visual complexity is *meant* to accumulate. Refactors that pull logic *out* of Looks into generic coordinators, reducers, or command pipelines should be rejected by default — that's the move that was rejected in #40 and reframed in #2. Deepen existing modules instead of introducing coordinator layers around them.
