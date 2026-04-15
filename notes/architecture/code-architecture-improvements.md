@@ -40,43 +40,17 @@ Every entry in this document is subordinate to the following philosophy. Refacto
 
 ---
 
-## 2. Active-Look selection (reframed)
+## 2. Active-Look selection — ✅ COMPLETED (PR #43, closes #42)
 
-**Files:**
-- `src/widgets/widgetService.js` (~150 lines)
-- `src/looks/lookManager.js`
-- `src/widgets/assemblyWidget.ts` (~314 lines)
-- `src/widgets/pcaWidget.ts` (~256 lines)
-- `src/widgets/populationWidget.ts` (~218 lines)
+**Landed in PR #43.** Deepening of `widgetService`, not decomposition — no `ActivateWidgetCommand`, no coordinator class, no reducer, no state machine. An earlier RFC draft proposed exactly that kind of command-layer inversion and was rejected for the same reason the hexagonal-core RFC in #40 was rejected: it would pull shader-parameter logic into a generic layer and leave Looks as passive recipients, inverting the shade-tree philosophy.
 
-**Framing note — this entry was reframed after PR #41.** The original version lumped two different problems together and proposed an `ActivateWidgetCommand` coordinator. That proposal is **rejected** for the same reason the hexagonal-core RFC was rejected in #40: it would pull shader-parameter logic into a generic command layer and leave Looks as passive recipients, which inverts the shade-tree philosophy above.
+**What changed:**
+- **`widgetService.activateLook(sceneName)`** — new widget-facing entry point. All 4 internal call sites in `widgetService.js` routed through it.
+- **`populationWidget.ts` / `populationOnlyWidget.ts`** — previously called `globals.app!.setActiveScene(...)` directly, bypassing the coordinator. Now go through `globals.widgetService.activateLook(...)` (8 call sites total). The "widgets never call `app.setActiveScene()` directly" invariant is now enforceable by reading one file.
+- **`app.setActiveScene()` intact** — the issue draft originally claimed it could be deleted; during implementation it turned out to own three app-level concerns only `App` can see: animation loop control, scene + renderer + camera wiring (`sceneManager.setActiveScene` + `renderer.compile`), and per-scene raycast visual-feedback installation. Bootstrap and data-load paths legitimately need all three, so they continue to call it directly. `widgetService.activateLook()` is a thin facade that delegates to `globals.app.setActiveScene(name, true)` — its job is to be the **one place** widgets go.
+- **Shader-parameter events formalized, not refactored away** — doc blocks added to `NodeEmphasisLook` and `HeatmapLook` listing each Look's subscribed events and what they drive. These events are the Look's "shader uniforms" under the shade-tree model — the parameter-binding interface widgets use to manipulate appearance. Goal: "what can this Look be driven by?" is answerable by reading the Look file alone.
 
-**The cluster actually contains two problems — only one is a real deepening opportunity:**
-
-### Problem A — Widget-side Look activation has no single owner (the real opportunity)
-
-"Which Look does a widget ask for, and through what entry point?" today: some widgets call `widgetService` methods which then call `globals.app.setActiveScene()`; other widgets (`populationWidget.ts`, `populationOnlyWidget.ts`) call `globals.app.setActiveScene()` **directly**, bypassing the coordinator. There is no enforceable "widgets must go through one place" rule.
-
-**Deepening move:** give `widgetService` a single widget-facing entry point — `widgetService.activateLook(sceneName)` — and route *every* widget call site through it. All direct `setActiveScene` calls from widget files are eliminated.
-
-**What stays on `app.setActiveScene()`.** The method is *not* deleted. It owns three app-level concerns that only `App` can see:
-1. Animation loop control (`stopAnimation` / `startAnimation` around the swap).
-2. Scene + renderer + camera wiring — `sceneManager.setActiveScene(name, renderer, camera)` followed by `renderer.compile(scene, camera)`. `App` is the only module that holds all three references.
-3. Raycast visual-feedback installation on the newly-active scene (lazy, per-scene).
-
-`widgetService.activateLook()` is a thin facade that delegates to `app.setActiveScene(name, true)`. Bootstrap (`app.ts:202`) and data-load paths continue to call `app.setActiveScene()` directly — they are not widgets, and they legitimately need all three app-level side effects.
-
-**The architectural boundary after this refactor:**
-> Widgets never call `app.setActiveScene()` directly. They go through `widgetService.activateLook()`. Non-widget callers (boot, data load, anywhere inside `App` itself) use `app.setActiveScene()` as before.
-
-This is a deepening of `widgetService`, not `LookManager`. The earlier framing of this entry (before PR #42) proposed deepening `LookManager` instead; that turned out to be the wrong module to deepen, because the chain of responsibility `widgetService → app → sceneManager → lookManager` is already reasonable — the real problem was widget-side bypassing, not a missing method on `LookManager`.
-
-### Problem B — Shader parameterization (leave alone, on purpose)
-`AssemblyWidget` publishes `assembly:emphasis` → `NodeEmphasisLook` consumes it. `PCAWidget` publishes coordinate selections → same Look consumes them. Under the shade-tree lens, **this is not a smell — it is the architecture working correctly.** Widgets are the parameter panel for the active shader; a parameter panel talking to its shader is the whole point.
-
-**Instead of refactoring this away, formalize it.** Document that a Look's subscribed events *are* its parameter-binding interface — analogous to the uniforms a RenderMan shader declares. "What can this Look be driven by?" should be answered by reading the Look's `activate()` body, not by tracing a command bus. A short doc block on each concrete Look listing the events it binds to would make this explicit without touching code structure.
-
-**Test surface that would shrink (revised):** once Problem A is fixed, widget tests only need to stub the event bus — they can assert on the parameter events directly, which is what you want to test anyway. No coordinator is needed to get that win.
+**Lesson worth preserving:** the cluster had two problems that looked identical from the outside — "widget X calls Y which calls Z" is a smell either way — but only one was real. Problem A (no single owner of widget-side Look activation) was a deepening opportunity. Problem B (widget → Look parameter events) *looked* like a smell but was the architecture working correctly: widgets are the parameter panel for the active shader, and the event bus is how parameters bind. The fix for A (`widgetService.activateLook`) and the non-fix for B (doc blocks on Looks) both landed in the same PR because they belong to the same reframing. When something looks like a coupling smell, ask whether it's actually a *parameter interface* before wrapping it in a coordinator.
 
 ---
 
@@ -148,6 +122,6 @@ This is a deepening of `widgetService`, not `LookManager`. The earlier framing o
 
 ## How to use this document
 
-When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. Completed: #1 (PR #41), #3 (PR #45), #6 (PR #48). Remaining: #2, #4, #5.
+When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. Completed: #1 (PR #41), #2 (PR #43), #3 (PR #45), #6 (PR #48). Remaining: #4, #5.
 
 **Philosophy constraint on all remaining entries:** PGB is built on a shade-tree model of appearance (Rob Cook / RenderMan lineage). Looks are conceptual shaders; the Look system is where visual complexity is *meant* to accumulate. Refactors that pull logic *out* of Looks into generic coordinators, reducers, or command pipelines should be rejected by default — that's the move that was rejected in #40 and reframed in #2. Deepen existing modules instead of introducing coordinator layers around them.
