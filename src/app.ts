@@ -10,7 +10,7 @@ import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
 import materialService from './materialService.js'
 import { assemblyMetadataService } from "./assemblyMetadataService.ts"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
-import { pcaChartService } from "./widgets/pcaChartService.js"
+import { mountPcaChart } from "./widgets/mountPcaChart.js"
 import { parseDataset } from './datasetParser.ts'
 
 let xxPre: number | undefined = undefined
@@ -31,6 +31,7 @@ class App {
     raycastService: any
     isTooltipEnabled: boolean | undefined
     tooltip!: HTMLElement
+    pcaChart: ReturnType<typeof mountPcaChart>
 
     constructor(container: HTMLElement, frustumSize: number, pangenomeService: any, raycastService: any, genomicService: any, geometryManager: any, widgetService: any, genomeLibrary: any, sceneManager: any) {
         this.container = container
@@ -52,6 +53,8 @@ class App {
         this.isTooltipEnabled = undefined
 
         this.tooltip = this.createTooltip();
+
+        this.pcaChart = mountPcaChart();
 
         // Register mouse over callback (stationary hover)
         this.raycastService.registerMouseOverHandler((intersection: any, event: any) => {
@@ -84,7 +87,7 @@ class App {
                 const {t, nodeName} = intersection
 
                 // Check if a coordinate key is selected and if this node has it
-                const selectedCoordinateKey = pcaChartService.selectedCoordinateKey;
+                const selectedCoordinateKey = this.pcaChart.selectedCoordinateKey;
                 if (selectedCoordinateKey) {
                     const nodeCoordinates = pclaiCoordinateService.getCoordinatesForNode(nodeName);
                     if (!nodeCoordinates || !nodeCoordinates.has(selectedCoordinateKey)) {
@@ -214,8 +217,8 @@ class App {
 
         pclaiCoordinateService.loadCoordinates(dataset)
 
-        pcaChartService.reset()
-        await pcaChartService.initializeGlobalBoundingBox()
+        this.pcaChart.reset()
+        await this.pcaChart.initializeGlobalBoundingBox()
 
         await this.genomicService.initialize(dataset, this.pangenomeService)
 

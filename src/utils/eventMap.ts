@@ -13,6 +13,7 @@ export interface EventMap {
     'pcaWidget:emphasis':         { assembly: { name: string }; nodeSet: Set<string>; absentNodeSet: Set<string>; deemphasisColor: string };
     'pcaWidget:normal':           { nodeSet: Set<string> };
     'pcaWidget:absence':          { absentNodeSet: Set<string> };
+    'pcaWidget:deselect':         Record<string, never>;
     'population:selected':        { acronym: string };
     'population:deselected':      { population: object; acronym: string };
     'superpopulation:selected':   { acronym: string };
