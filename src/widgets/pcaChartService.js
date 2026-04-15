@@ -1,6 +1,8 @@
 import eventBus from '../utils/eventBus.ts';
 import { pclaiCoordinateService } from './pclaiCoordinateService.js';
 import { Draggable } from '../utils/draggable.js';
+import { PcaCoordinateSpace } from './pcaCoordinateSpace.js';
+import { PcaChart } from './pcaChart.js';
 
 /**
  * PCAChartService - Manages and renders PCA chart visualization
@@ -466,6 +468,27 @@ class PCAChartService {
             maxAvailableDimension: maxAvailableDimension
         };
 
+        // Phase 2 of PCA triangle refactor (issue #46): projection math and
+        // dot DOM are delegated to PcaCoordinateSpace + PcaChart. The service
+        // still owns card chrome, axes, reference-data fetch, and event wiring.
+        this.coordinateSpace = new PcaCoordinateSpace(
+            dataBounds,
+            surfaceWidth,
+            surfaceHeight,
+            this.chartPadding,
+            this.dotSizePercent,
+        );
+        if (this.pcaChart) {
+            this.pcaChart.setCoordinateSpace(this.coordinateSpace);
+        } else {
+            this.pcaChart = new PcaChart({
+                chartSurface: this.chartSurface,
+                referenceDotsContainer: this.referenceDotsContainer,
+                coordinateSpace: this.coordinateSpace,
+                fullOpacity: this.OPACITY_FULL,
+            });
+        }
+
         this.isInitialized = true;
 
         console.log(`PCAChartService: Initialized global bounding box - x: [${dataBounds.x.min.toFixed(3)}, ${dataBounds.x.max.toFixed(3)}], y: [${dataBounds.y.min.toFixed(3)}, ${dataBounds.y.max.toFixed(3)}]`);
@@ -598,9 +621,6 @@ class PCAChartService {
             return;
         }
 
-        // Clear existing reference dots
-        this.referenceDotsContainer.innerHTML = '';
-
         // Validate ranges (handle division by zero)
         if (globalBoundingBox.x.range === 0 || globalBoundingBox.y.range === 0) {
             console.warn('PCAChartService: Invalid bounding box ranges for reference dots (division by zero)', {
@@ -610,52 +630,9 @@ class PCAChartService {
             return;
         }
 
-        // Calculate dot size as percentage of maximum available dimension
-        const dotSizePx = (globalBoundingBox.maxAvailableDimension * this.dotSizePercent / 100);
-        const halfDotSize = dotSizePx / 2;
-
-        // Use DocumentFragment for batch DOM updates
-        const fragment = document.createDocumentFragment();
-
-        console.log(`PCAChartService: Rendering ${this.referenceData.length} reference dots`, {
-            container: this.referenceDotsContainer,
-            containerExists: !!this.referenceDotsContainer,
-            boundingBox: globalBoundingBox
-        });
-
-        // Render reference dots
-        for (const refPoint of this.referenceData) {
-            const { x, y, color } = refPoint;
-
-            // Scale coordinates to fit within available pixel space
-            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range *
-                          globalBoundingBox.availableWidth + this.chartPadding;
-            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range *
-                          globalBoundingBox.availableHeight + this.chartPadding;
-
-            // Clamp values to chart bounds
-            const clampedX = Math.max(halfDotSize, Math.min(scaledX, globalBoundingBox.surfaceWidth - halfDotSize));
-            const clampedY = Math.max(halfDotSize, Math.min(scaledY, globalBoundingBox.surfaceHeight - halfDotSize));
-
-            // Create dot element with reference dot class
-            const dot = document.createElement('div');
-            dot.className = 'pca-chart__reference-dot';
-            dot.style.position = 'absolute';
-            dot.style.left = `${clampedX - halfDotSize}px`;
-            dot.style.top = `${clampedY - halfDotSize}px`;
-            dot.style.width = `${dotSizePx}px`;
-            dot.style.height = `${dotSizePx}px`;
-            dot.style.backgroundColor = color;
-            dot.style.borderRadius = '50%';
-            dot.style.border = '1px solid transparent';
-
-            // Store original color for restoration after de-emphasis
-            dot.dataset.originalColor = color;
-
-            fragment.appendChild(dot);
-        }
-
-        this.referenceDotsContainer.appendChild(fragment);
+        // Ensure PcaChart sees the current reference container (lazily created above).
+        this.pcaChart.referenceDotsContainer = this.referenceDotsContainer;
+        this.pcaChart.renderReferenceDots(this.referenceData);
         const renderedDots = this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot');
         console.log(`PCAChartService: Successfully rendered ${this.referenceData.length} reference dots. DOM contains ${renderedDots.length} dot elements.`);
     }
@@ -683,50 +660,12 @@ class PCAChartService {
             return;
         }
 
-        // Calculate dot size as percentage of maximum available dimension
-        const dotSizePx = (globalBoundingBox.maxAvailableDimension * this.dotSizePercent / 100);
-        const halfDotSize = dotSizePx / 2;
-
-        // Use DocumentFragment for batch DOM updates
-        const fragment = document.createDocumentFragment();
-
-        // Render dots (works for both assemblyKey->coordinateData and nodeId->coordinateData maps)
-        for (const [key, coordinateData] of coordinateDataMap) {
-            const [x, y] = coordinateData.coordinates;
-
-            // Scale coordinates to fit within available pixel space
-            // Map data coordinates [minX, maxX] -> [padding, surfaceWidth - padding]
-            const scaledX = (x - globalBoundingBox.x.min) / globalBoundingBox.x.range * globalBoundingBox.availableWidth + this.chartPadding;
-            const scaledY = (y - globalBoundingBox.y.min) / globalBoundingBox.y.range * globalBoundingBox.availableHeight + this.chartPadding;
-
-            // Clamp values to chart bounds
-            const clampedX = Math.max(halfDotSize, Math.min(scaledX, globalBoundingBox.surfaceWidth - halfDotSize));
-            const clampedY = Math.max(halfDotSize, Math.min(scaledY, globalBoundingBox.surfaceHeight - halfDotSize));
-
-            // Create dot element
-            const dot = document.createElement('div');
-            dot.className = 'pca-chart__dot';
-            dot.style.position = 'absolute';
-            dot.style.left = `${clampedX - halfDotSize}px`;
-            dot.style.top = `${clampedY - halfDotSize}px`;
-            dot.style.width = `${dotSizePx}px`;
-            dot.style.height = `${dotSizePx}px`;
-            dot.style.backgroundColor = coordinateData.rgbString;
-            dot.style.borderRadius = '50%';
-            dot.style.border = '1px solid transparent';
-            dot.style.opacity = this.OPACITY_FULL; // Initialize with full opacity (controlled via JavaScript)
-
-            // Store original color for restoration after de-emphasis
-            dot.dataset.originalColor = coordinateData.rgbString;
-
-            // Add hover event listeners
-            dot.addEventListener('mouseenter', () => this.handleDotHover(dot, dotSizePx, clampedX, clampedY));
-            dot.addEventListener('mouseleave', () => this.handleDotLeave(dot, dotSizePx, clampedX, clampedY));
-
-            fragment.appendChild(dot);
-        }
-
-        this.chartSurface.appendChild(fragment);
+        // Delegate dot rendering to PcaChart (phase 2 of #46). The service
+        // keeps ownership of hover handlers; PcaChart invokes them per dot.
+        this.pcaChart.renderDots(coordinateDataMap, {
+            onDotHover: (dot, size, centerX, centerY) => this.handleDotHover(dot, size, centerX, centerY),
+            onDotLeave: (dot, size, centerX, centerY) => this.handleDotLeave(dot, size, centerX, centerY),
+        });
     }
 
     /**
