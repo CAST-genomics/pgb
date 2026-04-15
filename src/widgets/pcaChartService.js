@@ -3,6 +3,7 @@ import { pclaiCoordinateService } from './pclaiCoordinateService.js';
 import { Draggable } from '../utils/draggable.js';
 import { PcaCoordinateSpace } from './pcaCoordinateSpace.js';
 import { PcaChart } from './pcaChart.js';
+import { PcaChartController } from './pcaChartController.js';
 
 /**
  * PCAChartService - Manages and renders PCA chart visualization
@@ -23,10 +24,17 @@ class PCAChartService {
         this.horizontalAxis = null; // Horizontal axis line element
         this.verticalAxis = null; // Vertical axis line element
         this.isVisible = false;
-        this.currentNodeId = null;
         this.globalBoundingBox = null;
         this.eventUnsubscribes = []; // Array to store all unsubscribe functions
-        this.selectedCoordinateKey = null; // Track selected coordinate key from PCA widget
+        // Phase 3a of #46: interaction state (currentNodeId, selectedCoordinateKey)
+        // and event subscriptions move to PcaChartController.
+        this.controller = new PcaChartController({
+            isVisible: () => this.isVisible,
+            isInitialized: () => this.isInitialized,
+            clearChart: () => this.clearChart(),
+            renderCoordinateMap: (map) => this.renderDots(map, this.globalBoundingBox),
+            restoreReferenceDots: () => this.restoreReferenceDots(),
+        });
         this.dotSizePercent = 1; // Percentage of maximum available dimension (width or height)
         this.chartPadding = 20; // Padding in pixels
         this.isInitialized = false;
@@ -46,9 +54,8 @@ class PCAChartService {
         this.createChartDOM();
         this.createButton();
         this.draggable = new Draggable(this.chartContainer);
-        this.subscribeToNodeHover();
+        this.controller.start();
         this.subscribeToDatasetLoad();
-        this.subscribeToPCAWidgetEvents();
         this.referenceDataPromise = this.loadReferenceData(); // Load reference data asynchronously, store promise
 
         PCAChartService.instance = this;
@@ -181,33 +188,9 @@ class PCAChartService {
     /**
      * Subscribe to node hover events
      */
-    subscribeToNodeHover() {
-        // Subscribe to lineIntersection events (node hover)
-        const lineIntersectionUnsub = eventBus.subscribe('lineIntersection', (data) => {
-            if (!data || !data.nodeName) {
-                this.clearChart();
-                return;
-            }
-            this.updateChartForNode(data.nodeName);
-        });
-
-        // Subscribe to clearIntersection events (mouse away from node)
-        const clearIntersectionUnsub = eventBus.subscribe('clearIntersection', () => {
-            // Clear the current node ID since mouse is no longer over a node
-            this.currentNodeId = null;
-
-            // Clear dataset dots only (reference dots are in separate container and unaffected)
-            // If a coordinate key is selected, show all dots for that key instead of clearing
-            if (this.selectedCoordinateKey && this.isVisible) {
-                this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey);
-            } else {
-                this.clearChart();
-            }
-        });
-
-        // Store unsubscribe functions
-        this.eventUnsubscribes.push(lineIntersectionUnsub);
-        this.eventUnsubscribes.push(clearIntersectionUnsub);
+    /** Backwards-compatible accessor used by app.ts. Forwards to controller. */
+    get selectedCoordinateKey() {
+        return this.controller.selectedCoordinateKey;
     }
 
     /**
@@ -244,48 +227,6 @@ class PCAChartService {
     /**
      * Subscribe to PCA widget events
      */
-    subscribeToPCAWidgetEvents() {
-        // Subscribe to pcaWidget:emphasis events
-        const pcaWidgetEmphasisUnsub = eventBus.subscribe('pcaWidget:emphasis', (data) => {
-            // Store the selected coordinate key for filtering chart dots
-            const { assembly } = data;
-            this.selectedCoordinateKey = assembly.name;
-
-            if (this.isVisible) {
-                if (this.currentNodeId) {
-                    // Node is hovered - show that node's dots filtered by coordinate key
-                    this.updateChartForNode(this.currentNodeId);
-                } else {
-                    // No node hovered - show all dots for selected coordinate key
-                    this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey);
-                }
-            }
-        });
-
-        // Subscribe to pcaWidget:normal events
-        const pcaWidgetNormalUnsub = eventBus.subscribe('pcaWidget:normal', (data) => {
-            // Clear the selected coordinate key to show all dots again
-            this.selectedCoordinateKey = null;
-
-            if (this.isVisible) {
-                // Always restore reference dots immediately when coordinate key is deselected
-                this.restoreReferenceDots();
-
-                if (this.currentNodeId) {
-                    // Node is hovered - show all dots for that node (unfiltered)
-                    this.updateChartForNode(this.currentNodeId);
-                } else {
-                    // No node hovered - clear dataset dots, restore reference dots opacity
-                    this.clearChart();
-                }
-            }
-        });
-
-        // Store unsubscribe functions
-        this.eventUnsubscribes.push(pcaWidgetEmphasisUnsub);
-        this.eventUnsubscribes.push(pcaWidgetNormalUnsub);
-    }
-
     /**
      * Update button enabled/disabled state based on PCLAI data availability
      */
@@ -501,38 +442,6 @@ class PCAChartService {
     }
 
     /**
-     * Update chart for a specific node
-     * @param {string} nodeId - The node identifier
-     */
-    updateChartForNode(nodeId) {
-        if (!this.isInitialized) {
-            console.warn('PCAChartService: Not initialized. Call initializeGlobalBoundingBox() first.');
-            return;
-        }
-
-        let coordinatesMap = pclaiCoordinateService.getCoordinatesForNode(nodeId);
-        if (!coordinatesMap || coordinatesMap.size === 0) {
-            this.clearChart();
-            return;
-        }
-
-        // Filter coordinate map by selected coordinate key if one is set
-        if (this.selectedCoordinateKey) {
-            if (coordinatesMap.has(this.selectedCoordinateKey)) {
-                // Create filtered map with only the selected coordinate key
-                coordinatesMap = new Map([[this.selectedCoordinateKey, coordinatesMap.get(this.selectedCoordinateKey)]]);
-            } else {
-                // Node doesn't have the selected coordinate key, clear the chart
-                this.clearChart();
-                return;
-            }
-        }
-
-        this.currentNodeId = nodeId;
-        this.renderDots(coordinatesMap, this.globalBoundingBox);
-    }
-
-    /**
      * Update axis positions based on origin (0,0) in data coordinate space
      * Uses bbox.surfaceWidth and bbox.surfaceHeight which are the actual rendered dimensions
      * from CSS (single source of truth)
@@ -724,37 +633,6 @@ class PCAChartService {
     }
 
     /**
-     * Render all dots for a specific coordinate key across all nodes
-     * @param {string} coordinateKey - The coordinate key to render dots for
-     */
-    renderAllDotsForCoordinateKey(coordinateKey) {
-        if (!this.isInitialized || !this.globalBoundingBox) {
-            console.warn('PCAChartService: Not initialized. Cannot render dots for coordinate key.');
-            return;
-        }
-
-        // Get all coordinates for this coordinate key across all nodes
-        const nodeCoordinatesMap = pclaiCoordinateService.getCoordinatesForCoordinateKey(coordinateKey);
-
-        if (!nodeCoordinatesMap || nodeCoordinatesMap.size === 0) {
-            // No nodes have this coordinate key, clear dataset dots
-            const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
-            datasetDots.forEach(dot => dot.remove());
-            return;
-        }
-
-        // Deemphasize reference dots when dataset dots are displayed (grayscale + reduced opacity)
-        this.deemphasizeReferenceDots();
-
-        // Clear existing dataset dots only (preserve reference dots container)
-        const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot');
-        datasetDots.forEach(dot => dot.remove());
-
-        // Use unified rendering helper to render all dots for this coordinate key
-        this.renderDotsFromCoordinateDataMap(nodeCoordinatesMap, this.globalBoundingBox);
-    }
-
-    /**
      * Convert RGB color string to grayscale
      * @param {string} rgbString - RGB color string like "rgb(255, 128, 64)"
      * @returns {string} Grayscale RGB string
@@ -852,7 +730,7 @@ class PCAChartService {
         // Restore reference dots to original colors and full opacity
         this.restoreReferenceDots();
 
-        this.currentNodeId = null;
+        this.controller.currentNodeId = null;
     }
 
     /**
@@ -862,7 +740,7 @@ class PCAChartService {
         this.clearChart();
         this.isInitialized = false;
         this.globalBoundingBox = null;
-        this.currentNodeId = null;
+        this.controller.currentNodeId = null;
     }
 
     /**
@@ -891,10 +769,8 @@ class PCAChartService {
                     this.renderReferenceDots(this.globalBoundingBox);
                 }
 
-                // If a coordinate key is selected, show all dots for that key
-                if (this.selectedCoordinateKey) {
-                    this.renderAllDotsForCoordinateKey(this.selectedCoordinateKey);
-                }
+                // If a coordinate key is selected, re-render through the controller
+                this.controller.refreshForVisibilityChange();
             } else {
                 console.warn('PCAChartService: showChart() - not initialized or missing bounding box - do not render dots', { isInitialized: this.isInitialized, hasBoundingBox: !!this.globalBoundingBox });
             }
@@ -955,6 +831,7 @@ class PCAChartService {
         // Unsubscribe from all events
         this.eventUnsubscribes.forEach(unsub => unsub());
         this.eventUnsubscribes = [];
+        this.controller.destroy();
         if (this.chartContainer && this.chartContainer.parentNode) {
             this.chartContainer.parentNode.removeChild(this.chartContainer);
         }
