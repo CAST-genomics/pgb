@@ -80,27 +80,16 @@ This is a deepening of `widgetService`, not `LookManager`. The earlier framing o
 
 ---
 
-## 3. Dataset loading + service fan-out
+## 3. Dataset loading + service fan-out — ✅ COMPLETED (PR #45, closes #44)
 
-**Files:**
-- `src/datasetParser.ts` (~337 lines)
-- `src/datasetModel.ts`
-- `src/widgets/pclaiCoordinateService.js`
-- `src/assemblyMetadataService.ts` (~200 lines)
-- `src/geometryFactory.*`
-- `src/frequencyAnalysisService.*`
+**Landed in PR #45.** Deepening, not decomposition — no coordinator/reducer/command layer was introduced.
 
-**Cluster / concept co-owned:** post-parse initialization of every service that indexes the dataset.
+**What changed:**
+- **`DatasetIndex` sub-object on `DatasetModel`** — populated once by `datasetParser` in a single post-normalization traversal. Contains pclai bounding box, coordinate-key union, absent-node set, assembly totals, and data-presence flags. Pure data; no THREE, no event bus, no DOM. 5 new parser tests cover v1 + v2 invariants.
+- **Services stopped re-traversing `dataset.nodes`** — `pclaiCoordinateService`, `assemblyMetadataService`, and the pre-refactor `pcaChartService` now read from the index instead. `pclaiCoordinateService` keeps only its runtime THREE.Color map construction; `assemblyMetadataService` dropped its count-sum loop and unused per-node field; `pcaChartService.initializeGlobalBoundingBox` now starts from the dataset bbox and widens with reference data. Accessor surfaces unchanged, net −72 lines.
+- **`App.loadDataset(dataset)`** — `App.processData` delegates the entire data-side fan-out to this new method. Ordering among `pangenomeService`, `assemblyMetadataService`, `pclaiCoordinateService`, `pcaChartService`, `genomicService`, and `widgetService` is owned by `loadDataset` instead of spread across `processData`'s recipe. Geometry creation, scene activation, camera fitting, and animation control stay in `processData`.
 
-**Why the seams are awkward:**
-- The parsed `DatasetModel` is hand-fed to 5+ services, each calling its own `loadMetadata` / `loadCoordinates`.
-- Multiple services iterate `dataset.nodes` independently with overlapping access logic.
-- No orchestrator — callers must remember which services to initialize and in what order.
-- No tests verify the post-load invariant that all services are consistent with each other.
-
-**Test surface that would shrink:** a single boundary test — "given dataset D, all services report a consistent view of it" — replaces ad-hoc per-service init tests.
-
-**Leverage note:** cleanest pure win if the goal is low-risk deepening. Also connects to the V2 ingestion redesign work.
+**Lesson worth preserving:** the win came from pushing the *computation* (index building) up into the parser and leaving the *runtime state* (Three.js colors, etc.) in the services. Callers outside `App` saw no change — the accessor surfaces on the three services returned the same values, only their provenance moved. When a cluster has multiple independent traversals over the same shape, the fix is usually "compute it once in the thing that already knows the shape," not "introduce a coordinator."
 
 ---
 
@@ -159,6 +148,6 @@ This is a deepening of `widgetService`, not `LookManager`. The earlier framing o
 
 ## How to use this document
 
-When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. #1 is done (PR #41); #6 is done (PR #48); #3 remains the lowest-risk standalone win among the remaining entries.
+When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. Completed: #1 (PR #41), #3 (PR #45), #6 (PR #48). Remaining: #2, #4, #5.
 
 **Philosophy constraint on all remaining entries:** PGB is built on a shade-tree model of appearance (Rob Cook / RenderMan lineage). Looks are conceptual shaders; the Look system is where visual complexity is *meant* to accumulate. Refactors that pull logic *out* of Looks into generic coordinators, reducers, or command pipelines should be rejected by default — that's the move that was rejected in #40 and reframed in #2. Deepen existing modules instead of introducing coordinator layers around them.
