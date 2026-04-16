@@ -1,191 +1,180 @@
 # Technical Debt Assessment
 
-**Date:** 2026-04-14
-**Context:** Written after PRs #41, #43, and #45 landed — the three refactors corresponding to entries #1, #2, and #3 of the [code architecture improvements roadmap](./code-architecture-improvements.md). This document captures the state of the codebase *after* those three deepenings and names what remains.
+**Date:** 2026-04-16 (updated)
+**Context:** Updated after PRs #48 and #50 landed — completing roadmap entries #6 (PCA triangle) and #4 (AnnotationRenderService catch-all). The original assessment was written 2026-04-14 after PRs #41, #43, and #45. All five roadmap entries that had clear refactors (#1–#4, #6) are now resolved.
 
-**Overall level:** moderate. Not alarming, not close to done. The deepest architectural smells from six weeks ago — circular refs, scattered lifecycles, widget bypass paths, re-traversal of the dataset — are gone. What's left is sized and shaped: one giant file, one catch-all, a singleton pattern blocking test coverage, and a TS adoption that stalled. None of it is on fire. All of it is doing slow damage to the ability to add features and write tests.
+**Overall level:** low-to-moderate. The five deepenings (#41, #43, #45, #48, #50) eliminated every architectural smell that was diagnosed in the original roadmap. What remains is structural: a singleton pattern blocking test coverage, a TypeScript adoption that stalled in an awkward middle, and a `globals.*` coordination backdoor. None of these are worsening, but they limit the ability to add features confidently and write tests cheaply.
 
 ---
 
-## Roadmap entries still open
+## Roadmap entries — resolved
 
-These were diagnosed in `code-architecture-improvements.md` before PRs #41/#43/#45; the three landed PRs did not touch them.
+### #6 — PCA triangle: RESOLVED (PR #48)
 
-### #6 — PCA triangle (HIGHEST leverage remaining)
+`pcaChartService.js` (1031 lines, the largest file in the app) was split into a deep-module triangle:
+- **`PcaCoordinateSpace`** — pure projection math, immutable, no DOM, no events
+- **`PcaChart`** — view layer (DOM construction, dot rendering)
+- **`PcaChartController`** — event wiring, state machine (`{hoveredNodeId, selectedCoordinateKey}`)
+- **`pcaAbsenceCoordinator`** — refcount gatekeeper for 3D absence mode
+- **`mountPcaChart()`** facade — single entry point from `app.ts`
 
-`src/widgets/pcaChartService.js` is **1031 lines** — by far the largest file in the app. Next is `pangenomeService.js` at 663.
+The old singleton `pcaChartService.js` is deleted. `PcaCoordinateSpace` is the second service in the app with real unit tests (8 characterization tests in `pcaCoordinateSpace.test.js`). The deselect toggle (`pcaWidget:deselect`) cleans up a UX gap at the same time.
 
-One class owns all of:
-- DOM construction (43 direct DOM calls)
-- CSS layout reads (`getComputedStyle`, `--pca-chart-surface-size`)
-- Coordinate-space math (bbox, scaling, padding, clamping)
-- Reference data loading (TSV fetch + parse)
-- Event fan-in (9 subscriptions)
-- Dot rendering (dataset dots, reference dots)
-- Hover/click emphasis + size multipliers
-- Drag behavior
+### #4 — AnnotationRenderService catch-all: RESOLVED (PR #50)
 
-Phase 2 of PR #45 shaved ~40 lines off `initializeGlobalBoundingBox` by reading the dataset bbox from `DatasetModel.index` instead of re-walking nodes — cosmetic relative to the total.
+`annotationRenderService.ts` (436 lines, five unrelated concerns) was split into four focused modules:
+- **`AnnotationCoordinateIndex`** (271 lines) — pure bp↔xyz coordinate math, no DOM, no events
+- **`AnnotationCanvas`** (172 lines) — canvas rendering, DPR resize, visual feedback, spinner
+- **`AnnotationTrackController`** (188 lines) — event bus + DOM mouse wiring, assembly emphasis orchestration
+- **`mountAnnotationTrack()`** (44 lines) — facade returning `{coordinateIndex, clear, dispose}`
 
-**The obvious split:** a pure `PcaCoordinateSpace` object (bbox, scale, project) and a thin `PcaChartRenderer` (DOM, event handlers). The coordinate-space object would be the first service in the app with real unit tests.
+Also absorbed `annotationTrackUtils.js` (148 lines) into the coordinate index. 19 characterization tests pin coordinate math invariants (monotonicity, flipped-node anchoring, boundary values, roundtrips).
 
-### #4 — AnnotationRenderService catch-all
+### #1 — Look activation lifecycle: RESOLVED (PR #41)
 
-`src/annotationRenderService.ts` — 435 lines, five unrelated concerns in one class:
-- Data loading (GFF3 tracks from `genomicService`)
-- DOM layout (canvas container, header, reset button)
-- Canvas resize handling
-- Event subscriptions (5 events: `lineIntersection`, `clearIntersection`, `population:selected`, etc.) with no documented firing order
-- Derived indices (`bpIndex`, `splineParameterMap`) rebuilt across scattered methods
-- Feature rendering (canvas draw calls)
+### #2 — Widget→Look activation path: RESOLVED (PR #43)
 
-Pure index-building is separable from rendering. After the split, the index becomes trivially testable and the renderer gets tested against a fake index.
+### #3 — Dataset loading fan-out: RESOLVED (PR #45)
+
+---
+
+## Roadmap entry still open
 
 ### #5 — RibbonLine raycast + material/Z-offset split
 
-`src/ribbonLine.js` (134 lines) raycasts by sampling the spline 48× per pointer move and is tightly bound to shader `halfWidth` uniforms owned by `lineMaterialResolutionService`. Z-offset logic is split between `GeometryFactory` constants and (historically) `Look.getZOffset()` — PR #41 deleted the Look-side half, which was progress.
+`src/ribbonLine.js` (134 lines) raycasts by sampling the spline 48× per pointer move and is tightly bound to shader `halfWidth` uniforms owned by `lineMaterialResolutionService`. PR #41 deleted the Look-side Z-offset half, which was progress.
 
 The `ribbon-mesh` branch is where this ultimately gets resolved. On `main` the raycast / shader-uniform split still exists.
+
+**Severity:** low. The file is small, the behavior is correct, and the `ribbon-mesh` branch will supersede it.
 
 ---
 
 ## Debt not in the roadmap
 
-Smells that weren't in the original architectural walk but surfaced in this assessment.
-
 ### The singleton pattern is everywhere and it blocks testing
 
-`pcaChartService`, `pclaiCoordinateService`, `assemblyMetadataService`, `frequencyAnalysisService`, `materialService`, `lineMaterialResolutionService` all follow the same pattern:
+Down from six to five singletons after PR #48 deleted `pcaChartService`:
 
-```js
-class FooService {
-    constructor() {
-        if (FooService.instance) return FooService.instance;
-        // ...
-        FooService.instance = this;
-    }
-}
-const fooService = new FooService();
-export { fooService };
-```
+- `pclaiCoordinateService` — constructor-guard singleton
+- `assemblyMetadataService` — constructor-guard singleton
+- `frequencyAnalysisService` — constructor-guard singleton
+- `materialService` — constructor-guard singleton
+- `lineMaterialResolutionService` — constructor-guard singleton
 
-Consumers import the default instance. The effect:
+The effect is unchanged:
 - Services cannot be instantiated with fresh state.
 - They cannot be mocked or replaced for tests.
 - They cannot be independently exercised without booting the app.
 
-**The symptom this produces:** the app has **zero tests for any service**. The only test file touching app code is `datasetParser.test.js` — and the parser is the one module that happens to be a pure function. Everything else is a singleton graph.
+**Progress note:** PRs #48 and #50 demonstrated the alternative. `PcaCoordinateSpace` and `AnnotationCoordinateIndex` are plain classes constructed by their facades — no singleton guard, no module-level instance. Both have unit tests. This is the pattern to follow.
 
-This is the single biggest reason test coverage isn't growing organically. Any refactor that wants to unlock testing has to break the singleton pattern first.
-
-**Recommended approach:** incremental — one service per month. Stop using `Class.instance`, accept the service via `App`'s constructor, and write one test to prove it works. After three or four of these, the pattern tips and the rest follow.
+**Recommended approach:** same as before — incremental, one service per month. Start with `pclaiCoordinateService` (cleanest internal state), then `assemblyMetadataService`, then `frequencyAnalysisService`. `materialService` and `lineMaterialResolutionService` are tightly coupled to Three.js and can wait.
 
 ### TypeScript adoption is stalled in an awkward middle
 
 Current split:
-- **40 JS files** (non-test, non-igvCore)
-- **16 TS files**
+- **43 JS files** (non-test, non-igvCore)
+- **19 TS files**
 
-And among the TS files, **89 `: any` annotations across 10 files**:
+TS file count went from 16 → 19 (the four annotation modules from PR #50 are TS). JS file count went from 40 → 43 (the four PCA modules from PR #48 are JS).
+
+**99 `: any` annotations across 13 TS files:**
 - `app.ts`: 21
 - `looks/look.ts`: 19
-- `annotationRenderService.ts`: 12
 - `widgets/populationWidget.ts`: 11
 - `widgets/populationOnlyWidget.ts`: 11
-- `widgets/pcaWidget.ts`: 3
+- `annotationCoordinateIndex.ts`: 8 *(new)*
+- `annotationTrackController.ts`: 7 *(new)*
+- `annotationCanvas.ts`: 4 *(new)*
 - `widgets/assemblyWidget.ts`: 4
 - `looks/heatmapLook.ts`: 4
+- `mountAnnotationTrack.ts`: 3 *(new)*
+- `widgets/pcaWidget.ts`: 3
 - `looks/nodeEmphasisLook.ts`: 3
 - `assemblyMetadataService.ts`: 1
 
-The typed event bus (PR #37) was a real win, but most TS files opted out of their own types via `any`. The typed bus's payoff requires typed consumers — today most consumers are either JS files or TS files escape-hatched to `any`, so the bus's type guarantees don't propagate to the places they'd help most.
+The annotation split moved 12 `: any` annotations from one file into four files and added 10 more — a net increase. The typed event bus (PR #37) still can't propagate type guarantees to most consumers.
 
-There is a documented TypeScript strategic adoption plan in project memory. Reading the TS files today, the plan isn't far along.
-
-**Biggest TS candidates among JS files** (measured by size and by having class bodies — i.e., places where typing would pay the most):
+**Biggest TS candidates among JS files** (updated):
 - `pangenomeService.js` (663 lines)
-- `sceneManager.js` (267 lines)
-- `geometryFactory.js` (297 lines)
 - `raycastService.js` (335 lines)
-- `pcaChartService.js` (1031 lines — but see #6 above; split first, then type)
+- `geometryFactory.js` (297 lines)
+- `sceneManager.js` (267 lines)
+- The four PCA triangle files (JS; ~400 lines combined) — these are new, small, and `PcaCoordinateSpace` is already unit-tested, making it a low-risk conversion
 
 ### `globals.*` as a coordination backdoor
 
-29 references across 9 files: `app.ts`, `contextMenuService.js`, `locusInput.js`, `raycastService.js`, `widgets/widgetService.js`, `widgets/populationWidget.ts`, `widgets/populationOnlyWidget.ts`, `annotationRenderService.ts`, `main.js`.
+29 references across 9 files — unchanged. The PR #50 annotation split routes through `globals.annotationTrack` for the facade handle, adding no new references but not reducing them either.
 
-Usually appears where proper DI would have been fine but the call site didn't have the reference handy. It's the kind of debt that's cheap to fix file-by-file but nobody does because nothing is broken.
-
-**Severity:** low per-site, medium in aggregate. A good janitorial sweep for a slow afternoon.
+**Severity:** low per-site, medium in aggregate.
 
 ### Widget DOM construction is imperative and duplicated
 
-**147 direct DOM calls across 14 files.** Each widget (`assemblyWidget`, `populationWidget`, `populationOnlyWidget`, `pcaWidget`) builds its list-item template in its own loop, with `createElement` / `appendChild` by hand.
+**194 direct DOM calls across 16 files** (up from 147 / 14). The increase comes from the PCA and annotation splits — DOM construction that was in one file is now spread across dedicated view modules. The duplication across widgets is unchanged.
 
-No component layer, no template helper. If a fifth widget appears, it will be a fifth copy of the pattern.
-
-**Severity:** low. Widgets are small and the duplication is honest, not subtle. Flagging so it doesn't slide in later under the cover of "just another widget."
+**Severity:** low. The per-file DOM call counts are smaller and more focused. The absolute increase is structural, not a regression.
 
 ### Event bus typing coverage is incomplete
 
-37 subscribe/publish call sites across 9 files. This is consistent with the shade-tree philosophy — events *are* the parameter binding for Looks, and that's how the architecture is supposed to work.
-
-The issue isn't the bus itself; it's that the typed event bus (PR #37) only helps callers that are themselves typed. Most of the subscribers today are either JS files or `any`-laced TS files, so the type guarantees on the bus don't reach the handlers. The investment in PR #37 is partially stranded until the consumer files are typed up.
+36 subscribe/publish call sites across 11 files (was 37 / 9). The PCA and annotation refactors distributed event subscriptions into their controller modules. The typed-bus guarantee still doesn't propagate to most handlers.
 
 ---
 
 ## Explicitly *not* debt
 
-Worth naming so "do we need to refactor X" doesn't slide in later under the assumption that anything untouched is suspect.
-
-- **The Look system.** Post-#41 and #43 it is the cleanest subsystem in the app, and the shade-tree philosophy says it is *supposed* to accumulate visual complexity. Don't touch except to add new Looks or new Look parameters.
-- **`datasetParser` + `datasetModel`.** The V2 redesign made these pure and testable; #45 made them the authoritative source for dataset-derived facts. This is now the architectural high point of the app.
+- **The Look system.** Post-#41 and #43 it is the cleanest subsystem in the app. Don't touch except to add new Looks or new Look parameters.
+- **`datasetParser` + `datasetModel`.** Pure and testable; #45 made them the authoritative source for dataset-derived facts. Architectural high point.
 - **The event bus itself.** The channel is fine. The gap is consumer-side typing.
-- **The widget → Look activation path.** PR #43 just settled this. Leave it.
-- **`App.loadDataset` (new from #45).** Still a thin fan-out, but correctly placed and properly scoped to data loading only. Future dataset-consuming services go here; non-data concerns (geometry, scene, camera) stay in `processData`.
+- **The widget → Look activation path.** PR #43 settled this.
+- **`App.loadDataset` (from #45).** Thin fan-out, correctly placed.
+- **The PCA triangle.** PR #48 made this the second-cleanest subsystem. `PcaCoordinateSpace` is pure, tested, and immutable. `PcaChartController` owns all event state. `pcaAbsenceCoordinator` is a clean refcount pattern. Leave it.
+- **The annotation track modules.** PR #50 followed the same deep-module pattern. `AnnotationCoordinateIndex` is pure and tested. `mountAnnotationTrack()` facade is the entry point. Leave it.
 
 ---
 
 ## Recommended order for the next round
 
-If only three things get tackled before the next assessment, I'd pick in this order:
+The two highest-leverage items from the previous assessment (#6 and #4) are done. What remains is more diffuse — no single item is as high-leverage as the PCA or annotation splits were. Pick based on what's blocking the next feature.
 
-1. **#6 — split `pcaChartService` into coordinate-space + renderer.**
-   - **Why first:** biggest single file, most concerns, the split is obvious, and the coordinate-space object becomes the first unit-testable service in the app. That alone changes the test-coverage trajectory.
-   - **Risk:** PCA widget + chart are user-visible on HPRC data. Need Playwright coverage of the hover + click paths before starting.
+1. **Break one singleton per month, starting with `pclaiCoordinateService`.**
+   - **Why first:** the PCA and annotation refactors proved the pattern — plain class + facade + unit tests. Applying it to existing singletons is now a known-quantity operation.
+   - **Order suggestion:** `pclaiCoordinateService` → `assemblyMetadataService` → `frequencyAnalysisService`. Save `materialService` and `lineMaterialResolutionService` until `ribbon-mesh` lands.
+   - **Risk:** touches every import site. One service per PR.
 
-2. **Break one singleton per month, starting with `pclaiCoordinateService`.**
-   - **Why:** unblocks testing across the whole app. Doesn't need to be fast — three or four converted services and the pattern tips.
-   - **Order suggestion:** start with `pclaiCoordinateService` (cleanest internal state), then `assemblyMetadataService`, then `frequencyAnalysisService`. Save `pcaChartService` until after #6 splits it.
-   - **Risk:** touches every import site. Best done one service at a time with a single PR each.
+2. **Convert the PCA triangle files to TypeScript.**
+   - **Why:** they're new, small, and `PcaCoordinateSpace` already has tests pinning behavior. Low-risk conversion that moves the JS/TS balance in the right direction and gives the typed event bus more typed consumers.
+   - **Risk:** minimal — four small files, no external consumers beyond `app.ts` and `pcaWidget.ts`.
 
-3. **#4 — split `annotationRenderService` into index-builder + renderer**, *or* do a targeted `: any` sweep of `app.ts` (21 occurrences).
-   - **Why either:** both are medium-sized, low-risk wins. #4 is higher-leverage; the `any` sweep is lower-risk.
-   - **Pick based on appetite:** if the team has bandwidth for a multi-day cleanup, do #4. If it's a solo afternoon, do the `any` sweep.
+3. **Targeted `: any` sweep of `app.ts` (21 occurrences) and `look.ts` (19 occurrences).**
+   - **Why:** these two files account for 40 of the 99 `: any` annotations. Typing them properly would let the event bus guarantees propagate through the two most central files in the app.
+   - **Risk:** `app.ts` is 545 lines and touches everything; `look.ts` is a base class — changes ripple to subclasses. Needs care but not creativity.
 
 ---
 
-## Metrics snapshot (2026-04-14)
+## Metrics snapshot (2026-04-16)
 
 For comparison at the next assessment.
 
-| Metric | Value |
-|---|---|
-| Source files (excluding tests + igvCore) | 56 |
-| TS files | 16 |
-| JS files | 40 |
-| Total source LOC | 10,941 |
-| Largest file | `pcaChartService.js` (1031) |
-| `: any` annotations | 89 across 10 TS files |
-| `globals.*` references | 29 across 9 files |
-| `eventBus.*` subscribe/publish sites | 37 across 9 files |
-| Direct DOM calls | 147 across 14 files |
-| Service test files | 0 |
-| Parser test files | 1 (`datasetParser.test.js`, 37 tests) |
-| igvCore test files | 22 |
-| Total passing tests | 193 |
+| Metric | Value | Delta from 04-14 |
+|---|---|---|
+| Source files (excluding tests + igvCore) | 62 | +6 |
+| TS files | 19 | +3 |
+| JS files | 43 | +3 |
+| Total source LOC | 10,837 | −104 |
+| Largest file | `pangenomeService.js` (663) | was `pcaChartService.js` (1031) |
+| `: any` annotations | 99 across 13 TS files | +10 / +3 files |
+| `globals.*` references | 29 across 9 files | unchanged |
+| `eventBus.*` subscribe/publish sites | 36 across 11 files | −1 / +2 files |
+| Direct DOM calls | 194 across 16 files | +47 / +2 files |
+| Service test files | 2 (`pcaCoordinateSpace`, `annotationCoordinateIndex`) | +2 |
+| Parser test files | 1 (`datasetParser.test.js`, 37 tests) | unchanged |
+| igvCore test files | 22 | unchanged |
+| Total passing tests | 220 | +27 |
 
 ---
 
 ## History
 
-- **2026-04-14** — Initial assessment after PRs #41, #43, #45 landed. This document.
+- **2026-04-14** — Initial assessment after PRs #41, #43, #45 landed.
+- **2026-04-16** — Updated after PRs #48 (PCA triangle split) and #50 (annotation track split). Roadmap entries #4 and #6 marked resolved. Metrics refreshed. Recommendations reordered: singleton pattern and TS conversion are now the top priorities.
