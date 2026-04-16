@@ -398,7 +398,7 @@ class App {
 
     clearCurrentData(): void {
 
-        globals.annotationRenderService.clear()
+        globals.annotationTrack.clear()
 
         this.genomicService.clear()
 

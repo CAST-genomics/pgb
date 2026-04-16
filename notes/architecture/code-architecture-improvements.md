@@ -67,18 +67,23 @@ Every entry in this document is subordinate to the following philosophy. Refacto
 
 ---
 
-## 4. AnnotationRenderService catch-all
+## 4. AnnotationRenderService catch-all — ✅ COMPLETED (PR #50, closes #49)
 
-**File:** `src/annotationRenderService.ts` (~435 lines)
+**Landed in PR #50.** The 436-line `AnnotationRenderService` catch-all was split into three collaborators behind a `mountAnnotationTrack()` facade — the same kernel → view → controller pattern that landed in PR #48 for the PCA triangle.
 
-**Cluster / concept co-owned:** everything about annotation tracks — data load, DOM layout, canvas resize, event subscriptions, feature rendering, and derived indices (`bpIndex`, `splineParameterMap`).
+**What changed:**
+- **`AnnotationCoordinateIndex`** (phase 1) — pure bp↔xyz coordinate-mapping class. Absorbs the five functions from `annotationTrackUtils.js` as private implementation. Owns `bpIndex`, `bpIndexMap`, `endpointMap`, `splineParameterMap`. Public methods: `build(spine, sceneManager)`, `getTrackParamFromLineIntersection(nodeName, t)`, `getXYZFromTrackParam(param, sceneManager)`. Pinned by 19 characterization tests: lifecycle, build invariants, splineParameterMap monotonicity, flipped-node endpoint anchoring, boundary values, roundtrip monotonicity.
+- **`AnnotationCanvas`** (phase 2) — owns the canvas element, DPR-aware resize, two rendering modes (IGVCore gene annotations or extent tick marks), visual feedback element positioning, and spinner. No event bus import, no coordinate math.
+- **`AnnotationTrackController`** (phase 3) — owns all four event bus subscriptions (`assembly:emphasis`, `assembly:normal`, `lineIntersection`, `clearIntersection`) and the three DOM mouse handlers. Orchestrates the assembly emphasis lifecycle: build index → load genome → delegate rendering to canvas.
+- **`mountAnnotationTrack()` facade** (phase 4) — replaces the `AnnotationRenderService` class. Returns `{coordinateIndex, clear, dispose}`. `main.js` constructs it; `app.ts` calls `clear()` on dataset swap. `annotationRenderService.ts` deleted.
 
-**Why the seams are awkward:**
-- One class owns at least five concerns.
-- `setupEventBusSubscriptions()` subscribes to 5 different events (`lineIntersection`, `clearIntersection`, `population:selected`, …) with no documented contract about firing order or invariants.
-- Derived indices must rebuild on dataset change, but rebuild logic is scattered across methods.
+**Files deleted:** `src/annotationRenderService.ts` (436 lines), `src/utils/annotationTrackUtils.js` (148 lines).
 
-**Test surface that would shrink:** split index-building (pure) from rendering (DOM/canvas). The pure index builder becomes trivially testable; the render layer gets tested against a fake index.
+**Net diff:** +1007 / −588 lines. All 220 tests pass (201 existing + 19 new characterization tests).
+
+**Lesson worth preserving:** the refactor was staged as five independently committable phases, each keeping the app working. Phase 1 (pure coordinate index) was the highest-value change — the coordinate math that was previously scattered across six instance fields and multiple methods became a single testable class. The `coordinateIndex` is exposed read-only on the facade handle, making it available to future consumers (tooltips, search-to-3D navigation) without touching annotation rendering internals.
+
+See also: [annotation-track-interaction.md](./annotation-track-interaction.md) for full sequence diagrams.
 
 ---
 
@@ -122,6 +127,6 @@ Every entry in this document is subordinate to the following philosophy. Refacto
 
 ## How to use this document
 
-When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. Completed: #1 (PR #41), #2 (PR #43), #3 (PR #45), #6 (PR #48). Remaining: #4, #5.
+When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. Completed: #1 (PR #41), #2 (PR #43), #3 (PR #45), #4 (PR #50), #6 (PR #48). Remaining: #5.
 
 **Philosophy constraint on all remaining entries:** PGB is built on a shade-tree model of appearance (Rob Cook / RenderMan lineage). Looks are conceptual shaders; the Look system is where visual complexity is *meant* to accumulate. Refactors that pull logic *out* of Looks into generic coordinators, reducers, or command pipelines should be rejected by default — that's the move that was rejected in #40 and reframed in #2. Deepen existing modules instead of introducing coordinator layers around them.
