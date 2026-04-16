@@ -3,7 +3,7 @@ import vertexShader from '../shaders/textured-line.vert.glsl?raw'
 import fragmentShader from '../shaders/textured-line.frag.glsl?raw'
 
 /**
- * A custom ShaderMaterial for Line2/ParametricLine that supports alpha-matte textures.
+ * A custom ShaderMaterial for Line2 that supports alpha-matte textures.
  *
  * Drop-in replacement for LineMaterial in WORLD_UNITS mode.
  *

@@ -1,4 +1,5 @@
 import {getAppleCrayonColorByName} from "./utils/color/color.js"
+import appConfig from "./appConfig.js"
 
 /**
  * Owns the annotation track's canvas, visual feedback element, and spinner.
@@ -11,6 +12,8 @@ class AnnotationCanvas {
     private container: HTMLElement
     private visualFeedbackElement: HTMLElement
     private spinnerElement: HTMLElement
+    private overlayCanvas: HTMLCanvasElement | null
+    private overlayConfig: { nodes: any[]; bpStart: number; bpEnd: number } | undefined
 
     hasGeneAnnotations: boolean
     featureRenderer: any
@@ -25,6 +28,8 @@ class AnnotationCanvas {
 
         this.visualFeedbackElement = this.createVisualFeedbackElement()
         this.spinnerElement = this.createSpinnerElement()
+        this.overlayCanvas = appConfig.diagnostic?.bpBandOverlay ? this.createOverlayCanvas() : null
+        this.overlayConfig = undefined
 
         this.resize()
     }
@@ -87,6 +92,34 @@ class AnnotationCanvas {
 
     }
 
+    /**
+     * Diagnostic: paint each node's bp extent with a deterministic color on a
+     * translucent overlay canvas above the primary track. Invariant: the cursor
+     * at arc-length fraction u along a node should land inside that node's
+     * colored band at position u within the band.
+     */
+    renderBpBandOverlay(config: { nodes: any[]; bpStart: number; bpEnd: number }): void {
+        if (!this.overlayCanvas) return
+
+        this.overlayConfig = config
+
+        const { nodes, bpStart, bpEnd } = config
+        const { width, height } = this.overlayCanvas.getBoundingClientRect()
+        const ctx = this.overlayCanvas.getContext('2d')!
+
+        ctx.clearRect(0, 0, width, height)
+
+        const bpLength = Math.max(1, bpEnd - bpStart)
+        const pixelPerBP = width / bpLength
+
+        for (const node of nodes) {
+            const x0 = (node.bpStart - bpStart) * pixelPerBP
+            const x1 = (node.bpEnd - bpStart) * pixelPerBP
+            ctx.fillStyle = bpBandColorForNode(node.id)
+            ctx.fillRect(x0, 0, Math.max(1, x1 - x0), height)
+        }
+    }
+
     resize(): void {
         const dpr = window.devicePixelRatio || 1;
         const {width, height} = this.container.getBoundingClientRect();
@@ -101,6 +134,14 @@ class AnnotationCanvas {
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`
 
+        if (this.overlayCanvas) {
+            this.overlayCanvas.width = width * dpr
+            this.overlayCanvas.height = height * dpr
+            this.overlayCanvas.getContext('2d')!.scale(dpr, dpr)
+            this.overlayCanvas.style.width = `${width}px`
+            this.overlayCanvas.style.height = `${height}px`
+        }
+
         if (this.hasGeneAnnotations && this.drawConfig) {
             this.renderGeneAnnotation(this.drawConfig);
         } else if (!this.hasGeneAnnotations && this.drawConfig) {
@@ -108,6 +149,8 @@ class AnnotationCanvas {
         } else {
             ctx.clearRect(0, 0, width, height);
         }
+
+        if (this.overlayConfig) this.renderBpBandOverlay(this.overlayConfig)
     }
 
     clear(): void {
@@ -116,6 +159,11 @@ class AnnotationCanvas {
         const canvas = this.container.querySelector('canvas') as HTMLCanvasElement
         const ctx = canvas.getContext('2d')!
         ctx.clearRect(0, 0, width, height);
+
+        if (this.overlayCanvas) {
+            this.overlayConfig = undefined
+            this.overlayCanvas.getContext('2d')!.clearRect(0, 0, width, height)
+        }
     }
 
     showFeedbackAtParam(param: number): void {
@@ -149,8 +197,13 @@ class AnnotationCanvas {
         if (this.spinnerElement?.parentNode) {
             this.spinnerElement.parentNode.removeChild(this.spinnerElement);
         }
+        if (this.overlayCanvas?.parentNode) {
+            this.overlayCanvas.parentNode.removeChild(this.overlayCanvas);
+        }
         this.drawConfig = null;
         this.featureRenderer = null;
+        this.overlayCanvas = null;
+        this.overlayConfig = undefined;
     }
 
     private createVisualFeedbackElement(): HTMLElement {
@@ -167,6 +220,27 @@ class AnnotationCanvas {
         this.container.appendChild(el);
         return el;
     }
+
+    private createOverlayCanvas(): HTMLCanvasElement {
+        const el = document.createElement('canvas');
+        el.className = 'pgb-gene-annotation-track-container__bp-band-overlay';
+        this.container.appendChild(el);
+        return el;
+    }
+}
+
+/**
+ * Deterministic HSL color from a node name. djb2 hash → hue in [0, 360).
+ * Translucent alpha so the underlying track (gene features / extent ticks)
+ * still reads through the band.
+ */
+function bpBandColorForNode(nodeName: string): string {
+    let h = 5381
+    for (let i = 0; i < nodeName.length; i++) {
+        h = ((h << 5) + h) + nodeName.charCodeAt(i)
+    }
+    const hue = ((h % 360) + 360) % 360
+    return `hsla(${hue}, 70%, 55%, 0.35)`
 }
 
 export default AnnotationCanvas
