@@ -15,7 +15,7 @@ import NodeEmphasisLook from './looks/nodeEmphasisLook.ts'
 import HeatmapLook from "./looks/heatmapLook.ts"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
-import AnnotationRenderService from "./annotationRenderService.ts"
+import mountAnnotationTrack from "./mountAnnotationTrack.ts"
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
@@ -24,12 +24,12 @@ import './styles/app.scss'
 
 let contextMenuService
 
-/** @type {{ app: any, locusInput: any, defaultGenome: any, annotationRenderService: any, widgetService: any }} */
+/** @type {{ app: any, locusInput: any, defaultGenome: any, annotationTrack: any, widgetService: any }} */
 export const globals = {
     app: null,
     locusInput: null,
     defaultGenome: null,
-    annotationRenderService: null,
+    annotationTrack: null,
     widgetService: null,
 }
 
@@ -79,7 +79,10 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 
-    globals.annotationRenderService = new AnnotationRenderService(document.querySelector('.pgb-gene-annotation-track-container'), genomicService, sceneManager, raycastService)
+    globals.annotationTrack = mountAnnotationTrack({
+        container: document.querySelector('.pgb-gene-annotation-track-container'),
+        genomicService, sceneManager, raycastService
+    })
 
     const pangenomeService = new PangenomeService()
 
