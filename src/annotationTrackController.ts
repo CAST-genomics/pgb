@@ -22,7 +22,6 @@ class AnnotationTrackController {
     private canvas: AnnotationCanvas
 
     private assembly: string | undefined
-    private featureSource: any
 
     private boundResizeHandler: () => void
     private boundMouseMoveHandler: (event: MouseEvent) => void
@@ -78,7 +77,6 @@ class AnnotationTrackController {
         this.container.removeEventListener('mouseenter', this.boundMouseEnterHandler)
         this.container.removeEventListener('mouseleave', this.boundMouseLeaveHandler)
 
-        this.featureSource = null
     }
 
     private async handleAssemblyEmphasis(data: { assembly: { name: string } }): Promise<void> {
@@ -110,11 +108,10 @@ class AnnotationTrackController {
         } else {
             this.canvas.hasGeneAnnotations = true
             const {geneFeatureSource, geneRenderer} = result
-            this.featureSource = geneFeatureSource
             this.canvas.featureRenderer = geneRenderer
             console.log(`AnnotationTrackController: fetching features for ${chr}:${bpStart}-${bpEnd} ...`)
             console.time(`AnnotationTrackController: features fetched`)
-            const features = await this.featureSource.getFeatures({chr, start: bpStart, end: bpEnd})
+            const features = await geneFeatureSource.getFeatures({chr, start: bpStart, end: bpEnd})
             console.timeEnd(`AnnotationTrackController: features fetched`)
             console.log(`AnnotationTrackController: ${features ? features.length : 0} features returned`)
             this.canvas.renderGeneAnnotation({ bpStart, bpEnd, features })
@@ -125,8 +122,6 @@ class AnnotationTrackController {
     }
 
     private handleAssemblyNormal(data: any): void {
-
-        this.featureSource = undefined
 
         this.canvas.hasGeneAnnotations = false
         this.canvas.featureRenderer = undefined
