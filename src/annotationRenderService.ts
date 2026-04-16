@@ -1,8 +1,8 @@
 import {globals} from "./main.js"
 import eventBus from "./utils/eventBus.ts"
 import {getAppleCrayonColorByName} from "./utils/color/color.js"
-import { getLineXYZWithTrackBasepair, buildBpIndex, buildNodeEndpointMap, makeNodeRecordMap, getTrackParameterWithLineParameter } from "./utils/annotationTrackUtils.js"
 import RayCastService from "./raycastService.js"
+import AnnotationCoordinateIndex from "./annotationCoordinateIndex.ts"
 
 class AnnotationRenderService {
 
@@ -11,10 +11,7 @@ class AnnotationRenderService {
     sceneManager: any
     raycastService: any
 
-    bpIndex: any
-    bpIndexMap: Map<string, any>
-    endpointMap: Map<string, any>
-    splineParameterMap: Map<string, { startParam: number; endParam: number }>
+    coordinateIndex: AnnotationCoordinateIndex
 
     hasGeneAnnotations: boolean
 
@@ -22,8 +19,6 @@ class AnnotationRenderService {
     spinnerElement!: HTMLElement
 
     assembly: string | undefined
-    bpStart: number | undefined
-    bpEnd: number | undefined
     featureSource: any
     featureRenderer: any
     drawConfig: any
@@ -47,11 +42,7 @@ class AnnotationRenderService {
         this.sceneManager = sceneManager;
         this.raycastService = raycastService;
 
-        this.bpIndex = undefined
-        this.bpIndexMap = new Map()
-        this.endpointMap = new Map()
-
-        this.splineParameterMap = new Map()
+        this.coordinateIndex = new AnnotationCoordinateIndex()
 
         /** True when gene annotation data is available; false when falling back to extent markers only. */
         this.hasGeneAnnotations = false
@@ -97,36 +88,15 @@ class AnnotationRenderService {
 
     async handleAssemblyEmphasis(data: { assembly: { name: string } }): Promise<void> {
 
-        this.splineParameterMap.clear()
-
         const { assembly } = data
 
         this.assembly = assembly.name
 
         const { spine } = this.genomicService.assemblyWalkMap.get(this.assembly).spineFeatures
-        const { nodes, edges } = spine
 
-        this.bpIndex = buildBpIndex(spine);
-        this.bpIndexMap = makeNodeRecordMap(this.bpIndex)
-
-        const walkNodes = spine.nodes.map((n: any) => n.id);
-
-        this.endpointMap = buildNodeEndpointMap(walkNodes, this.sceneManager);
+        const { nodes, bpStart, bpEnd } = this.coordinateIndex.build(spine, this.sceneManager)
 
         const chr = this.genomicService.getSequenceId(this.assembly)
-        const bpStart = nodes[0].bpStart
-        const bpEnd = nodes[ nodes.length - 1].bpEnd
-
-        this.bpStart = bpStart
-        this.bpEnd = bpEnd
-
-        const bpExtent = bpEnd - bpStart
-
-        for (const node of nodes) {
-            const startParam = (node.bpStart - bpStart) / bpExtent;
-            const endParam = (node.bpEnd - bpStart) / bpExtent;
-            this.splineParameterMap.set(node.id, {startParam, endParam})
-        }
 
         const genomeLibraryKey = this.genomicService.getGenomeLibraryKey(this.assembly)
 
@@ -170,33 +140,21 @@ class AnnotationRenderService {
 
         this.drawConfig = undefined
 
-        this.splineParameterMap.clear()
+        this.coordinateIndex.clear()
 
-        this.bpIndexMap.clear()
-
-        this.bpIndex = undefined
-
-        this.endpointMap.clear()
-
-        this.clear()
+        this.clearCanvas()
     }
 
     handleLineIntersection(data: { t: number; nodeName: string }): void {
 
-        if (0 === this.splineParameterMap.size) {
+        if (this.coordinateIndex.isEmpty) {
             return
         }
 
         const { t, nodeName } = data
 
-        if (undefined === this.splineParameterMap.get(nodeName)) {
-            return
-        }
-
-        const { bp, u:tOriented } = getTrackParameterWithLineParameter(nodeName, t, this.bpIndex, this.endpointMap, this.bpIndexMap)
-
-        const { startParam, endParam } = this.splineParameterMap.get(nodeName)!
-        const param = startParam * ( 1 - tOriented) + endParam * tOriented
+        const param = this.coordinateIndex.getTrackParamFromLineIntersection(nodeName, t)
+        if (param === null) return
 
         this.visualFeedbackElement.style.display = 'block';
 
@@ -332,7 +290,7 @@ class AnnotationRenderService {
 
     handleMouseMove(event: MouseEvent): void {
 
-        if (0 === this.splineParameterMap.size) {
+        if (this.coordinateIndex.isEmpty) {
             return
         }
 
@@ -343,49 +301,19 @@ class AnnotationRenderService {
 
         const param = (exe / width)
 
-        const bp= Math.floor(this.bpStart! * ( 1 - param) + this.bpEnd! * param)
-
-        const result = getLineXYZWithTrackBasepair(bp, this.bpIndex, this.endpointMap, this.sceneManager);
+        const result = this.coordinateIndex.getXYZFromTrackParam(param, this.sceneManager)
         if (!result) return;
-        const { nodeId, t, xyz:pointOnLine, u } = result;
+        const { xyz: pointOnLine } = result;
 
-
-        /*
-        let nodeId
-        let u
-        for (const [ node, bpExtent ] of this.splineParameterMap) {
-            if (bpExtent.startParam <= param && bpExtent.endParam >= param){
-                nodeId = node
-                u = (param - bpExtent.startParam) / (bpExtent.endParam - bpExtent.startParam)
-                break
-            }
-        }
-
-        // const spline = this.geometryManager.getSpline(nodeId)
-        // const pointOnLine = spline.getPoint(u)
-
-        // class ParametricLine implements methods to interpret a Line2 object
-        // as a one-dimensional parametric line. This establishes a mapping: xyz <--> t
-        // where t: 0-1
-        const parametricLine = this.geometryManager.getLine(nodeId)
-        const pointOnLine = parametricLine.getPoint(u, 'world')
-
-         */
-
-        // this.raycastService.showVisualFeedback(pointOnLine, parametricLine.material.color)
         this.raycastService.showVisualFeedback(pointOnLine, RayCastService.VISUAL_FEEDBACK_NAME_COLOR_THREE_JS)
     }
 
     clear(): void {
+        this.coordinateIndex.clear()
+        this.clearCanvas()
+    }
 
-        this.splineParameterMap.clear()
-
-        this.bpIndex = undefined
-
-        this.bpIndexMap.clear()
-
-        this.endpointMap.clear()
-
+    private clearCanvas(): void {
         const { width, height } = this.container.getBoundingClientRect();
         const canvas = this.container.querySelector('canvas') as HTMLCanvasElement
         const ctx = canvas.getContext('2d')!
@@ -427,7 +355,7 @@ class AnnotationRenderService {
         this.featureSource = null;
         this.featureRenderer = null;
 
-        this.splineParameterMap.clear()
+        this.coordinateIndex.clear()
     }
 
 }
