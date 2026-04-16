@@ -117,6 +117,9 @@ class AnnotationTrackController {
             this.canvas.renderGeneAnnotation({ bpStart, bpEnd, features })
         }
 
+        // Diagnostic overlay (no-op unless appConfig.diagnostic.bpBandOverlay is on).
+        this.canvas.renderBpBandOverlay({ nodes, bpStart, bpEnd })
+
         this.canvas.hideSpinner()
 
     }

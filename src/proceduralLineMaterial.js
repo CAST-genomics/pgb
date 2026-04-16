@@ -3,7 +3,7 @@ import vertexShader from '../shaders/textured-line.vert.glsl?raw'
 import fragmentShader from '../shaders/procedural-line.frag.glsl?raw'
 
 /**
- * A custom ShaderMaterial for Line2/ParametricLine with procedural visual styles.
+ * A custom ShaderMaterial for Line2 with procedural visual styles.
  *
  * Drop-in replacement for LineMaterial in WORLD_UNITS mode.
  *

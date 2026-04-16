@@ -4,20 +4,68 @@ const _inverseMatrix = new THREE.Matrix4()
 const _ray = new THREE.Ray()
 const _splinePoint = new THREE.Vector3()
 
+// Arc-length sampling density. 256 samples across [0,1] native-t gives
+// sub-pixel accuracy on the curviest real nodes observed to date.
+const ARC_LENGTH_SAMPLES = 256
+
 /**
  * RibbonLine — a THREE.Mesh subclass for ribbon-based node rendering.
- * Provides the same parametric interface as ParametricLine (getPoint, getParameter)
- * so it integrates seamlessly with the raycast service and look system.
+ *
+ * Owns an arc-length parameterization of its spline so callers can address
+ * positions along the ribbon by fraction-of-arc-length u ∈ [0,1] rather than
+ * the non-uniform native t of THREE.CatmullRomCurve3. This matches the
+ * contract the annotation track and raycast pipeline rely on — the prior
+ * ParametricLine class got its arc-length semantics from Line2's buffer
+ * attributes; RibbonLine reconstructs it from the spline directly.
  *
  * Overrides raycast() because the GPU-side geometry is expanded by halfWidth
  * in the vertex shader, but the CPU-side positions are centerline-only.
- * The custom raycast tests distance from the ray to the spline centerline
- * against the current halfWidth.
  */
 class RibbonLine extends THREE.Mesh {
 
     constructor(geometry, material) {
         super(geometry, material)
+    }
+
+    /**
+     * Return (and lazily build) the arc-length table for this mesh's spline.
+     * Memoized on userData so the cost is paid once per mesh. Samples the
+     * spline at uniform native-t intervals, records cumulative chord lengths.
+     */
+    #getArcLengthTable() {
+        if (this.userData.arcLengthTable) return this.userData.arcLengthTable
+
+        const spline = this.userData.spline
+        const N = ARC_LENGTH_SAMPLES
+        const pts = new Array(N + 1)
+        for (let i = 0; i <= N; i++) pts[i] = spline.getPoint(i / N)
+
+        const cum = new Float64Array(N + 1)
+        for (let i = 0; i < N; i++) cum[i + 1] = cum[i] + pts[i].distanceTo(pts[i + 1])
+
+        const table = { pts, cum, total: cum[N], samples: N }
+        this.userData.arcLengthTable = table
+        return table
+    }
+
+    /**
+     * Map fraction-of-arc-length u ∈ [0,1] to the spline's native parameter.
+     * Inverse of the cum table: find the segment containing s = u*total, then
+     * linearly interpolate native-t within it.
+     */
+    #arcLengthUToNativeT(u) {
+        const { cum, total, samples } = this.#getArcLengthTable()
+        if (total <= 0) return 0
+        const s = THREE.MathUtils.clamp(u, 0, 1) * total
+        if (s >= total) return 1
+        let lo = 0, hi = samples
+        while (lo + 1 < hi) {
+            const mid = (lo + hi) >> 1
+            cum[mid] <= s ? (lo = mid) : (hi = mid)
+        }
+        const L = cum[lo + 1] - cum[lo]
+        const frac = L > 0 ? (s - cum[lo]) / L : 0
+        return (lo + frac) / samples
     }
 
     /**
@@ -79,42 +127,63 @@ class RibbonLine extends THREE.Mesh {
         const bestDist = Math.sqrt(bestDistSq)
 
         if (bestDist <= halfWidth) {
-            // Build intersection result compatible with Three.js and our raycast service
             spline.getPoint(bestT, _splinePoint)
             _splinePoint.z = this.userData.zOffset || 0
 
             const worldPoint = _splinePoint.clone().applyMatrix4(this.matrixWorld)
 
+            // Report position in arc-length u, not native t, so downstream
+            // consumers (annotationCoordinateIndex, raycastService) see the
+            // same parameterization getPoint exposes.
+            const u = this.#nativeTToArcLengthU(bestT)
+
             intersects.push({
                 distance: raycaster.ray.origin.distanceTo(worldPoint),
                 point: worldPoint,
-                uv: new THREE.Vector2(bestT, 0.5),
+                uv: new THREE.Vector2(u, 0.5),
                 object: this,
             })
         }
     }
 
     /**
-     * Get a world-space point at parameter t along the node.
+     * Map native-t back to arc-length u. Used by raycast() to convert the
+     * result of its closest-point search into the public parameterization.
+     */
+    #nativeTToArcLengthU(t) {
+        const { cum, total, samples } = this.#getArcLengthTable()
+        if (total <= 0) return 0
+        const tt = THREE.MathUtils.clamp(t, 0, 1)
+        const pos = tt * samples
+        const i = Math.min(Math.floor(pos), samples - 1)
+        const frac = pos - i
+        const s = cum[i] + frac * (cum[i + 1] - cum[i])
+        return s / total
+    }
+
+    /**
+     * Get a world-space point at arc-length fraction u along the node.
      *
-     * @param {number} t - Parameter in [0, 1]
+     * @param {number} u - Arc-length fraction in [0, 1]. u=0 is the first
+     *                     control point, u=1 the last, u=0.5 is the midpoint
+     *                     measured along the curve (NOT the midpoint of the
+     *                     spline's native parameterization).
      * @param {string} [space] - 'world' to return in world space, otherwise local
      * @returns {THREE.Vector3}
      */
-    getPoint(t, space) {
-        const spline = this.userData.spline
-        const tt = THREE.MathUtils.clamp(t, 0, 1)
-        const point = spline.getPoint(tt)
+    getPoint(u, space) {
+        const nativeT = this.#arcLengthUToNativeT(u)
+        const point = this.userData.spline.getPoint(nativeT)
         point.z = this.userData.zOffset || 0
         return space === 'world' ? this.localToWorld(point) : point
     }
 
     /**
-     * Recover the arc-length parameter t from a raycast intersection.
-     * The custom raycast sets uv.x to the spline t-parameter.
+     * Recover the arc-length parameter u from a raycast intersection.
+     * The custom raycast sets uv.x to the arc-length u.
      *
      * @param {Object} intersection - Three.js raycast intersection
-     * @returns {Object} { t, nodeName, ...intersection }
+     * @returns {Object} { t, nodeName, ...intersection } where t is arc-length u
      */
     static getParameter(intersection) {
         const { object, uv } = intersection

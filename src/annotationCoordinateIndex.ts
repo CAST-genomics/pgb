@@ -1,4 +1,4 @@
-import ParametricLine from "./parametricLine.js"
+import RibbonLine from "./ribbonLine.js"
 
 // ---------- tiny helpers ----------
 
@@ -159,17 +159,17 @@ function makeNodeRecordMap(bpIndex: BpIndex): Map<string, NodeRecord> {
 }
 
 /**
- * Decide, per node, which endpoint of its ParametricLine is the entry (near left neighbor)
+ * Decide, per node, which endpoint of its RibbonLine is the entry (near left neighbor)
  * and which is the exit (near right neighbor). This makes mapping monotonic and visually correct
- * even when the line's internal t runs the "wrong" way.
+ * even when the line's internal parameterization runs the "wrong" way.
  */
 function buildNodeEndpointMap(walkNodes: string[], sceneManager: any): Map<string, Endpoint> {
 
     const map = new Map<string, Endpoint>();
 
     const nodeMeshGroup = sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
-    const endpoint = (id: string, t: number) => ParametricLine.getLine(id, nodeMeshGroup).getPoint(t, 'world');
-    const center   = (id: string)            => ParametricLine.getLine(id, nodeMeshGroup).getPoint(0.5, 'world');
+    const endpoint = (id: string, t: number) => RibbonLine.getLine(id, nodeMeshGroup).getPoint(t, 'world');
+    const center   = (id: string)            => RibbonLine.getLine(id, nodeMeshGroup).getPoint(0.5, 'world');
 
     for (let i = 0; i < walkNodes.length; i++) {
         const id = walkNodes[i];
@@ -243,15 +243,16 @@ function getLineXYZWithTrackBasepair(bp: number, bpIndex: BpIndex, endpointMap: 
     const t = entryT + u * (exitT - entryT);
 
     const nodeMeshGroup = sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
-    const line = ParametricLine.getLine(n.id, nodeMeshGroup);
+    const line = RibbonLine.getLine(n.id, nodeMeshGroup);
     const xyz  = line.getPoint(t, 'world')
 
     return { nodeId: n.id, t, xyz, u };
 }
 
 /**
- * Given a raycast on a ParametricLine (nodeId, tRaw from the line's own parameterization),
- * convert to the oriented progress u via (entryT, exitT), then map to track bp.
+ * Given a raycast on a RibbonLine (nodeId, tRaw from the line's arc-length
+ * parameterization), convert to the oriented progress u via (entryT, exitT),
+ * then map to track bp.
  */
 function getTrackParameterWithLineParameter(nodeName: string, tRaw: number, bpIndex: BpIndex, endpointMap: Map<string, Endpoint>, bpIndexMap: Map<string, NodeRecord>) {
 
