@@ -13,11 +13,12 @@ The annotation track is a 2D canvas strip below the 3D graph. When a user select
 | **App** | Orchestrator | Calls `globals.annotationTrack.clear()` on dataset swap |
 | **mountAnnotationTrack (facade)** | Bootstrap | Constructs sub-modules, returns `{coordinateIndex, clear, dispose}` |
 | **AnnotationCoordinateIndex** | Pure coordinate kernel | bp↔xyz bidirectional mapping; bpIndex, endpointMap, splineParameterMap |
-| **AnnotationCanvas** | View | Canvas DPR resize, gene/extent rendering, spinner, visual feedback element |
+| **AnnotationCanvas** | View | Canvas DPR resize, gene/extent rendering, spinner, visual feedback element, bp-band diagnostic overlay |
 | **AnnotationTrackController** | Event wiring + orchestration | Event bus subscriptions, DOM mouse handlers, assembly emphasis lifecycle |
 | **GenomicService** | Data source | `assemblyWalkMap` (spine features per assembly) |
 | **GenomeLibrary** | Data source | Gene annotation feature sources (IGVCore) |
 | **RaycastService** | 3D feedback | Visual feedback sphere, enable/disable during track hover |
+| **RibbonLine** | 3D node mesh | Arc-length-parameterized `getPoint(u)` and `raycast(uv.x=u)` — the contract this subsystem depends on |
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '18px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 50}}}%%
@@ -66,6 +67,7 @@ flowchart TB
 | View knows nothing about events or coordinate math | `AnnotationCanvas` has no `eventBus` import, no coordinate lookups |
 | Controller mediates all event→index→canvas flow | `AnnotationTrackController` is the sole subscriber and DOM listener |
 | Facade interface is minimal: `{coordinateIndex, clear, dispose}` | `mountAnnotationTrack` |
+| The 3D line's `getPoint(u)` and `raycast` `uv.x` are arc-length-parameterized | `RibbonLine`; pinned by `ribbonLine.arcLength.test.ts` |
 
 ---
 
@@ -200,8 +202,8 @@ sequenceDiagram
     ATC->>ACI: isEmpty?
     ACI-->>ATC: false
 
-    ATC->>ACI: getTrackParamFromLineIntersection(nodeName, t)
-    Note over ACI: (nodeName, tRaw) → oriented u via (entryT, exitT)<br/>→ interpolate splineParameterMap → param [0..1]
+    ATC->>ACI: getTrackParamFromLineIntersection(nodeName, uRaw)
+    Note over ACI: RibbonLine raycast reports arc-length uRaw (uv.x).<br/>(nodeName, uRaw) → oriented u via (entryT, exitT)<br/>→ interpolate splineParameterMap → param [0..1]
     ACI-->>ATC: param (or null if unknown node)
 
     ATC->>AC: showFeedbackAtParam(param)
@@ -217,12 +219,14 @@ sequenceDiagram
 ### Coordinate mapping path (3D → track)
 
 ```
-raycast t (ParametricLine parameter)
+raycast uv.x (RibbonLine arc-length u, fraction of chord length ∈ [0,1])
     → oriented u via endpointMap (entryT, exitT)
     → bp via bpIndexMap (bpStart + u × lengthBp)
     → track param via splineParameterMap (startParam..endParam interpolation)
     → pixel via containerWidth × param
 ```
+
+> **Arc-length contract.** `entryT` / `exitT` are named `t` for historical reasons but carry arc-length semantics — they are the values returned by `RibbonLine.getPoint(u)` that the orientation heuristic picks out as the entry/exit endpoints. Before PR #51, `RibbonLine.getPoint` delegated to `CatmullRomCurve3.getPoint` (native-t), silently producing up to ~5–7 % mis-registration on curvy nodes. The fix moved `RibbonLine` onto a memoized arc-length table so the public contract now matches what this index always assumed.
 
 ---
 
@@ -251,7 +255,7 @@ sequenceDiagram
     ATC->>ATC: param = exe / containerWidth
 
     ATC->>ACI: getXYZFromTrackParam(param, sceneManager)
-    Note over ACI: param → bp via linear interpolation<br/>→ binary search bpIndex for node<br/>→ u within node → oriented t via endpointMap<br/>→ ParametricLine.getPoint(t) → xyz
+    Note over ACI: param → bp via linear interpolation<br/>→ binary search bpIndex for node<br/>→ u within node → oriented arc-length via endpointMap<br/>→ RibbonLine.getPoint(u, 'world') → xyz
     ACI-->>ATC: { nodeId, t, xyz, u }
 
     ATC->>RS: showVisualFeedback(xyz, color)
@@ -269,8 +273,8 @@ pixel position on track
     → bp = bpStart × (1 − param) + bpEnd × param
     → binary search bpIndex → node
     → u = (bp − node.bpStart) / node.lengthBp
-    → t = entryT + u × (exitT − entryT) [oriented]
-    → ParametricLine.getPoint(t, 'world') → xyz
+    → oriented arc-length = entryT + u × (exitT − entryT)
+    → RibbonLine.getPoint(oriented arc-length, 'world') → xyz
 ```
 
 ---
@@ -392,7 +396,7 @@ flowchart LR
     ATC --> AC
 ```
 
-| Module | Imports eventBus? | Imports DOM? | Imports ParametricLine? |
+| Module | Imports eventBus? | Imports DOM? | Imports RibbonLine? |
 |---|---|---|---|
 | `AnnotationCoordinateIndex` | no | no | yes (for 3D point lookups) |
 | `AnnotationCanvas` | no | yes | no |
@@ -452,19 +456,19 @@ Canvas.showFeedbackAtParam(param)          RaycastService.showVisualFeedback(xyz
 
 ## 12. Endpoint Anchoring — Flipped Node Handling
 
-A critical invariant of the coordinate index is **monotonic mapping** even when a node's ParametricLine runs in the opposite direction from the walk order. The `buildNodeEndpointMap` function resolves this by comparing each node's t=0 and t=1 endpoints to its neighbors' centers, then assigning `entryT` (near left neighbor) and `exitT` (near right neighbor).
+A critical invariant of the coordinate index is **monotonic mapping** even when a node's RibbonLine runs in the opposite direction from the walk order. The `buildNodeEndpointMap` function resolves this by comparing each node's `u=0` and `u=1` endpoints to its neighbors' centers, then assigning `entryT` (near left neighbor) and `exitT` (near right neighbor). The field names are `entryT` / `exitT` for historical reasons; their values are the arc-length `u` parameters passed to `RibbonLine.getPoint`.
 
 ```
 Walk order:     A → B → C
 3D positions:   A: [0,1]   B: [2,1] (flipped!)   C: [2,3]
 
-Node B's ParametricLine: t=0 at x=2 (near C), t=1 at x=1 (near A)
+Node B's RibbonLine: u=0 at x=2 (near C), u=1 at x=1 (near A)
     → entryT = 1 (near A), exitT = 0 (near C)
-    → oriented u = (tRaw − 1) / (0 − 1) = 1 − tRaw
+    → oriented u = (uRaw − 1) / (0 − 1) = 1 − uRaw
     → monotonic: as we walk left→right, bp increases smoothly
 ```
 
-This is pinned by the "flipped-node anchoring" characterization test.
+This is pinned by the "flipped-node anchoring" characterization test. The arc-length semantics of `uRaw` itself are pinned separately in `ribbonLine.arcLength.test.ts` (PR #51).
 
 ---
 
@@ -472,10 +476,17 @@ This is pinned by the "flipped-node anchoring" characterization test.
 
 | File | Role |
 |---|---|
-| `src/annotationCoordinateIndex.ts` | Pure coordinate kernel (222 lines) |
-| `src/annotationCanvas.ts` | Canvas view (152 lines) |
-| `src/annotationTrackController.ts` | Event wiring + orchestration (170 lines) |
-| `src/mountAnnotationTrack.ts` | Facade / bootstrap (43 lines) |
+| `src/annotationCoordinateIndex.ts` | Pure coordinate kernel |
+| `src/annotationCanvas.ts` | Canvas view (gene/extent rendering, visual feedback, bp-band overlay) |
+| `src/annotationTrackController.ts` | Event wiring + orchestration |
+| `src/mountAnnotationTrack.ts` | Facade / bootstrap |
+| `src/ribbonLine.js` | 3D node mesh. Owns memoized arc-length table powering `getPoint(u)` + `raycast(uv.x=u)` |
 | `src/__tests__/annotationCoordinateIndex.test.ts` | 19 characterization tests |
+| `src/__tests__/ribbonLine.arcLength.test.ts` | Pins `RibbonLine`'s arc-length contract (PR #51) |
+| `scripts/probe-ribbon-arc-length-drift.mjs` | Numerical probe — quantifies native-t vs arc-length drift on real datasets |
 
-Related: [code-architecture-improvements.md § 4](./code-architecture-improvements.md) · [technical-debt-14-apr-2026.md § #4](./technical-debt-14-apr-2026.md) · PR #50 · closes #49
+### Diagnostic: bp-band overlay (PR #51)
+
+Enable `appConfig.diagnostic.bpBandOverlay` (default `false`) to paint each node's bp extent as a deterministically-colored band on the annotation track. This turns the registration invariant into a continuous visual signal: the cursor at arc-length `u` on node `N` should land the marker inside `N`'s colored band at fractional position `u`. Owned by `AnnotationCanvas.renderBpBandOverlay` and wired in by the controller on `assembly:emphasis`.
+
+Related: [code-architecture-improvements.md § 4](./code-architecture-improvements.md) · [technical-debt-14-apr-2026.md § #4](./technical-debt-14-apr-2026.md) · PR #50 (kernel split, closes #49) · PR #51 (arc-length fix)
