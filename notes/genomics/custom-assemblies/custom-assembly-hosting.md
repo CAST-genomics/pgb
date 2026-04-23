@@ -8,9 +8,8 @@ Current hosting for the 12 HPRC custom assemblies (6 samples × 2 haplotypes):
 |------|------|-------------|
 | FASTA + `.fai` index | HPRC public S3 (CORS enabled) | `human-pangenomics.s3.amazonaws.com/working/HPRC/...` |
 | Annotations (BigBed, self-indexed) | PGB-owned S3 bucket | `pgb-bigbed.s3.amazonaws.com/<assembly>_cat_v1.1_bigGenePred.bb` |
-| Sorted GFF3 (pipeline input only) | GitHub | `raw.githubusercontent.com/turner/hprc-annotations/main/gff3/...` |
 
-Both app-facing resources are direct S3 HTTPS with CORS and `Accept-Ranges: bytes`; no proxy server, no Cloudflare Worker, no localhost dependency.
+Both app-facing resources are direct S3 HTTPS with CORS and `Accept-Ranges: bytes`; no proxy server, no Cloudflare Worker, no GitHub, no localhost dependency. The ingest pipeline also reads from HPRC S3 directly — GitHub is out of the loop entirely.
 
 ## Why BigBed
 
@@ -67,23 +66,39 @@ At startup, `src/main.js` fetches this URL, passes the array to `setCustomGenome
 
 ## GFF3 → BigBed Pipeline
 
-Raw GFF3 files are regular-gzipped and unsorted on HPRC's S3 bucket. The pipeline ends at a self-indexed BigBed file in `s3://pgb-bigbed`:
+Raw GFF3 files are regular-gzipped and unsorted on HPRC's S3 bucket. `gff3ToGenePred` does not require sorted input (the sort happens later at the `bigGenePred` stage), so we read them as-is and ingest straight to BigBed:
 
 ```
 HPRC S3 (.gff3.gz, unsorted)
-  → download + sort + bgzip + tabix          [scripts/batch-index-gff3.sh — one-time, pushed to turner/hprc-annotations]
-  → download sorted GFF3 + .fai              [scripts/gff3-to-bigbed.sh]
+  → download gff3.gz + .fai
+  → gunzip
   → gff3ToGenePred
   → genePredToBigGenePred
   → sort -k1,1 -k2,2n
   → bedToBigBed -type=bed12+8 (AutoSQL: bigGenePred.as)
-  → upload .bb to s3://pgb-bigbed            [scripts/batch-gff3-to-bigbed.sh]
+  → upload .bb to s3://pgb-bigbed
 ```
+
+### Source of truth
+
+`notes/genomics/custom-assemblies/hprc-annotations.csv` — the HPRC-published annotation index, 462 rows:
+
+```
+sample_id,haplotype,assembly_name,location
+HG00097,1,HG00097_hap1_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG00097/assemblies/release2/annotation/cat/HG00097_hap1_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
+...
+```
+
+The batch script reads GFF3 S3 URLs from this CSV and derives each companion `.fa.gz.fai` URL by substitution (`…/annotation/cat/<name>_cat_v1.1.gff3.gz` → `…/<name>.fa.gz.fai`).
 
 ### Scripts
 
-- **`scripts/gff3-to-bigbed.sh <gff3-url> <fai-url>`** — converts one assembly. Reads the sorted GFF3 from GitHub, pulls chrom sizes from the `.fai` on HPRC S3, runs the UCSC tool chain, leaves `data/genomes/<stem>.bb` on disk. Optional `--assembly-json` flag emits a PGB-compatible single-assembly config.
-- **`scripts/batch-gff3-to-bigbed.sh`** — runs the single-assembly script for every entry in `custom-assemblies-12-s3-cors-enabled.json`, renames each output to `<stem>_bigGenePred.bb`, and uploads to `s3://pgb-bigbed`. This is what produced the 12 BigBed files currently in the bucket.
+- **`scripts/gff3-to-bigbed.sh <gff3-url> <fai-url>`** — converts one assembly. Downloads GFF3 and chrom sizes, runs the UCSC tool chain, leaves `data/genomes/<stem>.bb` on disk. Optional `--assembly-json` flag emits a PGB-compatible single-assembly config.
+- **`scripts/batch-gff3-to-bigbed.sh`** — reads `hprc-annotations.csv`, filters to a subset, invokes `gff3-to-bigbed.sh` for each, renames each output to `<stem>_bigGenePred.bb`, and uploads to `s3://pgb-bigbed`. Flags:
+  - (default) — the 6-sample × 2-haplotype subset (HG00097, HG00099, HG00126, HG00128, HG00133, HG00140)
+  - `--samples HG00097,HG00099` — comma-separated sample IDs
+  - `--first-n 5` — first N rows in the CSV
+  - `--all` — all 462 rows (requires scaling caveats below)
 
 ### Prerequisites
 
@@ -97,22 +112,16 @@ Plus `aws` CLI configured for write access to `s3://pgb-bigbed`.
 
 UCSC binaries can also be downloaded directly from `https://hgdownload.soe.ucsc.edu/admin/exe/macOSX.arm64/`.
 
-## Role of GitHub Now
+## Historical: `turner/hprc-annotations`
 
-`turner/hprc-annotations` still holds the 12 sorted, bgzipped, tabix-indexed GFF3 files. The app no longer reads them. They remain useful as:
-
-- A stable, versioned upstream for `gff3-to-bigbed.sh` (saves re-downloading and re-sorting 66 MB GFF3s from HPRC S3 each time)
-- A reference set if tabix-indexed GFF3 is ever needed again
-
-No new files are expected to be pushed there.
+An earlier iteration of the app read sorted, bgzipped, tabix-indexed GFF3 files from `raw.githubusercontent.com/turner/hprc-annotations/main/gff3/`. Those files are still in that repo but **nothing in the current pipeline reads from them**. They can be ignored or archived.
 
 ## Scaling Considerations
 
 The 12-assembly BigBed set is ~tens of MB per file on `s3://pgb-bigbed` — cheap. Scaling to all 462 assemblies is now primarily an S3 cost / ingest-pipeline-runtime problem, not a hosting-architecture problem:
 
-- Storage: linear with assembly count, no repo size ceiling.
-- Ingest: `batch-gff3-to-bigbed.sh` is serial; parallelizing or moving it to a cloud runner becomes worthwhile before running all 462.
-- Upstream sorted GFF3: scaling past ~30 assemblies means the GitHub staging repo stops being a good fit — either sort on the fly from HPRC S3, or stage in its own bucket.
+- Storage: linear with assembly count, no repo-size ceiling.
+- Ingest: `batch-gff3-to-bigbed.sh` is serial and runs locally; parallelizing or moving it to a cloud runner becomes worthwhile before running all 462.
 
 ## File Naming Convention
 
