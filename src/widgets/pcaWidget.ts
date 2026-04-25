@@ -237,18 +237,22 @@ class PCAWidget {
     }
 
     reset(): void {
-        // Clear visual state of any selected selector
-        const previouslySelected = this.selectedCoordinateKey
+        const wasSelected = this.selectedCoordinateKey !== null
         this.clearAllSelectorStyles()
         this.selectedCoordinateKey = null;
 
-        // Clear emphasis for the previously-selected coordinate key only.
-        // Absence state is owned by pcaAbsenceCoordinator and must not be
-        // disturbed here — another presenter (e.g. PCA chart) may still
-        // need the 3D graph painted in absence mode.
-        if (previouslySelected) {
-            const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(previouslySelected))
-            eventBus.publish('pcaWidget:normal', { nodeSet })
+        // Mimic the deselect path so the graph leaves emphasis state cleanly:
+        // (emphasized + absent + deemphasized-remainder) collapses to
+        // (absent + normal-remainder). Restoring only the previously-emphasized
+        // nodeSet here was insufficient — it left the deemphasized remainder
+        // painted, since the remainder is implicitly recolored by the next
+        // setNodeEmphasis() call, not by an enumerated node list.
+        // The subsequent releaseAbsence (in hideCard) then restores absent
+        // → normal if no other presenter is still holding absence.
+        if (wasSelected) {
+            const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
+            eventBus.publish('pcaWidget:absence', { absentNodeSet })
+            eventBus.publish('pcaWidget:deselect', {})
         }
     }
 
