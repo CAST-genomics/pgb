@@ -87,22 +87,25 @@ See also: [annotation-track-interaction.md](./annotation-track-interaction.md) f
 
 ---
 
-## 5. RibbonLine raycast + material/Z-offset split
+## 5. RibbonLine raycast + material lifecycle — ✅ COMPLETED (PR #54, closes #53)
 
-**Files:**
-- `src/ribbonLine.js`
-- `src/looks/look.ts`
-- `src/lineMaterialResolutionService.js` (~52 lines)
-- `src/geometryFactory.*`
+**Landed in PR #54.** Three shallow modules (`ribbonLine.js`, the node-ribbon parts of `lineFactory.js`, and `lineMaterialResolutionService.js`) collapsed into a single deepened module, `src/ribbonNode.ts`. Two entry points across the cluster: `RibbonNode.create(geometry, spline, material)` and `tickRibbonResolution({camera, container})`. Look stopped touching geometry construction, material registration, and Z wiring.
 
-**Cluster / concept co-owned:** the geometric and visual identity of a ribbon node (raycast hit-testing, shader uniforms, Z-offset, material lifecycle).
+**What changed:**
 
-**Why the seams are awkward:**
-- `RibbonLine.raycast()` samples the spline 48+ times per pointer move and is tightly bound to the shader's `halfWidth` uniform — but that uniform is managed by `lineMaterialResolutionService`.
-- Z-offset logic split between `GeometryFactory.NODE_LINE_Z_OFFSET` / `NODE_LINE_DEEMPHASIS_Z_OFFSET` constants and Look's `getZOffset()` override.
-- Material cache in Look is cleared at disposal, but there's no way to verify all materials are unregistered from the resolution service.
+- **Single source of truth for node Z.** `NODE_Z_OFFSET = -8` is now a private module-scope constant inside `ribbonNode.ts`. It's baked into vertex positions by `buildNodeRibbonGeometry` and read back by `raycast()` and `getPoint()` from the same place. The previous three-way duplication (geometry positions ↔ `mesh.userData.zOffset` ↔ raycast read) is gone. `userData.zOffset` is no longer written or read by anyone. Z drift between geometry and hit-testing is now structurally impossible.
+- **Raycast severed from shader uniforms.** `RibbonNode.raycast()` reads a module-scope `lastHalfWidth` snapshot updated by `tickRibbonResolution()` per frame, **not** `material.uniforms.halfWidth.value`. Hit-testing no longer depends on the per-frame uniform tick having run, and unit tests can set the snapshot directly via an `__setHalfWidthForTests(v)` hook.
+- **Registration moved from Look to RibbonNode.** Look's four material getters (`getNodeRibbonMaterial / Emphasis / Deemphasis / Absence`) lost their `lineMaterialResolutionService.registerRibbonMaterial(...)` calls. Registration is now a side effect of `RibbonNode.create()` — the registry tracks **nodes**, not materials, and the per-frame tick walks `node.material.uniforms.halfWidth` for whatever material is currently bound. Material swaps during emphasis transitions are picked up automatically on the next frame.
+- **Disposal-leak invariants are assertable.** `RibbonNode.registeredCount` exposes the live count. `Look.dispose()` lost its manual unregister loop — the `clearRibbonRegistry()` bulk-clear at dataset reload (called from `App.clearCurrentData()`) drops the whole set. Tests verify `create → dispose → count === 0`, idempotent `dispose`, and bulk-clear semantics.
+- **Vestigial `Look.zOffset` field deleted.** Dead code from PR #41's deletion pass.
 
-**Test surface that would shrink:** pointer-hit tests can run without the resolution service; disposal-leak invariants become assertable.
+**Net diff:** −530 lines (12 files changed, 3 deleted, 1 new TS module). 229/229 tests pass — 5 new boundary tests cover Z source-of-truth (`getPoint(u).z === NODE_Z_OFFSET`; geometry vertex z values) and registration lifecycle. Typecheck and Vite build clean.
+
+**Status note on the original framing:** when this entry was first drafted, sub-bullet #2 called out "Z-offset logic split between `GeometryFactory` constants and Look's `getZOffset()` override." That split no longer existed by the time the refactor began — PR #41 had already deleted `NODE_LINE_DEEMPHASIS_Z_OFFSET`, `Look.getZOffset()`, and `Look.updateGeometryPositions()`, replacing state-aware Z-offset with `mesh.renderOrder`. The entry was reframed before issue filing to focus on the actual remaining smells (raycast/uniform coupling, three-way Z duplication, vestigial field, leak verifiability). Lesson: re-walk a friction cluster against the current code before drafting an RFC; doc entries from a prior cluster review can be partially stale.
+
+**Lesson worth preserving:** three competing designs were evaluated in parallel before filing — minimal-interface merge, profile/registry with extension seams, and a `RibbonLine.fromSpline` factory that also restructured Look's material-cache. The minimal-interface design won because it solved the headline cluster (geometry/raycast/uniform/Z) with the smallest blast radius and left Look's appearance authority untouched per the shade-tree philosophy. The "expose a registered-count introspection getter for leak tests" idea was cherry-picked from the factory design. *Reject scope expansion that touches Look's material-cache architecture* — that's a separate question about emphasis transitions (cached materials vs. uniform mutation) that deserves its own RFC if it's ever justified.
+
+**Implementation discovery worth recording:** the issue spec named `RibbonNode.create(spline, material)` (geometry built inside `create`), but `GeometryFactory` builds geometries once per dataset and shares them across multiple scene/look pairs. Per-call construction would multiply node-geometry CPU cost by the number of looks. The interface adjusted to `RibbonNode.create(geometry, spline, material)` with the geometry builder exposed as a standalone `buildNodeRibbonGeometry(spline)` for `GeometryFactory` to call — preserving the share-geometry pattern without disturbing the deepening goal.
 
 ---
 
@@ -117,7 +120,7 @@ See also: [annotation-track-interaction.md](./annotation-track-interaction.md) f
 - **`mountPcaChart()` facade** (phase 3c) — replaces the auto-instantiating `pcaChartService` singleton. `App` constructs it explicitly in its constructor and stores the handle as `this.pcaChart`. `pcaChartService.js` was deleted.
 - **`pcaAbsenceCoordinator`** (phase 3d) — tiny refcount gatekeeper for the 3D graph's absence mode. Both the PCA widget card and the PCA chart panel `acquire`/`release` through it, so presenting either one paints absence and absence stays visible until the last presenter is dismissed. Previously, dismissing the widget while the chart was still open would wipe the absence state the chart still needed.
 - **`pcaWidget:deselect` event** — new event the widget fires when the user re-clicks the already-selected coordinate key. The controller subscribes to it and clears `selectedCoordinateKey`, which (via the pure `render()` path) returns the chart to idle. This fixes the toggle-off half of #47.
-- **`pcaWidget.reset()` narrowed** — now only clears emphasis for the previously-selected key instead of all nodes, so it no longer stomps absence state another presenter still needs.
+- **`pcaWidget.reset()` narrowed** — now only clears emphasis for the previously-selected key instead of all nodes, so it no longer stomps absence state another presenter still needs. *(Follow-up: this narrowing was too aggressive — it left the deemphasized-remainder painted when the widget was dismissed without a prior deselect. Fixed in PR #55 by making `reset()` mimic the deselect path: fire `pcaWidget:absence` to collapse `emphasized + deemphasized` to `normal-remainder` while keeping absent painted, then let `hideCard()`'s `releaseAbsence` finish the job. Reset must run before hideCard for the absence release to land on a graph that's already in absence-only state.)*
 
 **Net diff:** roughly +1170 / −1040 lines across the branch. `pcaChartService.js` deleted (−1031). All 201 tests pass; new characterization tests added for `PcaCoordinateSpace`.
 
@@ -127,6 +130,23 @@ See also: [annotation-track-interaction.md](./annotation-track-interaction.md) f
 
 ## How to use this document
 
-When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order. Completed: #1 (PR #41), #2 (PR #43), #3 (PR #45), #4 (PR #50), #6 (PR #48). Remaining: #5.
+When you want to do a refactor, pick one cluster and invoke `/improve-codebase-architecture` pointing at it — the skill will frame the problem space, spawn parallel interface designs, and land on a GitHub issue RFC. Entries are independent; they can be taken in any order.
 
-**Philosophy constraint on all remaining entries:** PGB is built on a shade-tree model of appearance (Rob Cook / RenderMan lineage). Looks are conceptual shaders; the Look system is where visual complexity is *meant* to accumulate. Refactors that pull logic *out* of Looks into generic coordinators, reducers, or command pipelines should be rejected by default — that's the move that was rejected in #40 and reframed in #2. Deepen existing modules instead of introducing coordinator layers around them.
+**All six original clusters are now complete:** #1 (PR #41), #2 (PR #43), #3 (PR #45), #4 (PR #50), #5 (PR #54), #6 (PR #48).
+
+This document captured one architectural-friction walk; future walks should produce new documents (e.g., `code-architecture-improvements-2.md`) rather than appending here, so each walk's framing stays anchored to the codebase as it existed at the time of the walk.
+
+## Patterns worth carrying forward
+
+Six landed refactors give us enough signal to name what worked:
+
+- **Deepening, not decomposition.** Every entry asked "what knowledge does the outside have to hold?" and pushed it into the module. Circular refs (#1), cleanup bookkeeping (#1), emphasis-vs-absence branching (#1), state-aware Z-offset (#1), widget activation routing (#2), per-service traversals over the dataset (#3), the annotation render catch-all (#4), the PCA chart god-singleton (#6), and the geometry/raycast/uniform/Z tangle (#5) all became *single-module* concerns. The smell to watch for is *negotiation* between modules over a shared concept; deepen the module that owns the concept rather than building a coordinator over it.
+- **Reject coordinator/reducer/command-bus inversions.** They land easily because they look clean on paper, but they pull shader-parameter authority out of Looks and invert the shade-tree model. The hexagonal-core RFC for #1 was rejected for this reason; #2 was reframed for the same reason. Whenever a proposal wants to make Looks *passive recipients* of a generic dispatch layer, that's the wrong direction.
+- **Three competing interfaces in parallel beats one careful design.** #5 and #6 both ran 3+ parallel design agents under different constraints (minimal interface / maximum flexibility / common-case-optimal). The winning design was usually the minimal one with one or two cherry-picks from a flexible alternative. The exercise is cheap and consistently surfaces the speculative-generality trap.
+- **Stage long refactors as characterize → split → confirm.** #4 and #6 used 4–7 independently committable phases, each bug-for-bug identical to the previous one except for explicitly-scoped fixes. This kept review surface small and made `git bisect` useful when something broke.
+- **Re-walk the cluster against current code before filing.** Entry #5's original framing was partially stale by the time it was picked up — PR #41 had already deleted the state-aware Z-offset machinery. Reframing happened before issue filing. A doc entry is a snapshot; verify before acting.
+- **Visual verification is a first-class test channel.** Tests + typecheck don't catch a stale-uniform regression a human eye catches in two seconds. Every graphics-touching refactor closed with an explicit visual sanity pass before merge.
+
+## Philosophy constraint (preserved for future walks)
+
+PGB is built on a shade-tree model of appearance (Rob Cook / RenderMan lineage). Looks are conceptual shaders; the Look system is where visual complexity is *meant* to accumulate. Refactors that pull logic *out* of Looks into generic coordinators, reducers, or command pipelines should be rejected by default — that's the move that was rejected in #40 and reframed in #2. Deepen existing modules instead of introducing coordinator layers around them.

@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import LineFactory from './lineFactory.js';
+import { buildNodeRibbonGeometry } from './ribbonNode.ts';
 import {prettyPrint} from "./utils/utils.js"
 
 class GeometryFactory {
 
     static EDGE_LINE_Z_OFFSET = -12;
-    static NODE_LINE_Z_OFFSET = -8;
 
     constructor(genomicService) {
         this.genomicService = genomicService;
@@ -65,7 +65,7 @@ class GeometryFactory {
             const spline = this.splines.get(nodeName);
             if (!spline) continue;
 
-            const geometry = LineFactory.createNodeRibbonGeometry(spline, GeometryFactory.NODE_LINE_Z_OFFSET);
+            const geometry = buildNodeRibbonGeometry(spline);
 
             const payload =
                 {

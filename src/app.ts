@@ -6,7 +6,7 @@ import RayCastService from "./raycastService.js"
 import {loadPath} from './utils/utils.js'
 import eventBus from './utils/eventBus.ts';
 import { globals } from "./main.js"
-import lineMaterialResolutionService from "./lineMaterialResolutionService.js"
+import { tickRibbonResolution, clearRibbonRegistry } from "./ribbonNode.ts"
 import materialService from './materialService.js'
 import { assemblyMetadataService } from "./assemblyMetadataService.ts"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
@@ -138,7 +138,7 @@ class App {
 
     animate(): void {
 
-        lineMaterialResolutionService.update(this.cameraManager.camera, this.container)
+        tickRibbonResolution({ camera: this.cameraManager.camera, container: this.container })
 
         this.mapControl.update()
 
@@ -404,7 +404,7 @@ class App {
 
         this.geometryManager.clear()
 
-        lineMaterialResolutionService.clear()
+        clearRibbonRegistry()
 
         materialService.clear()
 

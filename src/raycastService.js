@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import RibbonLine from "./ribbonLine.js"
+import RibbonNode from "./ribbonNode.ts"
 import {globals} from "./main.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 import {getComplementaryThreeJSColor} from "./utils/color/color.js"
@@ -271,7 +271,7 @@ class RayCastService {
         // Only node lines support parametric mapping; edges use basic hit info
         if (type === 'node') {
             try {
-                const processed = RibbonLine.getParameter(intersection);
+                const processed = RibbonNode.getParameter(intersection);
                 const line = hitObject;
                 const t = processed.t;
                 const pointOnLine = line.getPoint(t, 'world');
