@@ -17,10 +17,20 @@
 #
 # Usage:
 #   conda activate bigbed
-#   ./scripts/batch-gff3-to-bigbed.sh                   # default 12-assembly subset
+#   ./scripts/batch-gff3-to-bigbed.sh                      # default 12-assembly subset, serial
 #   ./scripts/batch-gff3-to-bigbed.sh --samples HG00097,HG00099
 #   ./scripts/batch-gff3-to-bigbed.sh --first-n 5
 #   ./scripts/batch-gff3-to-bigbed.sh --all
+#   ./scripts/batch-gff3-to-bigbed.sh --all --jobs 4       # 4 workers in parallel
+#
+# Parallelism notes (see --jobs N):
+#   - 4–8 is the practical range on a modern laptop.
+#   - Each in-flight conversion holds ~1–2 GB of transient disk under
+#     data/genomes/ until gff3-to-bigbed.sh cleans up at its end.
+#   - Each `sort` uses a few hundred MB of RAM; size --jobs accordingly.
+#   - With --jobs >1, per-assembly verbose output goes to
+#     data/genomes/logs/<stem>.log; the main stdout gets one line per result
+#     ([OK] or [FAIL]), followed by a final success/failure summary.
 #
 # ============================================================================
 
@@ -30,6 +40,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ROOT="$(dirname "$SCRIPT_DIR")"
 CSV="$APP_ROOT/notes/genomics/custom-assemblies/hprc-annotations.csv"
 GENOMES_DIR="$APP_ROOT/data/genomes"
+LOGS_DIR="$GENOMES_DIR/logs"
 S3_BUCKET="s3://pgb-bigbed"
 
 # Default 12-assembly subset (6 samples × 2 haplotypes)
@@ -40,14 +51,21 @@ DEFAULT_SAMPLES="HG00097,HG00099,HG00126,HG00128,HG00133,HG00140"
 SAMPLES="$DEFAULT_SAMPLES"
 FIRST_N=""
 ALL=""
+JOBS=1
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --samples) SAMPLES="$2"; shift 2 ;;
         --first-n) FIRST_N="$2"; SAMPLES=""; shift 2 ;;
         --all)     ALL="1"; SAMPLES=""; shift ;;
+        --jobs)    JOBS="$2"; shift 2 ;;
         *)         echo "Unknown option: $1"; exit 1 ;;
     esac
 done
+
+if ! [[ "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Error: --jobs must be a positive integer (got: $JOBS)"
+    exit 1
+fi
 
 # --- Check prerequisites ----------------------------------------------------
 
@@ -61,6 +79,20 @@ done
 if [ ! -f "$CSV" ]; then
     echo "Error: CSV not found at $CSV"
     exit 1
+fi
+
+mkdir -p "$GENOMES_DIR" "$LOGS_DIR"
+
+# --- Pre-fetch bigGenePred.as once ------------------------------------------
+# gff3-to-bigbed.sh lazily downloads this to $GENOMES_DIR/bigGenePred.as on
+# first use. With --jobs >1, every worker would race on that download/write,
+# so we fetch it up-front before the fan-out.
+
+AS_FILE="$GENOMES_DIR/bigGenePred.as"
+if [ ! -f "$AS_FILE" ]; then
+    echo "Pre-fetching bigGenePred.as ..."
+    curl -fsSL -o "$AS_FILE" \
+        "https://genome.ucsc.edu/goldenPath/help/examples/bigGenePred.as"
 fi
 
 # --- Select entries from the CSV --------------------------------------------
@@ -115,7 +147,6 @@ if [ -z "$ENTRIES" ]; then
 fi
 
 TOTAL=$(echo "$ENTRIES" | wc -l | tr -d ' ')
-COUNT=0
 
 echo "============================================================"
 echo "Batch GFF3 → BigBed conversion"
@@ -124,37 +155,82 @@ echo "  CSV:    $CSV"
 echo "  Output: $GENOMES_DIR"
 echo "  Upload: $S3_BUCKET"
 echo "  Total:  $TOTAL assemblies"
+echo "  Jobs:   $JOBS"
+if [ "$JOBS" -gt 1 ]; then
+    echo "  Logs:   $LOGS_DIR/<stem>.log"
+fi
 echo ""
 
-while IFS=$'\t' read -r GFF3_URL FAI_URL; do
-    COUNT=$((COUNT + 1))
-    STEM=$(basename "$GFF3_URL" .gff3.gz)
-    STEM="${STEM%.sorted}"
+# --- Worker -----------------------------------------------------------------
+# Converts one assembly, uploads the result, emits a single summary line.
+# Always returns 0 so a failure does not kill xargs; failure is reported via
+# the [FAIL] token in the summary line.
 
-    echo ""
-    echo "============================================================"
-    echo "[$COUNT/$TOTAL] $STEM"
-    echo "============================================================"
+convert_one() {
+    local gff3_url="$1" fai_url="$2"
+    local stem log bb renamed
+    stem="$(basename "$gff3_url" .gff3.gz)"
+    stem="${stem%.sorted}"
+    log="$LOGS_DIR/${stem}.log"
+    bb="$GENOMES_DIR/${stem}.bb"
+    renamed="$GENOMES_DIR/${stem}_bigGenePred.bb"
 
-    "$SCRIPT_DIR/gff3-to-bigbed.sh" "$GFF3_URL" "$FAI_URL"
-
-    BB_FILE="$GENOMES_DIR/${STEM}.bb"
-    RENAMED_BB="$GENOMES_DIR/${STEM}_bigGenePred.bb"
-    if [ -f "$BB_FILE" ]; then
-        mv "$BB_FILE" "$RENAMED_BB"
+    {
+        echo "=== $stem ==="
+        echo "GFF3: $gff3_url"
+        echo "FAI:  $fai_url"
         echo ""
-        echo "Uploading $(basename "$RENAMED_BB") to $S3_BUCKET ..."
-        aws s3 cp "$RENAMED_BB" "$S3_BUCKET/$(basename "$RENAMED_BB")"
-        echo "  Done."
-    else
-        echo "ERROR: Expected $BB_FILE not found — skipping upload."
-    fi
+    } > "$log"
 
-done <<< "$ENTRIES"
+    if "$SCRIPT_DIR/gff3-to-bigbed.sh" "$gff3_url" "$fai_url" >> "$log" 2>&1 \
+       && [ -f "$bb" ] \
+       && mv "$bb" "$renamed" \
+       && aws s3 cp "$renamed" "$S3_BUCKET/$(basename "$renamed")" >> "$log" 2>&1
+    then
+        echo "[OK]   $stem"
+    else
+        echo "[FAIL] $stem  (see $log)"
+    fi
+    return 0
+}
+export -f convert_one
+export SCRIPT_DIR GENOMES_DIR LOGS_DIR S3_BUCKET
+
+# --- Fan out through xargs -P -----------------------------------------------
+# Serial path (JOBS=1) also flows through xargs for consistency; the only
+# difference vs the old serial loop is log-file redirection, which makes
+# parallel and serial behave identically from the user's perspective.
+
+RESULTS_FILE="$(mktemp -t bigbed-batch-XXXXXX)"
+trap 'rm -f "$RESULTS_FILE"' EXIT
+
+# xargs -n 2 takes two whitespace-separated tokens (GFF3 URL + FAI URL) per
+# invocation. The entries are tab/newline delimited but xargs splits on any
+# whitespace, which is fine since the URLs themselves contain no spaces.
+# `tee` prints results live while we also capture them for the summary.
+echo "$ENTRIES" \
+    | xargs -n 2 -P "$JOBS" bash -c 'convert_one "$@"' _ \
+    | tee "$RESULTS_FILE"
+
+# --- Summary ----------------------------------------------------------------
+
+OK_COUNT=$(grep -c '^\[OK\] '   "$RESULTS_FILE" || true)
+FAIL_COUNT=$(grep -c '^\[FAIL\] ' "$RESULTS_FILE" || true)
 
 echo ""
 echo "============================================================"
-echo "Batch complete! $COUNT/$TOTAL assemblies processed."
+echo "Batch complete: $OK_COUNT ok, $FAIL_COUNT failed, $TOTAL total."
 echo "============================================================"
+
+if [ "$FAIL_COUNT" -gt 0 ]; then
+    echo ""
+    echo "Failed assemblies:"
+    grep '^\[FAIL\] ' "$RESULTS_FILE" | sed 's/^/  /'
+    echo ""
+    echo "Re-run just the failures with:"
+    echo "  ./scripts/batch-gff3-to-bigbed.sh --samples <comma-separated-sample-ids>"
+    exit 1
+fi
+
 echo ""
 echo "Verify with: aws s3 ls $S3_BUCKET/"
