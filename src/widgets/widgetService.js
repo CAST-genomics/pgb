@@ -56,11 +56,14 @@ class WidgetService {
 
         event.stopPropagation();
 
-        // Hide and reset other widgets when switching to assembly
+        // Hide and reset other widgets when switching to assembly.
+        // pcaWidget.reset() must run before hideCard() so the graph leaves
+        // emphasis state before absence is released — otherwise the
+        // deemphasized-remainder painted during emphasis is never restored.
         this.populationWidget.hideCard();
         this.populationWidget.reset();
-        this.pcaWidget.hideCard();
         this.pcaWidget.reset();
+        this.pcaWidget.hideCard();
 
         if (this.activeButton === this.assemblyButton) {
             console.log('hide widget - assembly')
@@ -80,11 +83,12 @@ class WidgetService {
 
         event.stopPropagation();
 
-        // Hide and reset other widgets when switching to population
+        // Hide and reset other widgets when switching to population.
+        // pcaWidget.reset() must run before hideCard() (see onAssemblyButtonClick).
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
-        this.pcaWidget.hideCard();
         this.pcaWidget.reset();
+        this.pcaWidget.hideCard();
 
         if (this.activeButton === this.populationButton) {
             console.log('hide widget - population')
@@ -122,8 +126,9 @@ class WidgetService {
 
         if (this.activeButton === this.pcaButton) {
             console.log('hide widget - PCA')
-            this.pcaWidget.hideCard();
+            // reset() before hideCard(): see onAssemblyButtonClick for rationale.
             this.pcaWidget.reset();
+            this.pcaWidget.hideCard();
             this.setActiveButton(null);
         } else {
             console.log('show widget - PCA')
