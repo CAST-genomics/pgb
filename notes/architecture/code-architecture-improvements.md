@@ -87,22 +87,33 @@ See also: [annotation-track-interaction.md](./annotation-track-interaction.md) f
 
 ---
 
-## 5. RibbonLine raycast + material/Z-offset split
+## 5. RibbonLine raycast + material lifecycle
 
 **Files:**
 - `src/ribbonLine.js`
 - `src/looks/look.ts`
 - `src/lineMaterialResolutionService.js` (~52 lines)
-- `src/geometryFactory.*`
+- `src/lineFactory.js`
+- `src/geometryFactory.js`
 
-**Cluster / concept co-owned:** the geometric and visual identity of a ribbon node (raycast hit-testing, shader uniforms, Z-offset, material lifecycle).
+**Cluster / concept co-owned:** the geometric and visual identity of a ribbon node — raycast hit-testing, the shader's `halfWidth` uniform, the static node-vs-edge Z layering constant, and material registration/disposal.
 
-**Why the seams are awkward:**
-- `RibbonLine.raycast()` samples the spline 48+ times per pointer move and is tightly bound to the shader's `halfWidth` uniform — but that uniform is managed by `lineMaterialResolutionService`.
-- Z-offset logic split between `GeometryFactory.NODE_LINE_Z_OFFSET` / `NODE_LINE_DEEMPHASIS_Z_OFFSET` constants and Look's `getZOffset()` override.
-- Material cache in Look is cleared at disposal, but there's no way to verify all materials are unregistered from the resolution service.
+**Status note (post-PR #41):** the original framing of this entry called out "Z-offset logic split between `GeometryFactory` constants and Look's `getZOffset()` override." That split no longer exists. PR #41 deleted `NODE_LINE_DEEMPHASIS_Z_OFFSET`, `Look.getZOffset()`, and `Look.updateGeometryPositions()` and replaced state-aware Z-offset with a `mesh.renderOrder` integer per emphasis state (`src/looks/look.ts:371`). The Z-offset story is now much narrower than the doc originally described, and the entry is reframed below.
 
-**Test surface that would shrink:** pointer-hit tests can run without the resolution service; disposal-leak invariants become assertable.
+**Why the seams are awkward (current state):**
+
+1. **Raycast ↔ shader-uniform coupling.** `RibbonLine.raycast()` samples the spline 48+ times per pointer move (coarse-to-fine) and decides hit/miss using a halfWidth threshold. The actual `halfWidth` uniform is managed per-frame by `lineMaterialResolutionService` — it converts a constant pixel width (`Look.NODE_LINE_WIDTH_PIXELS`) into world units based on the current camera. Hit-testing geometry depends on a service whose job is per-frame shader-uniform maintenance. To exercise raycast under test you have to spin up the resolution service.
+
+2. **Z-offset duplication across geometry, userData, and raycast.** `GeometryFactory.NODE_LINE_Z_OFFSET = -8` is baked into vertex positions by `LineFactory.createNodeRibbonGeometry` (`src/lineFactory.js:61, 73`), then echoed into `mesh.userData.zOffset` by `Look.createNodeMesh` (`src/looks/look.ts:101`), and finally read back by `RibbonLine.raycast` to set `_splinePoint.z` so spline-proximity hit-testing matches geometry (`src/ribbonLine.js:131, 177`). The same number is written into three places per node; if any one drifts, raycast silently misaligns from the visible ribbon. The constant itself is fine — the duplication is the smell.
+
+3. **Vestigial `Look.zOffset` field.** `look.ts:34, 48` declare and assign a `zOffset` instance field from config. Nothing reads it. Dead code left over from #41's deletion pass; should be removed.
+
+4. **Material-cache disposal is unverifiable.** `Look.dispose()` walks `materialCache` and calls `lineMaterialResolutionService.unregisterMaterial(...)` on each, then clears the cache. There's no assertion that the resolution service's internal registration set is actually empty afterward — a material registered outside the cache, or a cache entry overwritten without unregister, leaks silently. The service exposes no way to introspect its registered set.
+
+**Test surface that would shrink:**
+- Pointer-hit unit tests run against `RibbonLine` alone, without standing up `lineMaterialResolutionService` or a renderer.
+- A single source-of-truth for node Z makes "raycast Z matches geometry Z" a structural property, not a discipline.
+- Disposal-leak invariants become assertable (e.g., "after `look.dispose()`, resolution service has zero registered ribbon materials").
 
 ---
 

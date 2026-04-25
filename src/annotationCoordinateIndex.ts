@@ -1,4 +1,4 @@
-import RibbonLine from "./ribbonLine.js"
+import RibbonNode from "./ribbonNode.ts"
 
 // ---------- tiny helpers ----------
 
@@ -159,7 +159,7 @@ function makeNodeRecordMap(bpIndex: BpIndex): Map<string, NodeRecord> {
 }
 
 /**
- * Decide, per node, which endpoint of its RibbonLine is the entry (near left neighbor)
+ * Decide, per node, which endpoint of its RibbonNode is the entry (near left neighbor)
  * and which is the exit (near right neighbor). This makes mapping monotonic and visually correct
  * even when the line's internal parameterization runs the "wrong" way.
  */
@@ -168,8 +168,8 @@ function buildNodeEndpointMap(walkNodes: string[], sceneManager: any): Map<strin
     const map = new Map<string, Endpoint>();
 
     const nodeMeshGroup = sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
-    const endpoint = (id: string, t: number) => RibbonLine.getLine(id, nodeMeshGroup).getPoint(t, 'world');
-    const center   = (id: string)            => RibbonLine.getLine(id, nodeMeshGroup).getPoint(0.5, 'world');
+    const endpoint = (id: string, t: number) => RibbonNode.getLine(id, nodeMeshGroup).getPoint(t, 'world');
+    const center   = (id: string)            => RibbonNode.getLine(id, nodeMeshGroup).getPoint(0.5, 'world');
 
     for (let i = 0; i < walkNodes.length; i++) {
         const id = walkNodes[i];
@@ -243,14 +243,14 @@ function getLineXYZWithTrackBasepair(bp: number, bpIndex: BpIndex, endpointMap: 
     const t = entryT + u * (exitT - entryT);
 
     const nodeMeshGroup = sceneManager.getActiveScene().getObjectByName('NodeMeshGroup')
-    const line = RibbonLine.getLine(n.id, nodeMeshGroup);
+    const line = RibbonNode.getLine(n.id, nodeMeshGroup);
     const xyz  = line.getPoint(t, 'world')
 
     return { nodeId: n.id, t, xyz, u };
 }
 
 /**
- * Given a raycast on a RibbonLine (nodeId, tRaw from the line's arc-length
+ * Given a raycast on a RibbonNode (nodeId, tRaw from the line's arc-length
  * parameterization), convert to the oriented progress u via (entryT, exitT),
  * then map to track bp.
  */

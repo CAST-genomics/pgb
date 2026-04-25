@@ -1,7 +1,5 @@
 import * as THREE from 'three'
-import lineMaterialResolutionService from "../lineMaterialResolutionService.js"
-import GeometryFactory from "../geometryFactory.js"
-import RibbonLine from "../ribbonLine.js"
+import RibbonNode from "../ribbonNode.ts"
 import RibbonMaterialFactory from "../ribbonMaterialFactory.js"
 import materialService, {arrowMaterialFactory} from "../materialService.js"
 import {rubinColorsHexStrings} from "../utils/color/color.js"
@@ -23,7 +21,7 @@ class Look {
     static DEFAULT_EDGE_COLOR = rubinColorsHexStrings.get('rubinGray')
 
     // Apparent line width in screen pixels (constant regardless of zoom).
-    // Converted to world units per frame by lineMaterialResolutionService.
+    // Converted to world units per frame by tickRibbonResolution() in ribbonNode.ts.
     static NODE_LINE_WIDTH_PIXELS = 2*2;
 
     name: string
@@ -31,7 +29,6 @@ class Look {
     geometryManager: any
     assemblyWidget: any
     activeScene: any
-    zOffset: number
     isActive: boolean
     materialCache: Map<string, any>
     emphasisStates: Map<string, string>
@@ -44,8 +41,6 @@ class Look {
         this.geometryManager = config.geometryManager
         this.assemblyWidget = config.assemblyWidget; // Access to assembly widget for selected assembly info
         this.activeScene = null;
-
-        this.zOffset = config.zOffset || 0;
 
         this.isActive = false; // Track if this look is currently active
 
@@ -91,15 +86,11 @@ class Look {
 
         const material = this.getNodeRibbonMaterial(nodeName)
 
-        const mesh = new RibbonLine(geometry, material)
+        const mesh = RibbonNode.create(geometry, spline, material)
 
-        mesh.userData = {
-            nodeName,
-            geometryKey: `node:${nodeName}`,
-            type: 'node',
-            spline,
-            zOffset: GeometryFactory.NODE_LINE_Z_OFFSET,
-        }
+        mesh.userData.nodeName = nodeName
+        mesh.userData.geometryKey = `node:${nodeName}`
+        mesh.userData.type = 'node'
 
         return mesh
     }
@@ -115,7 +106,6 @@ class Look {
         }
 
         const material = RibbonMaterialFactory.createMaterial(Look.DEFAULT_NODE_COLOR)
-        lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
         return material
@@ -140,7 +130,6 @@ class Look {
         }
 
         const material = RibbonMaterialFactory.createMaterial(colorToUse)
-        lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
         return material
@@ -158,7 +147,6 @@ class Look {
         }
 
         const material = RibbonMaterialFactory.createMaterial(color)
-        lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
         return material
@@ -175,7 +163,6 @@ class Look {
         }
 
         const material = RibbonMaterialFactory.createMaterial(Look.NODE_ABSENCE_COLOR)
-        lineMaterialResolutionService.registerRibbonMaterial(material)
         this.materialCache.set(cacheKey, material)
 
         return material
@@ -273,15 +260,9 @@ class Look {
 
         this.deactivate(); // Ensure we unsubscribe before disposing
 
-        // Unregister all cached materials from the resolution service
-        for (const material of this.materialCache.values()) {
-            lineMaterialResolutionService.unregisterMaterial(material);
-        }
-
-        // Clear the material cache
-        console.log(`${ this.constructor.name } dispose.  material cache pre ${ this.materialCache.size }`)
+        // Material registration is owned by RibbonNode now; nodes get
+        // unregistered via clearRibbonRegistry() at dataset-reload time.
         this.materialCache.clear()
-        console.log(`${ this.constructor.name } dispose.  material cache post ${ this.materialCache.size }`)
     }
 
     /**
