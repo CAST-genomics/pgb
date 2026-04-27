@@ -92,6 +92,7 @@ class WidgetService {
 
         if (this.activeButton === this.populationButton) {
             console.log('hide widget - population')
+            this.populationWidget.reset();
             this.populationWidget.hideCard();
             this.setActiveButton(null);
         } else {

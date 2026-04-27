@@ -206,6 +206,15 @@ class PopulationOnlyWidget {
     }
 
     reset(): void {
+        if (this.selectedPopulation) {
+            const deselectedPopulation = this.selectedPopulation;
+            globals.widgetService.activateLook('nodeEmphasisScene');
+            eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
+        } else if (this.selectedSuperpopulation) {
+            const deselectedSuperpopulation = this.selectedSuperpopulation;
+            globals.widgetService.activateLook('nodeEmphasisScene');
+            eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
+        }
         this.clearAllSelections();
     }
 
