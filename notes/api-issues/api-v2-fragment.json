@@ -1,0 +1,26 @@
+"metadata": [
+  {
+    "sequence_id": "CM089203.1",
+    "path_strand": "+",
+    "node_strand": ">",
+    "start": 25000872,
+    "end": 25036770,
+    "pclai": [
+      {
+        "coordinates": [
+          -1.743,
+          0.207
+        ],
+        "RGB": [
+          0,
+          232,
+          179
+        ],
+        "start": 25000872,
+        "end": 25036770,
+        "percentage": 1
+      }
+    ],
+    "take": "yes"
+  }
+]
