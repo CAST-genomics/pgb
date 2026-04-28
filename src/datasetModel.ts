@@ -1,14 +1,23 @@
 /**
  * datasetModel.ts — Canonical domain model for PGB datasets.
  *
- * Raw JSON from CiCi's API (v1 or v2) is normalized into this shape by
+ * Raw JSON from CiCi's API (v1, v2, or v3) is normalized into this shape by
  * datasetParser.ts.  Every downstream consumer receives a DatasetModel
  * instead of raw JSON.
  */
 
 // ── Format version ──────────────────────────────────────────────────
 
-export type FormatVersion = 'v1' | 'v2';
+export type FormatVersion = 'v1' | 'v2' | 'v3';
+
+// ── PCLAI coordinate systems ────────────────────────────────────────
+//
+// v3 datasets carry two coordinate systems per node, `hg38` and `asm`.
+// v1/v2 datasets are tagged `hg38` (single-system).
+
+export type PclaiCoordSystem = 'hg38' | 'asm';
+
+export const PCLAI_COORD_SYSTEMS: ReadonlyArray<PclaiCoordSystem> = ['hg38', 'asm'];
 
 // ── Domain interfaces ───────────────────────────────────────────────
 
@@ -17,7 +26,8 @@ export interface PclaiEntry {
     rgb: [number, number, number];
     start: number | null;
     end: number | null;
-    percentage: number;
+    percentage: number | null;
+    confidenceScore: string | null;
 }
 
 export interface AssemblyEntry {
@@ -42,18 +52,20 @@ export interface NodeModel {
     assemblies: AssemblyEntry[];
     duplicatedAssemblies: AssemblyEntry[];
     assemblyMetadata: AssemblyMetadata | null;
-    pclaiCoordinates: Map<string, PclaiEntry[]>;
+    pclaiCoordinatesBySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>;
     pclaiAveRgb: [number, number, number] | null;
     ogdfCoordinates: Array<{ x: number; y: number }>;
     defaultRange: string | null;
 }
 
+export interface PclaiBoundingBox {
+    x: { min: number; max: number; centroid: number };
+    y: { min: number; max: number; centroid: number };
+}
+
 export interface DatasetIndex {
-    pclaiBoundingBox: {
-        x: { min: number; max: number; centroid: number };
-        y: { min: number; max: number; centroid: number };
-    } | null;
-    pclaiCoordinateKeys: Set<string>;
+    pclaiBoundingBoxBySystem: Map<PclaiCoordSystem, PclaiBoundingBox>;
+    pclaiCoordinateKeysBySystem: Map<PclaiCoordSystem, Set<string>>;
     pclaiAbsentNodes: Set<string>;
     assemblyTotals: { totalAssemblies: number };
     hasPclaiData: boolean;

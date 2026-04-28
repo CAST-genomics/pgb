@@ -16,6 +16,10 @@ import HeatmapLook from "./looks/heatmapLook.ts"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import mountAnnotationTrack from "./mountAnnotationTrack.ts"
+import { mountPrintPanel } from "./widgets/printPanel.ts"
+import { downloadBlob, timestampedFilename } from "./utils/downloadBlob.ts"
+
+const EXPORT_SCALE = 8
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
@@ -93,6 +97,27 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     // Initialize locus input from URL parameters and/or configuration
     await globals.locusInput.initializeFromConfig(appConfig)
+
+    mountPrintPanel([
+        {
+            id: 'annotation-track',
+            label: `Export Annotation Track (PNG, ${EXPORT_SCALE}×)`,
+            run: async () => {
+                const blob = await globals.annotationTrack.exportToPng(EXPORT_SCALE)
+                downloadBlob(blob, timestampedFilename('annotation-track', 'png'))
+            },
+        },
+        {
+            id: 'pangenome-graph',
+            label: `Export Pangenome Graph (PNG, ${EXPORT_SCALE}×)`,
+            run: async () => { throw new Error('Not implemented yet') },
+        },
+        {
+            id: 'pca-chart',
+            label: 'Export PCA Chart (SVG)',
+            run: async () => { throw new Error('Not implemented yet') },
+        },
+    ])
 
 })
 

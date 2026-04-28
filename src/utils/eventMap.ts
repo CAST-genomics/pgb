@@ -21,4 +21,5 @@ export interface EventMap {
     'lineIntersection':           { t: number; nodeName: string; nodeLine: Object3DLike };
     'clearIntersection':          Record<string, never>;
     'datasetLoaded':              { dataset: DatasetModel };
+    'pclai-system-changed':       { system: 'hg38' | 'asm' };
 }

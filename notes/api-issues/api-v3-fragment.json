@@ -1,0 +1,36 @@
+"metadata": [
+  {
+    "sequence_id": "CM089203.1",
+    "path_strand": "+",
+    "node_strand": ">",
+    "start": 25000872,
+    "end": 25036770,
+    "pclai_hg38": {
+      "pclai_coord_system": "assembly",
+      "coordinates": [
+        -1.746,
+        0.197
+      ],
+      "RGB": [
+        0,
+        232,
+        179
+      ],
+      "confidence_score": "998"
+    },
+    "pclai_asm": {
+      "pclai_coord_system": "GRCh38",
+      "coordinates": [
+        -1.746,
+        0.197
+      ],
+      "RGB": [
+        0,
+        232,
+        179
+      ],
+      "confidence_score": "998"
+    },
+    "take": "yes"
+  }
+]
