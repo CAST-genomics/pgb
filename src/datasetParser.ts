@@ -1,16 +1,19 @@
 /**
  * datasetParser.ts — Single parse point for PGB datasets.
  *
- * Accepts raw JSON (v1 or v2), detects the format, validates required
+ * Accepts raw JSON (v1, v2, or v3), detects the format, validates required
  * fields, and returns a normalised DatasetModel that every downstream
  * consumer can rely on.
  */
 
 import {
     DatasetParseError,
+    PCLAI_COORD_SYSTEMS,
     type FormatVersion,
+    type PclaiCoordSystem,
     type DatasetModel,
     type DatasetIndex,
+    type PclaiBoundingBox,
     type AssemblyEntry,
     type PclaiEntry,
     type AssemblyMetadata,
@@ -32,6 +35,7 @@ export function parseDataset(json: unknown): DatasetModel {
     switch (version) {
         case 'v1': return normalizeV1(raw);
         case 'v2': return normalizeV2(raw);
+        case 'v3': return normalizeV3(raw);
         default:   throw new DatasetParseError(`Unknown format version: ${version}`);
     }
 }
@@ -39,14 +43,15 @@ export function parseDataset(json: unknown): DatasetModel {
 // ── Format detection ─────────────────────────────────────────────────
 
 function detectFormat(json: Record<string, unknown>): FormatVersion {
-    // v2 signals: queried_locus / actual_locus, or top-level assembly object
-    if (json.queried_locus || json.actual_locus) return 'v2';
+    // v2/v3 share top-level shape (queried_locus / actual_locus or top-level
+    // assembly object). Disambiguate by inspecting metadata entries: v3
+    // replaces `pclai` array with `pclai_hg38` / `pclai_asm` siblings.
+    const looksLikeV2OrV3 =
+        json.queried_locus || json.actual_locus ||
+        (json.assembly && !Array.isArray(json.assembly) && typeof json.assembly === 'object');
 
-    // v2 also has top-level assembly as an object (not array)
-    if (json.assembly && !Array.isArray(json.assembly) && typeof json.assembly === 'object') {
-        // But be careful: v1 nodes also have an assembly *array* inside each node.
-        // The top-level assembly in v2 is keyed by "name:hap" strings.
-        return 'v2';
+    if (looksLikeV2OrV3) {
+        return detectV2OrV3(json);
     }
 
     // v1 signals: locus is a plain string, node entries have pclai_coordinates dict
@@ -56,6 +61,60 @@ function detectFormat(json: Record<string, unknown>): FormatVersion {
     if (json.node && typeof json.node === 'object') return 'v1';
 
     throw new DatasetParseError('Unable to detect dataset format version');
+}
+
+/**
+ * Walk node metadata entries to decide v2 vs v3. Looking at one entry can
+ * mis-detect (e.g. a `take === 'no'` entry with neither pclai field). Scan
+ * until we find a definitive signal.
+ */
+function detectV2OrV3(json: Record<string, unknown>): FormatVersion {
+    const nodeBag = json.node as Record<string, Record<string, unknown>> | undefined;
+    if (!nodeBag) return 'v2';
+
+    let sawV2Pclai = false;
+    let sawV3Pclai = false;
+
+    for (const node of Object.values(nodeBag)) {
+        const groups = [
+            ...((node.assembly as Array<Record<string, unknown>>) || []),
+            ...((node.duplicated_assembly as Array<Record<string, unknown>>) || []),
+        ];
+        for (const asm of groups) {
+            const metas = (asm.metadata as Array<Record<string, unknown>>) || [];
+            for (const meta of metas) {
+                if (meta.pclai_hg38 || meta.pclai_asm) sawV3Pclai = true;
+                if (Array.isArray(meta.pclai)) sawV2Pclai = true;
+                if (sawV3Pclai) return 'v3';
+            }
+        }
+    }
+
+    if (sawV3Pclai) return 'v3';
+    if (sawV2Pclai) return 'v2';
+
+    // No PCLAI signal anywhere — default to v2 (compatible top-level shape).
+    return 'v2';
+}
+
+// ── Per-system PCLAI map helpers ─────────────────────────────────────
+
+function emptyPclaiBySystem(): Map<PclaiCoordSystem, Map<string, PclaiEntry[]>> {
+    const m = new Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>();
+    for (const sys of PCLAI_COORD_SYSTEMS) m.set(sys, new Map());
+    return m;
+}
+
+function pushPclaiEntry(
+    bySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
+    system: PclaiCoordSystem,
+    coordKey: string,
+    entry: PclaiEntry,
+): void {
+    const sysMap = bySystem.get(system)!;
+    const existing = sysMap.get(coordKey);
+    if (existing) existing.push(entry);
+    else sysMap.set(coordKey, [entry]);
 }
 
 // ── V1 normalizer ────────────────────────────────────────────────────
@@ -96,20 +155,22 @@ function normalizeV1(json: Record<string, unknown>): DatasetModel {
             take:         null,
         }));
 
-        // PCLAI coordinates — v1 has a flat dict keyed by "assembly#haplotype"
-        const pclaiCoordinates = new Map<string, PclaiEntry[]>();
+        // PCLAI coordinates — v1 has a flat dict keyed by "assembly#haplotype",
+        // tagged into the 'hg38' system slot.
+        const pclaiCoordinatesBySystem = emptyPclaiBySystem();
         const pclaiDict = raw.pclai_coordinates as Record<string, Record<string, unknown>> | undefined;
         if (pclaiDict && typeof pclaiDict === 'object') {
             for (const [coordKey, entry] of Object.entries(pclaiDict)) {
                 if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2
                     || !Array.isArray(entry.RGB) || entry.RGB.length !== 3) continue;
-                pclaiCoordinates.set(coordKey, [{
-                    coordinates: entry.coordinates as [number, number],
-                    rgb:         entry.RGB as [number, number, number],
-                    start:       null,
-                    end:         null,
-                    percentage:  1,
-                }]);
+                pushPclaiEntry(pclaiCoordinatesBySystem, 'hg38', coordKey, {
+                    coordinates:     entry.coordinates as [number, number],
+                    rgb:             entry.RGB as [number, number, number],
+                    start:           null,
+                    end:             null,
+                    percentage:      1,
+                    confidenceScore: null,
+                });
             }
         }
 
@@ -140,7 +201,7 @@ function normalizeV1(json: Record<string, unknown>): DatasetModel {
             assemblies,
             duplicatedAssemblies: [],
             assemblyMetadata,
-            pclaiCoordinates,
+            pclaiCoordinatesBySystem,
             pclaiAveRgb,
             ogdfCoordinates,
             defaultRange,
@@ -171,10 +232,10 @@ function normalizeV1(json: Record<string, unknown>): DatasetModel {
     };
 }
 
-// ── V2 normalizer ────────────────────────────────────────────────────
+// ── V2 / V3 shared helpers ───────────────────────────────────────────
 
 /**
- * Strip genome prefix from v2 locus strings.
+ * Strip genome prefix from v2/v3 locus strings.
  * "GRCh38#0#chr1:25240000-25460000" → "chr1:25240000-25460000"
  */
 function stripGenomePrefix(locusString: string | null | undefined): string | null {
@@ -182,19 +243,25 @@ function stripGenomePrefix(locusString: string | null | undefined): string | nul
     const hashIdx = locusString.lastIndexOf('#');
     if (hashIdx >= 0) {
         const tail = locusString.slice(hashIdx + 1);
-        // Only strip if what remains looks like a locus (starts with chr)
         if (/^chr/i.test(tail)) return tail;
     }
     return locusString;
 }
 
+type MetaPclaiExtractor = (
+    meta: Record<string, unknown>,
+    coordKey: string,
+    bySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
+) => void;
+
 /**
- * Normalize a v2 assembly array (either assembly or duplicated_assembly)
- * into flat AssemblyEntry[] and extract PCLAI coordinates.
+ * Walk v2/v3 assembly groups, building flat AssemblyEntry[] and dispatching
+ * each metadata entry to the format-specific PCLAI extractor.
  */
-function normalizeV2Assemblies(
+function normalizeV2StyleAssemblies(
     assemblyArray: Array<Record<string, unknown>>,
-    pclaiCoordinates: Map<string, PclaiEntry[]>,
+    pclaiBySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
+    extractPclai: MetaPclaiExtractor,
 ): AssemblyEntry[] {
     const entries: AssemblyEntry[] = [];
 
@@ -216,25 +283,8 @@ function normalizeV2Assemblies(
                 take:        (meta.take as string) ?? null,
             });
 
-            // Extract PCLAI windows from this metadata entry
-            const rawPclai = meta.pclai;
-            if (Array.isArray(rawPclai) && rawPclai.length > 0 && meta.take === 'yes') {
-                const windows: PclaiEntry[] = (rawPclai as Array<Record<string, unknown>>)
-                    .filter(w => Array.isArray(w.coordinates) && w.coordinates.length === 2
-                        && Array.isArray(w.RGB) && w.RGB.length === 3)
-                    .map(w => ({
-                        coordinates: w.coordinates as [number, number],
-                        rgb:         w.RGB as [number, number, number],
-                        start:       (w.start as number) ?? null,
-                        end:         (w.end as number) ?? null,
-                        percentage:  (w.percentage as number) ?? 1,
-                    }));
-
-                if (windows.length > 0) {
-                    // Accumulate — a coordKey may appear in multiple metadata entries
-                    const existing = pclaiCoordinates.get(coordKey) || [];
-                    pclaiCoordinates.set(coordKey, existing.concat(windows));
-                }
+            if (meta.take === 'yes') {
+                extractPclai(meta, coordKey, pclaiBySystem);
             }
         }
     }
@@ -242,7 +292,73 @@ function normalizeV2Assemblies(
     return entries;
 }
 
+// ── V2 normalizer ────────────────────────────────────────────────────
+
+function extractV2Pclai(
+    meta: Record<string, unknown>,
+    coordKey: string,
+    bySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
+): void {
+    const rawPclai = meta.pclai;
+    if (!Array.isArray(rawPclai) || rawPclai.length === 0) return;
+
+    for (const w of rawPclai as Array<Record<string, unknown>>) {
+        if (!Array.isArray(w.coordinates) || w.coordinates.length !== 2) continue;
+        if (!Array.isArray(w.RGB) || w.RGB.length !== 3) continue;
+        pushPclaiEntry(bySystem, 'hg38', coordKey, {
+            coordinates:     w.coordinates as [number, number],
+            rgb:             w.RGB as [number, number, number],
+            start:           (w.start as number) ?? null,
+            end:             (w.end as number) ?? null,
+            percentage:      (w.percentage as number) ?? 1,
+            confidenceScore: null,
+        });
+    }
+}
+
 function normalizeV2(json: Record<string, unknown>): DatasetModel {
+    return normalizeV2Style(json, 'v2', extractV2Pclai);
+}
+
+// ── V3 normalizer ────────────────────────────────────────────────────
+
+function extractV3Pclai(
+    meta: Record<string, unknown>,
+    coordKey: string,
+    bySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
+): void {
+    for (const system of PCLAI_COORD_SYSTEMS) {
+        const raw = meta[`pclai_${system}`] as Record<string, unknown> | undefined;
+        if (!raw) continue;
+        if (!Array.isArray(raw.coordinates) || raw.coordinates.length !== 2) continue;
+        if (!Array.isArray(raw.RGB) || raw.RGB.length !== 3) continue;
+
+        const confRaw = raw.confidence_score;
+        const confidenceScore =
+            confRaw === undefined || confRaw === null ? null : (String(confRaw) || null);
+
+        pushPclaiEntry(bySystem, system, coordKey, {
+            coordinates:     raw.coordinates as [number, number],
+            rgb:             raw.RGB as [number, number, number],
+            start:           null,
+            end:             null,
+            percentage:      null,
+            confidenceScore,
+        });
+    }
+}
+
+function normalizeV3(json: Record<string, unknown>): DatasetModel {
+    return normalizeV2Style(json, 'v3', extractV3Pclai);
+}
+
+// ── V2/V3 shared body ────────────────────────────────────────────────
+
+function normalizeV2Style(
+    json: Record<string, unknown>,
+    formatVersion: FormatVersion,
+    extractPclai: MetaPclaiExtractor,
+): DatasetModel {
 
     // -- Sequences --
     const sequences = new Map<string, string>();
@@ -277,16 +393,15 @@ function normalizeV2(json: Record<string, unknown>): DatasetModel {
             ? rawLength
             : (sequences.get(name)?.length ?? 0);
 
-        // PCLAI coordinates are extracted during assembly normalization
-        const pclaiCoordinates = new Map<string, PclaiEntry[]>();
+        const pclaiCoordinatesBySystem = emptyPclaiBySystem();
 
         // Assemblies (unique mappings)
         const rawAssembly = (raw.assembly || []) as Array<Record<string, unknown>>;
-        const assemblies = normalizeV2Assemblies(rawAssembly, pclaiCoordinates);
+        const assemblies = normalizeV2StyleAssemblies(rawAssembly, pclaiCoordinatesBySystem, extractPclai);
 
         // Duplicated assemblies (multi-region mappings)
         const rawDup = (raw.duplicated_assembly || []) as Array<Record<string, unknown>>;
-        const duplicatedAssemblies = normalizeV2Assemblies(rawDup, pclaiCoordinates);
+        const duplicatedAssemblies = normalizeV2StyleAssemblies(rawDup, pclaiCoordinatesBySystem, extractPclai);
 
         // Assembly metadata — pass through as-is (unchanged between formats)
         const rawMeta = raw.assembly_metadata as Record<string, unknown> | undefined;
@@ -308,8 +423,8 @@ function normalizeV2(json: Record<string, unknown>): DatasetModel {
             assemblies,
             duplicatedAssemblies,
             assemblyMetadata,
-            pclaiCoordinates,
-            pclaiAveRgb: null,  // v2 does not have pclai_ave_rgb at node level
+            pclaiCoordinatesBySystem,
+            pclaiAveRgb: null,
             ogdfCoordinates,
             defaultRange,
         });
@@ -322,14 +437,14 @@ function normalizeV2(json: Record<string, unknown>): DatasetModel {
         endingNode:   String(e.ending_node),
     }));
 
-    // -- Locus (strip genome prefix so downstream parseLocusString works) --
+    // -- Locus --
     const locus = {
         queriedLocus: stripGenomePrefix(json.queried_locus as string | null),
         actualLocus:  stripGenomePrefix(json.actual_locus as string | null),
     };
 
     return {
-        formatVersion: 'v2',
+        formatVersion,
         locus,
         assemblyIndex: assemblyIndex.size > 0 ? assemblyIndex : null,
         sequences,
@@ -342,16 +457,29 @@ function normalizeV2(json: Record<string, unknown>): DatasetModel {
 // ── Dataset index ────────────────────────────────────────────────────
 
 function buildDatasetIndex(nodes: Map<string, NodeModel>): DatasetIndex {
-    const pclaiCoordinateKeys = new Set<string>();
-    const pclaiAbsentNodes = new Set<string>();
-    const nodesWithPclai = new Set<string>();
-
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
-    let sawAnyCoord = false;
+    const pclaiCoordinateKeysBySystem = new Map<PclaiCoordSystem, Set<string>>();
+    const pclaiBoundingBoxBySystem    = new Map<PclaiCoordSystem, PclaiBoundingBox>();
+    const pclaiAbsentNodes            = new Set<string>();
+    const nodesWithPclai              = new Set<string>();
 
     let totalAssemblies = 0;
     let hasAssemblyMetadata = false;
+
+    // Per-system accumulators
+    const sysState = new Map<PclaiCoordSystem, {
+        keys: Set<string>;
+        minX: number; maxX: number;
+        minY: number; maxY: number;
+        sawAny: boolean;
+    }>();
+    for (const sys of PCLAI_COORD_SYSTEMS) {
+        sysState.set(sys, {
+            keys: new Set<string>(),
+            minX: Infinity, maxX: -Infinity,
+            minY: Infinity, maxY: -Infinity,
+            sawAny: false,
+        });
+    }
 
     for (const [nodeId, node] of nodes) {
         if (node.assemblyMetadata) {
@@ -360,44 +488,47 @@ function buildDatasetIndex(nodes: Map<string, NodeModel>): DatasetIndex {
         }
 
         let nodeHasValidPclai = false;
-        for (const [coordKey, entries] of node.pclaiCoordinates) {
-            const entry = entries[0];
-            if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2
-                || !Array.isArray(entry.rgb) || entry.rgb.length !== 3) continue;
+        for (const [system, sysMap] of node.pclaiCoordinatesBySystem) {
+            const state = sysState.get(system)!;
+            for (const [coordKey, entries] of sysMap) {
+                const entry = entries[0];
+                if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2
+                    || !Array.isArray(entry.rgb) || entry.rgb.length !== 3) continue;
 
-            pclaiCoordinateKeys.add(coordKey);
-            nodeHasValidPclai = true;
+                state.keys.add(coordKey);
+                nodeHasValidPclai = true;
 
-            const [x, y] = entry.coordinates;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-            sawAnyCoord = true;
+                const [x, y] = entry.coordinates;
+                if (x < state.minX) state.minX = x;
+                if (x > state.maxX) state.maxX = x;
+                if (y < state.minY) state.minY = y;
+                if (y > state.maxY) state.maxY = y;
+                state.sawAny = true;
+            }
         }
 
-        if (nodeHasValidPclai) {
-            nodesWithPclai.add(nodeId);
+        if (nodeHasValidPclai) nodesWithPclai.add(nodeId);
+    }
+
+    for (const [system, state] of sysState) {
+        pclaiCoordinateKeysBySystem.set(system, state.keys);
+        if (state.sawAny) {
+            pclaiBoundingBoxBySystem.set(system, {
+                x: { min: state.minX, max: state.maxX, centroid: (state.minX + state.maxX) / 2 },
+                y: { min: state.minY, max: state.maxY, centroid: (state.minY + state.maxY) / 2 },
+            });
         }
     }
 
-    // absentNodes are only meaningful when the dataset has *any* pclai data
     if (nodesWithPclai.size > 0) {
         for (const nodeId of nodes.keys()) {
             if (!nodesWithPclai.has(nodeId)) pclaiAbsentNodes.add(nodeId);
         }
     }
 
-    const pclaiBoundingBox = sawAnyCoord
-        ? {
-            x: { min: minX, max: maxX, centroid: (minX + maxX) / 2 },
-            y: { min: minY, max: maxY, centroid: (minY + maxY) / 2 },
-        }
-        : null;
-
     return {
-        pclaiBoundingBox,
-        pclaiCoordinateKeys,
+        pclaiBoundingBoxBySystem,
+        pclaiCoordinateKeysBySystem,
         pclaiAbsentNodes,
         assemblyTotals: { totalAssemblies },
         hasPclaiData: nodesWithPclai.size > 0,
