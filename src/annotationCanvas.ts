@@ -153,6 +153,39 @@ class AnnotationCanvas {
         if (this.overlayConfig) this.renderBpBandOverlay(this.overlayConfig)
     }
 
+    /**
+     * Render the current gene-annotation draw config to an offscreen canvas at
+     * `scale`× the on-screen pixel density and return a PNG Blob. Logical
+     * width/height (i.e. the bp-to-pixel mapping) is preserved; only the
+     * backing-store resolution increases.
+     */
+    async exportToPng(scale: number): Promise<Blob> {
+        if (!this.hasGeneAnnotations || !this.featureRenderer || !this.drawConfig) {
+            throw new Error('No annotation data available to export')
+        }
+        const { bpStart, bpEnd, features, bpPerPixel, viewportWidth, pixelWidth, pixelHeight } = this.drawConfig
+
+        const offscreen = document.createElement('canvas')
+        offscreen.width = Math.round(pixelWidth * scale)
+        offscreen.height = Math.round(pixelHeight * scale)
+        const ctx = offscreen.getContext('2d')!
+        ctx.scale(scale, scale)
+
+        this.featureRenderer.draw({
+            container: this.container,
+            bpStart, bpEnd, features,
+            context: ctx,
+            bpPerPixel, viewportWidth, pixelWidth, pixelHeight,
+        })
+
+        return new Promise<Blob>((resolve, reject) => {
+            offscreen.toBlob(
+                blob => blob ? resolve(blob) : reject(new Error('toBlob returned null')),
+                'image/png'
+            )
+        })
+    }
+
     clear(): void {
         this.drawConfig = undefined
         const { width, height } = this.container.getBoundingClientRect();

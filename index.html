@@ -34,6 +34,12 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <div id="pgb-locus-input-container" class="mx-auto w-50"></div>
         <div class="navbar-nav ms-auto d-flex align-items-center" style="gap: 2rem; margin-left: 2rem;">
+          <div class="dropdown" id="pgb-print-panel">
+            <button type="button" class="btn btn-link p-0" id="pgb-print-button" data-bs-toggle="dropdown" aria-expanded="false" title="Export high-resolution figures">
+              <i class="bi bi-printer"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" id="pgb-print-menu" aria-labelledby="pgb-print-button"></ul>
+          </div>
           <button type="button" class="btn btn-link" id="info-button" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-content="Loading..." data-bs-title="Release Information">
             <i class="bi bi-info-circle"></i>
           </button>

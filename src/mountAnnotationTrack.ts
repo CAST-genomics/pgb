@@ -4,6 +4,7 @@ import AnnotationTrackController from "./annotationTrackController.ts"
 
 interface AnnotationTrackHandle {
     readonly coordinateIndex: AnnotationCoordinateIndex
+    exportToPng(scale: number): Promise<Blob>
     clear(): void
     dispose(): void
 }
@@ -27,6 +28,8 @@ function mountAnnotationTrack(deps: {
 
     return {
         get coordinateIndex() { return coordinateIndex },
+
+        exportToPng(scale: number) { return canvas.exportToPng(scale) },
 
         clear() {
             coordinateIndex.clear()
