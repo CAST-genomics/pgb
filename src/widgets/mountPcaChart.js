@@ -162,6 +162,7 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
         reset,
         initializeGlobalBoundingBox,
         get selectedCoordinateKey() { return controller.selectedCoordinateKey },
+        exportToSvg: () => chart.exportToSvg(),
         destroy,
     }
 }

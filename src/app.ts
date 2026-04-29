@@ -109,6 +109,45 @@ class App {
 
         // Setup drag and drop functionality
         this.setupDragAndDrop()
+
+    }
+
+    exportPangenomeGraphToPng(scale: number = 4): Promise<Blob> {
+        const prevPixelRatio = this.renderer.getPixelRatio()
+        const prevSize = new THREE.Vector2()
+        this.renderer.getSize(prevSize)
+        const prevW = prevSize.x
+        const prevH = prevSize.y
+
+        this.stopAnimation()
+
+        const outW = Math.round(prevW * scale)
+        const outH = Math.round(prevH * scale)
+
+        const restore = () => {
+            this.renderer.setPixelRatio(prevPixelRatio)
+            this.renderer.setSize(prevW, prevH, false)
+            this.startAnimation()
+        }
+
+        return new Promise<Blob>((resolve, reject) => {
+            try {
+                this.renderer.setPixelRatio(1)
+                this.renderer.setSize(outW, outH, false)
+
+                const scene = this.sceneManager.getActiveScene()
+                this.renderer.render(scene, this.cameraManager.camera)
+
+                this.renderer.domElement.toBlob((blob: Blob | null) => {
+                    restore()
+                    if (blob) resolve(blob)
+                    else reject(new Error('toBlob returned null'))
+                }, 'image/png')
+            } catch (err) {
+                restore()
+                reject(err)
+            }
+        })
     }
 
     setActiveScene(sceneName: string, doPauseAnimation: boolean = false): void {

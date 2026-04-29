@@ -12,6 +12,8 @@
  * bootstrap.
  */
 
+const PCA_BACKGROUND_URL = '/images/pca_background_576_flipped.png'
+
 const OPACITY_FULL = 1.0
 const OPACITY_REFERENCE_DEEMPHASIZED = 0.25
 const OPACITY_DATASET_DEEMPHASIZED = 0.05
@@ -221,6 +223,50 @@ export class PcaChart {
         })
     }
 
+    /**
+     * Export the chart as an SVG Blob. Walks the live DOM so the export reflects
+     * exactly what's on screen (idle state — hovered dots still emit at their
+     * stored `originalColor`). Background PNG is inlined as a base64 data URI
+     * so the file is self-contained.
+     *
+     * @returns {Promise<Blob>}
+     */
+    async exportToSvg() {
+        if (!this.coordinateSpace) throw new Error('PcaChart: cannot export before coordinate space is initialized')
+
+        const w = this.coordinateSpace.surfaceWidth
+        const h = this.coordinateSpace.surfaceHeight
+
+        const backgroundDataUri = await fetchBackgroundAsDataUri(PCA_BACKGROUND_URL)
+
+        const parts = []
+        parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`)
+        parts.push(`<image href="${backgroundDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`)
+
+        for (const axisEl of [this.horizontalAxis, this.verticalAxis]) {
+            if (!axisEl) continue
+            const x = parseFloat(axisEl.style.left) || 0
+            const y = parseFloat(axisEl.style.top) || 0
+            const aw = parseFloat(axisEl.style.width) || 0
+            const ah = parseFloat(axisEl.style.height) || 0
+            parts.push(`<line x1="${x}" y1="${y}" x2="${x + aw}" y2="${y + ah}" stroke="#000" stroke-width="1"/>`)
+        }
+
+        if (this.referenceDotsContainer) {
+            for (const dot of this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot')) {
+                parts.push(circleSvgFromDot(dot))
+            }
+        }
+        if (this.chartSurface) {
+            for (const dot of this.chartSurface.querySelectorAll('.pca-chart__dot')) {
+                parts.push(circleSvgFromDot(dot))
+            }
+        }
+
+        parts.push('</svg>')
+        return new Blob([parts.join('')], { type: 'image/svg+xml' })
+    }
+
     _handleDotLeave(dot, dotSizePx, centerX, centerY) {
         const halfDotSize = dotSizePx / 2
         dot.style.width = `${dotSizePx}px`
@@ -237,6 +283,34 @@ export class PcaChart {
             d.style.opacity = OPACITY_FULL
         })
     }
+}
+
+function circleSvgFromDot(dotEl) {
+    const left = parseFloat(dotEl.style.left) || 0
+    const top = parseFloat(dotEl.style.top) || 0
+    const width = parseFloat(dotEl.style.width) || 0
+    const height = parseFloat(dotEl.style.height) || 0
+    const cx = left + width / 2
+    const cy = top + height / 2
+    const r = Math.min(width, height) / 2
+    const fill = dotEl.dataset.originalColor || dotEl.style.backgroundColor || '#000'
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${escapeXmlAttr(fill)}"/>`
+}
+
+function escapeXmlAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
+}
+
+async function fetchBackgroundAsDataUri(url) {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`PcaChart export: failed to fetch background ${url}: ${response.status}`)
+    const blob = await response.blob()
+    return await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => reject(reader.error)
+        reader.readAsDataURL(blob)
+    })
 }
 
 function rgbToGrayscale(rgbString) {
