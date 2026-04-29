@@ -13,6 +13,7 @@ class RendererFactory {
                 antialias: true,
                 alpha: true,
                 powerPreference: 'high-performance',
+                preserveDrawingBuffer: true,
                 canvas
             }
         const renderer = new THREE.WebGLRenderer(webGLRenderConfig)

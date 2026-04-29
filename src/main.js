@@ -19,7 +19,7 @@ import mountAnnotationTrack from "./mountAnnotationTrack.ts"
 import { mountPrintPanel } from "./widgets/printPanel.ts"
 import { downloadBlob, timestampedFilename } from "./utils/downloadBlob.ts"
 
-const EXPORT_SCALE = 8
+const EXPORT_SCALE = 4
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
 import {showRelease} from "./utils/utils.js"
@@ -110,7 +110,10 @@ document.addEventListener("DOMContentLoaded", async (event) => {
         {
             id: 'pangenome-graph',
             label: `Export Pangenome Graph (PNG, ${EXPORT_SCALE}×)`,
-            run: async () => { throw new Error('Not implemented yet') },
+            run: async () => {
+                const blob = await globals.app.exportPangenomeGraphToPng(EXPORT_SCALE)
+                downloadBlob(blob, timestampedFilename('pangenome-graph', 'png'))
+            },
         },
         {
             id: 'pca-chart',
