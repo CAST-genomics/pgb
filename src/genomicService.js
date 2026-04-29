@@ -154,6 +154,15 @@ class GenomicService {
         return `${a.assemblyName}#${a.haplotype}#${a.sequenceId}`
     }
 
+    resolveAssemblyKey(loose) {
+        if (this.assemblySet.has(loose)) return loose;
+        const prefix = `${loose}#`;
+        for (const key of this.assemblySet) {
+            if (key.startsWith(prefix)) return key;
+        }
+        return undefined;
+    }
+
     getSequenceId(assemblyKey) {
         const sequenceId = assemblyKey.split('#')[2] ?? '';
         const isReference = (sequenceId === this.locus.chr);
