@@ -118,7 +118,10 @@ document.addEventListener("DOMContentLoaded", async (event) => {
         {
             id: 'pca-chart',
             label: 'Export PCA Chart (SVG)',
-            run: async () => { throw new Error('Not implemented yet') },
+            run: async () => {
+                const blob = await globals.app.pcaChart.exportToSvg()
+                downloadBlob(blob, timestampedFilename('pca-chart', 'svg'))
+            },
         },
     ])
 
