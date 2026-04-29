@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
     const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
-    const pcaWidget = new PCAWidget(document.getElementById('pgb-pca-card'), geometryManager);
+    const pcaWidget = new PCAWidget(document.getElementById('pgb-pca-card'), genomicService, geometryManager);
     globals.widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget, pcaWidget);
 
     // Node Emphasis Look & Scene

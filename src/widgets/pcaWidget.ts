@@ -11,16 +11,18 @@ class PCAWidget {
 
     pcaWidgetContainer: HTMLElement
     draggable: any
+    genomicService: any
     geometryManager: any
     listGroup: HTMLElement
     searchInput: HTMLInputElement | null
     selectedCoordinateKey: string | null
     allListItems: Map<string, HTMLElement>
 
-    constructor(pcaWidgetContainer: HTMLElement, geometryManager: any) {
+    constructor(pcaWidgetContainer: HTMLElement, genomicService: any, geometryManager: any) {
 
         this.pcaWidgetContainer = pcaWidgetContainer;
         this.draggable = new Draggable(this.pcaWidgetContainer);
+        this.genomicService = genomicService
         this.geometryManager = geometryManager
 
         this.listGroup = this.pcaWidgetContainer.querySelector('.list-group')!;
@@ -139,7 +141,8 @@ class PCAWidget {
     emphasizeAssembly(coordinateKey: string): void {
         const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
         const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, nodeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
+        const resolvedAssemblyKey = this.genomicService.resolveAssemblyKey(coordinateKey)
+        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, resolvedAssemblyKey, nodeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
     }
 
     initializeSearchInput(): void {

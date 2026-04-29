@@ -30,6 +30,8 @@ class AnnotationTrackController {
 
     private emphasizeUnsub!: () => void
     private normalUnsub!: () => void
+    private pcaEmphasizeUnsub!: () => void
+    private pcaDeselectUnsub!: () => void
     private lineIntersectionUnsub!: () => void
     private clearIntersectionUnsub!: () => void
 
@@ -62,6 +64,8 @@ class AnnotationTrackController {
 
         this.emphasizeUnsub = eventBus.subscribe('assembly:emphasis', this.handleAssemblyEmphasis.bind(this))
         this.normalUnsub = eventBus.subscribe('assembly:normal', this.handleAssemblyNormal.bind(this))
+        this.pcaEmphasizeUnsub = eventBus.subscribe('pcaWidget:emphasis', this.handleAssemblyEmphasis.bind(this))
+        this.pcaDeselectUnsub = eventBus.subscribe('pcaWidget:deselect', this.handleAssemblyNormal.bind(this))
         this.lineIntersectionUnsub = eventBus.subscribe('lineIntersection', this.handleLineIntersection.bind(this))
         this.clearIntersectionUnsub = eventBus.subscribe('clearIntersection', this.handleClearIntersection.bind(this))
     }
@@ -69,6 +73,8 @@ class AnnotationTrackController {
     destroy(): void {
         this.emphasizeUnsub()
         this.normalUnsub()
+        this.pcaEmphasizeUnsub()
+        this.pcaDeselectUnsub()
         this.lineIntersectionUnsub()
         this.clearIntersectionUnsub()
 
@@ -79,13 +85,19 @@ class AnnotationTrackController {
 
     }
 
-    private async handleAssemblyEmphasis(data: { assembly: { name: string } }): Promise<void> {
+    private async handleAssemblyEmphasis(data: { assembly: { name: string }; resolvedAssemblyKey?: string }): Promise<void> {
 
-        const { assembly } = data
+        const { assembly, resolvedAssemblyKey } = data
 
-        this.assembly = assembly.name
+        this.assembly = resolvedAssemblyKey ?? assembly.name
 
-        const { spine } = this.genomicService.assemblyWalkMap.get(this.assembly).spineFeatures
+        const walkEntry = this.genomicService.assemblyWalkMap.get(this.assembly)
+        if (!walkEntry) {
+            // Producer (e.g. PCA widget) emphasized an assembly not walked in this locus.
+            // Leave any prior annotation track in place; clearing would create flicker on transient selections.
+            return
+        }
+        const { spine } = walkEntry.spineFeatures
 
         const { nodes, bpStart, bpEnd } = this.coordinateIndex.build(spine, this.sceneManager)
 
