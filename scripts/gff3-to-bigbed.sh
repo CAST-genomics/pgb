@@ -130,7 +130,10 @@ echo ""
 
 echo "Step 1/6: Downloading FASTA index and extracting chrom sizes ..."
 FAI_FILE="$GENOMES_DIR/${STEM}.fai"
-curl -# -L -o "$FAI_FILE" "$FAI_URL"
+# -f: fail on HTTP errors (otherwise S3 404 XML bodies get written to disk and
+#     cause cryptic downstream failures like 'bedToBigBed: invalid unsigned
+#     integer "version=\"1.0\""' when the XML is parsed as if it were FAI.)
+curl -fsSL -# -o "$FAI_FILE" "$FAI_URL"
 
 # .fai format: name \t length \t offset \t linebases \t linewidth
 # chrom.sizes needs: name \t length
@@ -145,7 +148,7 @@ echo "  Found $NCHROM chromosomes/contigs."
 echo ""
 echo "Step 2/6: Downloading GFF3 annotation ..."
 GFF3_GZ="$GENOMES_DIR/$GFF3_FNAME"
-curl -# -L -o "$GFF3_GZ" "$GFF3_URL"
+curl -fsSL -# -o "$GFF3_GZ" "$GFF3_URL"
 
 # Decompress if gzipped
 GFF3_PLAIN="${GFF3_GZ%.gz}"
@@ -188,7 +191,7 @@ BB_FILE="$GENOMES_DIR/${STEM}.bb"
 AS_FILE="$GENOMES_DIR/bigGenePred.as"
 if [ ! -f "$AS_FILE" ]; then
     echo "  Downloading bigGenePred.as AutoSQL schema ..."
-    curl -# -L -o "$AS_FILE" \
+    curl -fsSL -# -o "$AS_FILE" \
         "https://genome.ucsc.edu/goldenPath/help/examples/bigGenePred.as"
 fi
 
