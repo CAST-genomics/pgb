@@ -98,6 +98,11 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     // Initialize locus input from URL parameters and/or configuration
     await globals.locusInput.initializeFromConfig(appConfig)
 
+    const exportPcaChart = async () => {
+        const blob = await globals.app.pcaChart.exportToSvg()
+        downloadBlob(blob, timestampedFilename('pca-chart', 'svg'))
+    }
+
     mountPrintPanel([
         {
             id: 'annotation-track',
@@ -117,13 +122,25 @@ document.addEventListener("DOMContentLoaded", async (event) => {
         },
         {
             id: 'pca-chart',
-            label: 'Export PCA Chart (SVG)',
-            run: async () => {
-                const blob = await globals.app.pcaChart.exportToSvg()
-                downloadBlob(blob, timestampedFilename('pca-chart', 'svg'))
-            },
+            label: 'Export PCA Chart (SVG)  [shortcut: P]',
+            run: exportPcaChart,
         },
     ])
+
+    // Keyboard shortcut: pressing `p` exports the PCA chart in its current
+    // visual state. This is the only way to capture a graph-node-hover state,
+    // since moving the cursor to the print button cancels the hover.
+    window.addEventListener('keydown', (event) => {
+        if (event.key !== 'p' && event.key !== 'P') return
+        if (event.metaKey || event.ctrlKey || event.altKey) return
+        const target = event.target
+        if (target instanceof HTMLElement) {
+            const tag = target.tagName
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return
+        }
+        event.preventDefault()
+        exportPcaChart().catch(err => console.error('PCA chart export failed:', err))
+    })
 
 })
 

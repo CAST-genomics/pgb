@@ -211,7 +211,6 @@ function createChartDOM(containerId) {
         referenceContainer.className = 'pca-chart__reference-dots'
         surface.appendChild(referenceContainer)
     }
-    referenceContainer.style.opacity = '1'
 
     let horizontalAxis = document.getElementById('pca-chart-axis-horizontal')
     if (!horizontalAxis) {
