@@ -1,4 +1,5 @@
 // PCA Chart Styles
+@use 'appleCrayonColors' as crayonColors;
 
 // PCA Chart Button Styles
 #pca-chart-button {
@@ -43,7 +44,7 @@
   min-height: var(--pca-chart-header-height);
   max-height: var(--pca-chart-header-height);
   box-sizing: border-box; // Include padding in height calculation
-  background-color: rgba(0, 0, 0, 0.08); 
+  background-color: rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
 
@@ -78,7 +79,7 @@
 .pca-chart__footer {
   height: var(--pca-chart-header-height);
   box-sizing: border-box; // Include padding in height calculation
-  background-color: rgba(0, 0, 0, 0.08); 
+  background-color: rgba(0, 0, 0, 0.08);
   margin: 0; // Remove any default margins
   display: flex;
   align-items: center;
@@ -96,7 +97,7 @@
 
   // Applied when dataset dots are presented or a single dot is emphasized
   &--deemphasized {
-    opacity: 0.25;
+    opacity: 0.5;
     filter: grayscale(1);
   }
 }
@@ -110,23 +111,18 @@
 .pca-chart__dot {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid transparent;
-  pointer-events: auto;
+  pointer-events: none;
   z-index: 1;
-  opacity: 1;
-  transform-origin: center;
-  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
 
-  // Non-hovered peers when another dataset dot is hovered
-  &--deemphasized {
-    opacity: 0.05;
-    filter: grayscale(1);
-  }
-
-  // Currently-hovered dataset dot
-  &--hovered {
-    transform: scale(1.5);
-    z-index: 10;
+  // Applied to every rendered dataset dot. Dots only exist while in the
+  // emphasis state, so this is the hook for cranking up size, border, glow,
+  // etc. without affecting the reference layer.
+  &--emphasized {
+    border-color: crayonColors.$iron;
+    border-style: solid;
+    border-width: 0.5px;
+    transform: scale(2.5);
+    transform-origin: center;
   }
 }
 

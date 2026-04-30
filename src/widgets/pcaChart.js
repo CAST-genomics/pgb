@@ -3,7 +3,9 @@
  *
  * Owns the chart surface, axes, and reference-dot container. Renders dataset
  * dots and reference dots through an injected PcaCoordinateSpace. Handles
- * per-dot hover emphasis, reference-dot desaturation, and axis positioning.
+ * reference-dot desaturation and axis positioning. The chart is presentation-
+ * only — there are no user interactions on the chart itself; visual state is
+ * driven externally via `renderDots` / `clearChart`.
  *
  * Phase 3b of the PCA triangle refactor (issue #46) absorbs view concerns
  * that previously lived on pcaChartService. PcaChart knows nothing about
@@ -15,8 +17,7 @@
 const PCA_BACKGROUND_URL = '/images/pca_background_576_flipped.png'
 
 const REFERENCE_DOTS_DEEMPHASIZED_CLASS = 'pca-chart__reference-dots--deemphasized'
-const DOT_DEEMPHASIZED_CLASS = 'pca-chart__dot--deemphasized'
-const DOT_HOVERED_CLASS = 'pca-chart__dot--hovered'
+const DOT_EMPHASIZED_CLASS = 'pca-chart__dot--emphasized'
 
 export class PcaChart {
     /**
@@ -45,8 +46,7 @@ export class PcaChart {
 
     /**
      * Render dataset dots for a coordinate data map. Desaturates reference
-     * dots, clears existing dataset dots, then renders new ones with hover
-     * emphasis attached.
+     * dots, clears existing dataset dots, then renders new ones.
      *
      * @param {Map<string, {coordinates: [number, number], rgbString: string}>} coordinateDataMap
      */
@@ -62,15 +62,12 @@ export class PcaChart {
             const { left, top, size } = space.project(x, y)
 
             const dot = document.createElement('div')
-            dot.className = 'pca-chart__dot'
+            dot.className = `pca-chart__dot ${DOT_EMPHASIZED_CLASS}`
             dot.style.left = `${left}px`
             dot.style.top = `${top}px`
             dot.style.width = `${size}px`
             dot.style.height = `${size}px`
             dot.style.backgroundColor = coordinateData.rgbString
-
-            dot.addEventListener('mouseenter', () => this._handleDotHover(dot))
-            dot.addEventListener('mouseleave', () => this._handleDotLeave(dot))
 
             fragment.appendChild(dot)
         }
@@ -172,19 +169,6 @@ export class PcaChart {
         }
     }
 
-    // ── Dot hover (private) ─────────────────────────────────────────
-
-    _handleDotHover(hoveredDot) {
-        hoveredDot.classList.add(DOT_HOVERED_CLASS)
-
-        const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot')
-        allDots.forEach(dot => {
-            if (dot !== hoveredDot) {
-                dot.classList.add(DOT_DEEMPHASIZED_CLASS)
-            }
-        })
-    }
-
     /**
      * Export the chart as an SVG Blob. Walks the live DOM so the export reflects
      * exactly what's on screen at idle (hover scale and grayscale are CSS-only,
@@ -228,13 +212,6 @@ export class PcaChart {
 
         parts.push('</svg>')
         return new Blob([parts.join('')], { type: 'image/svg+xml' })
-    }
-
-    _handleDotLeave(dot) {
-        dot.classList.remove(DOT_HOVERED_CLASS)
-
-        const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot')
-        allDots.forEach(d => d.classList.remove(DOT_DEEMPHASIZED_CLASS))
     }
 }
 
