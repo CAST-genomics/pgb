@@ -23,6 +23,22 @@
 #   ./scripts/batch-gff3-to-bigbed.sh --all
 #   ./scripts/batch-gff3-to-bigbed.sh --all --jobs 4       # 4 workers in parallel
 #
+# Destination / credentials:
+#   --bucket  s3://NAME       Override the destination S3 bucket. Defaults to
+#                             s3://pgb-bigbed. Use this to target a different
+#                             AWS account's bucket (e.g. the UCSD-hosted
+#                             s3://pgb-browser-custom-annotations).
+#   --profile NAME            AWS CLI profile to use for the upload. Defaults
+#                             to the AWS_PROFILE env var (or "default" if
+#                             unset). Pair with --bucket when the destination
+#                             bucket lives in an account other than your
+#                             default profile's account.
+#
+#   Example (UCSD account via SSO profile):
+#     ./scripts/batch-gff3-to-bigbed.sh --all --jobs 4 \
+#         --bucket s3://pgb-browser-custom-annotations \
+#         --profile ucsd-pangenome
+#
 # Parallelism notes (see --jobs N):
 #   - 4–8 is the practical range on a modern laptop.
 #   - Each in-flight conversion holds ~1–2 GB of transient disk under
@@ -52,15 +68,24 @@ SAMPLES="$DEFAULT_SAMPLES"
 FIRST_N=""
 ALL=""
 JOBS=1
+PROFILE=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --samples) SAMPLES="$2"; shift 2 ;;
         --first-n) FIRST_N="$2"; SAMPLES=""; shift 2 ;;
         --all)     ALL="1"; SAMPLES=""; shift ;;
         --jobs)    JOBS="$2"; shift 2 ;;
+        --bucket)  S3_BUCKET="$2"; shift 2 ;;
+        --profile) PROFILE="$2"; shift 2 ;;
         *)         echo "Unknown option: $1"; exit 1 ;;
     esac
 done
+
+# --profile is plumbed to the AWS CLI via AWS_PROFILE so the worker function
+# (and any nested aws calls) inherit it without each command needing --profile.
+if [ -n "$PROFILE" ]; then
+    export AWS_PROFILE="$PROFILE"
+fi
 
 if ! [[ "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
     echo "Error: --jobs must be a positive integer (got: $JOBS)"
@@ -151,11 +176,12 @@ TOTAL=$(echo "$ENTRIES" | wc -l | tr -d ' ')
 echo "============================================================"
 echo "Batch GFF3 → BigBed conversion"
 echo "============================================================"
-echo "  CSV:    $CSV"
-echo "  Output: $GENOMES_DIR"
-echo "  Upload: $S3_BUCKET"
-echo "  Total:  $TOTAL assemblies"
-echo "  Jobs:   $JOBS"
+echo "  CSV:     $CSV"
+echo "  Output:  $GENOMES_DIR"
+echo "  Upload:  $S3_BUCKET"
+echo "  Profile: ${AWS_PROFILE:-<default>}"
+echo "  Total:   $TOTAL assemblies"
+echo "  Jobs:    $JOBS"
 if [ "$JOBS" -gt 1 ]; then
     echo "  Logs:   $LOGS_DIR/<stem>.log"
 fi

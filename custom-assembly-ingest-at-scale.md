@@ -1,8 +1,20 @@
 # Custom Assembly Ingest at Scale — Cost Analysis & Parallel Batch Design
 
 **Audience:** PGB collaborators.
-**Subject:** Hosting the full 462-assembly HPRC BigBed annotation set on `s3://pgb-bigbed`, and redesigning the ingest batch script to make that run practical.
-**Status:** Proposal + design. No production changes yet; current 12-assembly subset is unaffected.
+**Subject:** Hosting the full HPRC BigBed annotation set on a UCSD-hosted S3 bucket, and redesigning the ingest batch script to make that run practical.
+**Status:** Executed. Production set is **460 assemblies** in `s3://pgb-browser-custom-annotations` (UCSD AWS account, `us-west-2`). Original target was 462; HG06807 (mat + pat) excluded — see "Outcomes" below. Cost analysis below was computed for 462 and remains representative — the per-file numbers are unchanged.
+
+---
+
+## Outcomes — what actually shipped
+
+- **Bucket:** `s3://pgb-browser-custom-annotations` (new bucket in UCSD AWS account `849898819728`, `us-west-2`, public-read with CORS for browser Range fetches). Replaces the original plan to use `s3://pgb-bigbed` — that bucket lives in a different AWS account we don't control from this profile.
+- **Count:** 460 BigBed files, not 462.
+  - HG06807 mat + pat removed from `notes/genomics/custom-assemblies/hprc-annotations.csv`. HPRC has only published HG06807's `annotation/` and `alignments/` subdirectories under `release2/` — no FASTA, no `.fa.gz.fai`. Without the FAI we cannot produce chrom sizes for `bedToBigBed`.
+- **Ingest run:** `--all --jobs 4` against the 461-row CSV. First pass: 457 ok, 5 fail. Five failures broke down as 3 transient `curl: (35|56) Connection reset by peer` against HPRC S3, plus the 2 unrecoverable HG06807 entries. Re-running `--samples HG00639,HG01952,HG02132 --jobs 2` cleared the transient failures.
+- **Registry:** `public/custom-assemblies/custom-assemblies-460-ucsc-fasta-ucsd-bigbed.json` — same schema as the 12-entry file, with FASTAs still pointing at HPRC S3 (UCSC-team-hosted) and BigBeds pointing at the new UCSD bucket.
+- **Script hardening:** `gff3-to-bigbed.sh` curl calls now use `-fsSL` so HTTP errors fail loudly at download time. The original cryptic `bedToBigBed: invalid unsigned integer "version="1.0""` symptom for HG06807 was the result of an S3 404 XML body being silently written to disk in place of the FAI.
+- **Script flags:** `batch-gff3-to-bigbed.sh` gained `--bucket s3://NAME` and `--profile NAME` so the destination bucket and AWS CLI profile are no longer hard-coded; original defaults preserved.
 
 ---
 
@@ -127,10 +139,10 @@ PUTs for initial ingest: 462 × $0.005/1,000 ≈ $0.002. One-time, rounds to zer
 
 ### 1.7 Recommendations
 
-1. **Host all 462 BigBed files on `s3://pgb-bigbed`.** Trivial cost, bounded bandwidth, consistent with what's already deployed.
+1. **Host the BigBed files on `s3://pgb-browser-custom-annotations`** (UCSD account, `us-west-2`). Trivial cost, bounded bandwidth. Original plan was `s3://pgb-bigbed`; that bucket lives in a different AWS account we don't control.
 2. **Keep S3 Standard** — the tier savings don't justify the added latency and retrieval-fee complexity.
-3. **Ensure CORS and `Accept-Ranges: bytes` stay enabled on `pgb-bigbed`.** PGB's `BWSource` depends on both.
-4. **Parallelize the batch ingest script** (see Part 2) so the all-462 run finishes in ~1 hour instead of several.
+3. **Ensure CORS and `Accept-Ranges: bytes` stay enabled** on the new bucket. PGB's `BWSource` depends on both. (Configured at bucket creation; verify with `aws s3api get-bucket-cors --bucket pgb-browser-custom-annotations --profile ucsd-pangenome` if you suspect drift.)
+4. **Parallelize the batch ingest script** (see Part 2) so the all-460 run finishes in ~1 hour instead of several.
 5. **Monitor, don't pre-optimize.** If CloudWatch ever shows egress trending toward the 100 GB/month free-tier ceiling, revisit CloudFront. No reason to do it preemptively.
 
 ---
@@ -227,13 +239,15 @@ For a one-time 462-file batch, **none** of the following are warranted; flag for
 - Streaming pipelining between download and UCSC tool chain
 - Moving ingest into AWS (EC2 in `us-west-2` would make the HPRC S3 pull free and fast, but the cost case doesn't support it at this volume)
 
-### 2.7 Rollout
+### 2.7 Rollout — completed
 
-1. Create feature branch (`bigbed-ingest-parallelism`). ✅
-2. Implement `--jobs N` + pre-fetch + `xargs -P` fan-out as described.
-3. Smoke test with `--jobs 2 --samples HG00097` against the 12-file dataset.
-4. Full run with `--jobs 4 --all` once smoke test passes.
-5. Update `notes/genomics/custom-assemblies/custom-assembly-hosting.md` to describe the new flag and the 462-file production set.
+1. ✅ Feature branch `bigbed-ingest-parallelism`.
+2. ✅ `--jobs N` + pre-fetch + `xargs -P` fan-out implemented.
+3. ✅ Smoke test (`--jobs 2 --samples HG00097`) — 2/2 ok.
+4. ✅ Full run (`--all --jobs 4 --bucket s3://pgb-browser-custom-annotations --profile ucsd-pangenome`) — 460/462 ok after retry of 3 transient failures; HG06807 excluded.
+5. ✅ Added `--bucket` and `--profile` flags so the destination is not hard-coded.
+6. ✅ Hardened `gff3-to-bigbed.sh` curl calls with `-fsSL` to catch HTTP errors at download time.
+7. ✅ Generated `public/custom-assemblies/custom-assemblies-460-ucsc-fasta-ucsd-bigbed.json` registry.
 
 ---
 

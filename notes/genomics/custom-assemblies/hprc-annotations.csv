@@ -203,7 +203,6 @@ NA18959,1,NA18959_hap1_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPP/NA18959
 HG03239,2,HG03239_mat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG03239/assemblies/release2/annotation/cat/HG03239_mat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG01530,1,HG01530_hap1_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG01530/assemblies/release2/annotation/cat/HG01530_hap1_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG03486,1,HG03486_pat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC_PLUS/HG03486/assemblies/release2/annotation/cat/HG03486_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
-HG06807,1,HG06807_pat_v1,s3://human-pangenomics/working/HPRC/HG06807/assemblies/release2/annotation/cat/HG06807_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG02717,1,HG02717_pat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG02717/assemblies/release2/annotation/cat/HG02717_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG01071,1,HG01071_pat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG01071/assemblies/release2/annotation/cat/HG01071_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG01346,1,HG01346_pat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG01346/assemblies/release2/annotation/cat/HG01346_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
@@ -365,7 +364,6 @@ HG03583,2,HG03583_hap2_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG0358
 HG00735,2,HG00735_mat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG00735/assemblies/release2/annotation/cat/HG00735_mat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG02559,2,HG02559_mat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG02559/assemblies/release2/annotation/cat/HG02559_mat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG03874,2,HG03874_hap2_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG03874/assemblies/release2/annotation/cat/HG03874_hap2_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
-HG06807,2,HG06807_mat_v1,s3://human-pangenomics/working/HPRC/HG06807/assemblies/release2/annotation/cat/HG06807_mat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG03098,1,HG03098_pat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC_PLUS/HG03098/assemblies/release2/annotation/cat/HG03098_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 NA20799,2,NA20799_hap2_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/NA20799/assemblies/release2/annotation/cat/NA20799_hap2_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
 HG03579,1,HG03579_pat_hprc_r2_v1.0.1,s3://human-pangenomics/working/HPRC/HG03579/assemblies/release2/annotation/cat/HG03579_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz
