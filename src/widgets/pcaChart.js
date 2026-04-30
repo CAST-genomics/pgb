@@ -14,10 +14,9 @@
 
 const PCA_BACKGROUND_URL = '/images/pca_background_576_flipped.png'
 
-const OPACITY_FULL = 1.0
-const OPACITY_REFERENCE_DEEMPHASIZED = 0.25
-const OPACITY_DATASET_DEEMPHASIZED = 0.05
-const EMPHASIS_SIZE_MULTIPLIER = 1.5
+const REFERENCE_DOTS_DEEMPHASIZED_CLASS = 'pca-chart__reference-dots--deemphasized'
+const DOT_DEEMPHASIZED_CLASS = 'pca-chart__dot--deemphasized'
+const DOT_HOVERED_CLASS = 'pca-chart__dot--hovered'
 
 export class PcaChart {
     /**
@@ -61,24 +60,17 @@ export class PcaChart {
         for (const [, coordinateData] of coordinateDataMap) {
             const [x, y] = coordinateData.coordinates
             const { left, top, size } = space.project(x, y)
-            const centerX = left + size / 2
-            const centerY = top + size / 2
 
             const dot = document.createElement('div')
             dot.className = 'pca-chart__dot'
-            dot.style.position = 'absolute'
             dot.style.left = `${left}px`
             dot.style.top = `${top}px`
             dot.style.width = `${size}px`
             dot.style.height = `${size}px`
             dot.style.backgroundColor = coordinateData.rgbString
-            dot.style.borderRadius = '50%'
-            dot.style.border = '1px solid transparent'
-            dot.style.opacity = OPACITY_FULL
-            dot.dataset.originalColor = coordinateData.rgbString
 
-            dot.addEventListener('mouseenter', () => this._handleDotHover(dot, size, centerX, centerY))
-            dot.addEventListener('mouseleave', () => this._handleDotLeave(dot, size, centerX, centerY))
+            dot.addEventListener('mouseenter', () => this._handleDotHover(dot))
+            dot.addEventListener('mouseleave', () => this._handleDotLeave(dot))
 
             fragment.appendChild(dot)
         }
@@ -122,15 +114,11 @@ export class PcaChart {
 
             const dot = document.createElement('div')
             dot.className = 'pca-chart__reference-dot'
-            dot.style.position = 'absolute'
             dot.style.left = `${left}px`
             dot.style.top = `${top}px`
             dot.style.width = `${size}px`
             dot.style.height = `${size}px`
             dot.style.backgroundColor = color
-            dot.style.borderRadius = '50%'
-            dot.style.border = '1px solid transparent'
-            dot.dataset.originalColor = color
 
             fragment.appendChild(dot)
         }
@@ -140,27 +128,12 @@ export class PcaChart {
 
     deemphasizeReferenceDots() {
         if (!this.referenceDotsContainer) return
-
-        const referenceDots = this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot')
-        referenceDots.forEach(dot => {
-            if (!dot.dataset.originalColor) {
-                dot.dataset.originalColor = dot.style.backgroundColor
-            }
-            dot.style.backgroundColor = rgbToGrayscale(dot.dataset.originalColor)
-        })
-        this.referenceDotsContainer.style.opacity = OPACITY_REFERENCE_DEEMPHASIZED
+        this.referenceDotsContainer.classList.add(REFERENCE_DOTS_DEEMPHASIZED_CLASS)
     }
 
     restoreReferenceDots() {
         if (!this.referenceDotsContainer) return
-
-        const referenceDots = this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot')
-        referenceDots.forEach(dot => {
-            if (dot.dataset.originalColor) {
-                dot.style.backgroundColor = dot.dataset.originalColor
-            }
-        })
-        this.referenceDotsContainer.style.opacity = OPACITY_FULL
+        this.referenceDotsContainer.classList.remove(REFERENCE_DOTS_DEEMPHASIZED_CLASS)
     }
 
     // ── Axes ────────────────────────────────────────────────────────
@@ -201,33 +174,23 @@ export class PcaChart {
 
     // ── Dot hover (private) ─────────────────────────────────────────
 
-    _handleDotHover(hoveredDot, dotSizePx, centerX, centerY) {
-        const emphasizedSize = dotSizePx * EMPHASIS_SIZE_MULTIPLIER
-        const halfEmphasizedSize = emphasizedSize / 2
-
-        hoveredDot.style.width = `${emphasizedSize}px`
-        hoveredDot.style.height = `${emphasizedSize}px`
-        hoveredDot.style.zIndex = '10'
-        hoveredDot.style.left = `${centerX - halfEmphasizedSize}px`
-        hoveredDot.style.top = `${centerY - halfEmphasizedSize}px`
+    _handleDotHover(hoveredDot) {
+        hoveredDot.classList.add(DOT_HOVERED_CLASS)
 
         const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot')
         allDots.forEach(dot => {
             if (dot !== hoveredDot) {
-                if (!dot.dataset.originalColor) {
-                    dot.dataset.originalColor = dot.style.backgroundColor
-                }
-                dot.style.backgroundColor = rgbToGrayscale(dot.dataset.originalColor)
-                dot.style.opacity = OPACITY_DATASET_DEEMPHASIZED
+                dot.classList.add(DOT_DEEMPHASIZED_CLASS)
             }
         })
     }
 
     /**
      * Export the chart as an SVG Blob. Walks the live DOM so the export reflects
-     * exactly what's on screen (idle state — hovered dots still emit at their
-     * stored `originalColor`). Background PNG is inlined as a base64 data URI
-     * so the file is self-contained.
+     * exactly what's on screen at idle (hover scale and grayscale are CSS-only,
+     * so the inline geometry and backgroundColor we read here are always the
+     * idle values). Background PNG is inlined as a base64 data URI so the file
+     * is self-contained.
      *
      * @returns {Promise<Blob>}
      */
@@ -267,21 +230,11 @@ export class PcaChart {
         return new Blob([parts.join('')], { type: 'image/svg+xml' })
     }
 
-    _handleDotLeave(dot, dotSizePx, centerX, centerY) {
-        const halfDotSize = dotSizePx / 2
-        dot.style.width = `${dotSizePx}px`
-        dot.style.height = `${dotSizePx}px`
-        dot.style.zIndex = '1'
-        dot.style.left = `${centerX - halfDotSize}px`
-        dot.style.top = `${centerY - halfDotSize}px`
+    _handleDotLeave(dot) {
+        dot.classList.remove(DOT_HOVERED_CLASS)
 
         const allDots = this.chartSurface.querySelectorAll('.pca-chart__dot')
-        allDots.forEach(d => {
-            if (d.dataset.originalColor) {
-                d.style.backgroundColor = d.dataset.originalColor
-            }
-            d.style.opacity = OPACITY_FULL
-        })
+        allDots.forEach(d => d.classList.remove(DOT_DEEMPHASIZED_CLASS))
     }
 }
 
@@ -293,7 +246,7 @@ function circleSvgFromDot(dotEl) {
     const cx = left + width / 2
     const cy = top + height / 2
     const r = Math.min(width, height) / 2
-    const fill = dotEl.dataset.originalColor || dotEl.style.backgroundColor || '#000'
+    const fill = dotEl.style.backgroundColor || '#000'
     return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${escapeXmlAttr(fill)}"/>`
 }
 
@@ -313,12 +266,3 @@ async function fetchBackgroundAsDataUri(url) {
     })
 }
 
-function rgbToGrayscale(rgbString) {
-    const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
-    if (!match) return rgbString
-    const r = parseInt(match[1], 10)
-    const g = parseInt(match[2], 10)
-    const b = parseInt(match[3], 10)
-    const luminance = Math.round(0.299 * r + 0.587 * g + 0.114 * b)
-    return `rgb(${luminance}, ${luminance}, ${luminance})`
-}

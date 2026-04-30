@@ -92,11 +92,12 @@
   height: 100%; // Fill the entire chart surface
   pointer-events: none; // Make reference dots non-interactive (invisible to raycast)
   z-index: 1; // Behind dataset dots
-  transition: opacity 0.2s ease; // Smooth transition for deemphasis
+  transition: opacity 0.2s ease, filter 0.2s ease;
 
-  // Deemphasis state: reduce opacity when dataset dots are displayed
+  // Applied when dataset dots are presented or a single dot is emphasized
   &--deemphasized {
-    opacity: 0.25; // 25% opacity
+    opacity: 0.25;
+    filter: grayscale(1);
   }
 }
 
@@ -109,18 +110,23 @@
 .pca-chart__dot {
   position: absolute;
   border-radius: 50%;
+  border: 1px solid transparent;
   pointer-events: auto;
   z-index: 1;
-  transition: opacity 0.2s ease, width 0.2s ease, height 0.2s ease, left 0.2s ease, top 0.2s ease;
-  
-  // Reduced opacity state (applied via JavaScript when another dot is hovered)
+  opacity: 1;
+  transform-origin: center;
+  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+
+  // Non-hovered peers when another dataset dot is hovered
   &--deemphasized {
-    opacity: 0.1; // Reduced opacity for non-hovered dots
+    opacity: 0.05;
+    filter: grayscale(1);
   }
-  
-  // Hovered state (applied via JavaScript)
+
+  // Currently-hovered dataset dot
   &--hovered {
-    z-index: 10; // Bring hovered dot to front
+    transform: scale(1.5);
+    z-index: 10;
   }
 }
 
