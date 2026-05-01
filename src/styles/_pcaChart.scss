@@ -98,7 +98,11 @@
   // Applied when dataset dots are presented or a single dot is emphasized
   &--deemphasized {
     opacity: 0.5;
-    filter: grayscale(1);
+    .pca-chart__reference-dot {
+      // !important required because JS sets the per-dot original color
+      // inline in renderReferenceDots; this rule explicitly overrides it.
+      background-color: crayonColors.$aluminum !important;
+    }
   }
 }
 
@@ -121,7 +125,7 @@
     border-color: crayonColors.$iron;
     border-style: solid;
     border-width: 0.5px;
-    transform: scale(2.5);
+    transform: scale(2.0);
     transform-origin: center;
   }
 }
