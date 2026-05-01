@@ -56,6 +56,12 @@ To preview the production build locally:
 npm run preview
 ```
 
+## Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| `P` | Export the PCA chart as an SVG, capturing its current visual state. Use this to save a chart while hovering a graph node — moving the cursor to the print menu would otherwise cancel the hover. Ignored while typing in an input field, and when modifier keys are held (so `Cmd+P` still triggers the browser print dialog). |
+
 ## Project Structure
 
 - `src/` - Source code directory
