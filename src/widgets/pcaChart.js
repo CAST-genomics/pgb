@@ -170,11 +170,11 @@ export class PcaChart {
     }
 
     /**
-     * Export the chart as an SVG Blob. Walks the live DOM so the export reflects
-     * exactly what's on screen at idle (hover scale and grayscale are CSS-only,
-     * so the inline geometry and backgroundColor we read here are always the
-     * idle values). Background PNG is inlined as a base64 data URI so the file
-     * is self-contained.
+     * Export the chart as an SVG Blob. Reflects the chart's current visual
+     * state by reading the live computed styles, so CSS-driven modifiers
+     * (`--deemphasized` reference layer, `--emphasized` dataset dots) round
+     * trip into the SVG. Background PNG is inlined as a base64 data URI so
+     * the file is self-contained.
      *
      * @returns {Promise<Blob>}
      */
@@ -185,6 +185,17 @@ export class PcaChart {
         const h = this.coordinateSpace.surfaceHeight
 
         const backgroundDataUri = await fetchBackgroundAsDataUri(PCA_BACKGROUND_URL)
+
+        const referenceDeemphasized = !!this.referenceDotsContainer
+            && this.referenceDotsContainer.classList.contains(REFERENCE_DOTS_DEEMPHASIZED_CLASS)
+        const referenceOpacity = referenceDeemphasized
+            ? parseFloat(getComputedStyle(this.referenceDotsContainer).opacity) || 1
+            : 1
+
+        const datasetDots = this.chartSurface
+            ? Array.from(this.chartSurface.querySelectorAll('.pca-chart__dot'))
+            : []
+        const datasetEmphasis = readDatasetEmphasis(datasetDots[0])
 
         const parts = []
         parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`)
@@ -200,14 +211,16 @@ export class PcaChart {
         }
 
         if (this.referenceDotsContainer) {
+            const groupAttrs = referenceDeemphasized ? ` opacity="${referenceOpacity}"` : ''
+            parts.push(`<g${groupAttrs}>`)
             for (const dot of this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot')) {
-                parts.push(circleSvgFromDot(dot))
+                parts.push(referenceCircleSvg(dot))
             }
+            parts.push('</g>')
         }
-        if (this.chartSurface) {
-            for (const dot of this.chartSurface.querySelectorAll('.pca-chart__dot')) {
-                parts.push(circleSvgFromDot(dot))
-            }
+
+        for (const dot of datasetDots) {
+            parts.push(datasetCircleSvg(dot, datasetEmphasis))
         }
 
         parts.push('</svg>')
@@ -215,16 +228,59 @@ export class PcaChart {
     }
 }
 
-function circleSvgFromDot(dotEl) {
+function referenceCircleSvg(dotEl) {
+    const { cx, cy, r } = circleGeometry(dotEl)
+    // Computed style — not inline — so the deemphasized override is honored.
+    const fill = getComputedStyle(dotEl).backgroundColor || '#000'
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${escapeXmlAttr(fill)}"/>`
+}
+
+function datasetCircleSvg(dotEl, emphasis) {
+    const { cx, cy, r } = circleGeometry(dotEl)
+    const fill = dotEl.style.backgroundColor || '#000'
+    const scaledR = r * emphasis.scale
+    let strokeAttrs = ''
+    if (emphasis.strokeWidth > 0) {
+        strokeAttrs = ` stroke="${escapeXmlAttr(emphasis.strokeColor)}" stroke-width="${emphasis.strokeWidth * emphasis.scale}"`
+    }
+    return `<circle cx="${cx}" cy="${cy}" r="${scaledR}" fill="${escapeXmlAttr(fill)}"${strokeAttrs}/>`
+}
+
+function circleGeometry(dotEl) {
     const left = parseFloat(dotEl.style.left) || 0
     const top = parseFloat(dotEl.style.top) || 0
     const width = parseFloat(dotEl.style.width) || 0
     const height = parseFloat(dotEl.style.height) || 0
-    const cx = left + width / 2
-    const cy = top + height / 2
-    const r = Math.min(width, height) / 2
-    const fill = dotEl.style.backgroundColor || '#000'
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${escapeXmlAttr(fill)}"/>`
+    return {
+        cx: left + width / 2,
+        cy: top + height / 2,
+        r: Math.min(width, height) / 2,
+    }
+}
+
+/**
+ * Sample the computed style of a representative dataset dot to recover the
+ * `--emphasized` border + scale. All dataset dots carry the same modifier so
+ * one sample is enough; we avoid per-dot getComputedStyle calls.
+ *
+ * @returns {{ scale: number, strokeWidth: number, strokeColor: string }}
+ */
+function readDatasetEmphasis(sampleDot) {
+    if (!sampleDot) return { scale: 1, strokeWidth: 0, strokeColor: 'none' }
+    const cs = getComputedStyle(sampleDot)
+    return {
+        scale: parseScaleFromTransform(cs.transform),
+        strokeWidth: parseFloat(cs.borderTopWidth) || 0,
+        strokeColor: cs.borderTopColor || 'none',
+    }
+}
+
+function parseScaleFromTransform(transform) {
+    if (!transform || transform === 'none') return 1
+    const match = transform.match(/^matrix\(([^)]+)\)/)
+    if (!match) return 1
+    const a = parseFloat(match[1].split(',')[0])
+    return Number.isFinite(a) && a > 0 ? a : 1
 }
 
 function escapeXmlAttr(s) {
