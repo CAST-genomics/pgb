@@ -40,6 +40,22 @@ export class PcaChart {
         this.updateAxes()
     }
 
+    /**
+     * Override the chart-surface background image. Pass a url to swap in a
+     * locus/coordinate-key-specific contour overlay; pass null to clear the
+     * inline override and fall back to the CSS-defined default.
+     *
+     * @param {string | null} url
+     */
+    setBackgroundImage(url) {
+        if (!this.chartSurface) return
+        if (url) {
+            this.chartSurface.style.backgroundImage = `url('${url}')`
+        } else {
+            this.chartSurface.style.backgroundImage = ''
+        }
+    }
+
     // ── Dataset dots ────────────────────────────────────────────────
 
     /**

@@ -2,6 +2,7 @@ import { template, ELEMENT_IDS } from './locusInput.template.js';
 import { prettyPrint } from './utils/utils.js';
 import {searchFeatures} from "./igvCore/search/geneSearch.js"
 import {globals} from "./main.js"
+import eventBus from './utils/eventBus.ts'
 
 // Regular expressions for parsing genomic loci and URLs
 const LOCUS_PATTERN = { REGION: /^(chr[0-9XY]+):([0-9,]+)-([0-9,]+)$/i };
@@ -52,12 +53,14 @@ class LocusInput {
 
             // First check if it's a URL
             if (this.isUrl(candidateInput)) {
+                eventBus.publish('locus:token', { token: null })
                 await this.ingestUrl(candidateInput);
                 return;
             }
 
             // Then check if it's a local file path
             if (this.isLocalFile(candidateInput)) {
+                eventBus.publish('locus:token', { token: null })
                 const normalizedPath = this.normalizeLocalFilePath(candidateInput);
                 await this.ingestUrl(normalizedPath);
                 return;
@@ -66,12 +69,15 @@ class LocusInput {
             // Then check if it's a locus
             const locus = this.processLocusInput(candidateInput);
             if (locus) {
+                eventBus.publish('locus:token', { token: `${locus.chr}-${locus.startBP}-${locus.endBP}` })
                 await this.ingestLocus(locus.chr, locus.startBP, locus.endBP);
             } else {
                 // Finally try gene name search
                 const result = await searchFeatures({ genome: globals.defaultGenome }, candidateInput)
                 if (result) {
                     const { chr, start, end, name } = result
+                    const token = (name || candidateInput).toUpperCase()
+                    eventBus.publish('locus:token', { token })
                     await this.ingestLocus(chr, start, end);
                 } else {
                     this.showError(`Invalid input format. Please enter a locus (e.g., chr1:25240000-25460000), gene name, URL, or local file (e.g., daz1.json or /public/daz1.json). Files should be placed in the public/ directory.`);
@@ -249,6 +255,7 @@ class LocusInput {
             this.inputElement.value = urlParameter;
             locus = this.processLocusInput(this.inputElement.value);
             if (locus) {
+                eventBus.publish('locus:token', { token: `${locus.chr}-${locus.startBP}-${locus.endBP}` })
                 await this.ingestLocus(locus.chr, locus.startBP, locus.endBP);
             } else {
                 // If it's not a valid locus, try treating it as a URL or local file
@@ -266,6 +273,7 @@ class LocusInput {
             this.inputElement.value = config.preload.locus;
             locus = this.processLocusInput(this.inputElement.value);
             if (locus) {
+                eventBus.publish('locus:token', { token: `${locus.chr}-${locus.startBP}-${locus.endBP}` })
                 await this.ingestLocus(locus.chr, locus.startBP, locus.endBP);
             } else {
                 // If config locus is invalid, try treating it as a URL or local file
