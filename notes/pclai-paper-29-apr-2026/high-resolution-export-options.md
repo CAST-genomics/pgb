@@ -11,7 +11,7 @@ constraint shaping every option below.
 |---|---|---|
 | Annotation track (top) | 2D `<canvas>` with procedural draws (rects, lines, text) | Easy to re-render at any resolution; also a strong candidate for true SVG export. |
 | Pan genome graph (center) | Three.js / WebGL — `RibbonNode` meshes + custom GLSL shaders | High-DPI raster is straightforward (resize renderer, render once, read pixels). True vector export is possible in principle but requires walking the spline data ourselves; `THREE.SVGRenderer` does not handle our custom shader meshes. |
-| PCA Chart (right) | HTML `<div>` with a **576 × 576 PNG background** (`public/images/pca_background_576_flipped.png`) + DOM-based scatter dots layered on top | A mishmash: vector-friendly DOM dots above a fixed-resolution bitmap. The dots are easy to vectorize; the background bitmap is the bottleneck. |
+| PCA Chart (right) | HTML `<div>` with a **576 × 576 PNG background** (`public/images/pca-chart-background.png`) + DOM-based scatter dots layered on top | A mishmash: vector-friendly DOM dots above a fixed-resolution bitmap. The dots are easy to vectorize; the background bitmap is the bottleneck. |
 
 Because each layer is a different technology, **no single built-in function
 captures all three at publication resolution**. Two fixed-resolution bitmap
@@ -147,7 +147,7 @@ if the annotation track recurs across many figures in the paper.
 
 The PCA chart is a **mishmash of bitmap and DOM**:
 - Background: a fixed 576 × 576 PNG
-  (`public/images/pca_background_576_flipped.png`) applied via SCSS in
+  (`public/images/pca-chart-background.png`) applied via SCSS in
   `src/styles/_pcaChart.scss` (`background: white url(...) center / cover
   no-repeat`).
 - Foreground: per-point `<div>` dots positioned absolutely

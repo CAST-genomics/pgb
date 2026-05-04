@@ -113,7 +113,7 @@ re-implementing the projection from data.
 - `<image href="data:image/png;base64,...">` covering the surface,
   `preserveAspectRatio="xMidYMid slice"` to mimic the SCSS
   `background: ... center / cover` behavior. The PNG is fetched at
-  export time from `/images/pca_background_576_flipped.png` and
+  export time from `/images/pca-chart-background.png` and
   base64-encoded inline so the SVG file is self-contained.
 - One `<line>` per axis. Position and length read from the live axis
   `<div>`'s inline `style.left` / `top` / `width` / `height`.
