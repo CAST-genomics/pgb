@@ -206,7 +206,9 @@ export class PcaChart {
                 'PcaChart export: chart surface has no `url(...)` in computed background-image; cannot inline background',
             )
         }
-        const backgroundDataUri = await fetchBackgroundAsDataUri(backgroundUrl)
+        const { dataUri: backgroundDataUri, naturalWidth, naturalHeight } = await fetchBackgroundAsDataUri(backgroundUrl)
+        const outW = naturalWidth || w
+        const outH = naturalHeight || h
 
         const referenceDeemphasized = !!this.referenceDotsContainer
             && this.referenceDotsContainer.classList.contains(REFERENCE_DOTS_DEEMPHASIZED_CLASS)
@@ -220,7 +222,7 @@ export class PcaChart {
         const datasetEmphasis = readDatasetEmphasis(datasetDots[0])
 
         const parts = []
-        parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`)
+        parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${outW}" height="${outH}">`)
         parts.push(`<image href="${backgroundDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`)
 
         for (const axisEl of [this.horizontalAxis, this.verticalAxis]) {
@@ -338,11 +340,18 @@ async function fetchBackgroundAsDataUri(url) {
     const response = await fetch(url)
     if (!response.ok) throw new Error(`PcaChart export: failed to fetch background ${url}: ${response.status}`)
     const blob = await response.blob()
-    return await new Promise((resolve, reject) => {
+    const dataUri = await new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result)
         reader.onerror = () => reject(reader.error)
         reader.readAsDataURL(blob)
     })
+    const { naturalWidth, naturalHeight } = await new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve({ naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight })
+        img.onerror = () => resolve({ naturalWidth: 0, naturalHeight: 0 })
+        img.src = dataUri
+    })
+    return { dataUri, naturalWidth, naturalHeight }
 }
 
