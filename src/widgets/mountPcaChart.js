@@ -65,6 +65,28 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
         }
     })
 
+    let currentLocusToken = null
+    const locusTokenUnsub = eventBus.subscribe('locus:token', (data) => {
+        currentLocusToken = (data && data.token) ? data.token : null
+        chart.setBackgroundImage(null)
+    })
+
+    const emphasisUnsub = eventBus.subscribe('pcaWidget:emphasis', (data) => {
+        if (!currentLocusToken || !data || !data.assembly || !data.assembly.name) {
+            chart.setBackgroundImage(null)
+            return
+        }
+        const url = `/images/${currentLocusToken}-${data.assembly.name.replace(/#/g, '-')}.png`
+        const img = new Image()
+        img.onload = () => chart.setBackgroundImage(url)
+        img.onerror = () => chart.setBackgroundImage(null)
+        img.src = url
+    })
+
+    const deselectUnsub = eventBus.subscribe('pcaWidget:deselect', () => {
+        chart.setBackgroundImage(null)
+    })
+
     function updateButtonState() {
         if (!button) return
         const hasData = pclaiCoordinateService.hasPCLAIData()
@@ -152,6 +174,9 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
 
     function destroy() {
         datasetUnsub()
+        locusTokenUnsub()
+        emphasisUnsub()
+        deselectUnsub()
         controller.destroy()
         draggable.destroy()
         if (button && button.parentNode) button.parentNode.removeChild(button)

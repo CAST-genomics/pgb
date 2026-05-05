@@ -14,8 +14,6 @@
  * bootstrap.
  */
 
-const PCA_BACKGROUND_URL = '/images/pca_background_576_flipped.png'
-
 const REFERENCE_DOTS_DEEMPHASIZED_CLASS = 'pca-chart__reference-dots--deemphasized'
 const DOT_EMPHASIZED_CLASS = 'pca-chart__dot--emphasized'
 
@@ -40,6 +38,22 @@ export class PcaChart {
     setCoordinateSpace(coordinateSpace) {
         this.coordinateSpace = coordinateSpace
         this.updateAxes()
+    }
+
+    /**
+     * Override the chart-surface background image. Pass a url to swap in a
+     * locus/coordinate-key-specific contour overlay; pass null to clear the
+     * inline override and fall back to the CSS-defined default.
+     *
+     * @param {string | null} url
+     */
+    setBackgroundImage(url) {
+        if (!this.chartSurface) return
+        if (url) {
+            this.chartSurface.style.backgroundImage = `url('${url}')`
+        } else {
+            this.chartSurface.style.backgroundImage = ''
+        }
     }
 
     // ── Dataset dots ────────────────────────────────────────────────
@@ -173,18 +187,28 @@ export class PcaChart {
      * Export the chart as an SVG Blob. Reflects the chart's current visual
      * state by reading the live computed styles, so CSS-driven modifiers
      * (`--deemphasized` reference layer, `--emphasized` dataset dots) round
-     * trip into the SVG. Background PNG is inlined as a base64 data URI so
-     * the file is self-contained.
+     * trip into the SVG. The chart surface's computed `background-image` is
+     * fetched and inlined as a base64 data URI so the file is self-contained.
      *
      * @returns {Promise<Blob>}
      */
     async exportToSvg() {
         if (!this.coordinateSpace) throw new Error('PcaChart: cannot export before coordinate space is initialized')
+        if (!this.chartSurface) throw new Error('PcaChart: cannot export without chart surface')
 
         const w = this.coordinateSpace.surfaceWidth
         const h = this.coordinateSpace.surfaceHeight
 
-        const backgroundDataUri = await fetchBackgroundAsDataUri(PCA_BACKGROUND_URL)
+        const bgImage = getComputedStyle(this.chartSurface).backgroundImage
+        const backgroundUrl = firstUrlFromBackgroundImage(bgImage)
+        if (!backgroundUrl) {
+            throw new Error(
+                'PcaChart export: chart surface has no `url(...)` in computed background-image; cannot inline background',
+            )
+        }
+        const { dataUri: backgroundDataUri, naturalWidth, naturalHeight } = await fetchBackgroundAsDataUri(backgroundUrl)
+        const outW = naturalWidth || w
+        const outH = naturalHeight || h
 
         const referenceDeemphasized = !!this.referenceDotsContainer
             && this.referenceDotsContainer.classList.contains(REFERENCE_DOTS_DEEMPHASIZED_CLASS)
@@ -198,7 +222,7 @@ export class PcaChart {
         const datasetEmphasis = readDatasetEmphasis(datasetDots[0])
 
         const parts = []
-        parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`)
+        parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${outW}" height="${outH}">`)
         parts.push(`<image href="${backgroundDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`)
 
         for (const axisEl of [this.horizontalAxis, this.verticalAxis]) {
@@ -287,15 +311,47 @@ function escapeXmlAttr(s) {
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 }
 
+/**
+ * Returns the first URL string inside `url(...)` from a computed `background-image`
+ * value, or null if none (e.g. `none` or only gradients).
+ *
+ * @param {string} backgroundImage
+ * @returns {string | null}
+ */
+function firstUrlFromBackgroundImage(backgroundImage) {
+    if (!backgroundImage || backgroundImage === 'none') return null
+    const idx = backgroundImage.indexOf('url(')
+    if (idx === -1) return null
+    let i = idx + 4
+    while (i < backgroundImage.length && /\s/.test(backgroundImage[i])) i++
+    if (i >= backgroundImage.length) return null
+    const q = backgroundImage[i]
+    if (q === '"' || q === "'") {
+        const end = backgroundImage.indexOf(q, i + 1)
+        if (end === -1) return null
+        return backgroundImage.slice(i + 1, end)
+    }
+    const end = backgroundImage.indexOf(')', i)
+    if (end === -1) return null
+    return backgroundImage.slice(i, end).trim()
+}
+
 async function fetchBackgroundAsDataUri(url) {
     const response = await fetch(url)
     if (!response.ok) throw new Error(`PcaChart export: failed to fetch background ${url}: ${response.status}`)
     const blob = await response.blob()
-    return await new Promise((resolve, reject) => {
+    const dataUri = await new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result)
         reader.onerror = () => reject(reader.error)
         reader.readAsDataURL(blob)
     })
+    const { naturalWidth, naturalHeight } = await new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve({ naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight })
+        img.onerror = () => resolve({ naturalWidth: 0, naturalHeight: 0 })
+        img.src = dataUri
+    })
+    return { dataUri, naturalWidth, naturalHeight }
 }
 
