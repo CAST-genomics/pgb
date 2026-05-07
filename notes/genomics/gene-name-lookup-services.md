@@ -67,3 +67,127 @@ This note lists practical alternatives for converting a gene symbol (for example
 - **Normalize first, locate second:** for user-entered text, run symbol normalization (for example HGNC or MyGene) before coordinate lookup.
 - **Handle multiple hits:** some symbols/aliases may map to multiple records; present choices or apply deterministic ranking.
 - **Cache frequent queries:** gene symbols like `EGFR`, `BRCA1`, and `TP53` are often repeated and cache well.
+
+## JavaScript `fetch` examples
+
+These examples normalize results to:
+
+- `{ chr, start, end, name }`
+
+### Shared helpers
+
+```js
+function parseIgvLocusLine(line) {
+  // Example line: "EGFR chr7:55019016-55211628 s3 hg38"
+  const parts = line.trim().split(/\s+/);
+  if (parts.length < 2) return null;
+  const name = parts[0];
+  const [chrPart, rangePart] = parts[1].split(":");
+  if (!chrPart || !rangePart) return null;
+  const [startStr, endStr] = rangePart.split("-");
+  const start = Number(startStr.replaceAll(",", ""));
+  const end = Number(endStr.replaceAll(",", ""));
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return { chr: chrPart, start, end, name };
+}
+```
+
+### 1) IGV Locus Search
+
+```js
+async function lookupWithIgv({ genome = "hg38", gene }) {
+  const url = `https://igv.org/genomes/locus.php?genome=${encodeURIComponent(genome)}&name=${encodeURIComponent(gene)}`;
+  const text = await fetch(url).then((r) => r.text());
+  const firstLine = text.split(/\r?\n/).find((line) => line.trim().length > 0);
+  return firstLine ? parseIgvLocusLine(firstLine) : null;
+}
+```
+
+### 2) Ensembl REST
+
+```js
+async function lookupWithEnsembl({ species = "homo_sapiens", gene }) {
+  const url = `https://rest.ensembl.org/lookup/symbol/${encodeURIComponent(species)}/${encodeURIComponent(gene)}?content-type=application/json`;
+  const data = await fetch(url, { headers: { Accept: "application/json" } }).then((r) => r.json());
+  if (!data?.seq_region_name || data.start == null || data.end == null) return null;
+  return {
+    chr: String(data.seq_region_name).startsWith("chr") ? data.seq_region_name : `chr${data.seq_region_name}`,
+    start: Number(data.start),
+    end: Number(data.end),
+    name: data.display_name || gene.toUpperCase(),
+  };
+}
+```
+
+### 3) MyGene.info
+
+```js
+async function lookupWithMyGene({ species = "human", gene }) {
+  const url = `https://mygene.info/v3/query?q=${encodeURIComponent(gene)}&species=${encodeURIComponent(species)}&fields=symbol,genomic_pos&size=1`;
+  const data = await fetch(url).then((r) => r.json());
+  const hit = data?.hits?.[0];
+  if (!hit) return null;
+  const gp = Array.isArray(hit.genomic_pos) ? hit.genomic_pos[0] : hit.genomic_pos;
+  if (!gp?.chr || gp.start == null || gp.end == null) return null;
+  const chr = String(gp.chr).startsWith("chr") ? String(gp.chr) : `chr${gp.chr}`;
+  return { chr, start: Number(gp.start), end: Number(gp.end), name: hit.symbol || gene.toUpperCase() };
+}
+```
+
+### 4) NCBI E-utilities (2-step)
+
+```js
+async function lookupWithNcbi({ gene, organism = "Homo sapiens" }) {
+  const searchTerm = `${gene}[Gene Name] AND ${organism}[Organism]`;
+  const esearchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gene&term=${encodeURIComponent(searchTerm)}&retmode=json`;
+  const esearch = await fetch(esearchUrl).then((r) => r.json());
+  const geneId = esearch?.esearchresult?.idlist?.[0];
+  if (!geneId) return null;
+
+  const esummaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gene&id=${encodeURIComponent(geneId)}&retmode=json`;
+  const esummary = await fetch(esummaryUrl).then((r) => r.json());
+  const rec = esummary?.result?.[geneId];
+  const chr = rec?.chromosome ? (String(rec.chromosome).startsWith("chr") ? rec.chromosome : `chr${rec.chromosome}`) : null;
+  const start = Number(rec?.genomicinfo?.[0]?.chrstart);
+  const end = Number(rec?.genomicinfo?.[0]?.chrstop);
+  if (!chr || !Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return { chr, start: Math.min(start, end), end: Math.max(start, end), name: rec?.name || gene.toUpperCase() };
+}
+```
+
+### 5) UCSC Genome API
+
+```js
+async function lookupWithUcsc({ genome = "hg38", gene }) {
+  const url = `https://api.genome.ucsc.edu/getData/track?genome=${encodeURIComponent(genome)};track=knownGene;name=${encodeURIComponent(gene)}`;
+  const data = await fetch(url).then((r) => r.json());
+  const rows = data?.knownGene;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row?.chrom || row.txStart == null || row.txEnd == null) return null;
+  return { chr: row.chrom, start: Number(row.txStart), end: Number(row.txEnd), name: gene.toUpperCase() };
+}
+```
+
+### 6) HGNC REST (normalization step)
+
+```js
+async function normalizeWithHgnc(gene) {
+  const url = `https://rest.genenames.org/fetch/symbol/${encodeURIComponent(gene)}`;
+  const data = await fetch(url, { headers: { Accept: "application/json" } }).then((r) => r.json());
+  const doc = data?.response?.docs?.[0];
+  return doc?.symbol || null; // Use this symbol in Ensembl/NCBI/UCSC calls
+}
+```
+
+### Example fallback chain
+
+```js
+async function lookupGeneLocus(gene) {
+  const normalized = (await normalizeWithHgnc(gene)) || gene;
+  return (
+    (await lookupWithIgv({ genome: "hg38", gene: normalized })) ||
+    (await lookupWithEnsembl({ species: "homo_sapiens", gene: normalized })) ||
+    (await lookupWithMyGene({ species: "human", gene: normalized }))
+  );
+}
+```
