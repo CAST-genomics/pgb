@@ -41,9 +41,9 @@ class ContextMenuService {
         this.contextMenu.style.pointerEvents = 'auto';
 
         this.contextMenu.innerHTML = `
-            <ul style="list-style: none; padding: 0; margin: 0;">
-                <li data-action="copy-info" style="padding: 8px 16px; cursor: pointer; pointer-events: auto;">Copy Sequence</li>
-                <li data-action="assemblies" style="padding: 8px 16px; cursor: pointer; pointer-events: auto;">Copy Assemblies, Haplotypes, and Sequence IDs</li>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px;">
+                <li data-action="copy-info" style="padding: 6px 12px; cursor: pointer; pointer-events: auto;">Copy Sequence</li>
+                <li data-action="assemblies" style="padding: 6px 12px; cursor: pointer; pointer-events: auto;">Copy Assemblies, Haplotypes, Sequence IDs, and BP Ranges</li>
             </ul>
         `;
 

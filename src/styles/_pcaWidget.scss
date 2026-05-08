@@ -20,19 +20,31 @@
       pointer-events: auto;
     }
 
+    display: flex;
+    flex-direction: column;
+
     .card-body {
-      height: calc(100% - 7.5em);
+      flex: 1 1 auto;
+      min-height: 0;
       padding: 0;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
 
       .assembly-widget__list-container {
-        height: calc(100% - 4.375em);
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
 
         font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
         font-variant-numeric: tabular-nums slashed-zero;
 
       }
+    }
+
+    .card-header,
+    .card-footer {
+      flex: 0 0 auto;
     }
   }
 
