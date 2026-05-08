@@ -36,7 +36,7 @@ class GenomicService {
             }
 
             const { frequency, count } = node.assemblyMetadata || {}
-            this.nodeMetadata.set(nodeName, { assemblySet, frequency, count, length: node.length, sequence: dataset.sequences.get(nodeName) });
+            this.nodeMetadata.set(nodeName, { assemblySet, assemblies: node.assemblies, frequency, count, length: node.length, sequence: dataset.sequences.get(nodeName) });
 
         }
 
@@ -105,7 +105,25 @@ class GenomicService {
             console.error(`GenomicService: Metadata not found for node: ${nodeName}`);
             return null;
         }
-        return [ ...metadata.assemblySet ]
+
+        const assemblies = metadata.assemblies
+        if (!assemblies || assemblies.length === 0) {
+            return [ ...metadata.assemblySet ]
+        }
+
+        const seen = new Set()
+        const lines = []
+        for (const a of assemblies) {
+            const triple = GenomicService.tripleKey(a)
+            const hasRange = Number.isFinite(a.start) && Number.isFinite(a.end)
+            const dedupeKey = hasRange ? `${triple}\t${a.start}-${a.end}` : triple
+            if (seen.has(dedupeKey)) continue
+            seen.add(dedupeKey)
+            lines.push(hasRange
+                ? `${triple}\t${prettyPrint(a.start)}-${prettyPrint(a.end)}`
+                : triple)
+        }
+        return lines
     }
 
     getAssemblyForNodeName(nodeName) {
