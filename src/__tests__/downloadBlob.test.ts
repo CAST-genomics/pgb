@@ -16,6 +16,16 @@ describe('timestampedFilename', () => {
     it('passes the layer and extension through unchanged', () => {
         expect(timestampedFilename('pca-chart', 'svg')).toBe('pgb-pca-chart-20260428-090507.svg')
     })
+
+    it('uses the locus token as prefix when provided', () => {
+        expect(timestampedFilename('pangenome-graph', 'png', 'chr22-21921266-22972006'))
+            .toBe('chr22-21921266-22972006-pangenome-graph-20260428-090507.png')
+    })
+
+    it('falls back to pgb prefix when locus token is null or empty', () => {
+        expect(timestampedFilename('graph', 'png', null)).toBe('pgb-graph-20260428-090507.png')
+        expect(timestampedFilename('graph', 'png', '')).toBe('pgb-graph-20260428-090507.png')
+    })
 })
 
 describe('downloadBlob', () => {
