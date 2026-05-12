@@ -18,6 +18,7 @@ import PangenomeService from "./pangenomeService.js"
 import mountAnnotationTrack from "./mountAnnotationTrack.ts"
 import { mountPrintPanel } from "./widgets/printPanel.ts"
 import { downloadBlob, timestampedFilename } from "./utils/downloadBlob.ts"
+import eventBus from "./utils/eventBus.ts"
 
 const EXPORT_SCALE = 4
 import ContextMenuService from "./contextMenuService.js"
@@ -98,9 +99,27 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     // Initialize locus input from URL parameters and/or configuration
     await globals.locusInput.initializeFromConfig(appConfig)
 
+    let currentLocusToken = null
+    let currentPcaKey = null
+    eventBus.subscribe('locus:token', (data) => {
+        currentLocusToken = (data && data.token) ? data.token : null
+    })
+    eventBus.subscribe('pcaWidget:emphasis', (data) => {
+        const name = data && data.assembly && data.assembly.name
+        currentPcaKey = name ? name.replace(/#/g, '-') : null
+    })
+    eventBus.subscribe('pcaWidget:deselect', () => {
+        currentPcaKey = null
+    })
+
+    const filenamePrefix = () => {
+        if (currentLocusToken && currentPcaKey) return `${currentLocusToken}-${currentPcaKey}`
+        return currentLocusToken
+    }
+
     const exportPcaChart = async () => {
         const blob = await globals.app.pcaChart.exportToSvg()
-        downloadBlob(blob, timestampedFilename('pca-chart', 'svg'))
+        downloadBlob(blob, timestampedFilename('pca-chart', 'svg', filenamePrefix()))
     }
 
     mountPrintPanel([
@@ -109,7 +128,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
             label: `Export Annotation Track (PNG, ${EXPORT_SCALE}×)`,
             run: async () => {
                 const blob = await globals.annotationTrack.exportToPng(EXPORT_SCALE)
-                downloadBlob(blob, timestampedFilename('annotation-track', 'png'))
+                downloadBlob(blob, timestampedFilename('annotation-track', 'png', filenamePrefix()))
             },
         },
         {
@@ -117,7 +136,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
             label: `Export Pangenome Graph (PNG, ${EXPORT_SCALE}×)`,
             run: async () => {
                 const blob = await globals.app.exportPangenomeGraphToPng(EXPORT_SCALE)
-                downloadBlob(blob, timestampedFilename('pangenome-graph', 'png'))
+                downloadBlob(blob, timestampedFilename('pangenome-graph', 'png', filenamePrefix()))
             },
         },
         {
