@@ -1,2 +1,0 @@
-contour_HG01099#1_igl_chr22_21921266_22972006_kde_sigma_1.5_contour_levels_7_hist_bins_32.png
-chr22-21921266-22972006-HG01099-1.png
