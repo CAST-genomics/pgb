@@ -223,7 +223,7 @@ export class PcaChart {
 
         const parts = []
         parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${w} ${h}" width="${outW}" height="${outH}">`)
-        parts.push(`<image href="${backgroundDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`)
+        parts.push(`<image xlink:href="${backgroundDataUri}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`)
 
         for (const axisEl of [this.horizontalAxis, this.verticalAxis]) {
             if (!axisEl) continue
