@@ -85,9 +85,9 @@ class AnnotationTrackController {
 
     }
 
-    private async handleAssemblyEmphasis(data: { assembly: { name: string }; resolvedAssemblyKey?: string }): Promise<void> {
+    private async handleAssemblyEmphasis(data: { assembly: { name: string }; resolvedAssemblyKey?: string; mode?: 'walk' | 'subgraph' }): Promise<void> {
 
-        const { assembly, resolvedAssemblyKey } = data
+        const { assembly, resolvedAssemblyKey, mode } = data
 
         this.assembly = resolvedAssemblyKey ?? assembly.name
 
@@ -128,6 +128,10 @@ class AnnotationTrackController {
             console.log(`AnnotationTrackController: ${features ? features.length : 0} features returned`)
             this.canvas.renderGeneAnnotation({ bpStart, bpEnd, features })
         }
+
+        // Walk-mode veil: grey out off-walk anchor ranges. Mapping is untouched.
+        const walkNodeIds = mode === 'walk' ? trackModel.walkNodeIds : null
+        this.canvas.renderDeEmphasisOverlay({ anchors, walkNodeIds, bpStart, bpEnd })
 
         // Diagnostic overlay (no-op unless appConfig.diagnostic.bpBandOverlay is on).
         this.canvas.renderBpBandOverlay({ anchors, bpStart, bpEnd })

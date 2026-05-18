@@ -28,6 +28,7 @@ function contiguousModel(): AssemblyTrackModel {
             { nodeId: 'B', refStart: 100, refEnd: 300, nodeStrand: '+', lengthBp: 200 },
             { nodeId: 'C', refStart: 300, refEnd: 350, nodeStrand: '+', lengthBp: 50  },
         ],
+        walkNodeIds: new Set(['A', 'B', 'C']),
     }
 }
 
@@ -42,6 +43,7 @@ function gappedModel(): AssemblyTrackModel {
             { nodeId: 'A', refStart: 0,   refEnd: 100, nodeStrand: '+', lengthBp: 100 },
             { nodeId: 'B', refStart: 200, refEnd: 300, nodeStrand: '+', lengthBp: 100 },
         ],
+        walkNodeIds: new Set(['A', 'B']),
     }
 }
 
@@ -56,6 +58,7 @@ function duplicatedModel(): AssemblyTrackModel {
             { nodeId: 'A', refStart: 0,   refEnd: 100, nodeStrand: '+', lengthBp: 100 },
             { nodeId: 'A', refStart: 300, refEnd: 400, nodeStrand: '+', lengthBp: 100 },
         ],
+        walkNodeIds: new Set(['A']),
     }
 }
 
@@ -69,6 +72,7 @@ function minusStrandModel(): AssemblyTrackModel {
         anchors: [
             { nodeId: 'A', refStart: 0, refEnd: 100, nodeStrand: '-', lengthBp: 100 },
         ],
+        walkNodeIds: new Set(['A']),
     }
 }
 
@@ -152,6 +156,7 @@ describe('AnnotationCoordinateIndex build — region drives extent', () => {
                 // (the il7.json HG00408#1 tracer case). lengthBp here matches metadata.
                 { nodeId: 'N1', refStart: 78567196, refEnd: 78579527, nodeStrand: '+', lengthBp: 12331 },
             ],
+            walkNodeIds: new Set(['N1']),
         }
         const idx = new AnnotationCoordinateIndex()
         const { bpStart, bpEnd } = idx.build(model)

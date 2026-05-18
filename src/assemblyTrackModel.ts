@@ -29,6 +29,7 @@ export interface AssemblyTrackModel {
     regionStart: number
     regionEnd: number
     anchors: AssemblyTrackAnchor[]
+    walkNodeIds: Set<string>
 }
 
 function parseRegion(region: string): { start: number; end: number } | null {
@@ -51,6 +52,7 @@ function normalizeStrand(s: string | null | undefined): '+' | '-' {
 export function buildAssemblyTrackModel(
     dataset: DatasetModel,
     assemblyKey: string,
+    walkNodeIds: Set<string>,
 ): AssemblyTrackModel | null {
 
     if (!dataset.assemblyIndex) return null
@@ -97,5 +99,6 @@ export function buildAssemblyTrackModel(
         regionStart: region.start,
         regionEnd: region.end,
         anchors,
+        walkNodeIds,
     }
 }

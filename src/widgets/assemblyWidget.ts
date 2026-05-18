@@ -154,7 +154,8 @@ class AssemblyWidget {
             nodeSet = new Set([...nodes]);
         }
 
-        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR });
+        const mode = this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS ? 'walk' : 'subgraph'
+        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, mode, deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR });
     }
 
     initializeSearchInput(): void {

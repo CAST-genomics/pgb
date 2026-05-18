@@ -14,6 +14,8 @@ class AnnotationCanvas {
     private spinnerElement: HTMLElement
     private overlayCanvas: HTMLCanvasElement | null
     private overlayConfig: { anchors: any[]; bpStart: number; bpEnd: number } | undefined
+    private deEmphasisCanvas: HTMLCanvasElement
+    private deEmphasisConfig: { anchors: any[]; walkNodeIds: Set<string> | null; bpStart: number; bpEnd: number } | undefined
 
     hasGeneAnnotations: boolean
     featureRenderer: any
@@ -30,6 +32,8 @@ class AnnotationCanvas {
         this.spinnerElement = this.createSpinnerElement()
         this.overlayCanvas = appConfig.diagnostic?.bpBandOverlay ? this.createOverlayCanvas() : null
         this.overlayConfig = undefined
+        this.deEmphasisCanvas = this.createDeEmphasisCanvas()
+        this.deEmphasisConfig = undefined
 
         this.resize()
     }
@@ -115,6 +119,36 @@ class AnnotationCanvas {
         }
     }
 
+    /**
+     * Paint translucent grey rectangles over reference ranges whose anchor nodeId
+     * is NOT in `walkNodeIds`. Mirrors 3D gray de-emphasis used in Assembly Walk mode.
+     * Pass walkNodeIds=null (Subgraph mode) to clear without painting.
+     */
+    renderDeEmphasisOverlay(config: { anchors: any[]; walkNodeIds: Set<string> | null; bpStart: number; bpEnd: number }): void {
+        this.deEmphasisConfig = config
+
+        const { anchors, walkNodeIds, bpStart, bpEnd } = config
+        const { width, height } = this.deEmphasisCanvas.getBoundingClientRect()
+        const ctx = this.deEmphasisCanvas.getContext('2d')!
+
+        ctx.clearRect(0, 0, width, height)
+
+        if (!walkNodeIds) return
+
+        const bpLength = Math.max(1, bpEnd - bpStart)
+        const pixelPerBP = width / bpLength
+
+        ctx.imageSmoothingEnabled = false
+        ctx.fillStyle = 'rgba(120, 120, 120, 0.45)'
+
+        for (const anchor of anchors) {
+            if (walkNodeIds.has(anchor.nodeId)) continue
+            const x0 = Math.floor((anchor.refStart - bpStart) * pixelPerBP)
+            const x1 = Math.floor((anchor.refEnd - bpStart) * pixelPerBP)
+            ctx.fillRect(x0, 0, Math.max(1, x1 - x0), height)
+        }
+    }
+
     resize(): void {
         const dpr = window.devicePixelRatio || 1;
         const {width, height} = this.container.getBoundingClientRect();
@@ -145,7 +179,14 @@ class AnnotationCanvas {
             ctx.clearRect(0, 0, width, height);
         }
 
+        this.deEmphasisCanvas.width = width * dpr
+        this.deEmphasisCanvas.height = height * dpr
+        this.deEmphasisCanvas.getContext('2d')!.scale(dpr, dpr)
+        this.deEmphasisCanvas.style.width = `${width}px`
+        this.deEmphasisCanvas.style.height = `${height}px`
+
         if (this.overlayConfig) this.renderBpBandOverlay(this.overlayConfig)
+        if (this.deEmphasisConfig) this.renderDeEmphasisOverlay(this.deEmphasisConfig)
     }
 
     /**
@@ -192,6 +233,9 @@ class AnnotationCanvas {
             this.overlayConfig = undefined
             this.overlayCanvas.getContext('2d')!.clearRect(0, 0, width, height)
         }
+
+        this.deEmphasisConfig = undefined
+        this.deEmphasisCanvas.getContext('2d')!.clearRect(0, 0, width, height)
     }
 
     showFeedbackAtParam(param: number): void {
@@ -228,10 +272,14 @@ class AnnotationCanvas {
         if (this.overlayCanvas?.parentNode) {
             this.overlayCanvas.parentNode.removeChild(this.overlayCanvas);
         }
+        if (this.deEmphasisCanvas?.parentNode) {
+            this.deEmphasisCanvas.parentNode.removeChild(this.deEmphasisCanvas);
+        }
         this.drawConfig = null;
         this.featureRenderer = null;
         this.overlayCanvas = null;
         this.overlayConfig = undefined;
+        this.deEmphasisConfig = undefined;
     }
 
     private createVisualFeedbackElement(): HTMLElement {
@@ -252,6 +300,13 @@ class AnnotationCanvas {
     private createOverlayCanvas(): HTMLCanvasElement {
         const el = document.createElement('canvas');
         el.className = 'pgb-gene-annotation-track-container__bp-band-overlay';
+        this.container.appendChild(el);
+        return el;
+    }
+
+    private createDeEmphasisCanvas(): HTMLCanvasElement {
+        const el = document.createElement('canvas');
+        el.className = 'pgb-gene-annotation-track-container__deemphasis-overlay';
         this.container.appendChild(el);
         return el;
     }
