@@ -28,7 +28,7 @@ The look system has two levels of operation:
 
 2. **State changes within a look** -- changes to individual node appearances while the question stays the same. Material swaps, Z-offset adjustments, color changes. This is the lightweight mechanism.
 
-Absence is a case of #2. It does not require a new look or a new scene. It lives inside the existing `NodeEmphasisLook` as a third state alongside emphasis and de-emphasis. The `emphasisStates` Map already holds per-node state strings; `'absent'` is simply a fourth value alongside `'normal'`, `'emphasized'`, and `'deemphasized'`.
+Absence is a case of #2. It does not require a new look or a new scene. It lives inside the existing `NodeEmphasisLook` as a third visual state alongside emphasis and de-emphasis (with `'normal'` as the default off-state). The `emphasisStates` Map holds per-node state strings drawn from `'normal' | 'emphasized' | 'deemphasized' | 'absent'`.
 
 ## The Event-Driven Flow
 
@@ -36,10 +36,10 @@ Absence is a case of #2. It does not require a new look or a new scene. It lives
 `pclaiCoordinateService.loadCoordinates()` parses the JSON, builds coordinate maps, and computes the absent node set as a byproduct. If the dataset has no pclai data at all, the absent set stays empty -- absence as a concept only exists relative to a dataset that has the relevant data.
 
 ### PCA widget opens (`pcaWidget:absence`)
-The absent set is published via a dedicated event. The look's `setNodeAbsence()` method paints absent nodes and restores all other nodes to their default appearance. No emphasis or de-emphasis occurs yet.
+The absent set is published via a dedicated event. The look's `setNodeEmphasis()` method is called with an empty emphasis set and the absent set, painting absent nodes and restoring all other nodes to their default appearance. No emphasis or de-emphasis occurs yet.
 
 ### User clicks a dot (`pcaWidget:emphasis`)
-The event payload carries four things: the emphasis node set, the absent node set, the emphasis color (per-node color map from pclai data), and an optional de-emphasis color. The look's `setNodeAndEdgeEmphasis()` performs a three-way partition:
+The event payload carries four things: the emphasis node set, the absent node set, the emphasis color (per-node color map from pclai data), and an optional de-emphasis color. The look's `setNodeEmphasis()` performs a three-way partition:
 
 ```
 emphasisSet    = nodes matching the selected coordinate key
@@ -72,4 +72,4 @@ If a future widget needs to introduce absent nodes:
 5. Subscribe to the new events in `NodeEmphasisLook.activate()` (or in a new look if the visualization warrants one)
 6. Publish `yourWidget:normal` when the widget is dismissed to restore all nodes to default
 
-The look-side infrastructure (`setNodeAbsence`, the three-way partition in `setNodeAndEdgeEmphasis`, the `'absent'` case in `applyEmphasisState`) is already in place and will work for any widget that follows this pattern.
+The look-side infrastructure (the three-way partition in `setNodeEmphasis`, the `'absent'` case in `applyEmphasisState`) is already in place and will work for any widget that follows this pattern.

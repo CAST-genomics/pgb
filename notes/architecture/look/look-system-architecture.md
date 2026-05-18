@@ -8,21 +8,35 @@ The system follows a **one Look per Scene** design — each Three.js Scene is pa
 
 ---
 
+## Looks own visual semantics; widgets are event producers
+
+The Look is the load-bearing abstraction for what the graph *looks like*. Widgets are event producers — they translate user interaction into events that drive a Look. The relationship is:
+
+- A Look owns a coherent visual vocabulary (e.g. NodeEmphasisLook owns emphasized / deemphasized / absent partitioning; HeatmapLook owns continuous frequency coloring).
+- Widgets are free to invent their own events, event types, and payload shapes to feed a Look. Multiple widgets may drive the same Look with different events.
+- Look *reuse* across widgets is opportunistic, not symmetric. AssemblyWidget and PCAWidget both happen to drive NodeEmphasisLook because the Look's emphasis vocabulary generalizes to both of their needs. This is empirical — not a design requirement — and it's the right pattern when it works.
+- The constraint that has to hold is the Look's own coherence. Cross-widget symmetry of event names or state vocabularies is not a goal.
+
+When deciding to add a new Look vs. extend an existing one, see [Creating a New Look](./creating-a-new-look.md) §0.
+
+---
+
 ## Core Components
 
 ### Look (base class)
-**File**: `src/looks/look.js`
+**File**: `src/looks/look.ts`
 
 The base class defines the full contract for a Look:
 
 | Responsibility | Key Methods |
 |----------------|-------------|
 | **Mesh creation** | `createMesh()`, `createNodeMesh()`, `createEdgeMesh()` |
-| **Material management** | `getNodeMaterial()`, `getNodeEmphasisMaterial()`, `getEdgeMaterial()` |
+| **Material management** | `getNodeRibbonMaterial()`, `getNodeRibbonEmphasisMaterial()`, `getNodeRibbonDeemphasisMaterial()`, `getNodeRibbonAbsenceMaterial()`, `getEdgeMaterial()` |
 | **Color hooks** | `getNodeColor()`, `getEdgeColors()` — override in subclasses |
-| **Emphasis** | `setNodeAndEdgeEmphasis()`, `restoreLinesandEdgesViaZOffset()` |
+| **Emphasis** | `setNodeEmphasis()` — partitions nodes into emphasized / absent / remainder and applies materials |
 | **Z-offset layering** | `getZOffset()`, `updateGeometryPositions()` |
 | **Lifecycle** | `activate()`, `deactivate()`, `dispose()` |
+| **Event subscriptions** | `subscribe()` — typed wrapper; auto-cleanup on `deactivate()` |
 | **Animation** | `updateBehavior(deltaTime, scene)` — called every frame |
 | **Tooltips** | `createNodeTooltipContent()` — override for custom tooltip content |
 
@@ -61,7 +75,7 @@ Owns the render loop and scene switching.
 ## Concrete Looks
 
 ### NodeEmphasisLook
-**File**: `src/looks/nodeEmphasisLook.js`
+**File**: `src/looks/nodeEmphasisLook.ts`
 
 Default visualization. Highlights assemblies or PCA coordinate keys by emphasizing matching nodes/edges and deemphasizing others via material swaps and Z-offset layering.
 
@@ -70,7 +84,7 @@ Default visualization. Highlights assemblies or PCA coordinate keys by emphasizi
 **Listens to**: `assembly:emphasis`, `assembly:normal`, `pcaWidget:emphasis`, `pcaWidget:normal`
 
 ### HeatmapLook
-**File**: `src/looks/heatmapLook.js`
+**File**: `src/looks/heatmapLook.ts`
 
 Population frequency visualization. Colors every node based on how frequently a selected population or superpopulation appears in that node's assemblies.
 
