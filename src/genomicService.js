@@ -2,6 +2,7 @@ import LocusInput from "./locusInput.js"
 import {prettyPrint} from "./utils/utils.js"
 import { frequencyAnalysisService } from "./frequencyAnalysisService.js"
 import {getAllSuperpopulationNames,getAllPopulationNames} from "./utils/populationUtils.js"
+import { buildAssemblyTrackModel } from "./assemblyTrackModel.ts"
 
 class GenomicService {
 
@@ -10,10 +11,12 @@ class GenomicService {
         this.nodeAssemblyStats = new Map()
         this.assemblySet = new Set()
         this.assemblyWalkMap = new Map()
+        this.assemblyTrackMap = new Map()
         this.startNode = undefined
     }
 
     async initialize(dataset, pangenomeService) {
+        this._dataset = dataset
 
         const locusString = dataset.locus.queriedLocus
 
@@ -95,8 +98,17 @@ class GenomicService {
             const assemblySubgraph = pangenomeService.getAssemblySubgraph(assemblyKey);
 
             this.assemblyWalkMap.set(assemblyKey, { spineFeatures: features, assemblySubgraph })
+
+            const trackModel = buildAssemblyTrackModel(dataset, assemblyKey)
+            if (trackModel) {
+                this.assemblyTrackMap.set(assemblyKey, trackModel)
+            }
         }
 
+    }
+
+    getAssemblyTrackModel(assemblyKey) {
+        return this.assemblyTrackMap.get(assemblyKey)
     }
 
     getAssemblyListForNodeName(nodeName) {
@@ -163,6 +175,8 @@ class GenomicService {
         this.assemblySet.clear()
 
         this.assemblyWalkMap.clear()
+
+        this.assemblyTrackMap.clear()
 
         frequencyAnalysisService.clear()
 

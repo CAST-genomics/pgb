@@ -1,87 +1,92 @@
 /**
  * Characterization tests for AnnotationCoordinateIndex coordinate math.
  *
- * These tests pin the bidirectional bp ↔ track-parameter mapping extracted
- * from AnnotationRenderService in phases 1–4 of the annotation track refactor
- * (issue #49). The index is pure data — no DOM, no events, no rendering.
- *
- * The math being pinned:
- *   - spine nodes → bpIndex + splineParameterMap (monotonic 0..1 coverage)
- *   - (nodeName, tRaw) → oriented track parameter via endpoint anchoring
- *   - roundtrip: entry/exit endpoints → correct oriented u
+ * After the issue #69 refactor, the index is driven by an AssemblyTrackModel:
+ *   - canvas extent = region start/end (NOT the synthetic cumulative spine)
+ *   - per-band positions = each node's own metadata.start/end
+ *   - orientation = node_strand ('+' or '-'), no geometric endpoint heuristic
  */
 
 import { describe, it, expect } from 'vitest'
 import AnnotationCoordinateIndex from '../annotationCoordinateIndex.ts'
+import type { AssemblyTrackModel } from '../assemblyTrackModel.ts'
 
 // ── Fixtures ────────────────────────────────────────────────────────
 
-/** Three-node spine: A(0–100bp), B(100–300bp), C(300–350bp) */
-function threeNodeSpine() {
+/**
+ * Three bands on a single reference: A(0–100), B(100–300), C(300–350).
+ * Region matches the band span exactly (no gaps).
+ */
+function contiguousModel(): AssemblyTrackModel {
     return {
-        nodes: [
-            { id: 'A', bpStart: 0, bpEnd: 100 },
-            { id: 'B', bpStart: 100, bpEnd: 300 },
-            { id: 'C', bpStart: 300, bpEnd: 350 },
-        ]
+        assemblyKey: 'X#1#chrZ',
+        sequenceId: 'chrZ',
+        regionStart: 0,
+        regionEnd: 350,
+        anchors: [
+            { nodeId: 'A', refStart: 0,   refEnd: 100, nodeStrand: '+', lengthBp: 100 },
+            { nodeId: 'B', refStart: 100, refEnd: 300, nodeStrand: '+', lengthBp: 200 },
+            { nodeId: 'C', refStart: 300, refEnd: 350, nodeStrand: '+', lengthBp: 50  },
+        ],
+    }
+}
+
+/** Region [0..500], bands at [0..100] and [200..300] — gaps at [100..200] and [300..500]. */
+function gappedModel(): AssemblyTrackModel {
+    return {
+        assemblyKey: 'X#1#chrZ',
+        sequenceId: 'chrZ',
+        regionStart: 0,
+        regionEnd: 500,
+        anchors: [
+            { nodeId: 'A', refStart: 0,   refEnd: 100, nodeStrand: '+', lengthBp: 100 },
+            { nodeId: 'B', refStart: 200, refEnd: 300, nodeStrand: '+', lengthBp: 100 },
+        ],
+    }
+}
+
+/** Two non-overlapping bands for the same node id (duplicated_assembly). */
+function duplicatedModel(): AssemblyTrackModel {
+    return {
+        assemblyKey: 'X#1#chrZ',
+        sequenceId: 'chrZ',
+        regionStart: 0,
+        regionEnd: 400,
+        anchors: [
+            { nodeId: 'A', refStart: 0,   refEnd: 100, nodeStrand: '+', lengthBp: 100 },
+            { nodeId: 'A', refStart: 300, refEnd: 400, nodeStrand: '+', lengthBp: 100 },
+        ],
+    }
+}
+
+/** Single band on the '-' strand. */
+function minusStrandModel(): AssemblyTrackModel {
+    return {
+        assemblyKey: 'X#1#chrZ',
+        sequenceId: 'chrZ',
+        regionStart: 0,
+        regionEnd: 100,
+        anchors: [
+            { nodeId: 'A', refStart: 0, refEnd: 100, nodeStrand: '-', lengthBp: 100 },
+        ],
     }
 }
 
 /**
- * Mock sceneManager that places nodes along the x-axis.
- * Node A: x=[0,1], Node B: x=[1,2], Node C: x=[2,3]
- * All endpoints are in walk order (t=0 near left neighbor, t=1 near right),
- * so entryT=0, exitT=1 for all nodes.
+ * Mock sceneManager whose RibbonNodes interpolate linearly along the x-axis.
+ * Node A: t=0 at x=0, t=1 at x=1. (Used only by getXYZFromTrackParam.)
  */
 function mockSceneManager() {
-    const lines: Record<string, { t0: {x:number,y:number,z:number}, t1: {x:number,y:number,z:number} }> = {
-        A: { t0: { x: 0, y: 0, z: 0 }, t1: { x: 1, y: 0, z: 0 } },
-        B: { t0: { x: 1, y: 0, z: 0 }, t1: { x: 2, y: 0, z: 0 } },
-        C: { t0: { x: 2, y: 0, z: 0 }, t1: { x: 3, y: 0, z: 0 } },
+    const lines: Record<string, { t0: number, t1: number }> = {
+        A: { t0: 0, t1: 1 },
+        B: { t0: 1, t1: 2 },
+        C: { t0: 2, t1: 3 },
     }
 
     const children = Object.entries(lines).map(([name, pts]) => ({
         userData: { nodeName: name },
         getPoint(t: number, _space: string) {
-            return {
-                x: pts.t0.x + t * (pts.t1.x - pts.t0.x),
-                y: pts.t0.y + t * (pts.t1.y - pts.t0.y),
-                z: pts.t0.z + t * (pts.t1.z - pts.t0.z),
-            }
-        }
-    }))
-
-    return {
-        getActiveScene() {
-            return {
-                getObjectByName(_name: string) {
-                    return { children }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Mock sceneManager where node B is flipped — t=0 is near right neighbor,
- * t=1 is near left neighbor. The endpoint anchoring should detect this
- * and set entryT=1, exitT=0 for B.
- */
-function mockSceneManagerWithFlippedB() {
-    const lines: Record<string, { t0: {x:number,y:number,z:number}, t1: {x:number,y:number,z:number} }> = {
-        A: { t0: { x: 0, y: 0, z: 0 }, t1: { x: 1, y: 0, z: 0 } },
-        B: { t0: { x: 2, y: 0, z: 0 }, t1: { x: 1, y: 0, z: 0 } },  // flipped
-        C: { t0: { x: 2, y: 0, z: 0 }, t1: { x: 3, y: 0, z: 0 } },
-    }
-
-    const children = Object.entries(lines).map(([name, pts]) => ({
-        userData: { nodeName: name },
-        getPoint(t: number, _space: string) {
-            return {
-                x: pts.t0.x + t * (pts.t1.x - pts.t0.x),
-                y: pts.t0.y + t * (pts.t1.y - pts.t0.y),
-                z: pts.t0.z + t * (pts.t1.z - pts.t0.z),
-            }
+            return { x: pts.t0 + t * (pts.t1 - pts.t0), y: 0, z: 0 }
         }
     }))
 
@@ -107,110 +112,51 @@ describe('AnnotationCoordinateIndex lifecycle', () => {
 
     it('isEmpty is false after build', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
+        idx.build(contiguousModel())
         expect(idx.isEmpty).toBe(false)
     })
 
     it('clear resets to empty', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
+        idx.build(contiguousModel())
         idx.clear()
         expect(idx.isEmpty).toBe(true)
-        expect(idx.bpIndex).toBeUndefined()
         expect(idx.bpStart).toBeUndefined()
         expect(idx.bpEnd).toBeUndefined()
-        expect(idx.bpIndexMap.size).toBe(0)
-        expect(idx.endpointMap.size).toBe(0)
-        expect(idx.splineParameterMap.size).toBe(0)
+        expect(idx.anchorsByNode.size).toBe(0)
     })
 })
 
-// ── Build ───────────────────────────────────────────────────────────
+// ── Build: region-driven extent ─────────────────────────────────────
 
-describe('AnnotationCoordinateIndex build', () => {
+describe('AnnotationCoordinateIndex build — region drives extent', () => {
 
-    it('returns bpStart and bpEnd from first/last spine nodes', () => {
+    it('bpStart and bpEnd come from regionStart/regionEnd, not band bounds', () => {
         const idx = new AnnotationCoordinateIndex()
-        const { bpStart, bpEnd } = idx.build(threeNodeSpine(), mockSceneManager())
+        const { bpStart, bpEnd } = idx.build(gappedModel())
         expect(bpStart).toBe(0)
-        expect(bpEnd).toBe(350)
+        expect(bpEnd).toBe(500)
     })
 
-    it('populates bpIndex with all spine nodes', () => {
-        const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-        expect(idx.bpIndex!.idx).toHaveLength(3)
-        expect(idx.bpIndex!.bpMin).toBe(0)
-        expect(idx.bpIndex!.bpMax).toBe(350)
-    })
-
-    it('populates bpIndexMap keyed by node id', () => {
-        const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-        expect(idx.bpIndexMap.has('A')).toBe(true)
-        expect(idx.bpIndexMap.has('B')).toBe(true)
-        expect(idx.bpIndexMap.has('C')).toBe(true)
-        expect(idx.bpIndexMap.get('B')!.lengthBp).toBe(200)
-    })
-
-    it('splineParameterMap covers [0, 1] monotonically', () => {
-        const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-
-        const a = idx.splineParameterMap.get('A')!
-        const b = idx.splineParameterMap.get('B')!
-        const c = idx.splineParameterMap.get('C')!
-
-        // First node starts at 0, last node ends at 1
-        expect(a.startParam).toBeCloseTo(0)
-        expect(c.endParam).toBeCloseTo(1)
-
-        // Each node's endParam equals the next node's startParam (contiguous)
-        expect(a.endParam).toBeCloseTo(b.startParam)
-        expect(b.endParam).toBeCloseTo(c.startParam)
-
-        // Monotonic: each startParam < endParam
-        expect(a.startParam).toBeLessThan(a.endParam)
-        expect(b.startParam).toBeLessThan(b.endParam)
-        expect(c.startParam).toBeLessThan(c.endParam)
-    })
-
-    it('splineParameterMap reflects bp proportions', () => {
-        const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-
-        // Node B is 200bp out of 350bp total = 4/7 of the track
-        const b = idx.splineParameterMap.get('B')!
-        const bFraction = b.endParam - b.startParam
-        expect(bFraction).toBeCloseTo(200 / 350, 6)
-    })
-
-    it('endpointMap has entry for every node', () => {
-        const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-        expect(idx.endpointMap.size).toBe(3)
-        for (const id of ['A', 'B', 'C']) {
-            const ep = idx.endpointMap.get(id)!
-            expect(ep.entryT === 0 || ep.entryT === 1).toBe(true)
-            expect(ep.exitT === 0 || ep.exitT === 1).toBe(true)
-            expect(ep.entryT).not.toBe(ep.exitT) // must be opposite ends
+    it('does not accumulate node lengths', () => {
+        // A model where graph length would diverge from metadata length.
+        // The refactor must use metadata, not lengths — so regionEnd is unaffected
+        // by lengthBp values on the bands.
+        const model: AssemblyTrackModel = {
+            assemblyKey: 'X#1#chrZ',
+            sequenceId: 'chrZ',
+            regionStart: 78567196,
+            regionEnd: 78786401,
+            anchors: [
+                // metadata length 12331, but graph lengthBp would have been 12328
+                // (the il7.json HG00408#1 tracer case). lengthBp here matches metadata.
+                { nodeId: 'N1', refStart: 78567196, refEnd: 78579527, nodeStrand: '+', lengthBp: 12331 },
+            ],
         }
-    })
-})
-
-// ── Endpoint anchoring with flipped nodes ───────────────────────────
-
-describe('AnnotationCoordinateIndex flipped-node anchoring', () => {
-
-    it('detects flipped node B and reverses its endpoints', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManagerWithFlippedB())
-
-        // Node B's t=0 is at x=2 (near C), t=1 is at x=1 (near A)
-        // So entry (near A) should be t=1, exit (near C) should be t=0
-        const bEndpoints = idx.endpointMap.get('B')!
-        expect(bEndpoints.entryT).toBe(1)
-        expect(bEndpoints.exitT).toBe(0)
+        const { bpStart, bpEnd } = idx.build(model)
+        expect(bpStart).toBe(78567196)
+        expect(bpEnd).toBe(78786401)
     })
 })
 
@@ -220,68 +166,58 @@ describe('AnnotationCoordinateIndex getTrackParamFromLineIntersection', () => {
 
     it('returns null for unknown node', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
+        idx.build(contiguousModel())
         expect(idx.getTrackParamFromLineIntersection('UNKNOWN', 0.5)).toBeNull()
     })
 
-    it('entry of first node maps to param ≈ 0', () => {
+    it('+ strand: t=0 maps to band.refStart on the track', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-        const ep = idx.endpointMap.get('A')!
-        const param = idx.getTrackParamFromLineIntersection('A', ep.entryT)!
-        expect(param).toBeCloseTo(0, 2)
+        idx.build(contiguousModel())
+        // Band B is refStart=100, refEnd=300. t=0 → refBp=100 → param = 100/350
+        const param = idx.getTrackParamFromLineIntersection('B', 0)!
+        expect(param).toBeCloseTo(100 / 350, 6)
     })
 
-    it('exit of last node maps to param ≈ 1', () => {
+    it('+ strand: t=1 maps to band.refEnd on the track', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-        const ep = idx.endpointMap.get('C')!
-        const param = idx.getTrackParamFromLineIntersection('C', ep.exitT)!
-        expect(param).toBeCloseTo(1, 2)
+        idx.build(contiguousModel())
+        const param = idx.getTrackParamFromLineIntersection('B', 1)!
+        expect(param).toBeCloseTo(300 / 350, 6)
     })
 
-    it('midpoint of node B maps to proportional track position', () => {
+    it('+ strand: midpoint maps to (refStart+refEnd)/2', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-
-        const ep = idx.endpointMap.get('B')!
-        const midT = (ep.entryT + ep.exitT) / 2
-        const param = idx.getTrackParamFromLineIntersection('B', midT)!
-
-        // B spans bp 100–300 out of 0–350. Midpoint is bp 200.
-        // Track param for bp 200 = 200/350 ≈ 0.571
-        expect(param).toBeCloseTo(200 / 350, 2)
+        idx.build(contiguousModel())
+        const param = idx.getTrackParamFromLineIntersection('B', 0.5)!
+        expect(param).toBeCloseTo(200 / 350, 6)
     })
 
-    it('is monotonic: increasing t within a node yields increasing param', () => {
+    it('- strand: t=0 maps to band.refEnd, t=1 maps to band.refStart', () => {
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManager())
-
-        const samples = [0.0, 0.25, 0.5, 0.75, 1.0]
-        const params = samples.map(t => idx.getTrackParamFromLineIntersection('B', t)!)
-
-        for (let i = 1; i < params.length; i++) {
-            expect(params[i]).toBeGreaterThanOrEqual(params[i - 1])
-        }
+        idx.build(minusStrandModel())
+        const p0 = idx.getTrackParamFromLineIntersection('A', 0)!
+        const p1 = idx.getTrackParamFromLineIntersection('A', 1)!
+        expect(p0).toBeCloseTo(1, 6) // refEnd of single band == regionEnd
+        expect(p1).toBeCloseTo(0, 6) // refStart == regionStart
     })
 
-    it('is monotonic through flipped node B', () => {
+    it('ignores accumulation: param uses metadata bp, not lengthBp summation', () => {
+        // Two bands separated by a gap. If accumulation were used, B's params
+        // would be contiguous with A's. Instead B sits at its real reference position.
         const idx = new AnnotationCoordinateIndex()
-        idx.build(threeNodeSpine(), mockSceneManagerWithFlippedB())
+        idx.build(gappedModel())
+        const pB0 = idx.getTrackParamFromLineIntersection('B', 0)!
+        const pB1 = idx.getTrackParamFromLineIntersection('B', 1)!
+        expect(pB0).toBeCloseTo(200 / 500, 6)
+        expect(pB1).toBeCloseTo(300 / 500, 6)
+    })
 
-        // For flipped B, entryT=1 exitT=0, so raw t going 0→1
-        // means we go from exit→entry (reversed). But the mapping
-        // should still produce monotonic params when we sample in
-        // the oriented direction (entryT → exitT).
-        const ep = idx.endpointMap.get('B')!
-        const orientedSamples = [0, 0.25, 0.5, 0.75, 1].map(
-            u => ep.entryT + u * (ep.exitT - ep.entryT)
-        )
-        const params = orientedSamples.map(t => idx.getTrackParamFromLineIntersection('B', t)!)
-
-        for (let i = 1; i < params.length; i++) {
-            expect(params[i]).toBeGreaterThanOrEqual(params[i - 1])
-        }
+    it('duplicated assemblies: first band wins for hover (deterministic)', () => {
+        const idx = new AnnotationCoordinateIndex()
+        idx.build(duplicatedModel())
+        // First band for A is refStart=0..100 → midpoint maps to 50/400
+        const param = idx.getTrackParamFromLineIntersection('A', 0.5)!
+        expect(param).toBeCloseTo(50 / 400, 6)
     })
 })
 
@@ -289,36 +225,66 @@ describe('AnnotationCoordinateIndex getTrackParamFromLineIntersection', () => {
 
 describe('AnnotationCoordinateIndex getXYZFromTrackParam', () => {
 
-    it('param 0 maps to start of first node', () => {
+    it('returns null when param falls in a gap between bands', () => {
         const idx = new AnnotationCoordinateIndex()
         const sm = mockSceneManager()
-        idx.build(threeNodeSpine(), sm)
-
-        const result = idx.getXYZFromTrackParam(0, sm)!
-        expect(result.nodeId).toBe('A')
-        expect(result.xyz.x).toBeCloseTo(0, 1)
+        idx.build(gappedModel())
+        // Region [0..500]; gap is bp [100..200] = params [0.2..0.4].
+        const result = idx.getXYZFromTrackParam(0.3, sm)
+        expect(result).toBeNull()
     })
 
-    it('param 1 maps to end of last node', () => {
+    it('+ strand: param at band start hits node t=0', () => {
         const idx = new AnnotationCoordinateIndex()
         const sm = mockSceneManager()
-        idx.build(threeNodeSpine(), sm)
-
-        const result = idx.getXYZFromTrackParam(1, sm)!
-        expect(result.nodeId).toBe('C')
-        expect(result.xyz.x).toBeCloseTo(3, 0)
+        idx.build(contiguousModel())
+        // Band B starts at bp 100; param = 100/350. Should land at B's t=0.
+        const r = idx.getXYZFromTrackParam(100 / 350, sm)!
+        expect(r.nodeId).toBe('B')
+        expect(r.t).toBeCloseTo(0, 5)
     })
 
-    it('xyz.x increases monotonically with param', () => {
+    it('+ strand: param at band end hits node t≈1', () => {
         const idx = new AnnotationCoordinateIndex()
         const sm = mockSceneManager()
-        idx.build(threeNodeSpine(), sm)
+        idx.build(contiguousModel())
+        // bp just below 300: should still be in band B.
+        const param = (300 - 1e-3) / 350
+        const r = idx.getXYZFromTrackParam(param, sm)!
+        expect(r.nodeId).toBe('B')
+        expect(r.t).toBeGreaterThan(0.99)
+    })
 
-        const params = [0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
-        const xs = params.map(p => idx.getXYZFromTrackParam(p, sm)!.xyz.x)
+    it('- strand: param at band start hits node t=1 (reversed)', () => {
+        const idx = new AnnotationCoordinateIndex()
+        const sm = mockSceneManager()
+        idx.build(minusStrandModel())
+        const r = idx.getXYZFromTrackParam(0, sm)!
+        expect(r.nodeId).toBe('A')
+        expect(r.t).toBeCloseTo(1, 5)
+    })
 
-        for (let i = 1; i < xs.length; i++) {
-            expect(xs[i]).toBeGreaterThanOrEqual(xs[i - 1])
+    it('round-trips: t → param → t for + strand', () => {
+        const idx = new AnnotationCoordinateIndex()
+        const sm = mockSceneManager()
+        idx.build(contiguousModel())
+        for (const tIn of [0.1, 0.25, 0.5, 0.75, 0.9]) {
+            const param = idx.getTrackParamFromLineIntersection('B', tIn)!
+            const r = idx.getXYZFromTrackParam(param, sm)!
+            expect(r.nodeId).toBe('B')
+            expect(r.t).toBeCloseTo(tIn, 5)
+        }
+    })
+
+    it('round-trips: t → param → t for - strand', () => {
+        const idx = new AnnotationCoordinateIndex()
+        const sm = mockSceneManager()
+        idx.build(minusStrandModel())
+        for (const tIn of [0.1, 0.25, 0.5, 0.75, 0.9]) {
+            const param = idx.getTrackParamFromLineIntersection('A', tIn)!
+            const r = idx.getXYZFromTrackParam(param, sm)!
+            expect(r.nodeId).toBe('A')
+            expect(r.t).toBeCloseTo(tIn, 5)
         }
     })
 })

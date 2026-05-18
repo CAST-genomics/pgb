@@ -13,7 +13,7 @@ class AnnotationCanvas {
     private visualFeedbackElement: HTMLElement
     private spinnerElement: HTMLElement
     private overlayCanvas: HTMLCanvasElement | null
-    private overlayConfig: { nodes: any[]; bpStart: number; bpEnd: number } | undefined
+    private overlayConfig: { anchors: any[]; bpStart: number; bpEnd: number } | undefined
 
     hasGeneAnnotations: boolean
     featureRenderer: any
@@ -52,10 +52,10 @@ class AnnotationCanvas {
         }
     }
 
-    /** Draw vertical tick marks at node boundaries when gene annotation data is unavailable. */
+    /** Draw vertical tick marks at anchor boundaries when gene annotation data is unavailable. */
     renderGenomicExtents(config: any): void {
 
-        const { nodes, bpStart: assemblyBPStart, bpEnd: assemblyBPEnd } = config
+        const { anchors, bpStart: assemblyBPStart, bpEnd: assemblyBPEnd } = config
 
         this.drawConfig = config
 
@@ -66,28 +66,23 @@ class AnnotationCanvas {
         ctx.clearRect(0, 0, width, height);
 
         const bpLength = Math.max(1, assemblyBPEnd - assemblyBPStart);
-        const bpPerPixel = bpLength / width
-        const pixelPerBP = 1/bpPerPixel
+        const pixelPerBP = width / bpLength
 
         ctx.fillStyle = getAppleCrayonColorByName('aluminum', true)
 
-        let i = 0
-        for (const { bpStart, bpEnd } of nodes) {
+        for (let i = 0; i < anchors.length; i++) {
+            const { refStart, refEnd } = anchors[i]
 
-            const extentStartBP = bpStart - assemblyBPStart
-            const extentStart = Math.floor(extentStartBP * pixelPerBP)
-
-            const extentEndBP = bpEnd - assemblyBPStart
-            const extentEnd = Math.floor(extentEndBP * pixelPerBP)
+            const extentStart = Math.floor((refStart - assemblyBPStart) * pixelPerBP)
+            const extentEnd   = Math.floor((refEnd   - assemblyBPStart) * pixelPerBP)
 
             if (i > 0) {
                 ctx.fillRect(extentStart, 0, 1, height)
             }
 
-            if (i < nodes.length - 1) {
+            if (i < anchors.length - 1) {
                 ctx.fillRect(extentEnd - 1, 0, 1, height)
             }
-            ++i
         }
 
     }
@@ -98,12 +93,12 @@ class AnnotationCanvas {
      * at arc-length fraction u along a node should land inside that node's
      * colored band at position u within the band.
      */
-    renderBpBandOverlay(config: { nodes: any[]; bpStart: number; bpEnd: number }): void {
+    renderBpBandOverlay(config: { anchors: any[]; bpStart: number; bpEnd: number }): void {
         if (!this.overlayCanvas) return
 
         this.overlayConfig = config
 
-        const { nodes, bpStart, bpEnd } = config
+        const { anchors, bpStart, bpEnd } = config
         const { width, height } = this.overlayCanvas.getBoundingClientRect()
         const ctx = this.overlayCanvas.getContext('2d')!
 
@@ -112,10 +107,10 @@ class AnnotationCanvas {
         const bpLength = Math.max(1, bpEnd - bpStart)
         const pixelPerBP = width / bpLength
 
-        for (const node of nodes) {
-            const x0 = (node.bpStart - bpStart) * pixelPerBP
-            const x1 = (node.bpEnd - bpStart) * pixelPerBP
-            ctx.fillStyle = bpBandColorForNode(node.id)
+        for (const anchor of anchors) {
+            const x0 = (anchor.refStart - bpStart) * pixelPerBP
+            const x1 = (anchor.refEnd - bpStart) * pixelPerBP
+            ctx.fillStyle = bpBandColorForNode(anchor.nodeId)
             ctx.fillRect(x0, 0, Math.max(1, x1 - x0), height)
         }
     }
