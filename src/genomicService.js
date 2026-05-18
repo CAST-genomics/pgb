@@ -99,7 +99,8 @@ class GenomicService {
 
             this.assemblyWalkMap.set(assemblyKey, { spineFeatures: features, assemblySubgraph })
 
-            const trackModel = buildAssemblyTrackModel(dataset, assemblyKey)
+            const walkNodeIds = new Set(features.spine.nodes.map(({ id }) => id))
+            const trackModel = buildAssemblyTrackModel(dataset, assemblyKey, walkNodeIds)
             if (trackModel) {
                 this.assemblyTrackMap.set(assemblyKey, trackModel)
             }
