@@ -91,15 +91,15 @@ class AnnotationTrackController {
 
         this.assembly = resolvedAssemblyKey ?? assembly.name
 
-        const walkEntry = this.genomicService.assemblyWalkMap.get(this.assembly)
-        if (!walkEntry) {
-            // Producer (e.g. PCA widget) emphasized an assembly not walked in this locus.
+        const trackModel = this.genomicService.getAssemblyTrackModel(this.assembly)
+        if (!trackModel) {
+            // Producer (e.g. PCA widget) emphasized an assembly with no track model
+            // (no assemblyIndex entry, or no node metadata for this assembly).
             // Leave any prior annotation track in place; clearing would create flicker on transient selections.
             return
         }
-        const { spine } = walkEntry.spineFeatures
 
-        const { nodes, bpStart, bpEnd } = this.coordinateIndex.build(spine, this.sceneManager)
+        const { anchors, bpStart, bpEnd } = this.coordinateIndex.build(trackModel)
 
         const chr = this.genomicService.getSequenceId(this.assembly)
 
@@ -116,7 +116,7 @@ class AnnotationTrackController {
         if (undefined === result) {
             // Unknown genome: no RefSeq/annotation data — fall back to extent markers only
             this.canvas.hasGeneAnnotations = false
-            this.canvas.renderGenomicExtents({ nodes, chr, bpStart, bpEnd })
+            this.canvas.renderGenomicExtents({ anchors, chr, bpStart, bpEnd })
         } else {
             this.canvas.hasGeneAnnotations = true
             const {geneFeatureSource, geneRenderer} = result
@@ -130,7 +130,7 @@ class AnnotationTrackController {
         }
 
         // Diagnostic overlay (no-op unless appConfig.diagnostic.bpBandOverlay is on).
-        this.canvas.renderBpBandOverlay({ nodes, bpStart, bpEnd })
+        this.canvas.renderBpBandOverlay({ anchors, bpStart, bpEnd })
 
         this.canvas.hideSpinner()
 
