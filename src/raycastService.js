@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import RibbonNode from "./ribbonNode.ts"
+import RibbonNode, {setStickyNode} from "./ribbonNode.ts"
 import {globals} from "./main.js"
 import {getWorldDistanceFromPixelDistance} from "./utils/utils.js"
 import {getComplementaryThreeJSColor} from "./utils/color/color.js"
@@ -215,12 +215,30 @@ class RayCastService {
 
         const intersections = this.raycaster.intersectObjects(targets);
         if (!intersections || 0 === intersections.length) {
+            this.#updateStickyFromPick(null);
             return null;
         }
 
-        intersections.sort((a, b) => a.distance - b.distance);
+        // Nodes are coplanar at NODE_Z_OFFSET so camera distance ties; node
+        // intersections carry splineDistSq (squared 2D distance to spline)
+        // which is the real proximity signal. Prefer that when both sides
+        // have it; otherwise fall back to camera distance.
+        intersections.sort((a, b) => {
+            const aHas = a.splineDistSq !== undefined;
+            const bHas = b.splineDistSq !== undefined;
+            if (aHas && bHas) return a.splineDistSq - b.splineDistSq;
+            return a.distance - b.distance;
+        });
 
-        return intersections[0];
+        const pick = intersections[0];
+        this.#updateStickyFromPick(pick);
+        return pick;
+    }
+
+    #updateStickyFromPick(intersection) {
+        const hitObject = intersection?.object;
+        const isNode = hitObject?.userData?.type === 'node';
+        setStickyNode(isNode ? hitObject : null);
     }
 
     createVisualFeedback(color) {
@@ -305,6 +323,7 @@ class RayCastService {
     clearIntersection() {
         this.currentIntersection = undefined;
         this.hideVisualFeedback();
+        setStickyNode(null);
     }
 
     disable() {

@@ -14,7 +14,8 @@ class Look {
 
     // Apparent line width in screen pixels (constant regardless of zoom).
     // Converted to world units per frame by tickRibbonResolution() in ribbonNode.ts.
-    static NODE_LINE_WIDTH_PIXELS = 2*2;
+    // static NODE_LINE_WIDTH_PIXELS = 2*2;
+    static NODE_LINE_WIDTH_PIXELS = 6;
 
     name: string
     genomicService: any

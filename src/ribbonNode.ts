@@ -14,8 +14,15 @@ const MAX_DEPTH = 8
 
 const ARC_LENGTH_SAMPLES = 256
 
+// Sticky tracking: once the cursor has acquired a node within halfWidth,
+// keep that node "owned" up to halfWidth * STICKY_RELEASE_MULTIPLIER.
+// Spaghetti-curve nodes are hard to follow with the cursor without this.
+// const STICKY_RELEASE_MULTIPLIER = 2.5 * 2 * 2
+const STICKY_RELEASE_MULTIPLIER = 8
+
 const ribbonNodes: Set<RibbonNode> = new Set()
 let lastHalfWidth = 0
+let stickyNode: RibbonNode | null = null
 
 const _inverseMatrix = new THREE.Matrix4()
 const _ray = new THREE.Ray()
@@ -246,26 +253,52 @@ class RibbonNode extends THREE.Mesh {
             }
         }
 
-        const step = 1 / coarseSamples
-        const tLo = Math.max(0, bestT - step)
-        const tHi = Math.min(1, bestT + step)
+        // Iterative refinement: shrink the t-window around bestT until the
+        // worst-case world-space sample spacing is well below halfWidth.
+        // Fixed-density sampling fails at high zoom because halfWidth scales
+        // down with zoom while the parametric step does not — the true
+        // closest point on the curve can sit between samples, farther than
+        // halfWidth from any of them, and the hit is silently lost.
         const fineSamples = 16
+        const RESOLUTION_TARGET = halfWidth / 4
+        const MAX_REFINE_ITERATIONS = 8
+        let windowHalf = 1 / coarseSamples
 
-        for (let i = 0; i <= fineSamples; i++) {
-            const t = tLo + (tHi - tLo) * (i / fineSamples)
-            spline.getPoint(t, _splinePoint)
-            const dx = _splinePoint.x - pointerX
-            const dy = _splinePoint.y - pointerY
-            const distSq = dx * dx + dy * dy
-            if (distSq < bestDistSq) {
-                bestDistSq = distSq
-                bestT = t
+        for (let iter = 0; iter < MAX_REFINE_ITERATIONS; iter++) {
+            const tLo = Math.max(0, bestT - windowHalf)
+            const tHi = Math.min(1, bestT + windowHalf)
+            let prevX = 0, prevY = 0
+            let maxSpacingSq = 0
+
+            for (let i = 0; i <= fineSamples; i++) {
+                const t = tLo + (tHi - tLo) * (i / fineSamples)
+                spline.getPoint(t, _splinePoint)
+                const dx = _splinePoint.x - pointerX
+                const dy = _splinePoint.y - pointerY
+                const distSq = dx * dx + dy * dy
+                if (distSq < bestDistSq) {
+                    bestDistSq = distSq
+                    bestT = t
+                }
+                if (i > 0) {
+                    const sdx = _splinePoint.x - prevX
+                    const sdy = _splinePoint.y - prevY
+                    const sp = sdx * sdx + sdy * sdy
+                    if (sp > maxSpacingSq) maxSpacingSq = sp
+                }
+                prevX = _splinePoint.x
+                prevY = _splinePoint.y
             }
+
+            if (Math.sqrt(maxSpacingSq) < RESOLUTION_TARGET) break
+            windowHalf *= 0.5
         }
 
         const bestDist = Math.sqrt(bestDistSq)
 
-        if (bestDist <= halfWidth) {
+        const threshold = (this === stickyNode) ? halfWidth * STICKY_RELEASE_MULTIPLIER : halfWidth
+
+        if (bestDist <= threshold) {
             spline.getPoint(bestT, _splinePoint)
             _splinePoint.z = NODE_Z_OFFSET
 
@@ -278,6 +311,7 @@ class RibbonNode extends THREE.Mesh {
                 point: worldPoint,
                 uv: new THREE.Vector2(u, 0.5),
                 object: this,
+                splineDistSq: bestDistSq,
             })
         }
     }
@@ -341,6 +375,16 @@ export function tickRibbonResolution(ctx: FrameContext): void {
  */
 export function clearRibbonRegistry(): void {
     ribbonNodes.clear()
+    stickyNode = null
+}
+
+/**
+ * Mark a node as "sticky" — it will be hit-testable out to a wider radius
+ * than non-sticky nodes until another node is acquired or the cursor leaves.
+ * Pass null to release.
+ */
+export function setStickyNode(node: RibbonNode | null): void {
+    stickyNode = node
 }
 
 /**
