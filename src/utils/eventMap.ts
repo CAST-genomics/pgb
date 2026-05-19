@@ -10,9 +10,9 @@ interface Object3DLike {
 export interface EventMap {
     'assembly:emphasis':          { assembly: { name: string; color?: string }; nodeSet: Set<string>; mode?: 'walk' | 'subgraph'; emphasisColor: string; deemphasisColor: string };
     'assembly:normal':            { nodeSet: Set<string> };
-    'pcaWidget:emphasis':         { assembly: { name: string }; resolvedAssemblyKey?: string; nodeSet: Set<string>; absentNodeSet: Set<string>; deemphasisColor: string };
+    'pcaWidget:emphasis':         { assembly: { name: string }; resolvedAssemblyKey?: string; nodeSet: Set<string>; absentNodeSet: Set<string>; emphasisColor: any; deemphasisColor: string; absenceColor: string };
     'pcaWidget:normal':           { nodeSet: Set<string> };
-    'pcaWidget:absence':          { absentNodeSet: Set<string> };
+    'pcaWidget:absence':          { absentNodeSet: Set<string>; absenceColor: string };
     'pcaWidget:deselect':         Record<string, never>;
     'population:selected':        { acronym: string };
     'population:deselected':      { population: object; acronym: string };

@@ -8,6 +8,7 @@ const ABSENCE_PRESENTER_ID = 'pcaWidget'
 class PCAWidget {
 
     static NODE_DEEMPHASIS_COLOR = '#aaaaaa';
+    static NODE_ABSENCE_COLOR = '#E8E6DC';
 
     pcaWidgetContainer: HTMLElement
     draggable: any
@@ -109,7 +110,7 @@ class PCAWidget {
             this.clearAllSelectorStyles()
 
             const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-            eventBus.publish('pcaWidget:absence', { absentNodeSet })
+            eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
             eventBus.publish('pcaWidget:deselect', {})
         } else {
             // Deselect previous assembly selector if one exists
@@ -117,7 +118,7 @@ class PCAWidget {
                 this.clearAllSelectorStyles()
 
                 const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-                eventBus.publish('pcaWidget:absence', { absentNodeSet })
+                eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
             }
 
             console.log(`selected coordinate key ${ coordinateKey }`)
@@ -142,7 +143,16 @@ class PCAWidget {
         const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
         const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
         const resolvedAssemblyKey = this.genomicService.resolveAssemblyKey(coordinateKey)
-        eventBus.publish('pcaWidget:emphasis', { assembly: { name: coordinateKey }, resolvedAssemblyKey, nodeSet, absentNodeSet, deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR });
+        const emphasisColor = pclaiCoordinateService.getNodeColorMapForCoordinateKey(coordinateKey)
+        eventBus.publish('pcaWidget:emphasis', {
+            assembly: { name: coordinateKey },
+            resolvedAssemblyKey,
+            nodeSet,
+            absentNodeSet,
+            emphasisColor,
+            deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR,
+            absenceColor: PCAWidget.NODE_ABSENCE_COLOR,
+        });
     }
 
     initializeSearchInput(): void {
@@ -254,7 +264,7 @@ class PCAWidget {
         // → normal if no other presenter is still holding absence.
         if (wasSelected) {
             const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-            eventBus.publish('pcaWidget:absence', { absentNodeSet })
+            eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
             eventBus.publish('pcaWidget:deselect', {})
         }
     }
