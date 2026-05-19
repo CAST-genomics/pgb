@@ -34,8 +34,8 @@ class NodeEmphasisLook extends Look {
         super.activate(activeScene);
 
         this.subscribe('assembly:emphasis', data => {
-            const { assembly, nodeSet, emphasisColor, deemphasisColor } = data
-            this.setNodeEmphasis(assembly.name, nodeSet, emphasisColor, undefined, deemphasisColor, undefined);
+            const { assembly, nodeSet, offWalkNodeSet, emphasisColor, deemphasisColor, offWalkColor } = data
+            this.setNodeEmphasis(assembly.name, nodeSet, emphasisColor, undefined, deemphasisColor, undefined, offWalkNodeSet, offWalkColor);
         });
 
         this.subscribe('assembly:normal', data => {

@@ -160,6 +160,25 @@ class Look {
     }
 
     /**
+     * Gets or creates a ribbon off-walk material for a node — used in Assembly
+     * Walk mode for nodes that carry the selected assembly but lie off the
+     * monotonic walk. Visual partner of the gray veil painted on the
+     * annotation track (annotationCanvas.renderDeEmphasisOverlay).
+     */
+    getNodeRibbonOffWalkMaterial(nodeName: string, offWalkColor: string): any {
+        const cacheKey = `ribbon:${nodeName}:offwalk:${offWalkColor}`
+
+        if (this.materialCache.has(cacheKey)) {
+            return this.materialCache.get(cacheKey)
+        }
+
+        const material = RibbonMaterialFactory.createMaterial(offWalkColor)
+        this.materialCache.set(cacheKey, material)
+
+        return material
+    }
+
+    /**
      * Creates a mesh for an edge (connection between nodes) using the provided geometry.
      * Edges use gradient materials that transition from start to end colors.
      */
@@ -257,10 +276,12 @@ class Look {
     }
 
     /**
-     * Unified partition of all nodes into emphasized / absent / remainder.
+     * Unified partition of all nodes into emphasized / off-walk / absent / remainder.
      *
-     * Behavior matches the prior setNodeEmphasis + setNodeAbsence pair:
      * - Nodes in `emphasizedSet` become 'emphasized' with `emphasisColor`.
+     * - Nodes in `offWalkSet` become 'off-walk' with `offWalkColor`. Used in
+     *   Assembly Walk mode for nodes that carry the selected assembly but lie
+     *   off its monotonic walk (mirrors the gray veil on the annotation track).
      * - Nodes in `absentSet` become 'absent'.
      * - All remaining nodes become 'deemphasized' if any nodes are emphasized,
      *   or 'normal' if nothing is emphasized (the "PCA widget open, no dot
@@ -273,17 +294,23 @@ class Look {
         absentSet: Set<string> | undefined,
         deemphasisColor: string | undefined,
         absenceColor: string | undefined,
+        offWalkSet?: Set<string>,
+        offWalkColor?: string,
     ): void {
 
         this.emphasisStates.clear()
 
         const allNodes = this.geometryManager.geometryFactory.getNodeNameSet()
         const absent = absentSet || new Set<string>()
-        const remainder = allNodes.difference(emphasizedSet).difference(absent)
+        const offWalk = offWalkSet || new Set<string>()
+        const remainder = allNodes.difference(emphasizedSet).difference(absent).difference(offWalk)
         const remainderState = emphasizedSet.size > 0 ? 'deemphasized' : 'normal'
 
         for (const nodeName of absent) {
             this.setEmphasisState(nodeName, 'absent')
+        }
+        for (const nodeName of offWalk) {
+            this.setEmphasisState(nodeName, 'off-walk')
         }
         for (const nodeName of remainder) {
             this.setEmphasisState(nodeName, remainderState)
@@ -293,6 +320,9 @@ class Look {
         }
 
         this.updateNodeEmphasis(absent, 'absent', undefined, undefined, undefined, absenceColor)
+        if (offWalk.size > 0) {
+            this.updateNodeEmphasis(offWalk, 'off-walk', undefined, undefined, undefined, undefined, offWalkColor)
+        }
         this.updateNodeEmphasis(remainder, remainderState, undefined, undefined, deemphasisColor)
         if (emphasizedSet.size > 0) {
             this.updateNodeEmphasis(emphasizedSet, 'emphasized', assemblyName, emphasisColor)
@@ -323,7 +353,7 @@ class Look {
      * Applies an emphasis state to a mesh by updating its material.
      * Handles both node and edge meshes, applying appropriate materials based on state.
      */
-    applyEmphasisState(mesh: any, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string): void {
+    applyEmphasisState(mesh: any, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string, offWalkColor?: string): void {
         if (!mesh.userData) return;
 
         if (emphasisState === 'deemphasized') {
@@ -332,6 +362,8 @@ class Look {
             mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName!, mesh.userData.nodeName, nodeColor);
         } else if (emphasisState === 'absent') {
             mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName, absenceColor!);
+        } else if (emphasisState === 'off-walk') {
+            mesh.material = this.getNodeRibbonOffWalkMaterial(mesh.userData.nodeName, offWalkColor!);
         } else if (emphasisState === 'normal') {
             mesh.material = this.getNodeRibbonMaterial(mesh.userData.nodeName);
         } else {
@@ -348,14 +380,14 @@ class Look {
      * Updates the emphasis state for a set of nodes in the scene.
      * Traverses the NodeMeshGroup and applies the emphasis state to matching nodes.
      */
-    updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string): void {
+    updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string, offWalkColor?: string): void {
 
         if (!this.activeScene) return;
         const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
         if (!nodeMeshGroup) return;
         nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
-                this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor, absenceColor);
+                this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor, absenceColor, offWalkColor);
             }
         });
     }
