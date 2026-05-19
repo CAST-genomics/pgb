@@ -16,6 +16,7 @@
 
 import eventBus from '../utils/eventBus.ts'
 import { pclaiCoordinateService } from './pclaiCoordinateService.js'
+import PCAWidget from './pcaWidget.ts'
 
 const presenters = new Set()
 
@@ -34,7 +35,7 @@ export function releaseAbsence(presenterId) {
 function publishAbsence() {
     const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
     if (absentNodeSet.size > 0) {
-        eventBus.publish('pcaWidget:absence', { absentNodeSet })
+        eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
     }
 }
 

@@ -1,6 +1,5 @@
 import Look from './look.ts';
 import materialService from '../materialService.js';
-import {pclaiCoordinateService} from "../widgets/pclaiCoordinateService.js"
 
 /**
  * Parameter-binding events (the Look's "shader uniforms" — inputs that drive
@@ -35,8 +34,8 @@ class NodeEmphasisLook extends Look {
         super.activate(activeScene);
 
         this.subscribe('assembly:emphasis', data => {
-            const { assembly, nodeSet, deemphasisColor } = data
-            this.setNodeEmphasis(assembly.name, nodeSet, Look.NODE_EMPHASIS_COLOR, undefined, deemphasisColor);
+            const { assembly, nodeSet, emphasisColor, deemphasisColor } = data
+            this.setNodeEmphasis(assembly.name, nodeSet, emphasisColor, undefined, deemphasisColor, undefined);
         });
 
         this.subscribe('assembly:normal', data => {
@@ -44,13 +43,12 @@ class NodeEmphasisLook extends Look {
         });
 
         this.subscribe('pcaWidget:absence', data => {
-            this.setNodeEmphasis(undefined, new Set(), undefined, data.absentNodeSet, undefined);
+            this.setNodeEmphasis(undefined, new Set(), undefined, data.absentNodeSet, undefined, data.absenceColor);
         });
 
         this.subscribe('pcaWidget:emphasis', data => {
-            const { assembly, nodeSet, absentNodeSet, deemphasisColor } = data
-            const color = pclaiCoordinateService.getNodeColorMapForCoordinateKey(assembly.name)
-            this.setNodeEmphasis(assembly.name, nodeSet, color, absentNodeSet, deemphasisColor);
+            const { assembly, nodeSet, absentNodeSet, emphasisColor, deemphasisColor, absenceColor } = data
+            this.setNodeEmphasis(assembly.name, nodeSet, emphasisColor, absentNodeSet, deemphasisColor, absenceColor);
         });
 
         this.subscribe('pcaWidget:normal', data => {

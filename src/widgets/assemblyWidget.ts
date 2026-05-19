@@ -1,11 +1,11 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.ts';
 import GenomicService from "../genomicService.js"
-import Look from "../looks/look.ts"
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
     static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
+    static NODE_EMPHASIS_COLOR = '#c0311a';
     static NODE_DEEMPHASIS_COLOR = '#a89292';
 
     assemblyWidgetContainer: HTMLElement
@@ -132,7 +132,7 @@ class AssemblyWidget {
             this.selectedAssembly =
                 {
                     name: assembly,
-                    color: Look.NODE_EMPHASIS_COLOR
+                    color: AssemblyWidget.NODE_EMPHASIS_COLOR
                 };
             (event.target as HTMLElement).classList.add('assembly-widget__genome-selector--selected')
 
@@ -155,7 +155,13 @@ class AssemblyWidget {
         }
 
         const mode = this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS ? 'walk' : 'subgraph'
-        eventBus.publish('assembly:emphasis', { assembly:selectedAssembly, nodeSet, mode, deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR });
+        eventBus.publish('assembly:emphasis', {
+            assembly: selectedAssembly,
+            nodeSet,
+            mode,
+            emphasisColor: AssemblyWidget.NODE_EMPHASIS_COLOR,
+            deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR,
+        });
     }
 
     initializeSearchInput(): void {

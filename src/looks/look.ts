@@ -9,14 +9,6 @@ import type { EventMap } from "../utils/eventMap.ts"
 
 class Look {
 
-    static NODE_EMPHASIS_COLOR = '#c0311a'
-
-    static NODE_DEEMPHASIS_COLOR = '#B2B1A9'
-
-    // static NODE_ABSENCE_COLOR = '#dce4e8'
-    static NODE_ABSENCE_COLOR = rubinColorsHexStrings.get('rubinIvoryDark')
-    // static NODE_ABSENCE_COLOR = '#ff0289'
-
     static DEFAULT_NODE_COLOR = rubinColorsHexStrings.get('rubinGray')
     static DEFAULT_EDGE_COLOR = rubinColorsHexStrings.get('rubinGray')
 
@@ -124,9 +116,9 @@ class Look {
         let colorToUse
         if (nodeColor instanceof Map) {
             const color = nodeColor.get(nodeName)
-            colorToUse = color ? color.clone() : new THREE.Color(Look.NODE_EMPHASIS_COLOR)
+            colorToUse = color ? color.clone() : new THREE.Color()
         } else {
-            colorToUse = nodeColor instanceof THREE.Color ? nodeColor : new THREE.Color(nodeColor || Look.NODE_EMPHASIS_COLOR)
+            colorToUse = nodeColor instanceof THREE.Color ? nodeColor : new THREE.Color(nodeColor)
         }
 
         const material = RibbonMaterialFactory.createMaterial(colorToUse)
@@ -138,15 +130,14 @@ class Look {
     /**
      * Gets or creates a ribbon deemphasis material for a node.
      */
-    getNodeRibbonDeemphasisMaterial(nodeName: string, deemphasisColor?: string): any {
-        const color = deemphasisColor || Look.NODE_DEEMPHASIS_COLOR
-        const cacheKey = deemphasisColor ? `ribbon:${nodeName}:deemphasis:${color}` : `ribbon:${nodeName}:deemphasis`
+    getNodeRibbonDeemphasisMaterial(nodeName: string, deemphasisColor: string): any {
+        const cacheKey = `ribbon:${nodeName}:deemphasis:${deemphasisColor}`
 
         if (this.materialCache.has(cacheKey)) {
             return this.materialCache.get(cacheKey)
         }
 
-        const material = RibbonMaterialFactory.createMaterial(color)
+        const material = RibbonMaterialFactory.createMaterial(deemphasisColor)
         this.materialCache.set(cacheKey, material)
 
         return material
@@ -155,14 +146,14 @@ class Look {
     /**
      * Gets or creates a ribbon absence material for a node.
      */
-    getNodeRibbonAbsenceMaterial(nodeName: string): any {
-        const cacheKey = `ribbon:${nodeName}:absence`
+    getNodeRibbonAbsenceMaterial(nodeName: string, absenceColor: string): any {
+        const cacheKey = `ribbon:${nodeName}:absence:${absenceColor}`
 
         if (this.materialCache.has(cacheKey)) {
             return this.materialCache.get(cacheKey)
         }
 
-        const material = RibbonMaterialFactory.createMaterial(Look.NODE_ABSENCE_COLOR)
+        const material = RibbonMaterialFactory.createMaterial(absenceColor)
         this.materialCache.set(cacheKey, material)
 
         return material
@@ -281,6 +272,7 @@ class Look {
         emphasisColor: any,
         absentSet: Set<string> | undefined,
         deemphasisColor: string | undefined,
+        absenceColor: string | undefined,
     ): void {
 
         this.emphasisStates.clear()
@@ -300,7 +292,7 @@ class Look {
             this.setEmphasisState(nodeName, 'emphasized')
         }
 
-        this.updateNodeEmphasis(absent, 'absent', undefined)
+        this.updateNodeEmphasis(absent, 'absent', undefined, undefined, undefined, absenceColor)
         this.updateNodeEmphasis(remainder, remainderState, undefined, undefined, deemphasisColor)
         if (emphasizedSet.size > 0) {
             this.updateNodeEmphasis(emphasizedSet, 'emphasized', assemblyName, emphasisColor)
@@ -331,15 +323,15 @@ class Look {
      * Applies an emphasis state to a mesh by updating its material.
      * Handles both node and edge meshes, applying appropriate materials based on state.
      */
-    applyEmphasisState(mesh: any, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string): void {
+    applyEmphasisState(mesh: any, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string): void {
         if (!mesh.userData) return;
 
         if (emphasisState === 'deemphasized') {
-            mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName, deemphasisColor);
+            mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName, deemphasisColor!);
         } else if (emphasisState === 'emphasized') {
             mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName!, mesh.userData.nodeName, nodeColor);
         } else if (emphasisState === 'absent') {
-            mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName);
+            mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName, absenceColor!);
         } else if (emphasisState === 'normal') {
             mesh.material = this.getNodeRibbonMaterial(mesh.userData.nodeName);
         } else {
@@ -356,14 +348,14 @@ class Look {
      * Updates the emphasis state for a set of nodes in the scene.
      * Traverses the NodeMeshGroup and applies the emphasis state to matching nodes.
      */
-    updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string): void {
+    updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string): void {
 
         if (!this.activeScene) return;
         const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
         if (!nodeMeshGroup) return;
         nodeMeshGroup.traverse((object: any) => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
-                this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor);
+                this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor, absenceColor);
             }
         });
     }
