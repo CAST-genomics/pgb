@@ -8,7 +8,7 @@ interface Object3DLike {
 }
 
 export interface EventMap {
-    'assembly:emphasis':          { assembly: { name: string; color?: string }; nodeSet: Set<string>; mode?: 'walk' | 'subgraph'; emphasisColor: string; deemphasisColor: string };
+    'assembly:emphasis':          { assembly: { name: string; color?: string }; nodeSet: Set<string>; offWalkNodeSet?: Set<string>; mode?: 'walk' | 'subgraph'; emphasisColor: string; deemphasisColor: string; offWalkColor?: string };
     'assembly:normal':            { nodeSet: Set<string> };
     'pcaWidget:emphasis':         { assembly: { name: string }; resolvedAssemblyKey?: string; nodeSet: Set<string>; absentNodeSet: Set<string>; emphasisColor: any; deemphasisColor: string; absenceColor: string };
     'pcaWidget:normal':           { nodeSet: Set<string> };

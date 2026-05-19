@@ -6,7 +6,8 @@ class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
     static ASSEMBLY_SUBGRAPH_EMPHASIS = 'subgraph';
     static NODE_EMPHASIS_COLOR = '#c0311a';
-    static NODE_DEEMPHASIS_COLOR = '#a89292';
+    static NODE_DEEMPHASIS_COLOR = '#e8d0cc';
+    static NODE_OFF_WALK_COLOR = '#9a9a9a';
 
     assemblyWidgetContainer: HTMLElement
     draggable: any
@@ -141,26 +142,30 @@ class AssemblyWidget {
     }
 
     emphasizeAssembly(selectedAssembly: { name: string; color: string }): void {
-        let nodeSet;
+        const walkInfo = this.genomicService.assemblyWalkMap.get(selectedAssembly.name)
+        let nodeSet: Set<string>
+        let offWalkNodeSet: Set<string> | undefined
 
         if (this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS) {
-            // Use spine features data
-            const { spine } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).spineFeatures;
-            const { nodes } = spine;
-            nodeSet = new Set([...(nodes.map(({ id }: { id: string }) => id))]);
+            // Walk mode: emphasized = walk nodes; off-walk anchored = subgraph \ walk.
+            const { nodes: walkNodes } = walkInfo.spineFeatures.spine
+            nodeSet = new Set<string>(walkNodes.map(({ id }: { id: string }) => id))
+            const subgraphNodes = new Set(walkInfo.assemblySubgraph.nodes as Iterable<string>)
+            offWalkNodeSet = (subgraphNodes as any).difference(nodeSet)
         } else {
-            // Use assembly subgraph data (default)
-            const { nodes } = this.genomicService.assemblyWalkMap.get(selectedAssembly.name).assemblySubgraph;
-            nodeSet = new Set([...nodes]);
+            // Subgraph mode: emphasized = subgraph nodes; no off-walk distinction.
+            nodeSet = new Set<string>(walkInfo.assemblySubgraph.nodes)
         }
 
         const mode = this.emphasisMode === AssemblyWidget.ASSEMBLY_SPINE_FEATURES_EMPHASIS ? 'walk' : 'subgraph'
         eventBus.publish('assembly:emphasis', {
             assembly: selectedAssembly,
             nodeSet,
+            offWalkNodeSet,
             mode,
             emphasisColor: AssemblyWidget.NODE_EMPHASIS_COLOR,
             deemphasisColor: AssemblyWidget.NODE_DEEMPHASIS_COLOR,
+            offWalkColor: AssemblyWidget.NODE_OFF_WALK_COLOR,
         });
     }
 
