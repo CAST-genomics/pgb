@@ -1,15 +1,15 @@
-# PCA Chart Improvements
+# PCLAI Chart Improvements
 
 ## Problem Statement
 
-When multiple nodes in the pan genome graph are selected (potentially a dozen or more), each node corresponds to a dot in the PCA chart. However, there are significant usability issues:
+When multiple nodes in the pan genome graph are selected (potentially a dozen or more), each node corresponds to a dot in the PCLAI chart. However, there are significant usability issues:
 
 - **Visual Clutter**: Multiple dots cluster together, making it difficult to distinguish individual dots
 - **Scale Issues**: Dots are too small to be easily identified or selected
 - **Information Loss**: Users cannot see individual dots or understand their relationships when they overlap
 - **User Frustration**: It becomes nearly impossible to disambiguate between dots due to their close proximity
 
-This creates a barrier to understanding the relationship between selected nodes in the pan genome graph and their corresponding positions in PCA space.
+This creates a barrier to understanding the relationship between selected nodes in the pan genome graph and their corresponding positions in PCLAI space.
 
 ## Proposed Solutions
 
@@ -41,7 +41,7 @@ This creates a barrier to understanding the relationship between selected nodes 
 **Considerations**:
 - May reduce available space for the pan genome graph
 - Fixed size may not suit all users or screen sizes
-- Doesn't solve the problem if dots are inherently clustered in PCA space
+- Doesn't solve the problem if dots are inherently clustered in PCLAI space
 - Should consider responsive sizing for different screen sizes
 
 ### 3. Make the Chart Draggable/Resizable
@@ -71,7 +71,7 @@ All three solutions address the core problem of insufficient visual space and do
 
 ### Potential Limitations
 
-- **Zoom alone**: May not solve the problem if dots are inherently clustered in PCA space - zooming in might just show overlapping dots more clearly
+- **Zoom alone**: May not solve the problem if dots are inherently clustered in PCLAI space - zooming in might just show overlapping dots more clearly
 - **Larger size alone**: Fixed size may not be optimal for all use cases or screen sizes
 - **Resizable alone**: Requires user action to improve the situation, doesn't help by default
 
@@ -109,7 +109,7 @@ Implement **both zoom and resize functionality**:
 ### Additional Enhancements to Consider
 
 1. **Dot Size Scaling**: Make dots scale with zoom level - larger when zoomed in, smaller when zoomed out
-2. **Hover/Selection Highlighting**: When hovering over a node in the pan genome graph, highlight the corresponding dot in the PCA chart (and vice versa)
+2. **Hover/Selection Highlighting**: When hovering over a node in the pan genome graph, highlight the corresponding dot in the PCLAI chart (and vice versa)
 3. **Clustering/Aggregation**: At low zoom levels, show cluster indicators; expand to individual dots when zoomed in
 4. **Tooltip on Hover**: Show coordinate values and node information when hovering over dots
 
@@ -121,8 +121,8 @@ Implement **both zoom and resize functionality**:
 
 ## Related Files
 
-- `src/widgets/pcaChartService.js` - PCA chart service implementation
-- `src/styles/_pcaChart.scss` - PCA chart styling
+- `src/widgets/pclaiChartService.js` - PCLAI chart service implementation
+- `src/styles/_pclaiChart.scss` - PCLAI chart styling
 - `index.html` - Chart container structure
 
 ## Notes
@@ -130,4 +130,4 @@ Implement **both zoom and resize functionality**:
 - The chart is currently implemented as a fixed-size div-based visualization
 - Dots are rendered as absolutely positioned div elements
 - Chart uses a global bounding box calculated from all coordinate data
-- Current chart size is defined by CSS custom property `--pca-chart-surface-size: 448px`
+- Current chart size is defined by CSS custom property `--pclai-chart-surface-size: 448px`

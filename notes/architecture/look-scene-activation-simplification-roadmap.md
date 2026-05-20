@@ -12,7 +12,7 @@
 
 | Concern | NodeEmphasisLook | HeatmapLook |
 |---|---|---|
-| Subscribes to events | assembly + PCA widget events | population / superpopulation events |
+| Subscribes to events | assembly + PCLAI widget events | population / superpopulation events |
 | Produces a tooltip | node name, length, emphasis state | population tooltip |
 | Changes node appearance | swaps material per phase | mutates `diffuse` uniform per frequency |
 | Owns the active scene | yes (today: via `sceneManager`) | yes (today: via `sceneManager`) |
@@ -84,11 +84,11 @@ No behavior change, ~40 lines deleted, the two subclasses look nearly structural
 
 ### Commit 3 — Collapse the 5 emphasis handlers into 2 paths on `NodeEmphasisLook`
 
-Normalize the payload at the subscription boundary. After this commit, the five `subscribe` calls remain (they must — different event names), but they all funnel into a single `applyPartition(...)` method plus a `restoreNodes(...)` method. `Look.setNodeEmphasis`, `Look.setNodeAbsence`, and `Look.restoreNodes` collapse into one `applyPartition(assembly, emphasizedSet, color, absentSet, deemphasisColor)` — `pcaWidget:absence` calls it with `emphasizedSet = ∅`.
+Normalize the payload at the subscription boundary. After this commit, the five `subscribe` calls remain (they must — different event names), but they all funnel into a single `applyPartition(...)` method plus a `restoreNodes(...)` method. `Look.setNodeEmphasis`, `Look.setNodeAbsence`, and `Look.restoreNodes` collapse into one `applyPartition(assembly, emphasizedSet, color, absentSet, deemphasisColor)` — `pclaiWidget:absence` calls it with `emphasizedSet = ∅`.
 
 This is `NodeEmphasisLook`-specific. `HeatmapLook` is untouched.
 
-**Visual check:** emphasis from the assembly widget and from the PCA widget, absence mode (PCA open, no dot selected), restore.
+**Visual check:** emphasis from the assembly widget and from the PCLAI widget, absence mode (PCLAI open, no dot selected), restore.
 
 ### Commit 4 — Delete state-aware Z-offset
 
@@ -100,14 +100,14 @@ Remove:
 
 Baseline `NODE_LINE_Z_OFFSET` / `EDGE_LINE_Z_OFFSET` baked into geometry at creation stay untouched — nodes still sit in front of edges.
 
-**Visual check:** this is the commit most likely to surface a regression. Run assembly emphasis, PCA emphasis, absence. If sort-order glitches appear, fall back to `mesh.renderOrder` inside `applyEmphasisState`. Most likely not needed.
+**Visual check:** this is the commit most likely to surface a regression. Run assembly emphasis, PCLAI emphasis, absence. If sort-order glitches appear, fall back to `mesh.renderOrder` inside `applyEmphasisState`. Most likely not needed.
 
 ## What stays unchanged
 
 - `Look` / `LookManager` / `SceneManager` triad. Still three objects.
 - `NodeEmphasisLook extends Look`, `HeatmapLook extends Look`. All material + interaction logic lives on these classes.
 - No new files, no new directories, no new abstractions.
-- Tooltips, animation, PCA chart, widgets, material factories. Untouched.
+- Tooltips, animation, PCLAI chart, widgets, material factories. Untouched.
 
 ## Out of scope (explicitly rejected)
 

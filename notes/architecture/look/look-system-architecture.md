@@ -14,7 +14,7 @@ The Look is the load-bearing abstraction for what the graph *looks like*. Widget
 
 - A Look owns a coherent visual vocabulary (e.g. NodeEmphasisLook owns emphasized / deemphasized / absent partitioning; HeatmapLook owns continuous frequency coloring).
 - Widgets are free to invent their own events, event types, and payload shapes to feed a Look. Multiple widgets may drive the same Look with different events.
-- Look *reuse* across widgets is opportunistic, not symmetric. AssemblyWidget and PCAWidget both happen to drive NodeEmphasisLook because the Look's emphasis vocabulary generalizes to both of their needs. This is empirical — not a design requirement — and it's the right pattern when it works.
+- Look *reuse* across widgets is opportunistic, not symmetric. AssemblyWidget and PCLAIWidget both happen to drive NodeEmphasisLook because the Look's emphasis vocabulary generalizes to both of their needs. This is empirical — not a design requirement — and it's the right pattern when it works.
 - The constraint that has to hold is the Look's own coherence. Cross-widget symmetry of event names or state vocabularies is not a goal.
 
 When deciding to add a new Look vs. extend an existing one, see [Creating a New Look](./creating-a-new-look.md) §0.
@@ -77,11 +77,11 @@ Owns the render loop and scene switching.
 ### NodeEmphasisLook
 **File**: `src/looks/nodeEmphasisLook.ts`
 
-Default visualization. Highlights assemblies or PCA coordinate keys by emphasizing matching nodes/edges and deemphasizing others via material swaps and Z-offset layering.
+Default visualization. Highlights assemblies or PCLAI coordinate keys by emphasizing matching nodes/edges and deemphasizing others via material swaps and Z-offset layering.
 
 **Overrides**: `getZOffset()` (state-based Z), `updateBehavior()` (edge arrow animation — currently disabled), `activate()`/`deactivate()` (event subscriptions)
 
-**Listens to**: `assembly:emphasis`, `assembly:normal`, `pcaWidget:emphasis`, `pcaWidget:normal`
+**Listens to**: `assembly:emphasis`, `assembly:normal`, `pclaiWidget:emphasis`, `pclaiWidget:normal`
 
 ### HeatmapLook
 **File**: `src/looks/heatmapLook.ts`

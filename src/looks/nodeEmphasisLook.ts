@@ -11,13 +11,13 @@ import materialService from '../materialService.js';
  *                         deemphasisColor }.
  *   assembly:normal     — restore a set of nodes to normal (from AssemblyWidget).
  *                         Payload: { nodeSet }.
- *   pcaWidget:emphasis  — emphasize a set of nodes for a PCA coordinate key,
- *                         with optional absent set (from PCAWidget). Payload:
+ *   pclaiWidget:emphasis  — emphasize a set of nodes for a PCLAI coordinate key,
+ *                         with optional absent set (from PCLAIWidget). Payload:
  *                         { assembly, nodeSet, absentNodeSet, deemphasisColor }.
- *   pcaWidget:absence   — mark a set of nodes absent with no emphasis (from
- *                         PCAWidget, widget open but no coordinate selected).
+ *   pclaiWidget:absence   — mark a set of nodes absent with no emphasis (from
+ *                         PCLAIWidget, widget open but no coordinate selected).
  *                         Payload: { absentNodeSet }.
- *   pcaWidget:normal    — restore a set of nodes to normal (from PCAWidget).
+ *   pclaiWidget:normal    — restore a set of nodes to normal (from PCLAIWidget).
  *                         Payload: { nodeSet }.
  */
 class NodeEmphasisLook extends Look {
@@ -42,16 +42,16 @@ class NodeEmphasisLook extends Look {
             this.restoreNodes(data.nodeSet)
         });
 
-        this.subscribe('pcaWidget:absence', data => {
+        this.subscribe('pclaiWidget:absence', data => {
             this.setNodeEmphasis(undefined, new Set(), undefined, data.absentNodeSet, undefined, data.absenceColor);
         });
 
-        this.subscribe('pcaWidget:emphasis', data => {
+        this.subscribe('pclaiWidget:emphasis', data => {
             const { assembly, nodeSet, absentNodeSet, emphasisColor, deemphasisColor, absenceColor } = data
             this.setNodeEmphasis(assembly.name, nodeSet, emphasisColor, absentNodeSet, deemphasisColor, absenceColor);
         });
 
-        this.subscribe('pcaWidget:normal', data => {
+        this.subscribe('pclaiWidget:normal', data => {
             this.restoreNodes(data.nodeSet)
         });
     }

@@ -2,16 +2,16 @@ import { globals } from "../main.js"
 import { pclaiCoordinateService } from "./pclaiCoordinateService.js"
 
 class WidgetService {
-    constructor(containerElement, assemblyWidget, populationWidget, pcaWidget) {
+    constructor(containerElement, assemblyWidget, populationWidget, pclaiWidget) {
 
         this.containerElement = containerElement;
         this.assemblyWidget = assemblyWidget;
         this.populationWidget = populationWidget;
-        this.pcaWidget = pcaWidget;
+        this.pclaiWidget = pclaiWidget;
 
         this.assemblyButton = null;
         this.populationButton = null;
-        this.pcaButton = null;
+        this.pclaiButton = null;
 
         this.activeButton = null
 
@@ -43,12 +43,12 @@ class WidgetService {
         this.populationButton.innerHTML = 'Population';
         this.populationButton.addEventListener('click', this.onPopulationButtonClick.bind(this));
 
-        this.pcaButton = document.createElement('button');
-        buttonContainer.appendChild(this.pcaButton);
+        this.pclaiButton = document.createElement('button');
+        buttonContainer.appendChild(this.pclaiButton);
 
-        this.pcaButton.className = 'widget-service__button';
-        this.pcaButton.textContent = 'PCA';
-        this.pcaButton.addEventListener('click', this.onPCAButtonClick.bind(this));
+        this.pclaiButton.className = 'widget-service__button';
+        this.pclaiButton.textContent = 'PCLAI';
+        this.pclaiButton.addEventListener('click', this.onPCLAIButtonClick.bind(this));
 
     }
 
@@ -57,13 +57,13 @@ class WidgetService {
         event.stopPropagation();
 
         // Hide and reset other widgets when switching to assembly.
-        // pcaWidget.reset() must run before hideCard() so the graph leaves
+        // pclaiWidget.reset() must run before hideCard() so the graph leaves
         // emphasis state before absence is released — otherwise the
         // deemphasized-remainder painted during emphasis is never restored.
         this.populationWidget.hideCard();
         this.populationWidget.reset();
-        this.pcaWidget.reset();
-        this.pcaWidget.hideCard();
+        this.pclaiWidget.reset();
+        this.pclaiWidget.hideCard();
 
         if (this.activeButton === this.assemblyButton) {
             console.log('hide widget - assembly')
@@ -84,11 +84,11 @@ class WidgetService {
         event.stopPropagation();
 
         // Hide and reset other widgets when switching to population.
-        // pcaWidget.reset() must run before hideCard() (see onAssemblyButtonClick).
+        // pclaiWidget.reset() must run before hideCard() (see onAssemblyButtonClick).
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
-        this.pcaWidget.reset();
-        this.pcaWidget.hideCard();
+        this.pclaiWidget.reset();
+        this.pclaiWidget.hideCard();
 
         if (this.activeButton === this.populationButton) {
             console.log('hide widget - population')
@@ -110,33 +110,33 @@ class WidgetService {
 
     }
 
-    onPCAButtonClick(event) {
+    onPCLAIButtonClick(event) {
 
         event.stopPropagation();
 
         // Don't proceed if button is disabled
-        if (this.pcaButton.disabled) {
+        if (this.pclaiButton.disabled) {
             return;
         }
 
-        // Hide and reset other widgets when switching to PCA
+        // Hide and reset other widgets when switching to PCLAI
         this.assemblyWidget.hideCard();
         this.assemblyWidget.reset();
         this.populationWidget.hideCard();
         this.populationWidget.reset();
 
-        if (this.activeButton === this.pcaButton) {
-            console.log('hide widget - PCA')
+        if (this.activeButton === this.pclaiButton) {
+            console.log('hide widget - PCLAI')
             // reset() before hideCard(): see onAssemblyButtonClick for rationale.
-            this.pcaWidget.reset();
-            this.pcaWidget.hideCard();
+            this.pclaiWidget.reset();
+            this.pclaiWidget.hideCard();
             this.setActiveButton(null);
         } else {
-            console.log('show widget - PCA')
+            console.log('show widget - PCLAI')
             this.activateLook('nodeEmphasisScene');
-            // this.pcaWidget.configure();
-            this.pcaWidget.showCard();
-            this.setActiveButton(this.pcaButton);
+            // this.pclaiWidget.configure();
+            this.pclaiWidget.showCard();
+            this.setActiveButton(this.pclaiButton);
         }
 
     }
@@ -162,16 +162,16 @@ class WidgetService {
     }
 
     /**
-     * Update PCA button enabled/disabled state based on PCLAI data availability
+     * Update PCLAI button enabled/disabled state based on PCLAI data availability
      */
-    updatePCAButtonState() {
-        if (this.pcaButton) {
+    updatePCLAIButtonState() {
+        if (this.pclaiButton) {
             const hasData = pclaiCoordinateService.hasPCLAIData();
-            this.pcaButton.disabled = !hasData;
+            this.pclaiButton.disabled = !hasData;
             if (!hasData) {
-                // If button is disabled and PCA widget is visible, hide the widget
-                if (this.activeButton === this.pcaButton) {
-                    this.pcaWidget.hideCard();
+                // If button is disabled and PCLAI widget is visible, hide the widget
+                if (this.activeButton === this.pclaiButton) {
+                    this.pclaiWidget.hideCard();
                     this.setActiveButton(null);
                 }
             }
@@ -191,12 +191,12 @@ class WidgetService {
         this.populationWidget.hideCard()
         this.populationWidget.reset()
 
-        this.pcaWidget.hideCard()
-        // this.pcaWidget.reset()
-        this.pcaWidget.configure()
+        this.pclaiWidget.hideCard()
+        // this.pclaiWidget.reset()
+        this.pclaiWidget.configure()
 
-        // Update PCA button state based on PCLAI data availability
-        this.updatePCAButtonState()
+        // Update PCLAI button state based on PCLAI data availability
+        this.updatePCLAIButtonState()
     }
 
     destroy() {
@@ -206,8 +206,8 @@ class WidgetService {
         if (this.populationButton) {
             this.populationButton.removeEventListener('click', this.onPopulationButtonClick.bind(this));
         }
-        if (this.pcaButton) {
-            this.pcaButton.removeEventListener('click', this.onPCAButtonClick.bind(this));
+        if (this.pclaiButton) {
+            this.pclaiButton.removeEventListener('click', this.onPCLAIButtonClick.bind(this));
         }
         this.activeButton = null;
     }

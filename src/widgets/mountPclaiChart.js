@@ -1,10 +1,10 @@
 /**
- * mountPcaChart — facade that bootstraps the PCA chart subsystem.
+ * mountPclaiChart — facade that bootstraps the PCLAI chart subsystem.
  *
- * Phase 3c of the PCA triangle refactor (issue #46). Replaces the
- * pcaChartService singleton: owns card chrome construction, button wiring,
- * reference-data fetch, dataset-load subscription, and the `PcaChart` +
- * `PcaChartController` instances.
+ * Phase 3c of the PCLAI triangle refactor (issue #46). Replaces the
+ * pclaiChartService singleton: owns card chrome construction, button wiring,
+ * reference-data fetch, dataset-load subscription, and the `PclaiChart` +
+ * `PclaiChartController` instances.
  *
  * Returns a small handle callers drive: `reset`, `initializeGlobalBoundingBox`,
  * `selectedCoordinateKey`, and `destroy`.
@@ -13,23 +13,23 @@
 import eventBus from '../utils/eventBus.ts'
 import { Draggable } from '../utils/draggable.js'
 import { pclaiCoordinateService } from './pclaiCoordinateService.js'
-import { PcaCoordinateSpace } from './pcaCoordinateSpace.js'
-import { PcaChart } from './pcaChart.js'
-import { PcaChartController } from './pcaChartController.js'
-import { acquireAbsence, releaseAbsence } from './pcaAbsenceCoordinator.js'
+import { PclaiCoordinateSpace } from './pclaiCoordinateSpace.js'
+import { PclaiChart } from './pclaiChart.js'
+import { PclaiChartController } from './pclaiChartController.js'
+import { acquireAbsence, releaseAbsence } from './pclaiAbsenceCoordinator.js'
 
-const ABSENCE_PRESENTER_ID = 'pcaChart'
+const ABSENCE_PRESENTER_ID = 'pclaiChart'
 
 const DOT_SIZE_PERCENT = 1
 const CHART_PADDING = 20
 const DEFAULT_SURFACE_SIZE = 448
 const REFERENCE_DATA_URL = '/datasets/hprc-reference-pca.tsv'
 
-export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
+export function mountPclaiChart({ containerId = 'pclai-chart-container' } = {}) {
     const dom = createChartDOM(containerId)
     const { chartContainer, chartSurface, referenceDotsContainer, horizontalAxis, verticalAxis } = dom
 
-    const chart = new PcaChart({
+    const chart = new PclaiChart({
         chartSurface,
         referenceDotsContainer,
         horizontalAxis,
@@ -42,7 +42,7 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
     let coordinateSpace = null
     let referenceData = []
 
-    const controller = new PcaChartController({
+    const controller = new PclaiChartController({
         isVisible: () => isVisible,
         isInitialized: () => isInitialized,
         clearChart: () => chart.clearChart(),
@@ -71,7 +71,7 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
         chart.setBackgroundImage(null)
     })
 
-    const emphasisUnsub = eventBus.subscribe('pcaWidget:emphasis', (data) => {
+    const emphasisUnsub = eventBus.subscribe('pclaiWidget:emphasis', (data) => {
         if (!currentLocusToken || !data || !data.assembly || !data.assembly.name) {
             chart.setBackgroundImage(null)
             return
@@ -83,7 +83,7 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
         img.src = url
     })
 
-    const deselectUnsub = eventBus.subscribe('pcaWidget:deselect', () => {
+    const deselectUnsub = eventBus.subscribe('pclaiWidget:deselect', () => {
         chart.setBackgroundImage(null)
     })
 
@@ -99,7 +99,7 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
         isVisible = true
         if (isInitialized && coordinateSpace) {
             chart.updateAxes()
-            const existing = referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot')
+            const existing = referenceDotsContainer.querySelectorAll('.pclai-chart__reference-dot')
             if (!existing || existing.length === 0) {
                 chart.renderReferenceDots(referenceData)
             }
@@ -145,7 +145,7 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
             if (p.y > maxY) maxY = p.y
         }
         if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
-            console.warn('mountPcaChart: No valid coordinates found')
+            console.warn('mountPclaiChart: No valid coordinates found')
             return
         }
 
@@ -157,8 +157,8 @@ export function mountPcaChart({ containerId = 'pca-chart-container' } = {}) {
         return new Promise(resolve => {
             requestAnimationFrame(() => {
                 const computed = window.getComputedStyle(chartContainer)
-                const surfaceSize = parseFloat(computed.getPropertyValue('--pca-chart-surface-size')) || DEFAULT_SURFACE_SIZE
-                coordinateSpace = new PcaCoordinateSpace(
+                const surfaceSize = parseFloat(computed.getPropertyValue('--pclai-chart-surface-size')) || DEFAULT_SURFACE_SIZE
+                coordinateSpace = new PclaiCoordinateSpace(
                     dataBounds,
                     surfaceSize,
                     surfaceSize,
@@ -199,7 +199,7 @@ function createChartDOM(containerId) {
     if (!container) {
         container = document.createElement('div')
         container.id = containerId
-        container.className = 'pca-chart__card card position-absolute'
+        container.className = 'pclai-chart__card card position-absolute'
         container.style.display = 'none'
         document.body.appendChild(container)
     }
@@ -209,7 +209,7 @@ function createChartDOM(containerId) {
         header.className = 'card-header'
         const title = document.createElement('h5')
         title.className = 'card-title mb-0'
-        title.textContent = 'PCA Chart'
+        title.textContent = 'PCLAI Chart'
         header.appendChild(title)
         container.appendChild(header)
     }
@@ -221,41 +221,41 @@ function createChartDOM(containerId) {
         container.appendChild(body)
     }
 
-    let surface = document.getElementById('pca-chart-surface')
+    let surface = document.getElementById('pclai-chart-surface')
     if (!surface) {
         surface = document.createElement('div')
-        surface.id = 'pca-chart-surface'
-        surface.className = 'pca-chart__surface'
+        surface.id = 'pclai-chart-surface'
+        surface.className = 'pclai-chart__surface'
         body.appendChild(surface)
     }
 
-    let referenceContainer = document.getElementById('pca-chart-reference-dots')
+    let referenceContainer = document.getElementById('pclai-chart-reference-dots')
     if (!referenceContainer) {
         referenceContainer = document.createElement('div')
-        referenceContainer.id = 'pca-chart-reference-dots'
-        referenceContainer.className = 'pca-chart__reference-dots'
+        referenceContainer.id = 'pclai-chart-reference-dots'
+        referenceContainer.className = 'pclai-chart__reference-dots'
         surface.appendChild(referenceContainer)
     }
 
-    let horizontalAxis = document.getElementById('pca-chart-axis-horizontal')
+    let horizontalAxis = document.getElementById('pclai-chart-axis-horizontal')
     if (!horizontalAxis) {
         horizontalAxis = document.createElement('div')
-        horizontalAxis.id = 'pca-chart-axis-horizontal'
-        horizontalAxis.className = 'pca-chart__axis pca-chart__axis--horizontal'
+        horizontalAxis.id = 'pclai-chart-axis-horizontal'
+        horizontalAxis.className = 'pclai-chart__axis pclai-chart__axis--horizontal'
         surface.appendChild(horizontalAxis)
     }
 
-    let verticalAxis = document.getElementById('pca-chart-axis-vertical')
+    let verticalAxis = document.getElementById('pclai-chart-axis-vertical')
     if (!verticalAxis) {
         verticalAxis = document.createElement('div')
-        verticalAxis.id = 'pca-chart-axis-vertical'
-        verticalAxis.className = 'pca-chart__axis pca-chart__axis--vertical'
+        verticalAxis.id = 'pclai-chart-axis-vertical'
+        verticalAxis.className = 'pclai-chart__axis pclai-chart__axis--vertical'
         surface.appendChild(verticalAxis)
     }
 
     if (!container.querySelector('.card-footer')) {
         const footer = document.createElement('div')
-        footer.className = 'card-footer pca-chart__footer'
+        footer.className = 'card-footer pclai-chart__footer'
         container.appendChild(footer)
     }
 
@@ -271,15 +271,15 @@ function createChartDOM(containerId) {
 function createButton(onClick) {
     const navbarNav = document.querySelector('.navbar-nav.ms-auto')
     if (!navbarNav) {
-        console.warn('mountPcaChart: Could not find navbar-nav container for button')
+        console.warn('mountPclaiChart: Could not find navbar-nav container for button')
         return null
     }
 
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'btn btn-outline-secondary'
-    button.id = 'pca-chart-button'
-    button.textContent = 'PCA Chart'
+    button.id = 'pclai-chart-button'
+    button.textContent = 'PCLAI Chart'
     button.disabled = true
     button.addEventListener('click', onClick)
 
@@ -296,7 +296,7 @@ async function loadReferenceData() {
     try {
         const response = await fetch(REFERENCE_DATA_URL)
         if (!response.ok) {
-            console.warn('mountPcaChart: Failed to load reference PCA data:', response.statusText)
+            console.warn('mountPclaiChart: Failed to load reference PCLAI data:', response.statusText)
             return []
         }
         const text = await response.text()
@@ -316,10 +316,10 @@ async function loadReferenceData() {
             const b = Math.round(parseFloat(match[3]) * 255)
             out.push({ x, y, color: `rgb(${r}, ${g}, ${b})` })
         }
-        console.log(`mountPcaChart: Loaded ${out.length} reference PCA data points`)
+        console.log(`mountPclaiChart: Loaded ${out.length} reference PCLAI data points`)
         return out
     } catch (error) {
-        console.warn('mountPcaChart: Error loading reference PCA data:', error)
+        console.warn('mountPclaiChart: Error loading reference PCLAI data:', error)
         return []
     }
 }

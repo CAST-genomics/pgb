@@ -1,22 +1,22 @@
 /**
- * pcaAbsenceCoordinator — refcounts the presenters that need the 3D graph
- * in "absence" mode (PCA widget and PCA chart).
+ * pclaiAbsenceCoordinator — refcounts the presenters that need the 3D graph
+ * in "absence" mode (PCLAI widget and PCLAI chart).
  *
- * Background: both the PCA widget card and the PCA chart panel want the
+ * Background: both the PCLAI widget card and the PCLAI chart panel want the
  * 3D graph to paint nodes with no PCLAI coordinates as "absent" while they
  * are visible. Without coordination, dismissing one presenter while the
- * other is still visible would publish `pcaWidget:normal` and wipe the
+ * other is still visible would publish `pclaiWidget:normal` and wipe the
  * absence state the surviving presenter still needs.
  *
  * Single-gatekeeper rules:
- *   - First presenter to `acquire()` triggers `pcaWidget:absence`.
- *   - Only the last presenter to `release()` triggers `pcaWidget:normal`.
+ *   - First presenter to `acquire()` triggers `pclaiWidget:absence`.
+ *   - Only the last presenter to `release()` triggers `pclaiWidget:normal`.
  *   - Re-entrant acquire from the same presenter is a no-op.
  */
 
 import eventBus from '../utils/eventBus.ts'
 import { pclaiCoordinateService } from './pclaiCoordinateService.js'
-import PCAWidget from './pcaWidget.ts'
+import PCLAIWidget from './pclaiWidget.ts'
 
 const presenters = new Set()
 
@@ -35,11 +35,11 @@ export function releaseAbsence(presenterId) {
 function publishAbsence() {
     const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
     if (absentNodeSet.size > 0) {
-        eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
+        eventBus.publish('pclaiWidget:absence', { absentNodeSet, absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR })
     }
 }
 
 function publishNormal() {
     const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-    eventBus.publish('pcaWidget:normal', { nodeSet: absentNodeSet })
+    eventBus.publish('pclaiWidget:normal', { nodeSet: absentNodeSet })
 }

@@ -14,7 +14,7 @@ describe('timestampedFilename', () => {
     })
 
     it('passes the layer and extension through unchanged', () => {
-        expect(timestampedFilename('pca-chart', 'svg')).toBe('pgb-pca-chart-20260428-090507.svg')
+        expect(timestampedFilename('pclai-chart', 'svg')).toBe('pgb-pclai-chart-20260428-090507.svg')
     })
 
     it('uses the locus token as prefix when provided', () => {

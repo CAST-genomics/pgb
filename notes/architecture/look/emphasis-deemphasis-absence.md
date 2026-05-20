@@ -18,7 +18,7 @@ Emphasis and de-emphasis are *interaction-time* states. They change every time t
 
 Absence is a *data-space* property. It's determined by what the dataset contains, not by which item the user clicked. Once you know which nodes lack pclai_coordinates, that set is fixed for the life of the dataset. It's computed once at data load time by `pclaiCoordinateService` and cached as an immutable set.
 
-However, absence is only *visualized* when the relevant widget is active. When the PCA widget opens, absent nodes are painted. When the PCA widget is dismissed, all nodes return to default. Absence is a property of the data but a visual state tied to widget lifecycle.
+However, absence is only *visualized* when the relevant widget is active. When the PCLAI widget opens, absent nodes are painted. When the PCLAI widget is dismissed, all nodes return to default. Absence is a property of the data but a visual state tied to widget lifecycle.
 
 ## How It Fits Into the Look System
 
@@ -35,10 +35,10 @@ Absence is a case of #2. It does not require a new look or a new scene. It lives
 ### Data load
 `pclaiCoordinateService.loadCoordinates()` parses the JSON, builds coordinate maps, and computes the absent node set as a byproduct. If the dataset has no pclai data at all, the absent set stays empty -- absence as a concept only exists relative to a dataset that has the relevant data.
 
-### PCA widget opens (`pcaWidget:absence`)
+### PCLAI widget opens (`pclaiWidget:absence`)
 The absent set is published via a dedicated event. The look's `setNodeEmphasis()` method is called with an empty emphasis set and the absent set, painting absent nodes and restoring all other nodes to their default appearance. No emphasis or de-emphasis occurs yet.
 
-### User clicks a dot (`pcaWidget:emphasis`)
+### User clicks a dot (`pclaiWidget:emphasis`)
 The event payload carries four things: the emphasis node set, the absent node set, the emphasis color (per-node color map from pclai data), and an optional de-emphasis color. The look's `setNodeEmphasis()` performs a three-way partition:
 
 ```
@@ -49,15 +49,15 @@ deemphasisSet  = everything else (allNodes - emphasisSet - absentSet)
 
 Each partition gets its own material and Z-offset treatment.
 
-### User unclicks a dot (`pcaWidget:absence`)
-Returns to the "widget open, no selection" state. Absent nodes stay painted; everything else returns to default. This reuses the same `pcaWidget:absence` event as widget-open.
+### User unclicks a dot (`pclaiWidget:absence`)
+Returns to the "widget open, no selection" state. Absent nodes stay painted; everything else returns to default. This reuses the same `pclaiWidget:absence` event as widget-open.
 
-### PCA widget dismissed (`pcaWidget:normal`)
+### PCLAI widget dismissed (`pclaiWidget:normal`)
 All nodes return to default color, including absent nodes. The visualization returns to its baseline.
 
 ## Per-Widget De-emphasis Color
 
-Different widgets can specify different de-emphasis colors. The assembly widget uses a warm dusty rose; the PCA widget uses a neutral gray. Each widget defines its own `NODE_DEEMPHASIS_COLOR` as a static property and passes it through the event payload. The look falls back to `Look.NODE_DEEMPHASIS_COLOR` when no override is provided.
+Different widgets can specify different de-emphasis colors. The assembly widget uses a warm dusty rose; the PCLAI widget uses a neutral gray. Each widget defines its own `NODE_DEEMPHASIS_COLOR` as a static property and passes it through the event payload. The look falls back to `Look.NODE_DEEMPHASIS_COLOR` when no override is provided.
 
 This keeps the look generic -- it doesn't need to know which widget is driving it. The widget owns its palette and communicates it through the event.
 

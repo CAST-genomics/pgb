@@ -68,4 +68,4 @@ Both are built once at dataset load time, so selection is instantaneous.
 
 ## Relationship to the other widgets
 
-The Assembly Widget is the baseline *"who goes where?"* view. The Population Widget aggregates across that same set of haplotypes to answer *"how common is each node?"*, and the PCA Widget (on HPRC datasets) narrows the same list down to the haplotypes that carry PCLAI ancestry coordinates and couples the graph view to a 2D ancestry scatter plot. All three widgets share the same row format — `assembly#haplotype` — but each asks a different question about the panel.
+The Assembly Widget is the baseline *"who goes where?"* view. The Population Widget aggregates across that same set of haplotypes to answer *"how common is each node?"*, and the PCLAI Widget (on HPRC datasets) narrows the same list down to the haplotypes that carry PCLAI ancestry coordinates and couples the graph view to a 2D ancestry scatter plot. All three widgets share the same row format — `assembly#haplotype` — but each asks a different question about the panel.

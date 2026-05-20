@@ -1,30 +1,30 @@
 /**
- * PcaChart — view owner for the PCA scatter chart.
+ * PclaiChart — view owner for the PCLAI scatter chart.
  *
  * Owns the chart surface, axes, and reference-dot container. Renders dataset
- * dots and reference dots through an injected PcaCoordinateSpace. Handles
+ * dots and reference dots through an injected PclaiCoordinateSpace. Handles
  * reference-dot desaturation and axis positioning. The chart is presentation-
  * only — there are no user interactions on the chart itself; visual state is
  * driven externally via `renderDots` / `clearChart`.
  *
- * Phase 3b of the PCA triangle refactor (issue #46) absorbs view concerns
- * that previously lived on pcaChartService. PcaChart knows nothing about
- * the event bus, the dataset model, or the card chrome — PcaChartController
- * owns event wiring and the mountPcaChart facade (phase 3c) will own
+ * Phase 3b of the PCLAI triangle refactor (issue #46) absorbs view concerns
+ * that previously lived on pclaiChartService. PclaiChart knows nothing about
+ * the event bus, the dataset model, or the card chrome — PclaiChartController
+ * owns event wiring and the mountPclaiChart facade (phase 3c) will own
  * bootstrap.
  */
 
-const REFERENCE_DOTS_DEEMPHASIZED_CLASS = 'pca-chart__reference-dots--deemphasized'
-const DOT_EMPHASIZED_CLASS = 'pca-chart__dot--emphasized'
+const REFERENCE_DOTS_DEEMPHASIZED_CLASS = 'pclai-chart__reference-dots--deemphasized'
+const DOT_EMPHASIZED_CLASS = 'pclai-chart__dot--emphasized'
 
-export class PcaChart {
+export class PclaiChart {
     /**
      * @param {{
      *   chartSurface: HTMLElement,
      *   referenceDotsContainer: HTMLElement,
      *   horizontalAxis?: HTMLElement,
      *   verticalAxis?: HTMLElement,
-     *   coordinateSpace?: import('./pcaCoordinateSpace.js').PcaCoordinateSpace,
+     *   coordinateSpace?: import('./pclaiCoordinateSpace.js').PclaiCoordinateSpace,
      * }} options
      */
     constructor({ chartSurface, referenceDotsContainer, horizontalAxis, verticalAxis, coordinateSpace }) {
@@ -76,7 +76,7 @@ export class PcaChart {
             const { left, top, size } = space.project(x, y)
 
             const dot = document.createElement('div')
-            dot.className = `pca-chart__dot ${DOT_EMPHASIZED_CLASS}`
+            dot.className = `pclai-chart__dot ${DOT_EMPHASIZED_CLASS}`
             dot.style.left = `${left}px`
             dot.style.top = `${top}px`
             dot.style.width = `${size}px`
@@ -91,7 +91,7 @@ export class PcaChart {
 
     clearDatasetDots() {
         if (!this.chartSurface) return
-        const datasetDots = this.chartSurface.querySelectorAll('.pca-chart__dot')
+        const datasetDots = this.chartSurface.querySelectorAll('.pclai-chart__dot')
         datasetDots.forEach(dot => dot.remove())
     }
 
@@ -124,7 +124,7 @@ export class PcaChart {
             const { left, top, size } = space.project(x, y)
 
             const dot = document.createElement('div')
-            dot.className = 'pca-chart__reference-dot'
+            dot.className = 'pclai-chart__reference-dot'
             dot.style.left = `${left}px`
             dot.style.top = `${top}px`
             dot.style.width = `${size}px`
@@ -193,8 +193,8 @@ export class PcaChart {
      * @returns {Promise<Blob>}
      */
     async exportToSvg() {
-        if (!this.coordinateSpace) throw new Error('PcaChart: cannot export before coordinate space is initialized')
-        if (!this.chartSurface) throw new Error('PcaChart: cannot export without chart surface')
+        if (!this.coordinateSpace) throw new Error('PclaiChart: cannot export before coordinate space is initialized')
+        if (!this.chartSurface) throw new Error('PclaiChart: cannot export without chart surface')
 
         const w = this.coordinateSpace.surfaceWidth
         const h = this.coordinateSpace.surfaceHeight
@@ -203,7 +203,7 @@ export class PcaChart {
         const backgroundUrl = firstUrlFromBackgroundImage(bgImage)
         if (!backgroundUrl) {
             throw new Error(
-                'PcaChart export: chart surface has no `url(...)` in computed background-image; cannot inline background',
+                'PclaiChart export: chart surface has no `url(...)` in computed background-image; cannot inline background',
             )
         }
         const { dataUri: backgroundDataUri, naturalWidth, naturalHeight } = await fetchBackgroundAsDataUri(backgroundUrl)
@@ -217,7 +217,7 @@ export class PcaChart {
             : 1
 
         const datasetDots = this.chartSurface
-            ? Array.from(this.chartSurface.querySelectorAll('.pca-chart__dot'))
+            ? Array.from(this.chartSurface.querySelectorAll('.pclai-chart__dot'))
             : []
         const datasetEmphasis = readDatasetEmphasis(datasetDots[0])
 
@@ -237,7 +237,7 @@ export class PcaChart {
         if (this.referenceDotsContainer) {
             const groupAttrs = referenceDeemphasized ? ` opacity="${referenceOpacity}"` : ''
             parts.push(`<g${groupAttrs}>`)
-            for (const dot of this.referenceDotsContainer.querySelectorAll('.pca-chart__reference-dot')) {
+            for (const dot of this.referenceDotsContainer.querySelectorAll('.pclai-chart__reference-dot')) {
                 parts.push(referenceCircleSvg(dot))
             }
             parts.push('</g>')
@@ -338,7 +338,7 @@ function firstUrlFromBackgroundImage(backgroundImage) {
 
 async function fetchBackgroundAsDataUri(url) {
     const response = await fetch(url)
-    if (!response.ok) throw new Error(`PcaChart export: failed to fetch background ${url}: ${response.status}`)
+    if (!response.ok) throw new Error(`PclaiChart export: failed to fetch background ${url}: ${response.status}`)
     const blob = await response.blob()
     const dataUri = await new Promise((resolve, reject) => {
         const reader = new FileReader()

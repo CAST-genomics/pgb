@@ -18,7 +18,7 @@ https://3.145.184.140:8443/json?chrom=chr1&start=25240000&end=25460000&graphtype
 
 ## Reference Materials
 
-The HPRC has shared a slide deck illustrating the proposed visualization approach and the base PCA graph we aim to replicate in the browser:
+The HPRC has shared a slide deck illustrating the proposed visualization approach and the base PCLAI graph we aim to replicate in the browser:
 
 **[HPRC Local Ancestry Visualization Slide](https://docs.google.com/presentation/d/18gTZZyhzu7ueq9BshX9m8rv2vlOBCGBnTpi4ghMM0Hc/edit?slide=id.g39d02a8c716_0_56#slide=id.g39d02a8c716_0_56)**
 
@@ -26,19 +26,19 @@ The HPRC has shared a slide deck illustrating the proposed visualization approac
 
 ### Core Concept
 
-Each hg38 node in the data includes an associated set of local ancestry PCA coordinates, stored under the field `pclai_coordinates`. Each coordinate pair comes with an RGB color code for display.
+Each hg38 node in the data includes an associated set of local ancestry PCLAI coordinates, stored under the field `pclai_coordinates`. Each coordinate pair comes with an RGB color code for display.
 
 ### UI Components
 
-1. **Base PCA Graph Panel**: A reference PCA graph containing existing reference data points should be displayed somewhere on screen. The coordinates for this base graph will be provided separately.
+1. **Base PCLAI Graph Panel**: A reference PCLAI graph containing existing reference data points should be displayed somewhere on screen. The coordinates for this base graph will be provided separately.
 
-2. **Local Ancestry Widget (New)**: A new interactive widget that responds to user hover events on graph nodes. When the user hovers over a node, the corresponding PCA coordinates should be enlarged or highlighted within the PCA space.
+2. **Local Ancestry Widget (New)**: A new interactive widget that responds to user hover events on graph nodes. When the user hovers over a node, the corresponding PCLAI coordinates should be enlarged or highlighted within the PCLAI space.
 
 ## Pending Items
 
 | Item | Status |
 |------|--------|
-| Base PCA graph coordinates | Awaiting delivery |
+| Base PCLAI graph coordinates | Awaiting delivery |
 | Reference slide from HPRC | ✅ Received |
 
 ## Development Approach

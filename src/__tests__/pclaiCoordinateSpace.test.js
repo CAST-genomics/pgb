@@ -1,9 +1,9 @@
 /**
- * Characterization tests for PcaCoordinateSpace projection math.
+ * Characterization tests for PclaiCoordinateSpace projection math.
  *
- * These tests pin the projection formulas extracted from pcaChartService
- * in phase 1 of the PCA triangle refactor (issue #46). They were previously
- * run through the live jsdom service at pcaChartService.projection.dom.test.js;
+ * These tests pin the projection formulas extracted from pclaiChartService
+ * in phase 1 of the PCLAI triangle refactor (issue #46). They were previously
+ * run through the live jsdom service at pclaiChartService.projection.dom.test.js;
  * the assertions and fixture values are unchanged, but they now exercise the
  * pure object directly — no DOM, no singleton, no fetch stub.
  *
@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { PcaCoordinateSpace } from '../widgets/pcaCoordinateSpace.js'
+import { PclaiCoordinateSpace } from '../widgets/pclaiCoordinateSpace.js'
 
 // ── Fixture knobs ────────────────────────────────────────────────────
 // Chosen so arithmetic is legible in test assertions.
@@ -32,12 +32,12 @@ function spaceWithBounds(xMin, xMax, yMin, yMax) {
         x: { min: xMin, max: xMax, centroid: (xMin + xMax) / 2, range: xMax - xMin },
         y: { min: yMin, max: yMax, centroid: (yMin + yMax) / 2, range: yMax - yMin },
     }
-    return new PcaCoordinateSpace(bbox, SURFACE, SURFACE, PADDING, DOT_PCT)
+    return new PclaiCoordinateSpace(bbox, SURFACE, SURFACE, PADDING, DOT_PCT)
 }
 
 // ── Characterization ────────────────────────────────────────────────
 
-describe('PcaCoordinateSpace projection', () => {
+describe('PclaiCoordinateSpace projection', () => {
 
     // T1 ── dot size is derived from maxAvailableDimension × dotSizePercent
     it('dot size = maxAvailableDimension * dotSizePercent / 100', () => {

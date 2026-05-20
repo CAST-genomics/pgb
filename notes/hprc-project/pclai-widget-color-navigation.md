@@ -1,19 +1,19 @@
-# PCA Widget Color Navigation Approach
+# PCLAI Widget Color Navigation Approach
 
 ## Context
 
-The PCA widget displays a table with dots vertically arrayed on the left and labels associated with them. Each dot has an associated color from the coordinate data, but currently all dots appear gray. The challenge is:
+The PCLAI widget displays a table with dots vertically arrayed on the left and labels associated with them. Each dot has an associated color from the coordinate data, but currently all dots appear gray. The challenge is:
 
 - Many dots share the same color (dozens may have the same color)
 - Only a few distinct colors exist across 40-60 or even 100 dots
 - Color can create visual linkage between:
   - Selected nodes in the pangenome graph (which turn pink when selected)
-  - Corresponding dots in the PCA chart
-  - Dots in the PCA widget table
+  - Corresponding dots in the PCLAI chart
+  - Dots in the PCLAI widget table
 
 ## Goal
 
-Use color as an affordance to navigate the table and help users find dots they want to select, while creating visual connections across the three views (widget table, pangenome graph, PCA chart).
+Use color as an affordance to navigate the table and help users find dots they want to select, while creating visual connections across the three views (widget table, pangenome graph, PCLAI chart).
 
 ## Suggested Approaches
 
@@ -49,7 +49,7 @@ Use color as an affordance to navigate the table and help users find dots they w
 
 **Benefits**:
 - Efficient navigation when there are many dots but few colors
-- Clicking a color filters the table, highlights nodes in the graph, and shows dots in the PCA chart
+- Clicking a color filters the table, highlights nodes in the graph, and shows dots in the PCLAI chart
 - Provides a clear way to explore different color groups
 
 **Implementation Notes**:
@@ -68,7 +68,7 @@ Use color as an affordance to navigate the table and help users find dots they w
 
 **Implementation Notes**:
 - Could use subtle background color, border, or opacity changes
-- Should work in conjunction with highlighting nodes in the graph and showing dots in the PCA chart
+- Should work in conjunction with highlighting nodes in the graph and showing dots in the PCLAI chart
 
 ### 5. Color-Based Search/Filter
 
@@ -115,14 +115,14 @@ This approach provides:
 
 ## Implementation Considerations
 
-- **Color consistency**: Ensure colors match across widget table, pangenome graph nodes, and PCA chart dots
+- **Color consistency**: Ensure colors match across widget table, pangenome graph nodes, and PCLAI chart dots
 - **Accessibility**: Consider colorblind users - may need additional visual indicators beyond color
 - **Performance**: If there are many dots, filtering/grouping may need optimization
 - **Color selection**: For coordinate keys with multiple colors across nodes, decide on a strategy (average, most common, first encountered, etc.)
 
 ## Related Files
 
-- `src/widgets/pcaWidget.js` - PCA widget implementation
+- `src/widgets/pclaiWidget.js` - PCLAI widget implementation
 - `src/widgets/pclaiCoordinateService.js` - Service providing coordinate and color data
-- `src/widgets/pcaChartService.js` - PCA chart visualization
-- `src/styles/_pcaWidget.scss` - Widget styling
+- `src/widgets/pclaiChartService.js` - PCLAI chart visualization
+- `src/styles/_pclaiWidget.scss` - Widget styling

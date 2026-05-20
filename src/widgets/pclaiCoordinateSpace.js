@@ -1,16 +1,16 @@
 /**
- * PcaCoordinateSpace — pure projection math for the PCA chart.
+ * PclaiCoordinateSpace — pure projection math for the PCLAI chart.
  *
  * Maps data-space (x, y) coordinates to pixel-space dot positions on a
  * padded chart surface. Immutable: configuration changes return a new
  * instance rather than mutating state.
  *
- * Extracted from pcaChartService.js as phase 1 of the PCA triangle refactor
+ * Extracted from pclaiChartService.js as phase 1 of the PCLAI triangle refactor
  * (issue #46). The projection formulas here are the spec pinned by
- * src/__tests__/pcaCoordinateSpace.test.js.
+ * src/__tests__/pclaiCoordinateSpace.test.js.
  */
 
-export class PcaCoordinateSpace {
+export class PclaiCoordinateSpace {
     /**
      * @param {{ x: {min, max, range}, y: {min, max, range} }} boundingBox
      * @param {number} surfaceWidth   full chart surface width in px
@@ -71,7 +71,7 @@ export class PcaCoordinateSpace {
      * dimensions, padding, and dot size percent.
      */
     withBoundingBox(boundingBox) {
-        return new PcaCoordinateSpace(
+        return new PclaiCoordinateSpace(
             boundingBox,
             this.surfaceWidth,
             this.surfaceHeight,
