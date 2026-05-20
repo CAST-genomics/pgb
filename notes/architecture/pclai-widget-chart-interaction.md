@@ -1,8 +1,8 @@
-# PCA Widget ↔ PCA Chart Interaction Diagrams
+# PCLAI Widget ↔ PCLAI Chart Interaction Diagrams
 
-Interaction flows between the **PCA Widget** (scrollable list of `assembly#haplotype` coordinate keys) and the **PCA Chart** (2D scatter plot with reference background) when the user selects an item in the widget.
+Interaction flows between the **PCLAI Widget** (scrollable list of `assembly#haplotype` coordinate keys) and the **PCLAI Chart** (2D scatter plot with reference background) when the user selects an item in the widget.
 
-The two components are decoupled — they communicate exclusively through `eventBus`. The widget never holds a reference to the chart, and the chart never queries the widget. State convergence happens via three events: `pcaWidget:emphasis`, `pcaWidget:deselect`, and `pcaWidget:absence`.
+The two components are decoupled — they communicate exclusively through `eventBus`. The widget never holds a reference to the chart, and the chart never queries the widget. State convergence happens via three events: `pclaiWidget:emphasis`, `pclaiWidget:deselect`, and `pclaiWidget:absence`.
 
 ---
 
@@ -12,39 +12,39 @@ The widget owns the list UI and the user's current selection. The chart owns the
 
 | Component | Role | Owns |
 |-----------|------|------|
-| **PCAWidget** | List UI + selection source | `selectedCoordinateKey`, list items, selection-toggle behavior |
+| **PCLAIWidget** | List UI + selection source | `selectedCoordinateKey`, list items, selection-toggle behavior |
 | **eventBus** | Decoupling layer | Pub/sub between widget and chart |
-| **PcaChartController** | Chart state machine | `hoveredNodeId`, `selectedCoordinateKey`; calls `render()` on every event |
-| **PcaChart** | View | Surface, reference dots, dataset dots, axes; `renderDots`, `clearChart`, `exportToSvg` |
-| **mountPcaChart** | Bootstrap facade | Wires controller↔chart, owns reference data, card chrome, button |
+| **PclaiChartController** | Chart state machine | `hoveredNodeId`, `selectedCoordinateKey`; calls `render()` on every event |
+| **PclaiChart** | View | Surface, reference dots, dataset dots, axes; `renderDots`, `clearChart`, `exportToSvg` |
+| **mountPclaiChart** | Bootstrap facade | Wires controller↔chart, owns reference data, card chrome, button |
 | **pclaiCoordinateService** | Data source (singleton) | Coordinate maps keyed by node id and by coordinate key |
-| **pcaAbsenceCoordinator** | Shared absence-mode arbiter | Counts presenters (`pcaWidget`, `pcaChart`) requesting "absent" emphasis |
+| **pclaiAbsenceCoordinator** | Shared absence-mode arbiter | Counts presenters (`pclaiWidget`, `pclaiChart`) requesting "absent" emphasis |
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '18px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 50}}}%%
 flowchart TB
-    subgraph Widget["PCA Widget side"]
-        PW[PCAWidget<br/>list items<br/>selectedCoordinateKey]
+    subgraph Widget["PCLAI Widget side"]
+        PW[PCLAIWidget<br/>list items<br/>selectedCoordinateKey]
     end
 
     subgraph Bus["Event Bus"]
         EB[(eventBus)]
     end
 
-    subgraph Chart["PCA Chart side"]
-        MNT[mountPcaChart<br/>facade + bootstrap]
-        CTRL[PcaChartController<br/>hoveredNodeId<br/>selectedCoordinateKey]
-        CH[PcaChart<br/>surface, ref dots,<br/>dataset dots, axes]
+    subgraph Chart["PCLAI Chart side"]
+        MNT[mountPclaiChart<br/>facade + bootstrap]
+        CTRL[PclaiChartController<br/>hoveredNodeId<br/>selectedCoordinateKey]
+        CH[PclaiChart<br/>surface, ref dots,<br/>dataset dots, axes]
     end
 
     PCS[pclaiCoordinateService<br/>node ↔ coord maps]
-    ABS[pcaAbsenceCoordinator<br/>shared absence presenter count]
+    ABS[pclaiAbsenceCoordinator<br/>shared absence presenter count]
     Look[NodeEmphasisLook<br/>3D node coloring]
 
     User[User clicks list item] --> PW
-    PW -->|"pcaWidget:emphasis"| EB
-    PW -->|"pcaWidget:deselect"| EB
-    PW -->|"pcaWidget:absence"| EB
+    PW -->|"pclaiWidget:emphasis"| EB
+    PW -->|"pclaiWidget:deselect"| EB
+    PW -->|"pclaiWidget:absence"| EB
     PW -->|getNodeIdsWithCoordinateKey<br/>getAbsentNodeSet| PCS
     PW -->|acquire/release| ABS
 
@@ -62,18 +62,18 @@ flowchart TB
 
 ## 2. Selection — User Clicks a Coordinate Key in the Widget
 
-The most common path. Widget toggles selection state, fires `pcaWidget:emphasis`, controller updates its state and calls `render()`, chart paints dataset dots over the (deemphasized) reference layer.
+The most common path. Widget toggles selection state, fires `pclaiWidget:emphasis`, controller updates its state and calls `render()`, chart paints dataset dots over the (deemphasized) reference layer.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
 sequenceDiagram
     autonumber
     participant User
-    participant PW as PCAWidget
+    participant PW as PCLAIWidget
     participant PCS as pclaiCoordinateService
     participant EB as EventBus
-    participant CTRL as PcaChartController
-    participant CH as PcaChart
+    participant CTRL as PclaiChartController
+    participant CH as PclaiChart
     participant Look as NodeEmphasisLook
 
     User->>PW: click coordinate key (assembly#haplotype)
@@ -82,18 +82,18 @@ sequenceDiagram
     Note over PW: Branch — new selection (not the currently selected one)
     PW->>PW: clearAllSelectorStyles() if previous selection
     PW->>PW: selectedCoordinateKey = coordinateKey
-    PW->>PW: add 'pca-widget__genome-selector--selected' class
+    PW->>PW: add 'pclai-widget__genome-selector--selected' class
 
     PW->>PW: emphasizeAssembly(coordinateKey)
     PW->>PCS: getNodeIdsWithCoordinateKey(coordinateKey)
     PCS-->>PW: nodeSet
     PW->>PCS: getAbsentNodeSet()
     PCS-->>PW: absentNodeSet
-    PW->>EB: publish('pcaWidget:emphasis',<br/>{ assembly:{name:coordinateKey}, resolvedAssemblyKey,<br/>  nodeSet, absentNodeSet, deemphasisColor })
+    PW->>EB: publish('pclaiWidget:emphasis',<br/>{ assembly:{name:coordinateKey}, resolvedAssemblyKey,<br/>  nodeSet, absentNodeSet, deemphasisColor })
 
     Note over EB,Look: Two subscribers fan out
-    EB->>Look: pcaWidget:emphasis<br/>(colors 3D nodes)
-    EB->>CTRL: pcaWidget:emphasis
+    EB->>Look: pclaiWidget:emphasis<br/>(colors 3D nodes)
+    EB->>CTRL: pclaiWidget:emphasis
     CTRL->>CTRL: selectedCoordinateKey = data.assembly.name
     CTRL->>CTRL: render()
 
@@ -106,7 +106,7 @@ sequenceDiagram
     CH->>CH: append dot divs (positioned via coordinateSpace.project)
 ```
 
-### Event Payload — `pcaWidget:emphasis`
+### Event Payload — `pclaiWidget:emphasis`
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -120,18 +120,18 @@ sequenceDiagram
 
 ## 3. Deselection — User Clicks the Currently Selected Item
 
-Click toggles. Same item twice → return to idle. Widget clears its selection and fires `pcaWidget:deselect`; controller clears its `selectedCoordinateKey` and `render()` falls into the idle branch (`clearChart()` → reference dots restored to full color).
+Click toggles. Same item twice → return to idle. Widget clears its selection and fires `pclaiWidget:deselect`; controller clears its `selectedCoordinateKey` and `render()` falls into the idle branch (`clearChart()` → reference dots restored to full color).
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
 sequenceDiagram
     autonumber
     participant User
-    participant PW as PCAWidget
+    participant PW as PCLAIWidget
     participant PCS as pclaiCoordinateService
     participant EB as EventBus
-    participant CTRL as PcaChartController
-    participant CH as PcaChart
+    participant CTRL as PclaiChartController
+    participant CH as PclaiChart
 
     User->>PW: click already-selected coordinate key
     PW->>PW: onAssemblySelectorClick — same key as selectedCoordinateKey
@@ -140,10 +140,10 @@ sequenceDiagram
 
     PW->>PCS: getAbsentNodeSet()
     PCS-->>PW: absentNodeSet
-    PW->>EB: publish('pcaWidget:absence', { absentNodeSet })
-    PW->>EB: publish('pcaWidget:deselect', {})
+    PW->>EB: publish('pclaiWidget:absence', { absentNodeSet })
+    PW->>EB: publish('pclaiWidget:deselect', {})
 
-    EB->>CTRL: pcaWidget:deselect
+    EB->>CTRL: pclaiWidget:deselect
     CTRL->>CTRL: selectedCoordinateKey = null
     CTRL->>CTRL: render()
 
@@ -185,26 +185,26 @@ flowchart TD
 
 ## 5. Visibility — Widget Card Open/Close vs Chart Card Open/Close
 
-Widget and chart cards are independently shown/hidden. They share the **absence coordinator** (`pcaAbsenceCoordinator`) to track who is requesting absence-mode coloring of nodes that have no pclai data.
+Widget and chart cards are independently shown/hidden. They share the **absence coordinator** (`pclaiAbsenceCoordinator`) to track who is requesting absence-mode coloring of nodes that have no pclai data.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
 sequenceDiagram
     autonumber
     participant User
-    participant PW as PCAWidget
-    participant ABS as pcaAbsenceCoordinator
-    participant MNT as mountPcaChart
-    participant CTRL as PcaChartController
-    participant CH as PcaChart
+    participant PW as PCLAIWidget
+    participant ABS as pclaiAbsenceCoordinator
+    participant MNT as mountPclaiChart
+    participant CTRL as PclaiChartController
+    participant CH as PclaiChart
 
     User->>PW: open widget (showCard)
-    PW->>ABS: acquireAbsence('pcaWidget')
+    PW->>ABS: acquireAbsence('pclaiWidget')
     Note right of PW: Selection state (selectedCoordinateKey)<br/>persists across hide/show — restored<br/>via restoreSelectedCoordinateKeyVisualState
 
-    User->>MNT: click PCA Chart button (toggleChart)
+    User->>MNT: click PCLAI Chart button (toggleChart)
     MNT->>MNT: showChart()
-    MNT->>ABS: acquireAbsence('pcaChart')
+    MNT->>ABS: acquireAbsence('pclaiChart')
     MNT->>CH: updateAxes()
     MNT->>CH: renderReferenceDots(referenceData) if first show
     MNT->>CTRL: refreshForVisibilityChange() → render()
@@ -212,10 +212,10 @@ sequenceDiagram
 
     User->>MNT: click button again
     MNT->>MNT: hideChart()
-    MNT->>ABS: releaseAbsence('pcaChart')
+    MNT->>ABS: releaseAbsence('pclaiChart')
 
     User->>PW: close widget
-    PW->>ABS: releaseAbsence('pcaWidget')
+    PW->>ABS: releaseAbsence('pclaiWidget')
     Note right of ABS: When count drops to zero,<br/>absence-mode coloring is released
 ```
 
@@ -234,30 +234,30 @@ sequenceDiagram
 ## 6. Data Flow Summary
 
 ```
-User clicks coordinate key in PCA Widget
+User clicks coordinate key in PCLAI Widget
         │
         ▼
-PCAWidget.onAssemblySelectorClick
+PCLAIWidget.onAssemblySelectorClick
         │
         ├── (toggle / replace selection)
         ├── pclaiCoordinateService.getNodeIdsWithCoordinateKey(key)
         ├── pclaiCoordinateService.getAbsentNodeSet()
         │
         ▼
-eventBus.publish('pcaWidget:emphasis', { assembly:{name}, nodeSet, ... })
+eventBus.publish('pclaiWidget:emphasis', { assembly:{name}, nodeSet, ... })
         │
         ├── NodeEmphasisLook → 3D scene coloring
         │
-        └── PcaChartController.handler
+        └── PclaiChartController.handler
                 │
                 ├── selectedCoordinateKey = data.assembly.name
                 ▼
-            PcaChartController.render()
+            PclaiChartController.render()
                 │
                 ├── pclaiCoordinateService.getCoordinatesForCoordinateKey(selected)
                 │
                 ▼
-            PcaChart.renderDots(map)
+            PclaiChart.renderDots(map)
                 │
                 ├── deemphasizeReferenceDots()  (CSS modifier on container)
                 ├── clearDatasetDots()
@@ -270,15 +270,15 @@ eventBus.publish('pcaWidget:emphasis', { assembly:{name}, nodeSet, ... })
 
 | From | To | Mechanism | When |
 |------|----|-----------| -----|
-| PCAWidget | NodeEmphasisLook | `eventBus.publish('pcaWidget:emphasis', ...)` | New selection |
-| PCAWidget | PcaChartController | `eventBus.publish('pcaWidget:emphasis', ...)` | New selection |
-| PCAWidget | PcaChartController | `eventBus.publish('pcaWidget:deselect', {})` | Click on selected toggles off |
-| PCAWidget | NodeEmphasisLook | `eventBus.publish('pcaWidget:absence', { absentNodeSet })` | Selection cleared / replaced |
-| PCAWidget | pclaiCoordinateService | direct call: `getNodeIdsWithCoordinateKey`, `getAbsentNodeSet` | On click |
-| PcaChartController | pclaiCoordinateService | direct call: `getCoordinatesForCoordinateKey`, `getCoordinatesForNode` | Inside `render()` |
-| mountPcaChart | PcaChart | direct method: `renderDots`, `clearChart`, `renderReferenceDots`, `updateAxes`, `exportToSvg` | Through controller's chartDelegate or directly on show |
+| PCLAIWidget | NodeEmphasisLook | `eventBus.publish('pclaiWidget:emphasis', ...)` | New selection |
+| PCLAIWidget | PclaiChartController | `eventBus.publish('pclaiWidget:emphasis', ...)` | New selection |
+| PCLAIWidget | PclaiChartController | `eventBus.publish('pclaiWidget:deselect', {})` | Click on selected toggles off |
+| PCLAIWidget | NodeEmphasisLook | `eventBus.publish('pclaiWidget:absence', { absentNodeSet })` | Selection cleared / replaced |
+| PCLAIWidget | pclaiCoordinateService | direct call: `getNodeIdsWithCoordinateKey`, `getAbsentNodeSet` | On click |
+| PclaiChartController | pclaiCoordinateService | direct call: `getCoordinatesForCoordinateKey`, `getCoordinatesForNode` | Inside `render()` |
+| mountPclaiChart | PclaiChart | direct method: `renderDots`, `clearChart`, `renderReferenceDots`, `updateAxes`, `exportToSvg` | Through controller's chartDelegate or directly on show |
 
 ### Methods That Are NOT Crossed
 
-- The PCA Widget never calls anything on `PcaChart` or `PcaChartController` directly.
-- The PCA Chart never reads `PCAWidget.selectedCoordinateKey` directly — it owns its own copy in the controller, kept in sync via events.
+- The PCLAI Widget never calls anything on `PclaiChart` or `PclaiChartController` directly.
+- The PCLAI Chart never reads `PCLAIWidget.selectedCoordinateKey` directly — it owns its own copy in the controller, kept in sync via events.

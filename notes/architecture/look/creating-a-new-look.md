@@ -13,7 +13,7 @@ A Look owns a visual vocabulary — emphasized / deemphasized / absent partition
 - Inventing a new event or event payload shape, then
 - Subscribing to it in an existing Look's `activate()` and dispatching to existing material/state machinery.
 
-The clearest example: AssemblyWidget and PCAWidget both drive `NodeEmphasisLook` with different events (`assembly:emphasis`, `pcaWidget:emphasis`, `pcaWidget:absence`). Their payload shapes differ. They never agreed on a shared event vocabulary. That asymmetry is fine — the Look's vocabulary holds them both.
+The clearest example: AssemblyWidget and PCLAIWidget both drive `NodeEmphasisLook` with different events (`assembly:emphasis`, `pclaiWidget:emphasis`, `pclaiWidget:absence`). Their payload shapes differ. They never agreed on a shared event vocabulary. That asymmetry is fine — the Look's vocabulary holds them both.
 
 ### When a new Look IS warranted
 

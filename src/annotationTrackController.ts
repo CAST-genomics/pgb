@@ -30,8 +30,8 @@ class AnnotationTrackController {
 
     private emphasizeUnsub!: () => void
     private normalUnsub!: () => void
-    private pcaEmphasizeUnsub!: () => void
-    private pcaDeselectUnsub!: () => void
+    private pclaiEmphasizeUnsub!: () => void
+    private pclaiDeselectUnsub!: () => void
     private lineIntersectionUnsub!: () => void
     private clearIntersectionUnsub!: () => void
 
@@ -64,8 +64,8 @@ class AnnotationTrackController {
 
         this.emphasizeUnsub = eventBus.subscribe('assembly:emphasis', this.handleAssemblyEmphasis.bind(this))
         this.normalUnsub = eventBus.subscribe('assembly:normal', this.handleAssemblyNormal.bind(this))
-        this.pcaEmphasizeUnsub = eventBus.subscribe('pcaWidget:emphasis', this.handleAssemblyEmphasis.bind(this))
-        this.pcaDeselectUnsub = eventBus.subscribe('pcaWidget:deselect', this.handleAssemblyNormal.bind(this))
+        this.pclaiEmphasizeUnsub = eventBus.subscribe('pclaiWidget:emphasis', this.handleAssemblyEmphasis.bind(this))
+        this.pclaiDeselectUnsub = eventBus.subscribe('pclaiWidget:deselect', this.handleAssemblyNormal.bind(this))
         this.lineIntersectionUnsub = eventBus.subscribe('lineIntersection', this.handleLineIntersection.bind(this))
         this.clearIntersectionUnsub = eventBus.subscribe('clearIntersection', this.handleClearIntersection.bind(this))
     }
@@ -73,8 +73,8 @@ class AnnotationTrackController {
     destroy(): void {
         this.emphasizeUnsub()
         this.normalUnsub()
-        this.pcaEmphasizeUnsub()
-        this.pcaDeselectUnsub()
+        this.pclaiEmphasizeUnsub()
+        this.pclaiDeselectUnsub()
         this.lineIntersectionUnsub()
         this.clearIntersectionUnsub()
 
@@ -93,7 +93,7 @@ class AnnotationTrackController {
 
         const trackModel = this.genomicService.getAssemblyTrackModel(this.assembly)
         if (!trackModel) {
-            // Producer (e.g. PCA widget) emphasized an assembly with no track model
+            // Producer (e.g. PCLAI widget) emphasized an assembly with no track model
             // (no assemblyIndex entry, or no node metadata for this assembly).
             // Leave any prior annotation track in place; clearing would create flicker on transient selections.
             return

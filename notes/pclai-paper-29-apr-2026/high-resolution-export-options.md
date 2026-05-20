@@ -11,12 +11,12 @@ constraint shaping every option below.
 |---|---|---|
 | Annotation track (top) | 2D `<canvas>` with procedural draws (rects, lines, text) | Easy to re-render at any resolution; also a strong candidate for true SVG export. |
 | Pan genome graph (center) | Three.js / WebGL — `RibbonNode` meshes + custom GLSL shaders | High-DPI raster is straightforward (resize renderer, render once, read pixels). True vector export is possible in principle but requires walking the spline data ourselves; `THREE.SVGRenderer` does not handle our custom shader meshes. |
-| PCA Chart (right) | HTML `<div>` with a **576 × 576 PNG background** (`public/images/pca-chart-background.png`) + DOM-based scatter dots layered on top | A mishmash: vector-friendly DOM dots above a fixed-resolution bitmap. The dots are easy to vectorize; the background bitmap is the bottleneck. |
+| PCLAI Chart (right) | HTML `<div>` with a **576 × 576 PNG background** (`public/images/pca-chart-background.png`) + DOM-based scatter dots layered on top | A mishmash: vector-friendly DOM dots above a fixed-resolution bitmap. The dots are easy to vectorize; the background bitmap is the bottleneck. |
 
 Because each layer is a different technology, **no single built-in function
 captures all three at publication resolution**. Two fixed-resolution bitmap
 assets sit inside otherwise-vectorizable layers and will be the first
-artifacts to show up in a high-DPR render: the **576 × 576 PCA background
+artifacts to show up in a high-DPR render: the **576 × 576 PCLAI background
 PNG**, and the **256 × 64 arrow alpha-matte texture** used by edge shaders.
 Both have remediation paths described below (see §B.1 and §B.3). There are, however, two
 realistic strategies: a one-shot whole-page capture, or per-element export
@@ -61,7 +61,7 @@ redraw work for any 2D canvas that doesn't already handle it.
 ### When this is the right choice
 The default. For most figures this clears typical journal print bars (300 DPI
 at column width). Reach for Option B only when a reviewer pushes back, or for
-hero figures where the graph and PCA chart need to print at large size.
+hero figures where the graph and PCLAI chart need to print at large size.
 
 ---
 
@@ -143,15 +143,15 @@ instead of issuing canvas calls. This produces a true vector annotation
 track — perfect for print — but requires touching the draw code. Worthwhile
 if the annotation track recurs across many figures in the paper.
 
-### B.3 — PCA chart
+### B.3 — PCLAI chart
 
-The PCA chart is a **mishmash of bitmap and DOM**:
+The PCLAI chart is a **mishmash of bitmap and DOM**:
 - Background: a fixed 576 × 576 PNG
   (`public/images/pca-chart-background.png`) applied via SCSS in
-  `src/styles/_pcaChart.scss` (`background: white url(...) center / cover
+  `src/styles/_pclaiChart.scss` (`background: white url(...) center / cover
   no-repeat`).
 - Foreground: per-point `<div>` dots positioned absolutely
-  (`src/widgets/pcaChart.js`), plus reference dots in a sibling container.
+  (`src/widgets/pclaiChart.js`), plus reference dots in a sibling container.
 
 The DOM dots vectorize trivially — the **bitmap background is what limits
 print resolution**.
@@ -171,13 +171,13 @@ paths, in increasing order of fidelity:
      quadrants), it's reproducible as an SVG `<linearGradient>` or
      `<radialGradient>` and becomes resolution-independent.
   3. **Recompute the gradient at export time.** If the gradient encodes
-     PCA-space color semantics (i.e. the color at each pixel reflects
-     position in PCA space), regenerate it in code at the target
+     PCLAI-space color semantics (i.e. the color at each pixel reflects
+     position in PCLAI space), regenerate it in code at the target
      resolution rather than treating it as a static asset.
 
 **Foreground dots — SVG export (recommended).** Build a small exporter
 that:
-- Reads `pcaChart` dot data (already in `pcaCoordinateSpace.js`).
+- Reads `pclaiChart` dot data (already in `pclaiCoordinateSpace.js`).
 - Emits an `<svg>` with:
   - The background — either an SVG gradient (path 2 above) or an
     `<image href="..." />` referencing a higher-resolution PNG (path 1).
@@ -196,7 +196,7 @@ app.
 
 ### Pros
 - Highest possible quality, especially if SVG paths are used for the
-  annotation track and PCA chart.
+  annotation track and PCLAI chart.
 - Each element can be regenerated independently.
 - Compositing tools let you add paper-specific annotations cleanly.
 
@@ -204,11 +204,11 @@ app.
 - Real engineering effort for the SVG exporters.
 - Compositing is manual — a step that doesn't survive data changes.
 - Risk of subtle layout drift between exports and the on-screen composite
-  (e.g. PCA chart position relative to the graph).
+  (e.g. PCLAI chart position relative to the graph).
 
 ### Effort
 Medium to high. Annotation-track N× raster and Three.js high-res raster:
-each a few hours. PCA SVG exporter: half a day to a day. Three.js SVG
+each a few hours. PCLAI SVG exporter: half a day to a day. Three.js SVG
 exporter: multi-day if pursued.
 
 ---
@@ -221,7 +221,7 @@ The pragmatic path most papers end up on:
    figure this way first. Keep the script in `scripts/` so figures are
    reproducible.
 2. **Promote individual elements to vector only when needed.** If a specific
-   figure requires it — typically the PCA chart or the annotation track in
+   figure requires it — typically the PCLAI chart or the annotation track in
    close-up insets — add an SVG exporter for that element and composite.
 3. **Leave the Three.js graph as raster** unless a reviewer specifically
    demands vector. The high-DPR raster is normally indistinguishable from
@@ -233,7 +233,7 @@ The pragmatic path most papers end up on:
 - Is this a figure that prints at column width (~3.5 in)? → Option A is
   almost certainly enough.
 - Will the figure print at full page width or as a fold-out? → Use Option A
-  at 4× DPR and inspect; consider promoting the PCA chart and annotation
+  at 4× DPR and inspect; consider promoting the PCLAI chart and annotation
   track to SVG.
 - Is the figure being submitted to a journal that requires vector for
   non-photographic elements (some do)? → Option B for the chart and
@@ -244,7 +244,7 @@ The pragmatic path most papers end up on:
 
 ## Related files in this repo
 
-- `src/widgets/pcaChart.js` / `pcaChartController.js` — PCA chart rendering.
+- `src/widgets/pclaiChart.js` / `pclaiChartController.js` — PCLAI chart rendering.
 - `src/ribbonNode.ts` — RibbonNode mesh; custom shader; spline geometry.
 - `src/ribbonMaterialFactory.js` — ShaderMaterial uniforms.
 - `shaders/ribbon.vert.glsl` / `ribbon.frag.glsl` — vertex/fragment shaders.

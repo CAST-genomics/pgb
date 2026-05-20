@@ -285,7 +285,7 @@ class Look {
      *   off its monotonic walk (mirrors the gray veil on the annotation track).
      * - Nodes in `absentSet` become 'absent'.
      * - All remaining nodes become 'deemphasized' if any nodes are emphasized,
-     *   or 'normal' if nothing is emphasized (the "PCA widget open, no dot
+     *   or 'normal' if nothing is emphasized (the "PCLAI widget open, no dot
      *   selected" case).
      */
     setNodeEmphasis(

@@ -1,22 +1,22 @@
-# PCA Triangle Interaction Diagrams
+# PCLAI Triangle Interaction Diagrams
 
-Interaction flows for the **PCA chart subsystem** after the PR #48 refactor (closes issues #46, #47). The 970-line `pcaChartService` singleton was split into four small collaborators plus a refcount coordinator: a pure projection kernel, a view, a state-machine controller, and a bootstrap facade.
+Interaction flows for the **PCLAI chart subsystem** after the PR #48 refactor (closes issues #46, #47). The 970-line `pclaiChartService` singleton was split into four small collaborators plus a refcount coordinator: a pure projection kernel, a view, a state-machine controller, and a bootstrap facade.
 
 ---
 
 ## 1. Architecture Overview
 
-The PCA chart shows dataset PCLAI coordinates as dots on a 2D scatter plot with a reference-data background. It reacts to two independent signals — 3D-node hover (`lineIntersection`) and PCA-widget coordinate-key selection (`pcaWidget:emphasis`) — and renders as a pure function of `{ hoveredNodeId, selectedCoordinateKey }`.
+The PCLAI chart shows dataset PCLAI coordinates as dots on a 2D scatter plot with a reference-data background. It reacts to two independent signals — 3D-node hover (`lineIntersection`) and PCLAI-widget coordinate-key selection (`pclaiWidget:emphasis`) — and renders as a pure function of `{ hoveredNodeId, selectedCoordinateKey }`.
 
 | Component | Role | Owns |
 |-----------|------|------|
-| **App** | Orchestrator | Constructs facade once in its constructor; stores handle as `this.pcaChart` |
-| **mountPcaChart (facade)** | Bootstrap | Card DOM, navbar button, reference-TSV fetch, `isVisible`/`isInitialized`, absence acquire/release |
-| **PcaCoordinateSpace** | Pure projection kernel | `project(x, y) → { left, top, size }`; immutable; no DOM/events |
-| **PcaChart** | View | Surface, axes, dataset dots, reference dots, hover emphasis, desaturation |
-| **PcaChartController** | State machine | `{ hoveredNodeId, selectedCoordinateKey }`; event subscriptions; single `render()` path |
-| **pcaAbsenceCoordinator** | Gatekeeper | Refcounted presenter set; sole publisher of `pcaWidget:absence` / `pcaWidget:normal` |
-| **PCAWidget** | Sibling presenter | Coordinate-key list card; publishes `pcaWidget:emphasis` / `:deselect`; also acquires absence |
+| **App** | Orchestrator | Constructs facade once in its constructor; stores handle as `this.pclaiChart` |
+| **mountPclaiChart (facade)** | Bootstrap | Card DOM, navbar button, reference-TSV fetch, `isVisible`/`isInitialized`, absence acquire/release |
+| **PclaiCoordinateSpace** | Pure projection kernel | `project(x, y) → { left, top, size }`; immutable; no DOM/events |
+| **PclaiChart** | View | Surface, axes, dataset dots, reference dots, hover emphasis, desaturation |
+| **PclaiChartController** | State machine | `{ hoveredNodeId, selectedCoordinateKey }`; event subscriptions; single `render()` path |
+| **pclaiAbsenceCoordinator** | Gatekeeper | Refcounted presenter set; sole publisher of `pclaiWidget:absence` / `pclaiWidget:normal` |
+| **PCLAIWidget** | Sibling presenter | Coordinate-key list card; publishes `pclaiWidget:emphasis` / `:deselect`; also acquires absence |
 | **pclaiCoordinateService** | Data source | Coordinate maps, bounding box, absent-node set |
 
 ```mermaid
@@ -24,36 +24,36 @@ The PCA chart shows dataset PCLAI coordinates as dots on a 2D scatter plot with 
 flowchart TB
     subgraph Host["Host Application (PGB)"]
         APP[App<br/>constructs facade]
-        PW[PCAWidget<br/>coordinate-key list]
+        PW[PCLAIWidget<br/>coordinate-key list]
         R3D[3D Graph<br/>raycast hover]
         PCLAI[pclaiCoordinateService<br/>coordinate maps<br/>absent-node set]
     end
 
-    subgraph Facade["mountPcaChart (facade)"]
-        MPC[mountPcaChart<br/>DOM, button, reference TSV<br/>isVisible / isInitialized]
+    subgraph Facade["mountPclaiChart (facade)"]
+        MPC[mountPclaiChart<br/>DOM, button, reference TSV<br/>isVisible / isInitialized]
     end
 
-    subgraph Triangle["PCA Triangle"]
-        PCS[PcaCoordinateSpace<br/>pure projection]
-        PC[PcaChart<br/>view: dots, axes]
-        PCC[PcaChartController<br/>state machine]
+    subgraph Triangle["PCLAI Triangle"]
+        PCS[PclaiCoordinateSpace<br/>pure projection]
+        PC[PclaiChart<br/>view: dots, axes]
+        PCC[PclaiChartController<br/>state machine]
     end
 
-    AC[pcaAbsenceCoordinator<br/>refcounted gate]
+    AC[pclaiAbsenceCoordinator<br/>refcounted gate]
     EB[(eventBus)]
 
-    APP -->|"mountPcaChart()"| MPC
+    APP -->|"mountPclaiChart()"| MPC
     MPC -->|constructs| PC
     MPC -->|constructs| PCC
-    MPC -->|"new PcaCoordinateSpace(...)"| PCS
+    MPC -->|"new PclaiCoordinateSpace(...)"| PCS
     PC -->|"space.project(x,y)"| PCS
     PCC -->|"delegate: clearChart / renderCoordinateMap"| PC
     PCC -->|reads hovered/selected map| PCLAI
     PCC -->|subscribes| EB
-    MPC -->|"acquire/release('pcaChart')"| AC
-    PW -->|"acquire/release('pcaWidget')"| AC
-    AC -->|"publish pcaWidget:absence / :normal"| EB
-    PW -->|"publish pcaWidget:emphasis / :deselect"| EB
+    MPC -->|"acquire/release('pclaiChart')"| AC
+    PW -->|"acquire/release('pclaiWidget')"| AC
+    AC -->|"publish pclaiWidget:absence / :normal"| EB
+    PW -->|"publish pclaiWidget:emphasis / :deselect"| EB
     R3D -->|"publish lineIntersection / clearIntersection"| EB
     EB -->|delivers events| PCC
 ```
@@ -62,10 +62,10 @@ flowchart TB
 
 | Invariant | Where it lives |
 |---|---|
-| Projection math lives in exactly one place | `PcaCoordinateSpace`; pinned by 8 characterization tests |
-| View knows nothing about events or dataset | `PcaChart` has no `eventBus` import |
-| Rendered chart is a pure function of `(hoveredNodeId, selectedCoordinateKey)` | `PcaChartController.render()` |
-| `pcaWidget:absence` / `:normal` has exactly one publisher | `pcaAbsenceCoordinator` |
+| Projection math lives in exactly one place | `PclaiCoordinateSpace`; pinned by 8 characterization tests |
+| View knows nothing about events or dataset | `PclaiChart` has no `eventBus` import |
+| Rendered chart is a pure function of `(hoveredNodeId, selectedCoordinateKey)` | `PclaiChartController.render()` |
+| `pclaiWidget:absence` / `:normal` has exactly one publisher | `pclaiAbsenceCoordinator` |
 
 ---
 
@@ -78,12 +78,12 @@ flowchart TB
 sequenceDiagram
     autonumber
     participant APP as App
-    participant MPC as mountPcaChart
-    participant PC as PcaChart
-    participant PCC as PcaChartController
+    participant MPC as mountPclaiChart
+    participant PC as PclaiChart
+    participant PCC as PclaiChartController
     participant EB as EventBus
 
-    APP->>MPC: mountPcaChart({ containerId })
+    APP->>MPC: mountPclaiChart({ containerId })
 
     Note over MPC: Phase 1 — DOM construction
     MPC->>MPC: createChartDOM(containerId)
@@ -91,21 +91,21 @@ sequenceDiagram
     MPC->>MPC: new Draggable(chartContainer)
 
     Note over MPC,PC: Phase 2 — View + controller
-    MPC->>PC: new PcaChart({ surface, refContainer, axes, coordinateSpace: null })
-    MPC->>PCC: new PcaChartController(chartDelegate)
+    MPC->>PC: new PclaiChart({ surface, refContainer, axes, coordinateSpace: null })
+    MPC->>PCC: new PclaiChartController(chartDelegate)
     MPC->>PCC: start()
     PCC->>EB: subscribe lineIntersection
     PCC->>EB: subscribe clearIntersection
-    PCC->>EB: subscribe pcaWidget:emphasis
-    PCC->>EB: subscribe pcaWidget:deselect
-    PCC->>EB: subscribe pcaWidget:normal
+    PCC->>EB: subscribe pclaiWidget:emphasis
+    PCC->>EB: subscribe pclaiWidget:deselect
+    PCC->>EB: subscribe pclaiWidget:normal
 
     Note over MPC: Phase 3 — Async reference data + dataset sub
     MPC->>MPC: loadReferenceData() [async]
     MPC->>EB: subscribe datasetLoaded
 
     MPC-->>APP: handle { reset, initializeGlobalBoundingBox, selectedCoordinateKey, destroy }
-    APP->>APP: this.pcaChart = handle
+    APP->>APP: this.pclaiChart = handle
 ```
 
 ### What lives where after bootstrap
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ## 3. Dataset Load — Coordinate Space Construction
 
-When a dataset loads, the facade enables the navbar button. Separately, `App.initializeGlobalBoundingBox()` awaits the reference-TSV fetch, merges dataset and reference bounds, reads the surface size from CSS, and constructs the `PcaCoordinateSpace`. Until this point, hover and widget events fire into a controller whose `isInitialized()` guard short-circuits `render()`.
+When a dataset loads, the facade enables the navbar button. Separately, `App.initializeGlobalBoundingBox()` awaits the reference-TSV fetch, merges dataset and reference bounds, reads the surface size from CSS, and constructs the `PclaiCoordinateSpace`. Until this point, hover and widget events fire into a controller whose `isInitialized()` guard short-circuits `render()`.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
@@ -131,10 +131,10 @@ sequenceDiagram
     autonumber
     participant DM as DatasetModel
     participant EB as EventBus
-    participant MPC as mountPcaChart
+    participant MPC as mountPclaiChart
     participant PCLAI as pclaiCoordinateService
-    participant PCS as PcaCoordinateSpace
-    participant PC as PcaChart
+    participant PCS as PclaiCoordinateSpace
+    participant PC as PclaiChart
 
     DM->>EB: publish datasetLoaded
     EB->>MPC: datasetLoaded
@@ -149,8 +149,8 @@ sequenceDiagram
     MPC->>MPC: merge datasetBbox ∪ referenceData bounds
 
     MPC->>MPC: requestAnimationFrame
-    MPC->>MPC: read --pca-chart-surface-size from CSS
-    MPC->>PCS: new PcaCoordinateSpace(bounds, w, h, padding, dotPct)
+    MPC->>MPC: read --pclai-chart-surface-size from CSS
+    MPC->>PCS: new PclaiCoordinateSpace(bounds, w, h, padding, dotPct)
     MPC->>PC: chart.setCoordinateSpace(space)
     PC->>PC: updateAxes()
     MPC->>MPC: isInitialized = true
@@ -167,7 +167,7 @@ sequenceDiagram
 
 ## 4. Show Chart — Acquire Absence
 
-Clicking the PCA Chart button toggles visibility. Showing the chart acquires the absence presenter slot — the first presenter to do so triggers `pcaWidget:absence`, which tells the 3D graph to paint PCLAI-absent nodes in "absence" color.
+Clicking the PCLAI Chart button toggles visibility. Showing the chart acquires the absence presenter slot — the first presenter to do so triggers `pclaiWidget:absence`, which tells the 3D graph to paint PCLAI-absent nodes in "absence" color.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
@@ -175,10 +175,10 @@ sequenceDiagram
     autonumber
     participant User
     participant BTN as Navbar Button
-    participant MPC as mountPcaChart
-    participant PC as PcaChart
-    participant PCC as PcaChartController
-    participant AC as pcaAbsenceCoordinator
+    participant MPC as mountPclaiChart
+    participant PC as PclaiChart
+    participant PCC as PclaiChartController
+    participant AC as pclaiAbsenceCoordinator
     participant EB as EventBus
     participant R3D as 3D Graph
 
@@ -190,10 +190,10 @@ sequenceDiagram
         MPC->>PC: renderReferenceDots(referenceData)
         MPC->>PCC: refreshForVisibilityChange()
         PCC->>PCC: render() [idle — both state fields null]
-        MPC->>AC: acquireAbsence('pcaChart')
+        MPC->>AC: acquireAbsence('pclaiChart')
 
         alt first presenter (set was empty)
-            AC->>EB: publish pcaWidget:absence { absentNodeSet }
+            AC->>EB: publish pclaiWidget:absence { absentNodeSet }
             EB->>R3D: paint absent nodes
         else another presenter already holds it
             AC->>AC: no-op (refcount only)
@@ -215,9 +215,9 @@ sequenceDiagram
     autonumber
     participant R3D as 3D Graph
     participant EB as EventBus
-    participant PCC as PcaChartController
+    participant PCC as PclaiChartController
     participant PCLAI as pclaiCoordinateService
-    participant PC as PcaChart
+    participant PC as PclaiChart
 
     R3D->>EB: publish lineIntersection { nodeName }
     EB->>PCC: lineIntersection
@@ -233,7 +233,7 @@ sequenceDiagram
         PCLAI-->>PCC: Map<key, {coords, rgb}>
         PCC->>PC: renderCoordinateMap(map)
         PC->>PC: deemphasizeReferenceDots + clearDatasetDots
-        PC->>PC: project each via PcaCoordinateSpace
+        PC->>PC: project each via PclaiCoordinateSpace
     else no hover, selection set
         PCC->>PCLAI: getCoordinatesForCoordinateKey(selected)
         PCLAI-->>PCC: Map
@@ -261,28 +261,28 @@ sequenceDiagram
 
 ## 6. Widget Re-click — The #47 Fix
 
-Issue #47 was that re-clicking the already-selected coordinate key in the widget should toggle the chart back to idle, but the old service had no channel to learn about the toggle-off. PR #48 added a `pcaWidget:deselect` event; the controller subscribes to it and clears `selectedCoordinateKey`, which falls through the pure `render()` path to idle. Once the state machine existed, the fix was two lines.
+Issue #47 was that re-clicking the already-selected coordinate key in the widget should toggle the chart back to idle, but the old service had no channel to learn about the toggle-off. PR #48 added a `pclaiWidget:deselect` event; the controller subscribes to it and clears `selectedCoordinateKey`, which falls through the pure `render()` path to idle. Once the state machine existed, the fix was two lines.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
 sequenceDiagram
     autonumber
     participant User
-    participant PW as PCAWidget
+    participant PW as PCLAIWidget
     participant EB as EventBus
-    participant PCC as PcaChartController
-    participant PC as PcaChart
+    participant PCC as PclaiChartController
+    participant PC as PclaiChart
 
     User->>PW: first click on key "HG00438#1"
-    PW->>EB: publish pcaWidget:emphasis { assembly:{ name:'HG00438#1' } }
-    EB->>PCC: pcaWidget:emphasis
+    PW->>EB: publish pclaiWidget:emphasis { assembly:{ name:'HG00438#1' } }
+    EB->>PCC: pclaiWidget:emphasis
     PCC->>PCC: selectedCoordinateKey = 'HG00438#1'
     PCC->>PCC: render() → renders all nodes for that key
     PCC->>PC: renderCoordinateMap(map)
 
     User->>PW: re-click same key
-    PW->>EB: publish pcaWidget:deselect {}
-    EB->>PCC: pcaWidget:deselect
+    PW->>EB: publish pclaiWidget:deselect {}
+    EB->>PCC: pclaiWidget:deselect
     PCC->>PCC: selectedCoordinateKey = null
     PCC->>PCC: render() → idle (both null)
     PCC->>PC: clearChart()
@@ -292,30 +292,30 @@ sequenceDiagram
 
 ## 7. Refcounted Absence — Dismiss One Presenter
 
-Both the PCA widget card and the PCA chart panel want the 3D graph in absence mode while they're visible. Without coordination, dismissing the widget would publish `pcaWidget:normal` and wipe absence state the chart still needs. The coordinator refcounts presenters by ID and only publishes `:normal` when the last presenter releases.
+Both the PCLAI widget card and the PCLAI chart panel want the 3D graph in absence mode while they're visible. Without coordination, dismissing the widget would publish `pclaiWidget:normal` and wipe absence state the chart still needs. The coordinator refcounts presenters by ID and only publishes `:normal` when the last presenter releases.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
 sequenceDiagram
     autonumber
     participant User
-    participant PW as PCAWidget
-    participant MPC as mountPcaChart
-    participant AC as pcaAbsenceCoordinator
+    participant PW as PCLAIWidget
+    participant MPC as mountPclaiChart
+    participant AC as pclaiAbsenceCoordinator
     participant EB as EventBus
     participant R3D as 3D Graph
 
-    Note over PW,MPC: Both presenters are already visible<br/>presenters = { 'pcaWidget', 'pcaChart' }
+    Note over PW,MPC: Both presenters are already visible<br/>presenters = { 'pclaiWidget', 'pclaiChart' }
 
     User->>PW: dismiss widget card
-    PW->>AC: releaseAbsence('pcaWidget')
-    AC->>AC: presenters = { 'pcaChart' }
+    PW->>AC: releaseAbsence('pclaiWidget')
+    AC->>AC: presenters = { 'pclaiChart' }
     Note right of AC: size > 0 → no publish<br/>absence stays on for chart
 
     User->>MPC: click chart button (hide)
-    MPC->>AC: releaseAbsence('pcaChart')
+    MPC->>AC: releaseAbsence('pclaiChart')
     AC->>AC: presenters = ∅
-    AC->>EB: publish pcaWidget:normal { nodeSet }
+    AC->>EB: publish pclaiWidget:normal { nodeSet }
     EB->>R3D: clear absence
 ```
 
@@ -323,10 +323,10 @@ sequenceDiagram
 
 | Rule | Behavior |
 |---|---|
-| First `acquire()` (set was empty) | Publish `pcaWidget:absence` |
+| First `acquire()` (set was empty) | Publish `pclaiWidget:absence` |
 | Re-entrant `acquire()` from same ID | No-op |
 | `release()` from unknown ID | No-op |
-| Last `release()` (set becomes empty) | Publish `pcaWidget:normal` |
+| Last `release()` (set becomes empty) | Publish `pclaiWidget:normal` |
 
 ---
 
@@ -339,22 +339,22 @@ The facade owns lifecycle transitions. `reset()` is called on new-dataset load; 
 sequenceDiagram
     autonumber
     participant APP as App
-    participant MPC as mountPcaChart
-    participant PC as PcaChart
-    participant PCC as PcaChartController
-    participant AC as pcaAbsenceCoordinator
+    participant MPC as mountPclaiChart
+    participant PC as PclaiChart
+    participant PCC as PclaiChartController
+    participant AC as pclaiAbsenceCoordinator
     participant EB as EventBus
 
     rect rgb(245,245,245)
     Note over MPC: hideChart — user closes panel
     MPC->>MPC: chartContainer.style.display = 'none'
     MPC->>MPC: isVisible = false
-    MPC->>AC: releaseAbsence('pcaChart')
+    MPC->>AC: releaseAbsence('pclaiChart')
     end
 
     rect rgb(245,245,245)
     Note over APP,PCC: reset — new dataset arriving
-    APP->>MPC: pcaChart.reset()
+    APP->>MPC: pclaiChart.reset()
     MPC->>PC: clearChart()
     MPC->>PCC: currentNodeId = null
     MPC->>MPC: isInitialized = false
@@ -363,7 +363,7 @@ sequenceDiagram
 
     rect rgb(245,245,245)
     Note over APP,EB: destroy — teardown
-    APP->>MPC: pcaChart.destroy()
+    APP->>MPC: pclaiChart.destroy()
     MPC->>EB: unsubscribe datasetLoaded
     MPC->>PCC: destroy()
     PCC->>EB: unsubscribe all handlers
@@ -380,20 +380,20 @@ sequenceDiagram
 %%{init: {'themeVariables': {'fontSize': '18px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 50}}}%%
 flowchart LR
     subgraph Kernel["Pure kernel"]
-        PCS["PcaCoordinateSpace<br/>• project(x,y)<br/>• immutable"]
+        PCS["PclaiCoordinateSpace<br/>• project(x,y)<br/>• immutable"]
     end
 
     subgraph View["View layer"]
-        PC["PcaChart<br/>• renderDots<br/>• renderReferenceDots<br/>• updateAxes<br/>• hover emphasis"]
+        PC["PclaiChart<br/>• renderDots<br/>• renderReferenceDots<br/>• updateAxes<br/>• hover emphasis"]
     end
 
     subgraph StateM["State layer"]
-        PCC["PcaChartController<br/>• hoveredNodeId<br/>• selectedCoordinateKey<br/>• render()"]
+        PCC["PclaiChartController<br/>• hoveredNodeId<br/>• selectedCoordinateKey<br/>• render()"]
     end
 
     subgraph Rind["Thin rind"]
-        MPC["mountPcaChart<br/>• DOM + button<br/>• reference TSV<br/>• isVisible / isInitialized<br/>• absence acquire/release"]
-        AC["pcaAbsenceCoordinator<br/>• refcounted presenters"]
+        MPC["mountPclaiChart<br/>• DOM + button<br/>• reference TSV<br/>• isVisible / isInitialized<br/>• absence acquire/release"]
+        AC["pclaiAbsenceCoordinator<br/>• refcounted presenters"]
     end
 
     MPC --> PC
@@ -406,11 +406,11 @@ flowchart LR
 
 | Module | Imports eventBus? | Imports DOM? | Imports dataset model? |
 |---|---|---|---|
-| `PcaCoordinateSpace` | no | no | no |
-| `PcaChart` | no | yes | no |
-| `PcaChartController` | yes | no | yes (pclaiCoordinateService) |
-| `mountPcaChart` (facade) | yes | yes | yes |
-| `pcaAbsenceCoordinator` | yes | no | yes |
+| `PclaiCoordinateSpace` | no | no | no |
+| `PclaiChart` | no | yes | no |
+| `PclaiChartController` | yes | no | yes (pclaiCoordinateService) |
+| `mountPclaiChart` (facade) | yes | yes | yes |
+| `pclaiAbsenceCoordinator` | yes | no | yes |
 
 ---
 
@@ -421,10 +421,10 @@ flowchart LR
 | `datasetLoaded` | DatasetModel | facade | new dataset available; update button state |
 | `lineIntersection` | 3D graph raycast | controller | user hovered a node line |
 | `clearIntersection` | 3D graph raycast | controller | hover ended |
-| `pcaWidget:emphasis` | PCAWidget | controller | user selected a coordinate key |
-| `pcaWidget:deselect` | PCAWidget | controller | user re-clicked the selected key (#47 fix) |
-| `pcaWidget:absence` | `pcaAbsenceCoordinator` | 3D graph Look | paint absent nodes |
-| `pcaWidget:normal` | `pcaAbsenceCoordinator` | 3D graph Look | clear absence |
+| `pclaiWidget:emphasis` | PCLAIWidget | controller | user selected a coordinate key |
+| `pclaiWidget:deselect` | PCLAIWidget | controller | user re-clicked the selected key (#47 fix) |
+| `pclaiWidget:absence` | `pclaiAbsenceCoordinator` | 3D graph Look | paint absent nodes |
+| `pclaiWidget:normal` | `pclaiAbsenceCoordinator` | 3D graph Look | clear absence |
 
 ---
 
@@ -437,7 +437,7 @@ user hover / widget click / dataset load
 eventBus
         │
         ▼
-PcaChartController
+PclaiChartController
         │ (mutate state)
         ├── hoveredNodeId
         └── selectedCoordinateKey
@@ -445,16 +445,16 @@ PcaChartController
         ▼
 render() — pure function of (hovered, selected)
         │
-        ├── idle       → PcaChart.clearChart()
+        ├── idle       → PclaiChart.clearChart()
         ├── hover only → pclai.getCoordinatesForNode(h)
         ├── sel only   → pclai.getCoordinatesForCoordinateKey(s)
         └── both       → filter(h, s)
         │
         ▼
-PcaChart.renderDots(map) / clearChart()
+PclaiChart.renderDots(map) / clearChart()
         │
         ▼
-PcaCoordinateSpace.project(x, y) → { left, top, size }
+PclaiCoordinateSpace.project(x, y) → { left, top, size }
         │
         ▼
 DOM dots in chartSurface
@@ -466,12 +466,12 @@ DOM dots in chartSurface
 
 | File | Role |
 |---|---|
-| `src/widgets/pcaCoordinateSpace.js` | Pure projection kernel |
-| `src/widgets/pcaChart.js` | View |
-| `src/widgets/pcaChartController.js` | State machine |
-| `src/widgets/mountPcaChart.js` | Facade / bootstrap |
-| `src/widgets/pcaAbsenceCoordinator.js` | Refcount gate |
-| `src/widgets/pcaWidget.ts` | Sibling presenter (not part of the triangle, but a collaborator) |
-| `src/__tests__/pcaCoordinateSpace.test.js` | 8 characterization tests pinning the projection spec |
+| `src/widgets/pclaiCoordinateSpace.js` | Pure projection kernel |
+| `src/widgets/pclaiChart.js` | View |
+| `src/widgets/pclaiChartController.js` | State machine |
+| `src/widgets/mountPclaiChart.js` | Facade / bootstrap |
+| `src/widgets/pclaiAbsenceCoordinator.js` | Refcount gate |
+| `src/widgets/pclaiWidget.ts` | Sibling presenter (not part of the triangle, but a collaborator) |
+| `src/__tests__/pclaiCoordinateSpace.test.js` | 8 characterization tests pinning the projection spec |
 
 Related: [code-architecture-improvements.md § 6](./code-architecture-improvements.md) · PR #48 · closes #46, #47

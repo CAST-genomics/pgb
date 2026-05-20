@@ -1,16 +1,16 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.ts';
 import { pclaiCoordinateService, PCLACoordinateService } from "./pclaiCoordinateService.js"
-import { acquireAbsence, releaseAbsence } from './pcaAbsenceCoordinator.js'
+import { acquireAbsence, releaseAbsence } from './pclaiAbsenceCoordinator.js'
 
-const ABSENCE_PRESENTER_ID = 'pcaWidget'
+const ABSENCE_PRESENTER_ID = 'pclaiWidget'
 
-class PCAWidget {
+class PCLAIWidget {
 
     static NODE_DEEMPHASIS_COLOR = '#aaaaaa';
     static NODE_ABSENCE_COLOR = '#E8E6DC';
 
-    pcaWidgetContainer: HTMLElement
+    pclaiWidgetContainer: HTMLElement
     draggable: any
     genomicService: any
     geometryManager: any
@@ -19,14 +19,14 @@ class PCAWidget {
     selectedCoordinateKey: string | null
     allListItems: Map<string, HTMLElement>
 
-    constructor(pcaWidgetContainer: HTMLElement, genomicService: any, geometryManager: any) {
+    constructor(pclaiWidgetContainer: HTMLElement, genomicService: any, geometryManager: any) {
 
-        this.pcaWidgetContainer = pcaWidgetContainer;
-        this.draggable = new Draggable(this.pcaWidgetContainer);
+        this.pclaiWidgetContainer = pclaiWidgetContainer;
+        this.draggable = new Draggable(this.pclaiWidgetContainer);
         this.genomicService = genomicService
         this.geometryManager = geometryManager
 
-        this.listGroup = this.pcaWidgetContainer.querySelector('.list-group')!;
+        this.listGroup = this.pclaiWidgetContainer.querySelector('.list-group')!;
 
         this.searchInput = null; // Will be initialized when card is shown
 
@@ -110,15 +110,15 @@ class PCAWidget {
             this.clearAllSelectorStyles()
 
             const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-            eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
-            eventBus.publish('pcaWidget:deselect', {})
+            eventBus.publish('pclaiWidget:absence', { absentNodeSet, absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR })
+            eventBus.publish('pclaiWidget:deselect', {})
         } else {
             // Deselect previous assembly selector if one exists
             if (this.selectedCoordinateKey !== null) {
                 this.clearAllSelectorStyles()
 
                 const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-                eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
+                eventBus.publish('pclaiWidget:absence', { absentNodeSet, absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR })
             }
 
             console.log(`selected coordinate key ${ coordinateKey }`)
@@ -126,7 +126,7 @@ class PCAWidget {
             // Select new genome and store its name and color
             this.selectedCoordinateKey = coordinateKey
 
-            ;(event.target as HTMLElement).classList.add('pca-widget__genome-selector--selected')
+            ;(event.target as HTMLElement).classList.add('pclai-widget__genome-selector--selected')
 
             this.emphasizeAssembly(this.selectedCoordinateKey);
         }
@@ -135,7 +135,7 @@ class PCAWidget {
     clearAllSelectorStyles(): void {
         const selectors = Array.from(this.listGroup.querySelectorAll('.assembly-widget__genome-selector'))
         for (const selector of selectors) {
-            selector.classList.remove('pca-widget__genome-selector--selected')
+            selector.classList.remove('pclai-widget__genome-selector--selected')
         }
     }
 
@@ -144,20 +144,20 @@ class PCAWidget {
         const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
         const resolvedAssemblyKey = this.genomicService.resolveAssemblyKey(coordinateKey)
         const emphasisColor = pclaiCoordinateService.getNodeColorMapForCoordinateKey(coordinateKey)
-        eventBus.publish('pcaWidget:emphasis', {
+        eventBus.publish('pclaiWidget:emphasis', {
             assembly: { name: coordinateKey },
             resolvedAssemblyKey,
             nodeSet,
             absentNodeSet,
             emphasisColor,
-            deemphasisColor: PCAWidget.NODE_DEEMPHASIS_COLOR,
-            absenceColor: PCAWidget.NODE_ABSENCE_COLOR,
+            deemphasisColor: PCLAIWidget.NODE_DEEMPHASIS_COLOR,
+            absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR,
         });
     }
 
     initializeSearchInput(): void {
         if (!this.searchInput) {
-            this.searchInput = this.pcaWidgetContainer.querySelector('#pca-search');
+            this.searchInput = this.pclaiWidgetContainer.querySelector('#pclai-search');
             if (this.searchInput) {
                 this.searchInput.addEventListener('input', this.onSearchInput.bind(this));
                 console.log('Search input initialized successfully');
@@ -205,14 +205,14 @@ class PCAWidget {
     }
 
     showCard(): void {
-        this.pcaWidgetContainer.style.display = '';
-        this.pcaWidgetContainer.style.top = '0px'
-        this.pcaWidgetContainer.style.left = '0px'
+        this.pclaiWidgetContainer.style.display = '';
+        this.pclaiWidgetContainer.style.top = '0px'
+        this.pclaiWidgetContainer.style.left = '0px'
 
         acquireAbsence(ABSENCE_PRESENTER_ID)
 
         setTimeout(() => {
-            this.pcaWidgetContainer.classList.add('show');
+            this.pclaiWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
             this.initializeSearchInput();
             // Restore visual state of selected coordinate key if one exists
@@ -231,16 +231,16 @@ class PCAWidget {
             const selectedSelector = selectors.find(selector => selector.dataset.assembly === this.selectedCoordinateKey);
 
             if (selectedSelector) {
-                selectedSelector.classList.add('pca-widget__genome-selector--selected');
+                selectedSelector.classList.add('pclai-widget__genome-selector--selected');
             }
         }
     }
 
     hideCard(): void {
-        this.pcaWidgetContainer.classList.remove('show');
+        this.pclaiWidgetContainer.classList.remove('show');
         releaseAbsence(ABSENCE_PRESENTER_ID)
         setTimeout(() => {
-            this.pcaWidgetContainer.style.display = 'none';
+            this.pclaiWidgetContainer.style.display = 'none';
             // Clear search input when hiding card
             if (this.searchInput) {
                 this.searchInput.value = '';
@@ -264,8 +264,8 @@ class PCAWidget {
         // → normal if no other presenter is still holding absence.
         if (wasSelected) {
             const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-            eventBus.publish('pcaWidget:absence', { absentNodeSet, absenceColor: PCAWidget.NODE_ABSENCE_COLOR })
-            eventBus.publish('pcaWidget:deselect', {})
+            eventBus.publish('pclaiWidget:absence', { absentNodeSet, absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR })
+            eventBus.publish('pclaiWidget:deselect', {})
         }
     }
 
@@ -277,4 +277,4 @@ class PCAWidget {
     }
 }
 
-export default PCAWidget;
+export default PCLAIWidget;

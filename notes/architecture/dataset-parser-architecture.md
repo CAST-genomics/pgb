@@ -6,7 +6,7 @@ Prior to this change, `processData` in `app.js` passed the raw JSON response to 
 
 - `pangenomeService.loadData(json)` — nodes, edges, assemblies
 - `assemblyMetadataService.loadMetadata(json)` — population counts and frequencies
-- `pclaiCoordinateService.loadCoordinates(json)` — PCA coordinates and colors
+- `pclaiCoordinateService.loadCoordinates(json)` — PCLAI coordinates and colors
 - `genomicService.initialize(json)` — locus, assembly walks, node metadata
 - `geometryFactory.createGeometryData(json)` — ogdf coordinates, edge geometry
 - `populationUtils.getHierarchicalPopulationStructureFromData(json)` — population widget structure

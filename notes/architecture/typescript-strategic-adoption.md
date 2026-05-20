@@ -20,9 +20,9 @@ The codebase has 12+ distinct event types, each with a different payload shape:
 |-------|---------|---------------|
 | `assembly:emphasis` | `{ assembly: {name}, nodeSet: Set, deemphasisColor }` | assemblyWidget.js |
 | `assembly:normal` | `{ nodeSet: Set }` | assemblyWidget.js |
-| `pcaWidget:emphasis` | `{ assembly: {name}, nodeSet: Set, absentNodeSet: Set, deemphasisColor }` | pcaWidget.js |
-| `pcaWidget:normal` | `{ nodeSet: Set }` | pcaWidget.js |
-| `pcaWidget:absence` | `{ absentNodeSet: Set }` | pcaWidget.js |
+| `pclaiWidget:emphasis` | `{ assembly: {name}, nodeSet: Set, absentNodeSet: Set, deemphasisColor }` | pclaiWidget.js |
+| `pclaiWidget:normal` | `{ nodeSet: Set }` | pclaiWidget.js |
+| `pclaiWidget:absence` | `{ absentNodeSet: Set }` | pclaiWidget.js |
 | `population:selected` | `{ acronym: string }` | populationWidget.js |
 | `population:deselected` | `{ population, acronym }` | populationWidget.js |
 | `superpopulation:selected` | `{ acronym: string }` | populationWidget.js |
@@ -42,9 +42,9 @@ TypeScript can tie event names to payload shapes via a single registry interface
 interface EventMap {
     'assembly:emphasis':       { assembly: { name: string }; nodeSet: Set<string>; deemphasisColor: string };
     'assembly:normal':         { nodeSet: Set<string> };
-    'pcaWidget:emphasis':      { assembly: { name: string }; nodeSet: Set<string>; absentNodeSet: Set<string>; deemphasisColor: string };
-    'pcaWidget:normal':        { nodeSet: Set<string> };
-    'pcaWidget:absence':       { absentNodeSet: Set<string> };
+    'pclaiWidget:emphasis':      { assembly: { name: string }; nodeSet: Set<string>; absentNodeSet: Set<string>; deemphasisColor: string };
+    'pclaiWidget:normal':        { nodeSet: Set<string> };
+    'pclaiWidget:absence':       { absentNodeSet: Set<string> };
     'population:selected':     { acronym: string };
     'population:deselected':   { population: object; acronym: string };
     'superpopulation:selected':   { acronym: string };
@@ -71,7 +71,7 @@ Now:
 
 ### Known Bugs This Would Surface
 
-The codebase exploration found what appear to be subscription/unsubscription mismatches in `nodeEmphasisLook.js`. Unsubscribe handles (`deemphasizePCAChartUnsub`, `restorePCAChartUnsub`) are checked in `deactivate()` but never assigned in `activate()`. A typed event bus would make this class of bug structurally harder to introduce.
+The codebase exploration found what appear to be subscription/unsubscription mismatches in `nodeEmphasisLook.js`. Unsubscribe handles (`deemphasizePCLAIChartUnsub`, `restorePCLAIChartUnsub`) are checked in `deactivate()` but never assigned in `activate()`. A typed event bus would make this class of bug structurally harder to introduce.
 
 ### Scope of Change
 

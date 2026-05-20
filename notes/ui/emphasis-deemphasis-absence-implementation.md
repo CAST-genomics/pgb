@@ -3,7 +3,7 @@
 
 The current shader is designed around two states — emphasis and de-emphasis — and that architecture is worth preserving. Absence requires a different treatment, but it doesn't need to live inside the shader.
 
-The approach is a **pre-processing step at state entry**. When the app transitions into a mode that can introduce absence — the PCA chart being the primary case — a subset of absent nodes is computed once and cached at that moment. Absence is determined upstream, before any shader work begins.
+The approach is a **pre-processing step at state entry**. When the app transitions into a mode that can introduce absence — the PCLAI chart being the primary case — a subset of absent nodes is computed once and cached at that moment. Absence is determined upstream, before any shader work begins.
 
 From that point forward, emphasis and de-emphasis operate exactly as they do today, but against an **already-filtered working set** from which absent nodes have been removed. The shader never needs to reason about absence; it simply never sees those nodes.
 

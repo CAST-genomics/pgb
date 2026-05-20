@@ -46,17 +46,17 @@ Consumed by: **HeatmapLook**
 
 ---
 
-## PCA Widget Events
+## PCLAI Widget Events
 
 Consumed by: **NodeEmphasisLook**
 
-### `pcaWidget:emphasis`
-- **Publisher**: `PCAWidget` — when a coordinate key (assembly#haplotype) is selected
+### `pclaiWidget:emphasis`
+- **Publisher**: `PCLAIWidget` — when a coordinate key (assembly#haplotype) is selected
 - **Payload**: `{ assembly: { name: string }, nodeSet: Set<string>, edgeSet: Set<string> }`
 - **Effect**: Emphasizes matching nodes/edges. Node colors come from `pclaiCoordinateService.getNodeColorMapForCoordinateKey()` (returns a `Map<nodeName, THREE.Color>`).
 
-### `pcaWidget:normal`
-- **Publisher**: `PCAWidget` — when the active coordinate key is deselected
+### `pclaiWidget:normal`
+- **Publisher**: `PCLAIWidget` — when the active coordinate key is deselected
 - **Payload**: `{ nodeSet: Set<string>, edgeSet: Set<string> }`
 - **Effect**: Restores all nodes/edges to normal appearance.
 
@@ -73,7 +73,7 @@ These are **not** event bus events but direct `app.setActiveScene()` calls that 
 | Population button clicked (has selection) | `heatmapScene` | `WidgetService.onPopulationButtonClick()` |
 | Superpopulation/population selected | `heatmapScene` | `PopulationOnlyWidget` |
 | Superpopulation/population deselected | `nodeEmphasisScene` | `PopulationOnlyWidget` |
-| PCA button clicked | `nodeEmphasisScene` | `WidgetService.onPCAButtonClick()` |
+| PCLAI button clicked | `nodeEmphasisScene` | `WidgetService.onPCLAIButtonClick()` |
 | New data loaded | `nodeEmphasisScene` | `App.processData()` |
 
 ---

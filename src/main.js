@@ -5,7 +5,7 @@ import GenomicService from './genomicService.js'
 import GeometryManager from './geometryManager.js'
 import AssemblyWidget from './widgets/assemblyWidget.ts'
 import PopulationOnlyWidget from "./widgets/populationOnlyWidget.ts"
-import PCAWidget from './widgets/pcaWidget.ts'
+import PCLAIWidget from './widgets/pclaiWidget.ts'
 import WidgetService from './widgets/widgetService.js'
 import GenomeLibrary from "./igvCore/genome/genomeLibrary.js"
 import { initializeGenomeRegistry, setCustomGenomes } from './igvCore/genome/genomeRegistry.js'
@@ -71,8 +71,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
     const assemblyWidget = new AssemblyWidget(document.getElementById('pgb-gear-card'), genomicService, geometryManager);
     const populationOnlyWidget = new PopulationOnlyWidget(document.getElementById('pgb-superpopulation-card'));
-    const pcaWidget = new PCAWidget(document.getElementById('pgb-pca-card'), genomicService, geometryManager);
-    globals.widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget, pcaWidget);
+    const pclaiWidget = new PCLAIWidget(document.getElementById('pgb-pclai-card'), genomicService, geometryManager);
+    globals.widgetService = new WidgetService(document.getElementById('pgb-widget-container'), assemblyWidget, populationOnlyWidget, pclaiWidget);
 
     // Node Emphasis Look & Scene
     const nodeEmphasisLook = NodeEmphasisLook.createNodeEmphasisLook('nodeEmphasisLook', { genomicService, geometryManager, assemblyWidget })
@@ -100,26 +100,26 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     await globals.locusInput.initializeFromConfig(appConfig)
 
     let currentLocusToken = null
-    let currentPcaKey = null
+    let currentPclaiKey = null
     eventBus.subscribe('locus:token', (data) => {
         currentLocusToken = (data && data.token) ? data.token : null
     })
-    eventBus.subscribe('pcaWidget:emphasis', (data) => {
+    eventBus.subscribe('pclaiWidget:emphasis', (data) => {
         const name = data && data.assembly && data.assembly.name
-        currentPcaKey = name ? name.replace(/#/g, '-') : null
+        currentPclaiKey = name ? name.replace(/#/g, '-') : null
     })
-    eventBus.subscribe('pcaWidget:deselect', () => {
-        currentPcaKey = null
+    eventBus.subscribe('pclaiWidget:deselect', () => {
+        currentPclaiKey = null
     })
 
     const filenamePrefix = () => {
-        if (currentLocusToken && currentPcaKey) return `${currentLocusToken}-${currentPcaKey}`
+        if (currentLocusToken && currentPclaiKey) return `${currentLocusToken}-${currentPclaiKey}`
         return currentLocusToken
     }
 
-    const exportPcaChart = async () => {
-        const blob = await globals.app.pcaChart.exportToSvg()
-        downloadBlob(blob, timestampedFilename('pca-chart', 'svg', filenamePrefix()))
+    const exportPclaiChart = async () => {
+        const blob = await globals.app.pclaiChart.exportToSvg()
+        downloadBlob(blob, timestampedFilename('pclai-chart', 'svg', filenamePrefix()))
     }
 
     mountPrintPanel([
@@ -140,13 +140,13 @@ document.addEventListener("DOMContentLoaded", async (event) => {
             },
         },
         {
-            id: 'pca-chart',
-            label: 'Export PCA Chart (SVG)  [shortcut: P]',
-            run: exportPcaChart,
+            id: 'pclai-chart',
+            label: 'Export PCLAI Chart (SVG)  [shortcut: P]',
+            run: exportPclaiChart,
         },
     ])
 
-    // Keyboard shortcut: pressing `p` exports the PCA chart in its current
+    // Keyboard shortcut: pressing `p` exports the PCLAI chart in its current
     // visual state. This is the only way to capture a graph-node-hover state,
     // since moving the cursor to the print button cancels the hover.
     window.addEventListener('keydown', (event) => {
@@ -158,7 +158,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return
         }
         event.preventDefault()
-        exportPcaChart().catch(err => console.error('PCA chart export failed:', err))
+        exportPclaiChart().catch(err => console.error('PCLAI chart export failed:', err))
     })
 
 })

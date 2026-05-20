@@ -10,17 +10,17 @@ Two scenes, two looks, one active at a time:
 
 | Scene | Look | Activated By |
 |-------|------|-------------|
-| **nodeEmphasisScene** | NodeEmphasisLook | Assembly widget, PCA widget, population deselection, data load |
+| **nodeEmphasisScene** | NodeEmphasisLook | Assembly widget, PCLAI widget, population deselection, data load |
 | **heatmapScene** | HeatmapLook | Population/superpopulation selection |
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '18px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 50}}}%%
 flowchart TB
     subgraph Widgets["Widget Layer"]
-        WS[WidgetService<br/>Assembly / Population / PCA buttons]
+        WS[WidgetService<br/>Assembly / Population / PCLAI buttons]
         AW[AssemblyWidget]
         PW[PopulationOnlyWidget]
-        PCAW[PCAWidget]
+        PCLAIW[PCLAIWidget]
     end
 
     subgraph AppLayer["App Layer"]
@@ -33,7 +33,7 @@ flowchart TB
     end
 
     subgraph Looks["Look Instances"]
-        NEL[NodeEmphasisLook<br/>assembly:emphasis<br/>pcaWidget:emphasis]
+        NEL[NodeEmphasisLook<br/>assembly:emphasis<br/>pclaiWidget:emphasis]
         HL[HeatmapLook<br/>population:selected<br/>superpopulation:selected]
     end
 
@@ -56,7 +56,7 @@ flowchart TB
     APP -->|"render()"| REN
 
     AW -->|"eventBus"| NEL
-    PCAW -->|"eventBus"| NEL
+    PCLAIW -->|"eventBus"| NEL
     PW -->|"eventBus"| HL
 ```
 
@@ -95,8 +95,8 @@ sequenceDiagram
     LM->>OldLook: deactivate()
     OldLook->>EB: unsubscribe('assembly:emphasis')
     OldLook->>EB: unsubscribe('assembly:normal')
-    OldLook->>EB: unsubscribe('pcaWidget:emphasis')
-    OldLook->>EB: unsubscribe('pcaWidget:normal')
+    OldLook->>EB: unsubscribe('pclaiWidget:emphasis')
+    OldLook->>EB: unsubscribe('pclaiWidget:normal')
     OldLook->>OldLook: isActive = false
 
     LM->>NewLook: activate()
@@ -149,27 +149,27 @@ sequenceDiagram
 
     alt Assembly button
         User->>WS: click Assembly
-        WS->>WS: hide Population & PCA widgets, reset them
+        WS->>WS: hide Population & PCLAI widgets, reset them
         WS->>APP: setActiveScene('nodeEmphasisScene', true)
         WS->>WS: show AssemblyWidget
 
     else Population button (no prior selection)
         User->>WS: click Population
-        WS->>WS: hide Assembly & PCA widgets, reset them
+        WS->>WS: hide Assembly & PCLAI widgets, reset them
         WS->>APP: setActiveScene('nodeEmphasisScene', true)
         WS->>WS: show PopulationWidget
 
     else Population button (has prior selection)
         User->>WS: click Population
-        WS->>WS: hide Assembly & PCA widgets, reset them
+        WS->>WS: hide Assembly & PCLAI widgets, reset them
         WS->>APP: setActiveScene('heatmapScene', true)
         WS->>WS: show PopulationWidget
 
-    else PCA button
-        User->>WS: click PCA
+    else PCLAI button
+        User->>WS: click PCLAI
         WS->>WS: hide Assembly & Population widgets, reset them
         WS->>APP: setActiveScene('nodeEmphasisScene', true)
-        WS->>WS: show PCAWidget
+        WS->>WS: show PCLAIWidget
     end
 ```
 
@@ -180,7 +180,7 @@ sequenceDiagram
 | Assembly | Always | `nodeEmphasisScene` |
 | Population | No active selection | `nodeEmphasisScene` |
 | Population | Has active superpopulation or population | `heatmapScene` |
-| PCA | Always | `nodeEmphasisScene` |
+| PCLAI | Always | `nodeEmphasisScene` |
 
 ---
 
@@ -268,7 +268,7 @@ Meshes are created for **all** scenes at data load time, not on-demand. Each sce
 | **WidgetService** | Button UI, determines which scene to activate, shows/hides widget panels |
 | **PopulationOnlyWidget** | Population list UI, publishes selection events, calls `setActiveScene()` directly |
 | **AssemblyWidget** | Assembly list UI, publishes emphasis events (does not switch scenes) |
-| **PCAWidget** | PCA coordinate list UI, publishes emphasis events (does not switch scenes) |
+| **PCLAIWidget** | PCLAI coordinate list UI, publishes emphasis events (does not switch scenes) |
 | **App** | Owns renderer and animation loop, `setActiveScene()` pauses/resumes animation |
 | **SceneManager** | Manages scene map, delegates to LookManager, compiles scenes |
 | **LookManager** | Activates/deactivates looks, enforces one-active-at-a-time |

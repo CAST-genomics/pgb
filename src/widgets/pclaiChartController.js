@@ -1,15 +1,15 @@
 /**
- * PcaChartController — owns event subscriptions and interaction state for
- * the PCA chart.
+ * PclaiChartController — owns event subscriptions and interaction state for
+ * the PCLAI chart.
  *
- * Phase 3d of the PCA triangle refactor (issue #46) reshapes this into a
+ * Phase 3d of the PCLAI triangle refactor (issue #46) reshapes this into a
  * small state machine so the rendered chart is a pure function of
  * `{ hoveredNodeId, selectedCoordinateKey }`. Every event handler updates
  * that state and calls `render()`; the render path decides what dots to
  * draw. This fixes issue #47:
  *
  *   - Clicking the same coordinate key twice toggles it off (widget fires
- *     `pcaWidget:deselect`, controller clears `selectedCoordinateKey`).
+ *     `pclaiWidget:deselect`, controller clears `selectedCoordinateKey`).
  *   - Reference-dot desaturation is implicit: any non-idle state calls
  *     `chart.renderDots(...)` which de-emphasizes the reference layer;
  *     returning to idle calls `chart.clearChart()` which restores it.
@@ -18,7 +18,7 @@
 import eventBus from '../utils/eventBus.ts'
 import { pclaiCoordinateService } from './pclaiCoordinateService.js'
 
-export class PcaChartController {
+export class PclaiChartController {
     /**
      * @param {{
      *   isVisible: () => boolean,
@@ -63,21 +63,21 @@ export class PcaChartController {
         )
 
         this.unsubscribes.push(
-            eventBus.subscribe('pcaWidget:emphasis', (data) => {
+            eventBus.subscribe('pclaiWidget:emphasis', (data) => {
                 this.selectedCoordinateKey = data.assembly.name
                 this.render()
             }),
         )
 
         this.unsubscribes.push(
-            eventBus.subscribe('pcaWidget:deselect', () => {
+            eventBus.subscribe('pclaiWidget:deselect', () => {
                 this.selectedCoordinateKey = null
                 this.render()
             }),
         )
 
         this.unsubscribes.push(
-            eventBus.subscribe('pcaWidget:normal', () => {
+            eventBus.subscribe('pclaiWidget:normal', () => {
                 this.selectedCoordinateKey = null
                 this.render()
             }),

@@ -16,7 +16,7 @@ buttons, one per layer of the on-screen composite:
 |---|---|---|
 | Export Annotation Track (PNG, 8×) | PNG raster | `AnnotationCanvas.exportToPng(scale)` (`src/annotationCanvas.ts`) |
 | Export Pangenome Graph (PNG, 4×)  | PNG raster | `App.exportPangenomeGraphToPng(scale)` (`src/app.ts`) |
-| Export PCA Chart (SVG)             | True SVG  | `PcaChart.exportToSvg()` (`src/widgets/pcaChart.js`) |
+| Export PCLAI Chart (SVG)             | True SVG  | `PclaiChart.exportToSvg()` (`src/widgets/pclaiChart.js`) |
 
 Wiring lives in `src/main.js`, alongside the shared `EXPORT_SCALE` constant
 and the `downloadBlob` / `timestampedFilename` helpers in
@@ -98,9 +98,9 @@ this has not been an issue. Remediation paths are documented in
 resolution (cheapest), or compute the arrow analytically in the fragment
 shader (best long-term).
 
-### 3. PCA chart — true SVG by walking the live DOM
+### 3. PCLAI chart — true SVG by walking the live DOM
 
-The PCA chart is the only layer where vector output is straightforward
+The PCLAI chart is the only layer where vector output is straightforward
 because every foreground element is already a positioned `<div>`. The
 exporter walks the chart's DOM and emits an `<svg>` rather than
 re-implementing the projection from data.
@@ -108,7 +108,7 @@ re-implementing the projection from data.
 **What gets emitted (in order, so dataset dots paint on top):**
 
 - `<svg viewBox="0 0 surfaceW surfaceH" width="surfaceW" height="surfaceH">`.
-  Surface dimensions come from the chart's `PcaCoordinateSpace`
+  Surface dimensions come from the chart's `PclaiCoordinateSpace`
   (`surfaceWidth` / `surfaceHeight`).
 - `<image href="data:image/png;base64,...">` covering the surface,
   `preserveAspectRatio="xMidYMid slice"` to mimic the SCSS
@@ -118,15 +118,15 @@ re-implementing the projection from data.
 - One `<line>` per axis. Position and length read from the live axis
   `<div>`'s inline `style.left` / `top` / `width` / `height`.
 - One `<circle>` per reference dot
-  (`.pca-chart__reference-dot` inside the reference container).
-- One `<circle>` per dataset dot (`.pca-chart__dot` inside the chart
+  (`.pclai-chart__reference-dot` inside the reference container).
+- One `<circle>` per dataset dot (`.pclai-chart__dot` inside the chart
   surface).
 
 **Why DOM-walk instead of re-projecting from data:** the chart already
 owns the projection logic, runs it once on `renderDots` /
 `renderReferenceDots`, and bakes the results into the DOM. Re-projecting
 in the exporter would require caching the source coordinate maps and
-reference array on `PcaChart`, widening the change. Walking the DOM
+reference array on `PclaiChart`, widening the change. Walking the DOM
 gives exactly what's on screen with one extra method and zero new state.
 
 **Robustness against transient state.** Each circle's `fill` comes from
@@ -180,7 +180,7 @@ future engineer can pick them up without re-deriving the trade-offs.
   routine to dual-target. Worthwhile if the track recurs across many
   figures at very large sizes; the 8× raster is sharp at column-width
   print sizes.
-- **PCA background as SVG gradient.** The most likely upgrade if a
+- **PCLAI background as SVG gradient.** The most likely upgrade if a
   reviewer pushes back on the resampled background bitmap.
 
 ## Related files
@@ -195,8 +195,8 @@ future engineer can pick them up without re-deriving the trade-offs.
   graph.
 - `src/rendererFactory.js` — `WebGLRenderer` config including the
   `preserveDrawingBuffer: true` flag the graph export depends on.
-- `src/widgets/pcaChart.js` — `exportToSvg()` for the PCA chart, plus
+- `src/widgets/pclaiChart.js` — `exportToSvg()` for the PCLAI chart, plus
   the `circleSvgFromDot` and `fetchBackgroundAsDataUri` helpers.
-- `src/widgets/mountPcaChart.js` — facade that re-exposes
+- `src/widgets/mountPclaiChart.js` — facade that re-exposes
   `exportToSvg` on the chart handle consumed from `main.js`.
 - `high-resolution-export-options.md` — original options survey.
