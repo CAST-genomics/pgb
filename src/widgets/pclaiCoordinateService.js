@@ -28,7 +28,6 @@ class PCLACoordinateService {
         this.coordinateKeysBySystem = new Map();
         this.boundingBoxBySystem = new Map();
 
-        this.aveRgb = new Map(); // nodeId -> THREE.Color (system-independent)
         this.absentNodeSet = new Set(); // nodes with no valid pclai coords in any system
 
         this.activeSystem = DEFAULT_SYSTEM;
@@ -47,7 +46,6 @@ class PCLACoordinateService {
         this.coordinatesBySystem.clear();
         this.coordinateKeysBySystem.clear();
         this.boundingBoxBySystem.clear();
-        this.aveRgb.clear();
 
         // Per-system index → service caches.
         for (const [system, keys] of dataset.index.pclaiCoordinateKeysBySystem) {
@@ -60,14 +58,6 @@ class PCLACoordinateService {
 
         // Build per-system runtime THREE.Color maps.
         for (const [nodeId, node] of dataset.nodes) {
-
-            if (Array.isArray(node.pclaiAveRgb) && node.pclaiAveRgb.length === 3) {
-                const [r, g, b] = node.pclaiAveRgb;
-                if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
-                    const color = new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
-                    this.aveRgb.set(nodeId, color);
-                }
-            }
 
             if (!node.pclaiCoordinatesBySystem) continue;
 
@@ -246,39 +236,6 @@ class PCLACoordinateService {
     }
 
     /**
-     * Get the average RGB color as a Three.js Color object for a specific node
-     * @param {string} nodeId - The node identifier (e.g., "5504+")
-     * @returns {THREE.Color|null} Three.js Color object, or null if not found
-     */
-    getAveRgbColor(nodeId) {
-        const aveRgbData = this.aveRgb.get(nodeId);
-        if (!aveRgbData) {
-            return null;
-        }
-        return aveRgbData.color.clone();
-    }
-
-    /**
-     * Get the average RGB array for a specific node
-     * @param {string} nodeId - The node identifier (e.g., "5504+")
-     * @returns {number[]|null} RGB array [r, g, b], or null if not found
-     */
-    getAveRgbArrayForNode(nodeId) {
-        const aveRgbData = this.aveRgb.get(nodeId);
-        if (!aveRgbData) {
-            return null;
-        }
-        return [...aveRgbData.rgb];
-    }
-
-    /**
-     * Check if a node has average RGB data
-     */
-    hasAveRgb(nodeId) {
-        return this.aveRgb.has(nodeId);
-    }
-
-    /**
      * Check if the dataset contains any PCLAI coordinate data in the active system.
      */
     hasPCLAIData() {
@@ -305,7 +262,6 @@ class PCLACoordinateService {
         this.coordinatesBySystem.clear();
         this.coordinateKeysBySystem.clear();
         this.boundingBoxBySystem.clear();
-        this.aveRgb.clear();
         this.absentNodeSet = new Set();
         this.activeSystem = DEFAULT_SYSTEM;
     }

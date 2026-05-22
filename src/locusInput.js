@@ -15,7 +15,6 @@ const hprc_domain = '3.145.184.140:8443';
 const current_domain = hprc_domain;
 
 //
-const apiV2 = 'v2'
 const apiV3 = 'v3'
 
 //
