@@ -1,1 +1,0 @@
-https://3.145.184.140:8443/json?chrom=chr1&start=25240000&end=25460000&graphtype=minigraph&version=v2&api=v2&pca=assembly&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000

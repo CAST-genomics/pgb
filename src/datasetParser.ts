@@ -1,15 +1,15 @@
 /**
  * datasetParser.ts — Single parse point for PGB datasets.
  *
- * Accepts raw JSON (v1, v2, or v3), detects the format, validates required
+ * Accepts raw JSON in the v3 format, confirms the format, validates required
  * fields, and returns a normalised DatasetModel that every downstream
- * consumer can rely on.
+ * consumer can rely on.  Non-v3 datasets are rejected with a clear
+ * DatasetParseError.
  */
 
 import {
     DatasetParseError,
     PCLAI_COORD_SYSTEMS,
-    type FormatVersion,
     type PclaiCoordSystem,
     type DatasetModel,
     type DatasetIndex,
@@ -21,6 +21,9 @@ import {
 } from './datasetModel.js';
 import { validateRawDataset } from './datasetValidator.js';
 
+const UNSUPPORTED_FORMAT_MESSAGE =
+    'Unsupported dataset format — only v3 datasets are supported';
+
 // ── Public API ───────────────────────────────────────────────────────
 
 export function parseDataset(json: unknown): DatasetModel {
@@ -29,51 +32,36 @@ export function parseDataset(json: unknown): DatasetModel {
     }
 
     const raw = json as Record<string, unknown>;
-    const version = detectFormat(raw);
-    validateRawDataset(raw, version);
+    assertV3Format(raw);
+    validateRawDataset(raw);
 
-    switch (version) {
-        case 'v1': return normalizeV1(raw);
-        case 'v2': return normalizeV2(raw);
-        case 'v3': return normalizeV3(raw);
-        default:   throw new DatasetParseError(`Unknown format version: ${version}`);
-    }
+    return normalizeV3(raw);
 }
 
-// ── Format detection ─────────────────────────────────────────────────
+// ── Format check ─────────────────────────────────────────────────────
 
-function detectFormat(json: Record<string, unknown>): FormatVersion {
-    // v2/v3 share top-level shape (queried_locus / actual_locus or top-level
-    // assembly object). Disambiguate by inspecting metadata entries: v3
-    // replaces `pclai` array with `pclai_hg38` / `pclai_asm` siblings.
-    const looksLikeV2OrV3 =
+/**
+ * Confirm the input is a v3 dataset, throwing a clear error for older
+ * (v1 / v2) formats.
+ *
+ * Detection rests on positive evidence only, so that a legitimate v3 file
+ * with no PCLAI data is still accepted:
+ *  - v1 files carry a top-level `locus` string and lack the v3 top-level
+ *    shape (`queried_locus` / `actual_locus` / an `assembly` index object).
+ *  - v2 files share the v3 top-level shape but carry windowed `pclai`
+ *    arrays in node metadata instead of `pclai_hg38` / `pclai_asm`.
+ */
+function assertV3Format(json: Record<string, unknown>): void {
+    const hasV3TopLevel =
         json.queried_locus || json.actual_locus ||
         (json.assembly && !Array.isArray(json.assembly) && typeof json.assembly === 'object');
 
-    if (looksLikeV2OrV3) {
-        return detectV2OrV3(json);
+    if (!hasV3TopLevel) {
+        throw new DatasetParseError(UNSUPPORTED_FORMAT_MESSAGE);
     }
 
-    // v1 signals: locus is a plain string, node entries have pclai_coordinates dict
-    if (typeof json.locus === 'string') return 'v1';
-
-    // Fallback: if there are nodes, assume v1
-    if (json.node && typeof json.node === 'object') return 'v1';
-
-    throw new DatasetParseError('Unable to detect dataset format version');
-}
-
-/**
- * Walk node metadata entries to decide v2 vs v3. Looking at one entry can
- * mis-detect (e.g. a `take === 'no'` entry with neither pclai field). Scan
- * until we find a definitive signal.
- */
-function detectV2OrV3(json: Record<string, unknown>): FormatVersion {
     const nodeBag = json.node as Record<string, Record<string, unknown>> | undefined;
-    if (!nodeBag) return 'v2';
-
-    let sawV2Pclai = false;
-    let sawV3Pclai = false;
+    if (!nodeBag) return;
 
     for (const node of Object.values(nodeBag)) {
         const groups = [
@@ -83,18 +71,14 @@ function detectV2OrV3(json: Record<string, unknown>): FormatVersion {
         for (const asm of groups) {
             const metas = (asm.metadata as Array<Record<string, unknown>>) || [];
             for (const meta of metas) {
-                if (meta.pclai_hg38 || meta.pclai_asm) sawV3Pclai = true;
-                if (Array.isArray(meta.pclai)) sawV2Pclai = true;
-                if (sawV3Pclai) return 'v3';
+                if (meta.pclai_hg38 || meta.pclai_asm) return; // definitive v3
+                if (Array.isArray(meta.pclai)) {
+                    throw new DatasetParseError(UNSUPPORTED_FORMAT_MESSAGE);
+                }
             }
         }
     }
-
-    if (sawV3Pclai) return 'v3';
-    if (sawV2Pclai) return 'v2';
-
-    // No PCLAI signal anywhere — default to v2 (compatible top-level shape).
-    return 'v2';
+    // No PCLAI signal either way — structurally compatible with v3; accept.
 }
 
 // ── Per-system PCLAI map helpers ─────────────────────────────────────
@@ -117,125 +101,10 @@ function pushPclaiEntry(
     else sysMap.set(coordKey, [entry]);
 }
 
-// ── V1 normalizer ────────────────────────────────────────────────────
-
-function normalizeV1(json: Record<string, unknown>): DatasetModel {
-
-    // -- Sequences --
-    const sequences = new Map<string, string>();
-    const seqBag = json.sequence as Record<string, unknown> | undefined;
-    if (seqBag) {
-        for (const [id, seq] of Object.entries(seqBag)) {
-            sequences.set(String(id), String(seq ?? ''));
-        }
-    }
-
-    // -- Nodes --
-    const nodes = new Map<string, NodeModel>();
-    const nodeBag = (json.node || {}) as Record<string, Record<string, unknown>>;
-
-    for (const [key, raw] of Object.entries(nodeBag)) {
-        const name = String(raw?.name ?? key);
-
-        const rawLength = raw?.length;
-        const length = (typeof rawLength === 'number' && Number.isFinite(rawLength))
-            ? rawLength
-            : (sequences.get(name)?.length ?? 0);
-
-        // Assemblies
-        const rawAssembly = (raw.assembly || []) as Array<Record<string, unknown>>;
-        const assemblies: AssemblyEntry[] = rawAssembly.map(a => ({
-            assemblyName: String(a.assembly_name ?? ''),
-            haplotype:    String(a.haplotype ?? ''),
-            sequenceId:   String(a.sequence_id ?? ''),
-            pathStrand:   null,
-            nodeStrand:   null,
-            start:        null,
-            end:          null,
-            take:         null,
-        }));
-
-        // PCLAI coordinates — v1 has a flat dict keyed by "assembly#haplotype",
-        // tagged into the 'hg38' system slot.
-        const pclaiCoordinatesBySystem = emptyPclaiBySystem();
-        const pclaiDict = raw.pclai_coordinates as Record<string, Record<string, unknown>> | undefined;
-        if (pclaiDict && typeof pclaiDict === 'object') {
-            for (const [coordKey, entry] of Object.entries(pclaiDict)) {
-                if (!entry || !Array.isArray(entry.coordinates) || entry.coordinates.length !== 2
-                    || !Array.isArray(entry.RGB) || entry.RGB.length !== 3) continue;
-                pushPclaiEntry(pclaiCoordinatesBySystem, 'hg38', coordKey, {
-                    coordinates:     entry.coordinates as [number, number],
-                    rgb:             entry.RGB as [number, number, number],
-                    start:           null,
-                    end:             null,
-                    percentage:      1,
-                    confidenceScore: null,
-                });
-            }
-        }
-
-        // pclai_ave_rgb (some v1 files may have it)
-        const rawAveRgb = raw.pclai_ave_rgb;
-        const pclaiAveRgb: [number, number, number] | null =
-            (Array.isArray(rawAveRgb) && rawAveRgb.length === 3)
-                ? rawAveRgb as [number, number, number]
-                : null;
-
-        // Assembly metadata — pass through as-is
-        const rawMeta = raw.assembly_metadata as Record<string, unknown> | undefined;
-        const assemblyMetadata: AssemblyMetadata | null = rawMeta
-            ? { count: (rawMeta.count || {}) as Record<string, unknown>, frequency: (rawMeta.frequency || {}) as Record<string, unknown> }
-            : null;
-
-        // OGDF coordinates
-        const ogdfCoordinates = Array.isArray(raw.ogdf_coordinates)
-            ? raw.ogdf_coordinates as Array<{ x: number; y: number }>
-            : [];
-
-        // Range
-        const defaultRange = (raw.range ?? raw.default_range ?? null) as string | null;
-
-        nodes.set(name, {
-            name,
-            length,
-            assemblies,
-            duplicatedAssemblies: [],
-            assemblyMetadata,
-            pclaiCoordinatesBySystem,
-            pclaiAveRgb,
-            ogdfCoordinates,
-            defaultRange,
-        });
-    }
-
-    // -- Edges --
-    const rawEdges = (json.edge || []) as Array<Record<string, unknown>>;
-    const edges = rawEdges.map(e => ({
-        startingNode: String(e.starting_node),
-        endingNode:   String(e.ending_node),
-    }));
-
-    // -- Locus --
-    const locus = {
-        queriedLocus: (json.locus as string) ?? null,
-        actualLocus:  null,
-    };
-
-    return {
-        formatVersion: 'v1',
-        locus,
-        assemblyIndex: null,
-        sequences,
-        nodes,
-        edges,
-        index: buildDatasetIndex(nodes),
-    };
-}
-
-// ── V2 / V3 shared helpers ───────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────
 
 /**
- * Strip genome prefix from v2/v3 locus strings.
+ * Strip genome prefix from v3 locus strings.
  * "GRCh38#0#chr1:25240000-25460000" → "chr1:25240000-25460000"
  */
 function stripGenomePrefix(locusString: string | null | undefined): string | null {
@@ -248,80 +117,10 @@ function stripGenomePrefix(locusString: string | null | undefined): string | nul
     return locusString;
 }
 
-type MetaPclaiExtractor = (
-    meta: Record<string, unknown>,
-    coordKey: string,
-    bySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
-) => void;
-
 /**
- * Walk v2/v3 assembly groups, building flat AssemblyEntry[] and dispatching
- * each metadata entry to the format-specific PCLAI extractor.
+ * Extract per-system PCLAI coordinates from a v3 metadata entry. v3 carries
+ * a `pclai_hg38` / `pclai_asm` object per coordinate system.
  */
-function normalizeV2StyleAssemblies(
-    assemblyArray: Array<Record<string, unknown>>,
-    pclaiBySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
-    extractPclai: MetaPclaiExtractor,
-): AssemblyEntry[] {
-    const entries: AssemblyEntry[] = [];
-
-    for (const asm of assemblyArray) {
-        const assemblyName = String(asm.assembly_name ?? '');
-        const haplotype    = String(asm.haplotype ?? '');
-        const coordKey     = `${assemblyName}#${haplotype}`;
-
-        const metadataArray = (asm.metadata || []) as Array<Record<string, unknown>>;
-        for (const meta of metadataArray) {
-            entries.push({
-                assemblyName,
-                haplotype,
-                sequenceId:  String(meta.sequence_id ?? ''),
-                pathStrand:  (meta.path_strand as string) ?? null,
-                nodeStrand:  (meta.node_strand as string) ?? null,
-                start:       (meta.start as number) ?? null,
-                end:         (meta.end as number) ?? null,
-                take:        (meta.take as string) ?? null,
-            });
-
-            if (meta.take === 'yes') {
-                extractPclai(meta, coordKey, pclaiBySystem);
-            }
-        }
-    }
-
-    return entries;
-}
-
-// ── V2 normalizer ────────────────────────────────────────────────────
-
-function extractV2Pclai(
-    meta: Record<string, unknown>,
-    coordKey: string,
-    bySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
-): void {
-    const rawPclai = meta.pclai;
-    if (!Array.isArray(rawPclai) || rawPclai.length === 0) return;
-
-    for (const w of rawPclai as Array<Record<string, unknown>>) {
-        if (!Array.isArray(w.coordinates) || w.coordinates.length !== 2) continue;
-        if (!Array.isArray(w.RGB) || w.RGB.length !== 3) continue;
-        pushPclaiEntry(bySystem, 'hg38', coordKey, {
-            coordinates:     w.coordinates as [number, number],
-            rgb:             w.RGB as [number, number, number],
-            start:           (w.start as number) ?? null,
-            end:             (w.end as number) ?? null,
-            percentage:      (w.percentage as number) ?? 1,
-            confidenceScore: null,
-        });
-    }
-}
-
-function normalizeV2(json: Record<string, unknown>): DatasetModel {
-    return normalizeV2Style(json, 'v2', extractV2Pclai);
-}
-
-// ── V3 normalizer ────────────────────────────────────────────────────
-
 function extractV3Pclai(
     meta: Record<string, unknown>,
     coordKey: string,
@@ -348,17 +147,46 @@ function extractV3Pclai(
     }
 }
 
-function normalizeV3(json: Record<string, unknown>): DatasetModel {
-    return normalizeV2Style(json, 'v3', extractV3Pclai);
+/**
+ * Walk v3 assembly groups, building a flat AssemblyEntry[] and dispatching
+ * each metadata entry to the PCLAI extractor.
+ */
+function normalizeV3Assemblies(
+    assemblyArray: Array<Record<string, unknown>>,
+    pclaiBySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>,
+): AssemblyEntry[] {
+    const entries: AssemblyEntry[] = [];
+
+    for (const asm of assemblyArray) {
+        const assemblyName = String(asm.assembly_name ?? '');
+        const haplotype    = String(asm.haplotype ?? '');
+        const coordKey     = `${assemblyName}#${haplotype}`;
+
+        const metadataArray = (asm.metadata || []) as Array<Record<string, unknown>>;
+        for (const meta of metadataArray) {
+            entries.push({
+                assemblyName,
+                haplotype,
+                sequenceId:  String(meta.sequence_id ?? ''),
+                pathStrand:  (meta.path_strand as string) ?? null,
+                nodeStrand:  (meta.node_strand as string) ?? null,
+                start:       (meta.start as number) ?? null,
+                end:         (meta.end as number) ?? null,
+                take:        (meta.take as string) ?? null,
+            });
+
+            if (meta.take === 'yes') {
+                extractV3Pclai(meta, coordKey, pclaiBySystem);
+            }
+        }
+    }
+
+    return entries;
 }
 
-// ── V2/V3 shared body ────────────────────────────────────────────────
+// ── V3 normalizer ────────────────────────────────────────────────────
 
-function normalizeV2Style(
-    json: Record<string, unknown>,
-    formatVersion: FormatVersion,
-    extractPclai: MetaPclaiExtractor,
-): DatasetModel {
+function normalizeV3(json: Record<string, unknown>): DatasetModel {
 
     // -- Sequences --
     const sequences = new Map<string, string>();
@@ -397,13 +225,13 @@ function normalizeV2Style(
 
         // Assemblies (unique mappings)
         const rawAssembly = (raw.assembly || []) as Array<Record<string, unknown>>;
-        const assemblies = normalizeV2StyleAssemblies(rawAssembly, pclaiCoordinatesBySystem, extractPclai);
+        const assemblies = normalizeV3Assemblies(rawAssembly, pclaiCoordinatesBySystem);
 
         // Duplicated assemblies (multi-region mappings)
         const rawDup = (raw.duplicated_assembly || []) as Array<Record<string, unknown>>;
-        const duplicatedAssemblies = normalizeV2StyleAssemblies(rawDup, pclaiCoordinatesBySystem, extractPclai);
+        const duplicatedAssemblies = normalizeV3Assemblies(rawDup, pclaiCoordinatesBySystem);
 
-        // Assembly metadata — pass through as-is (unchanged between formats)
+        // Assembly metadata — pass through as-is
         const rawMeta = raw.assembly_metadata as Record<string, unknown> | undefined;
         const assemblyMetadata: AssemblyMetadata | null = rawMeta
             ? { count: (rawMeta.count || {}) as Record<string, unknown>, frequency: (rawMeta.frequency || {}) as Record<string, unknown> }
@@ -424,7 +252,6 @@ function normalizeV2Style(
             duplicatedAssemblies,
             assemblyMetadata,
             pclaiCoordinatesBySystem,
-            pclaiAveRgb: null,
             ogdfCoordinates,
             defaultRange,
         });
@@ -444,7 +271,7 @@ function normalizeV2Style(
     };
 
     return {
-        formatVersion,
+        formatVersion: 'v3',
         locus,
         assemblyIndex: assemblyIndex.size > 0 ? assemblyIndex : null,
         sequences,

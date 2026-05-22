@@ -1,19 +1,20 @@
 /**
  * datasetModel.ts — Canonical domain model for PGB datasets.
  *
- * Raw JSON from CiCi's API (v1, v2, or v3) is normalized into this shape by
+ * Raw JSON from CiCi's API (v3 format) is normalized into this shape by
  * datasetParser.ts.  Every downstream consumer receives a DatasetModel
  * instead of raw JSON.
  */
 
 // ── Format version ──────────────────────────────────────────────────
+//
+// v3 is the only supported dataset format.
 
-export type FormatVersion = 'v1' | 'v2' | 'v3';
+export type FormatVersion = 'v3';
 
 // ── PCLAI coordinate systems ────────────────────────────────────────
 //
 // v3 datasets carry two coordinate systems per node, `hg38` and `asm`.
-// v1/v2 datasets are tagged `hg38` (single-system).
 
 export type PclaiCoordSystem = 'hg38' | 'asm';
 
@@ -53,7 +54,6 @@ export interface NodeModel {
     duplicatedAssemblies: AssemblyEntry[];
     assemblyMetadata: AssemblyMetadata | null;
     pclaiCoordinatesBySystem: Map<PclaiCoordSystem, Map<string, PclaiEntry[]>>;
-    pclaiAveRgb: [number, number, number] | null;
     ogdfCoordinates: Array<{ x: number; y: number }>;
     defaultRange: string | null;
 }

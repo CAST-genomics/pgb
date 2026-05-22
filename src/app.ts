@@ -12,6 +12,7 @@ import { assemblyMetadataService } from "./assemblyMetadataService.ts"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
 import { mountPclaiChart } from "./widgets/mountPclaiChart.js"
 import { parseDataset } from './datasetParser.ts'
+import { DatasetParseError } from './datasetModel.ts'
 
 let xxPre: number | undefined = undefined
 let yyPre: number | undefined = undefined
@@ -221,7 +222,20 @@ class App {
     }
 
     async processData(json: any): Promise<void> {
-        const dataset = parseDataset(json)
+        let dataset
+        try {
+            dataset = parseDataset(json)
+        } catch (error: any) {
+            console.error('Failed to parse dataset:', error)
+            const detail = error instanceof DatasetParseError
+                ? error.message
+                : `Unexpected error parsing dataset: ${error.message}`
+            // Surface a dismissable alert and leave the previous scene
+            // intact — a bad dataset must not crash the app.
+            this.showError(detail, { autoHide: false })
+            this.startAnimation()
+            return
+        }
 
         await this.loadDataset(dataset)
 
@@ -556,7 +570,8 @@ class App {
         }
     }
 
-    showError(message: string): void {
+    showError(message: string, options: { autoHide?: boolean } = {}): void {
+        const { autoHide = true } = options
         console.error(message)
 
         // Create or update error display
@@ -568,15 +583,35 @@ class App {
             document.body.appendChild(errorDiv)
         }
 
-        errorDiv.textContent = message
+        // Rebuild content: message text plus a dismiss control.
+        errorDiv.replaceChildren()
+
+        const messageSpan = document.createElement('span')
+        messageSpan.className = 'pgb-drag-drop-error__message'
+        messageSpan.textContent = message
+        errorDiv.appendChild(messageSpan)
+
+        const dismissButton = document.createElement('button')
+        dismissButton.className = 'pgb-drag-drop-error__dismiss'
+        dismissButton.type = 'button'
+        dismissButton.setAttribute('aria-label', 'Dismiss')
+        dismissButton.textContent = '×'
+        dismissButton.addEventListener('click', () => {
+            errorDiv!.classList.remove('show')
+        })
+        errorDiv.appendChild(dismissButton)
+
         errorDiv.classList.add('show')
 
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            if (errorDiv) {
-                errorDiv.classList.remove('show')
-            }
-        }, 5000)
+        // Auto-hide after 5 seconds unless the caller opts out (e.g. a
+        // dataset format error the user needs time to read).
+        if (autoHide) {
+            setTimeout(() => {
+                if (errorDiv) {
+                    errorDiv.classList.remove('show')
+                }
+            }, 5000)
+        }
     }
 
 }

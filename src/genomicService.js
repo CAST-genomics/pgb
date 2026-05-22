@@ -64,7 +64,7 @@ class GenomicService {
 
             let effectiveLocusStartBp = isReference ? this.locus.startBP : 0;
 
-            // v2 datasets provide per-assembly region coordinates in the assemblyIndex
+            // datasets provide per-assembly region coordinates in the assemblyIndex
             if (dataset.assemblyIndex) {
                 const indexKey = `${genomeId}#${haplotype}`;
                 const entry = dataset.assemblyIndex.get(indexKey);
