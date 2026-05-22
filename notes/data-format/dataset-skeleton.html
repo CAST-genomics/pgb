@@ -6,7 +6,7 @@
 <title>Anatomy of a Dataset — PGB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#ffffff;
@@ -21,7 +21,7 @@
     --fold:#7c7763;
     --chip-bg:#e7e0c9;
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
-    --serif:'EB Garamond',Georgia,'Iowan Old Style',serif;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box;}
   /* Root size — the single lever for scaling the whole document.
@@ -30,10 +30,10 @@
   body{
     margin:0;
     color:var(--ink);
-    font-family:var(--serif);
+    font-family:var(--sans);
     font-size:1rem;
     line-height:1.5;
-    font-feature-settings:"liga" 1,"onum" 1;
+    font-feature-settings:"liga" 1,"calt" 1;
     -webkit-font-smoothing:antialiased;
     text-rendering:optimizeLegibility;
   }
@@ -166,11 +166,11 @@
   .code.fold{color:var(--fold);font-style:italic;}
   .note{
     margin:0;
-    font-family:var(--serif);
+    font-family:var(--sans);
     font-size:1rem;
     line-height:1.46;
     color:var(--note);
-    font-feature-settings:"liga" 1,"onum" 1;
+    font-feature-settings:"liga" 1,"calt" 1;
   }
   .note em{font-style:italic;}
   .note strong{font-weight:600;color:#241f17;}
