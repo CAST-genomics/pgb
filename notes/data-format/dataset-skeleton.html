@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Anatomy of a Dataset — PGB</title>
+<title>Anatomy of a Dataset (Nested) — PGB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
@@ -17,15 +17,18 @@
     --number:#1a4d85;
     --accent:#a02d16;
     --note:#211e17;
-    --rule:#d3ccb6;
+    --rule:#c9c2ab;
+    --rule-soft:#e2dcc6;
     --fold:#7c7763;
     --chip-bg:#e7e0c9;
+    --head-bg:#faf7ec;
+    --head-bg-deep:#f6f2e2;
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
     --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --note-col:20rem;
+    --gap:1.8rem;
   }
   *{box-sizing:border-box;}
-  /* Root size — the single lever for scaling the whole document.
-     Every rem below resolves against this. */
   html{background:var(--paper);font-size:19px;}
   body{
     margin:0;
@@ -106,13 +109,21 @@
   .swatch .k{color:var(--key);}
   .swatch .s{color:var(--string);}
   .swatch .n{color:var(--number);}
+  .leg-box{
+    display:inline-block;
+    width:1.2rem;height:0.9rem;
+    border:1px solid var(--rule);
+    border-radius:3px;
+    background:var(--head-bg);
+    vertical-align:-2px;
+  }
 
   /* ── Section dividers ───────────────────────────────── */
   .section{
     display:flex;
     align-items:baseline;
     gap:1.1rem;
-    margin:2.7rem 0 1.15rem;
+    margin:2.4rem 0 0.9rem;
   }
   .section:first-of-type{margin-top:1.6rem;}
   .sec-label{
@@ -136,28 +147,19 @@
     background:var(--rule);
   }
 
-  /* ── The skeleton ───────────────────────────────────── */
-  .skeleton{margin-top:0.4rem;}
+  /* ── The nested box skeleton ────────────────────────── */
+  .skeleton{margin-top:0.4rem;font-family:var(--mono);font-size:0.8rem;}
+
   .row{
     display:grid;
-    grid-template-columns:62ch minmax(13rem,16.5rem);
-    column-gap:2.6rem;
-    align-items:start;
-    font-family:var(--mono);
-    font-size:0.9rem;
-    padding:0.34rem 0.7rem;
-    margin:0 -0.7rem;
-    border-radius:4px;
-    outline:1px solid transparent;
-    transition:outline-color 120ms ease;
+    grid-template-columns:minmax(0,1fr) var(--note-col);
+    column-gap:var(--gap);
+    align-items:baseline;
+    padding:0.22rem 0.85rem;
+    border-radius:3px;
   }
-  .row:hover{outline-color:var(--rule);}
-  .code{
-    margin:0;
-    font:inherit;
-    white-space:pre;
-    color:var(--punct);
-  }
+  .row:hover{background:rgba(80,72,48,0.04);}
+  .code{margin:0;font:inherit;white-space:pre;color:var(--punct);}
   .code .k{color:var(--key);}
   .code .s{color:var(--string);}
   .code .n{color:var(--number);}
@@ -167,7 +169,7 @@
   .note{
     margin:0;
     font-family:var(--sans);
-    font-size:1rem;
+    font-size:0.9rem;
     line-height:1.46;
     color:var(--note);
     font-feature-settings:"liga" 1,"calt" 1;
@@ -185,15 +187,51 @@
   .chip{
     display:inline-block;
     font-family:var(--mono);
-    font-size:0.7em;
+    font-size:0.7rem;
     letter-spacing:0.03em;
     color:var(--note);
     background:var(--chip-bg);
     padding:0.13em 0.55em;
     border-radius:999px;
-    margin-right:0.5em;
+    margin-right:0.45em;
     white-space:nowrap;
   }
+
+  /* Boxes — nested rectangular regions in place of curly braces */
+  .box{
+    border:1px solid var(--rule);
+    border-radius:6px;
+    margin:0.85rem 0;
+    background:#fff;
+  }
+  .box-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) var(--note-col);
+    column-gap:var(--gap);
+    align-items:baseline;
+    padding:0.55rem 0.85rem;
+    background:var(--head-bg);
+    border-bottom:1px solid var(--rule-soft);
+    border-radius:6px 6px 0 0;
+  }
+  .box-head .title-line{
+    font-family:var(--mono);
+    font-size:0.92rem;
+    color:var(--key);
+  }
+  .box-head .title-line .dk{color:var(--accent);font-style:italic;}
+  .box-head .title-line .k{color:var(--key);}
+  .box-head .note{font-size:0.95rem;}
+  .box-body{
+    padding:0.6rem 0.9rem 0.75rem;
+  }
+
+  /* Subtle depth shading — each nesting level barely tinted */
+  .box .box{background:#fefdf9;}
+  .box .box .box{background:#fdfcf5;}
+  .box .box .box .box{background:#fbfaf1;}
+  .box .box .box .box-head,
+  .box .box .box-head{background:var(--head-bg-deep);}
 
   /* ── Colophon ───────────────────────────────────────── */
   .colophon{
@@ -212,19 +250,19 @@
   }
 
   @media (max-width:1024px){
-    .sheet{padding:3.5rem 1.5rem 5rem;}
+    .sheet{padding:3.5rem 1.25rem 5rem;}
     .title{font-size:2.3rem;}
-    .skeleton{overflow-x:auto;}
-    .row{grid-template-columns:1fr;row-gap:0.25rem;padding:0.5rem 0.7rem;}
+    :root{--note-col:1fr;--gap:0.6rem;}
+    .row,.box-head{grid-template-columns:1fr;row-gap:0.2rem;}
     .note{
-      padding-left:1rem;
-      border-left:2px solid var(--rule);
+      padding-left:0.9rem;
+      border-left:2px solid var(--rule-soft);
       margin-top:0.1rem;
     }
   }
   @media print{
     html,body{background:#fff;}
-    .row:hover{outline:none;}
+    .row:hover{background:transparent;}
   }
 </style>
 </head>
@@ -235,107 +273,248 @@
     <p class="eyebrow">PGB · Dataset Format · api-v3</p>
     <h1 class="title">Anatomy of a Dataset</h1>
     <p class="subtitle">an illustrated skeleton of the pangenome graph format</p>
-    <p class="lede">A dataset is one JSON file describing a pangenome graph for a single locus — the alternative paths through a stretch of the genome, which assemblies walk which path, and where each piece sits in layout space. The file is large but shallow: only a handful of distinct shapes, repeated thousands of times. Below, each repeated shape is drawn once, with real values, and annotated in the margin.</p>
+    <p class="lede">A dataset is one JSON file describing a pangenome graph for a single locus — the alternative paths through a stretch of the genome, which assemblies walk which path, and where each piece sits in layout space. The file is large but shallow: only a handful of distinct shapes, repeated thousands of times. Each shape is drawn once below, with real values, as a nested rectangular region: every box is one object or one array, and every box that sits inside another is, literally, a child of it.</p>
     <p class="specimen">Specimen — <code>public/datasets/api-v3/il7.json</code> &nbsp;·&nbsp; the IL7 locus on chromosome 8 &nbsp;·&nbsp; 12 nodes &nbsp;·&nbsp; 466 assemblies</p>
   </header>
 
   <section class="legend">
+    <div class="leg-item"><span class="leg-mark"><span class="leg-box"></span></span><span class="leg-text">A <em>rectangular region</em> is one composite value — an object or an array. Its header carries the field name, kind, and cardinality.</span></div>
     <div class="leg-item"><span class="leg-mark">"{id}"</span><span class="leg-text">A <em>dynamic key</em> — the key itself is data (a node id, an assembly id), not a fixed field name.</span></div>
     <div class="leg-item"><span class="leg-mark">map</span><span class="leg-text">An object used as a <em>dictionary</em> — its keys vary from dataset to dataset.</span></div>
     <div class="leg-item"><span class="leg-mark">· 2–466</span><span class="leg-text">Cardinality — how many entries exist. Only one representative is drawn.</span></div>
     <div class="leg-item"><span class="leg-mark">…</span><span class="leg-text">A <em>fold</em> — more of the same, elided for the eye's sake.</span></div>
     <div class="leg-item"><span class="leg-mark swatch"><span class="k">"key"</span> <span class="s">"string"</span> <span class="n">123</span></span><span class="leg-text">Keys, strings and numbers each carry a quiet hue, so type reads at a glance.</span></div>
-    <div class="leg-item"><span class="leg-mark">// margin</span><span class="leg-text">Every annotation lives in the right margin — the code column stays clean.</span></div>
   </section>
 
   <div class="skeleton">
 
-    <div class="row"><pre class="code">{</pre><p class="note">One JSON object — one pangenome graph, for one locus.</p></div>
+    <!-- ROOT BOX -->
+    <div class="box">
+      <div class="box-head">
+        <div class="title-line"><span class="chip">object</span><span class="k">dataset</span></div>
+        <p class="note">One JSON object — one pangenome graph, for one locus.</p>
+      </div>
+      <div class="box-body">
 
-    <div class="section"><span class="sec-label">locus header</span><span class="sec-desc">where in the genome this graph lives</span></div>
+        <div class="section"><span class="sec-label">locus header</span><span class="sec-desc">where in the genome this graph lives</span></div>
 
-    <div class="row"><pre class="code">  <span class="k">"queried_locus"</span>: <span class="s">"GRCh38#0#chr8:78675042-78805463"</span>,</pre><p class="note">What the caller asked for. Shape: <code>ASM#HAP#chrom:start–end</code>.</p></div>
-    <div class="row"><pre class="code">  <span class="k">"actual_locus"</span>:  <span class="s">"GRCh38#0#chr8:78657129-78876423"</span>,</pre><p class="note">What the graph <em>actually</em> spans — usually wider than the query, because the graph is extended out to clean boundary nodes. api-v3 splits these two; older PGB files carried a single <code>locus</code>.</p></div>
+        <div class="row">
+          <pre class="code"><span class="k">"queried_locus"</span>: <span class="s">"GRCh38#0#chr8:78675042-78805463"</span></pre>
+          <p class="note">What the caller asked for. Shape: <code>ASM#HAP#chrom:start–end</code>.</p>
+        </div>
+        <div class="row">
+          <pre class="code"><span class="k">"actual_locus"</span>:  <span class="s">"GRCh38#0#chr8:78657129-78876423"</span></pre>
+          <p class="note">What the graph <em>actually</em> spans — usually wider than the query, because the graph is extended out to clean boundary nodes. api-v3 splits these two; older PGB files carried a single <code>locus</code>.</p>
+        </div>
 
-    <div class="section"><span class="sec-label">node</span><span class="sec-desc">the graph's vertices</span></div>
+        <div class="section"><span class="sec-label">node</span><span class="sec-desc">the graph's vertices</span></div>
 
-    <div class="row"><pre class="code">  <span class="k">"node"</span>: {</pre><p class="note"><span class="chip">map · 12</span>The graph's vertices — an object keyed by oriented node id.</p></div>
-    <div class="row"><pre class="code">    <span class="dk">"{id}"</span>: {</pre><p class="note">The key <em>is</em> data — e.g. <code>"141452+"</code>. Digits are the node id; the trailing <code>+</code>/<code>−</code> is orientation. il7 is all <code>+</code>, but <code>−</code> is legal.</p></div>
-    <div class="row"><pre class="code">      <span class="k">"name"</span>: <span class="s">"141452+"</span>,</pre><p class="note">Equals the map key, repeated inside the record.</p></div>
-    <div class="row"><pre class="code">      <span class="k">"length"</span>: <span class="n">12328</span>,</pre><p class="note">Node length, in base pairs.</p></div>
-    <div class="row"><pre class="code">      <span class="k">"assembly"</span>: [</pre><p class="note"><span class="chip">array · 2–466</span>One entry per assembly-haplotype that walks through this node. The field that varies most — a core node is shared by everyone (466); a rare allele has just a handful.</p></div>
-    <div class="row"><pre class="code">        {</pre></div>
-    <div class="row"><pre class="code">          <span class="k">"assembly_name"</span>: <span class="s">"HG00408"</span>,</pre><p class="note">The sample id.</p></div>
-    <div class="row"><pre class="code">          <span class="k">"haplotype"</span>: <span class="s">"1"</span>,</pre><p class="note"><code>"1"</code> or <code>"2"</code> — a string, not a number.</p></div>
-    <div class="row"><pre class="code">          <span class="k">"metadata"</span>: [</pre><p class="note"><span class="chip">array · 1</span>Where this assembly's path enters and leaves the node, plus its PCLAI placement. Length 1 throughout il7 — but an array, to allow an assembly that visits the node more than once.</p></div>
-    <div class="row"><pre class="code">            {</pre></div>
-    <div class="row"><pre class="code">              <span class="k">"sequence_id"</span>: <span class="s">"CM085957.1"</span>,</pre><p class="note">Contig / accession within that assembly.</p></div>
-    <div class="row"><pre class="code">              <span class="k">"path_strand"</span>: <span class="s">"+"</span>,</pre><p class="note">Strand of the assembly's path.</p></div>
-    <div class="row"><pre class="code">              <span class="k">"node_strand"</span>: <span class="s">"&gt;"</span>,</pre><p class="note">Node orientation as walked — <code>&gt;</code> or <code>&lt;</code>.</p></div>
-    <div class="row"><pre class="code">              <span class="k">"start"</span>: <span class="n">78567196</span>,</pre><p class="note">The node's span, in this assembly's coordinates.</p></div>
-    <div class="row"><pre class="code">              <span class="k">"end"</span>:   <span class="n">78579527</span>,</pre></div>
-    <div class="row"><pre class="code">              <span class="k">"pclai_hg38"</span>: {</pre><p class="note">PCLAI placement in GRCh38 coordinates — either the four-key block shown, or <code>{}</code> when there is no GRCh38 mapping. Empty in 80 of 3,420 blocks here; the heart of Issue #77.</p></div>
-    <div class="row"><pre class="code">                <span class="k">"pclai_coord_system"</span>: <span class="s">"GRCh38"</span>,</pre></div>
-    <div class="row"><pre class="code">                <span class="k">"coordinates"</span>: [<span class="n">0.724</span>, <span class="n">0.0</span>],</pre><p class="note">Two numbers, <code>[x, y]</code> in PCLAI space. May be negative.</p></div>
-    <div class="row"><pre class="code">                <span class="k">"RGB"</span>: [<span class="n">255</span>, <span class="n">0</span>, <span class="n">0</span>],</pre><p class="note">Three integers, 0–255 — the display color.</p></div>
-    <div class="row"><pre class="code">                <span class="k">"confidence_score"</span>: <span class="s">"998"</span></pre><p class="note">A <strong>string</strong>, not a number. Usually numeric-looking — but sometimes the literal <code>"impainted"</code>, marking an imputed value.</p></div>
-    <div class="row"><pre class="code">              },</pre></div>
-    <div class="row"><pre class="code">              <span class="k">"pclai_asm"</span>: {</pre><p class="note">The same four-key shape, in the assembly's own coordinates. Also occasionally <code>{}</code> — 46 of 3,420 here.</p></div>
-    <div class="row"><pre class="code">                <span class="k">"pclai_coord_system"</span>: <span class="s">"assembly"</span>,</pre></div>
-    <div class="row"><pre class="code">                <span class="k">"coordinates"</span>: [<span class="n">0.724</span>, <span class="n">0.0</span>],</pre></div>
-    <div class="row"><pre class="code">                <span class="k">"RGB"</span>: [<span class="n">255</span>, <span class="n">0</span>, <span class="n">0</span>],</pre></div>
-    <div class="row"><pre class="code">                <span class="k">"confidence_score"</span>: <span class="s">"998"</span></pre></div>
-    <div class="row"><pre class="code">              },</pre></div>
-    <div class="row"><pre class="code">              <span class="k">"take"</span>: <span class="s">"yes"</span></pre><p class="note">An inclusion flag. <code>"yes"</code> everywhere in il7; <code>"no"</code> presumably exists.</p></div>
-    <div class="row"><pre class="code">            }</pre></div>
-    <div class="row"><pre class="code">          ]</pre></div>
-    <div class="row"><pre class="code">        }</pre></div>
-    <div class="row"><pre class="code fold">        … 465 more assembly entries</pre></div>
-    <div class="row"><pre class="code">      ],</pre></div>
-    <div class="row"><pre class="code">      <span class="k">"duplicated_assembly"</span>: [],</pre><p class="note">Same shape as <code>assembly</code>. Empty in every il7 node — it collects assemblies that traverse the node more than once.</p></div>
-    <div class="row"><pre class="code">      <span class="k">"assembly_metadata"</span>: {</pre><p class="note">Aggregate population statistics for the node — two parallel trees with identical keys.</p></div>
-    <div class="row"><pre class="code">        <span class="k">"count"</span>: {</pre><p class="note">Integers — <em>how many</em>.</p></div>
-    <div class="row"><pre class="code">          <span class="k">"sex"</span>:             { <span class="k">"female"</span>: <span class="n">232</span>, <span class="k">"male"</span>: <span class="n">232</span> },</pre><p class="note"><span class="chip">×2</span>two sex buckets</p></div>
-    <div class="row"><pre class="code">          <span class="k">"superpopulation"</span>: { <span class="k">"AFR"</span>: <span class="n">140</span>, <span class="k">"EAS"</span>: <span class="n">100</span>, <span class="more">…</span> },</pre><p class="note"><span class="chip">×6</span>six superpopulations</p></div>
-    <div class="row"><pre class="code">          <span class="k">"population"</span>:      { <span class="k">"ACB"</span>: <span class="n">24</span>, <span class="k">"CHS"</span>: <span class="n">22</span>, <span class="more">…</span> }</pre><p class="note"><span class="chip">×28</span>twenty-eight populations</p></div>
-    <div class="row"><pre class="code">        },</pre></div>
-    <div class="row"><pre class="code">        <span class="k">"frequency"</span>: {</pre><p class="note">The same buckets as fractions in <code>0–1</code>. A value present in all members serializes as integer <code>1</code>, not <code>1.0</code>.</p></div>
-    <div class="row"><pre class="code">          <span class="k">"sex"</span>:             { <span class="k">"female"</span>: <span class="n">1</span>, <span class="k">"male"</span>: <span class="n">1</span> },</pre><p class="note"><span class="chip">×2</span></p></div>
-    <div class="row"><pre class="code">          <span class="k">"superpopulation"</span>: { <span class="k">"AFR"</span>: <span class="n">1</span>, <span class="k">"EAS"</span>: <span class="n">1</span>, <span class="more">…</span> },</pre><p class="note"><span class="chip">×6</span></p></div>
-    <div class="row"><pre class="code">          <span class="k">"population"</span>:      { <span class="k">"ACB"</span>: <span class="n">1</span>, <span class="k">"CHS"</span>: <span class="n">1</span>, <span class="more">…</span> }</pre><p class="note"><span class="chip">×28</span></p></div>
-    <div class="row"><pre class="code">        }</pre></div>
-    <div class="row"><pre class="code">      },</pre></div>
-    <div class="row"><pre class="code">      <span class="k">"default_range"</span>: <span class="s">"GRCh38#0#chr8:78657129-78669457"</span>,</pre><p class="note">A representative genomic range for the node. Shape: <code>ASM#HAP#SEQ:start–end</code>.</p></div>
-    <div class="row"><pre class="code">      <span class="k">"ogdf_coordinates"</span>: [ { <span class="k">"x"</span>: <span class="n">334</span>, <span class="k">"y"</span>: <span class="n">963</span> } ]</pre><p class="note"><span class="chip">array · 2–7</span>The node's 2-D layout polyline, from OGDF. Most nodes have two points; longer or branching nodes have more.</p></div>
-    <div class="row"><pre class="code">    }</pre></div>
-    <div class="row"><pre class="code fold">    … 11 more nodes</pre></div>
-    <div class="row"><pre class="code">  },</pre></div>
+        <!-- node : map -->
+        <div class="box">
+          <div class="box-head">
+            <div class="title-line"><span class="chip">map · 12</span><span class="k">"node"</span></div>
+            <p class="note">The graph's vertices — keyed by oriented node id.</p>
+          </div>
+          <div class="box-body">
 
-    <div class="section"><span class="sec-label">edge</span><span class="sec-desc">the graph's connectivity</span></div>
+            <!-- one node entry -->
+            <div class="box">
+              <div class="box-head">
+                <div class="title-line"><span class="chip">object</span><span class="dk">"{id}"</span></div>
+                <p class="note">The key <em>is</em> data — e.g. <code>"141452+"</code>. Digits are the node id; the trailing <code>+</code>/<code>−</code> is orientation. il7 is all <code>+</code>, but <code>−</code> is legal.</p>
+              </div>
+              <div class="box-body">
 
-    <div class="row"><pre class="code">  <span class="k">"edge"</span>: [</pre><p class="note"><span class="chip">array · 16</span>A flat list of directed links — the wiring between nodes.</p></div>
-    <div class="row"><pre class="code">    { <span class="k">"starting_node"</span>: <span class="s">"141452+"</span>, <span class="k">"ending_node"</span>: <span class="s">"141453+"</span> }</pre><p class="note">Each edge names its two endpoints by node id.</p></div>
-    <div class="row"><pre class="code">  ],</pre></div>
+                <div class="row"><pre class="code"><span class="k">"name"</span>: <span class="s">"141452+"</span></pre><p class="note">Equals the map key, repeated inside the record.</p></div>
+                <div class="row"><pre class="code"><span class="k">"length"</span>: <span class="n">12328</span></pre><p class="note">Node length, in base pairs.</p></div>
 
-    <div class="section"><span class="sec-label">sequence</span><span class="sec-desc">the bases</span></div>
+                <!-- assembly : array -->
+                <div class="box">
+                  <div class="box-head">
+                    <div class="title-line"><span class="chip">array · 2–466</span><span class="k">"assembly"</span></div>
+                    <p class="note">One entry per assembly-haplotype that walks through this node. The field that varies most — a core node is shared by everyone (466); a rare allele has just a handful.</p>
+                  </div>
+                  <div class="box-body">
 
-    <div class="row"><pre class="code">  <span class="k">"sequence"</span>: {</pre><p class="note"><span class="chip">map · 12</span>Node id → the node's DNA string. Its keyset is identical to <code>node</code>'s — split out so the graph can load without hauling megabytes of bases.</p></div>
-    <div class="row"><pre class="code">    <span class="dk">"{id}"</span>: <span class="s">"AAAACCATGAAGAAGTGCCAAGAT…"</span></pre><p class="note">An ACGT string; its length equals the node's <code>length</code>.</p></div>
-    <div class="row"><pre class="code">  },</pre></div>
+                    <!-- one assembly entry -->
+                    <div class="box">
+                      <div class="box-head">
+                        <div class="title-line"><span class="chip">object</span><span class="k">assembly entry</span></div>
+                        <p class="note">One assembly's walk through this node.</p>
+                      </div>
+                      <div class="box-body">
 
-    <div class="section"><span class="sec-label">assembly</span><span class="sec-desc">the cast of assemblies</span></div>
+                        <div class="row"><pre class="code"><span class="k">"assembly_name"</span>: <span class="s">"HG00408"</span></pre><p class="note">The sample id.</p></div>
+                        <div class="row"><pre class="code"><span class="k">"haplotype"</span>: <span class="s">"1"</span></pre><p class="note"><code>"1"</code> or <code>"2"</code> — a string, not a number.</p></div>
 
-    <div class="row"><pre class="code">  <span class="k">"assembly"</span>: {</pre><p class="note"><span class="chip">map · 466</span>Every assembly-haplotype in the dataset, and where it sits.</p></div>
-    <div class="row"><pre class="code">    <span class="dk">"{ASM#HAP}"</span>: {</pre><p class="note">A <strong>two-part</strong> key — e.g. <code>"HG00408#1"</code>. Three key shapes coexist across the file: this one, the split fields inside a node's <code>assembly[]</code>, and the three-part <code>default_range</code>.</p></div>
-    <div class="row"><pre class="code">      <span class="k">"sequence_id"</span>: <span class="s">"CM085957.1"</span>,</pre></div>
-    <div class="row"><pre class="code">      <span class="k">"region"</span>: <span class="s">"78567196-78786401"</span></pre><p class="note">Start–end of this assembly's span.</p></div>
-    <div class="row"><pre class="code">    }</pre></div>
-    <div class="row"><pre class="code">  }</pre></div>
-    <div class="row"><pre class="code">}</pre></div>
+                        <!-- metadata : array -->
+                        <div class="box">
+                          <div class="box-head">
+                            <div class="title-line"><span class="chip">array · 1</span><span class="k">"metadata"</span></div>
+                            <p class="note">Where this assembly's path enters and leaves the node, plus its PCLAI placement. Length 1 throughout il7 — but an array, to allow an assembly that visits the node more than once.</p>
+                          </div>
+                          <div class="box-body">
+
+                            <!-- one metadata entry -->
+                            <div class="box">
+                              <div class="box-head">
+                                <div class="title-line"><span class="chip">object</span><span class="k">metadata entry</span></div>
+                                <p class="note">One visit through the node.</p>
+                              </div>
+                              <div class="box-body">
+
+                                <div class="row"><pre class="code"><span class="k">"sequence_id"</span>: <span class="s">"CM085957.1"</span></pre><p class="note">Contig / accession within that assembly.</p></div>
+                                <div class="row"><pre class="code"><span class="k">"path_strand"</span>: <span class="s">"+"</span></pre><p class="note">Strand of the assembly's path.</p></div>
+                                <div class="row"><pre class="code"><span class="k">"node_strand"</span>: <span class="s">"&gt;"</span></pre><p class="note">Node orientation as walked — <code>&gt;</code> or <code>&lt;</code>.</p></div>
+                                <div class="row"><pre class="code"><span class="k">"start"</span>: <span class="n">78567196</span></pre><p class="note">The node's span, in this assembly's coordinates.</p></div>
+                                <div class="row"><pre class="code"><span class="k">"end"</span>:   <span class="n">78579527</span></pre></div>
+
+                                <!-- pclai_hg38 -->
+                                <div class="box">
+                                  <div class="box-head">
+                                    <div class="title-line"><span class="chip">object</span><span class="k">"pclai_hg38"</span></div>
+                                    <p class="note">PCLAI placement in GRCh38 coordinates — either the four-key block shown, or <code>{}</code> when there is no GRCh38 mapping. Empty in 80 of 3,420 blocks here; the heart of Issue #77.</p>
+                                  </div>
+                                  <div class="box-body">
+                                    <div class="row"><pre class="code"><span class="k">"pclai_coord_system"</span>: <span class="s">"GRCh38"</span></pre></div>
+                                    <div class="row"><pre class="code"><span class="k">"coordinates"</span>:        [<span class="n">0.724</span>, <span class="n">0.0</span>]</pre><p class="note">Two numbers, <code>[x, y]</code> in PCLAI space. May be negative.</p></div>
+                                    <div class="row"><pre class="code"><span class="k">"RGB"</span>:                [<span class="n">255</span>, <span class="n">0</span>, <span class="n">0</span>]</pre><p class="note">Three integers, 0–255 — the display color.</p></div>
+                                    <div class="row"><pre class="code"><span class="k">"confidence_score"</span>:   <span class="s">"998"</span></pre><p class="note">A <strong>string</strong>, not a number. Usually numeric-looking — but sometimes the literal <code>"impainted"</code>, marking an imputed value.</p></div>
+                                  </div>
+                                </div>
+
+                                <!-- pclai_asm -->
+                                <div class="box">
+                                  <div class="box-head">
+                                    <div class="title-line"><span class="chip">object</span><span class="k">"pclai_asm"</span></div>
+                                    <p class="note">The same four-key shape, in the assembly's own coordinates. Also occasionally <code>{}</code> — 46 of 3,420 here.</p>
+                                  </div>
+                                  <div class="box-body">
+                                    <div class="row"><pre class="code"><span class="k">"pclai_coord_system"</span>: <span class="s">"assembly"</span></pre></div>
+                                    <div class="row"><pre class="code"><span class="k">"coordinates"</span>:        [<span class="n">0.724</span>, <span class="n">0.0</span>]</pre></div>
+                                    <div class="row"><pre class="code"><span class="k">"RGB"</span>:                [<span class="n">255</span>, <span class="n">0</span>, <span class="n">0</span>]</pre></div>
+                                    <div class="row"><pre class="code"><span class="k">"confidence_score"</span>:   <span class="s">"998"</span></pre></div>
+                                  </div>
+                                </div>
+
+                                <div class="row"><pre class="code"><span class="k">"take"</span>: <span class="s">"yes"</span></pre><p class="note">An inclusion flag. <code>"yes"</code> everywhere in il7; <code>"no"</code> presumably exists.</p></div>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    <div class="row"><pre class="code fold">… 465 more assembly entries</pre></div>
+
+                  </div>
+                </div>
+
+                <div class="row"><pre class="code"><span class="k">"duplicated_assembly"</span>: []</pre><p class="note">Same shape as <code>assembly</code>. Empty in every il7 node — it collects assemblies that traverse the node more than once.</p></div>
+
+                <!-- assembly_metadata -->
+                <div class="box">
+                  <div class="box-head">
+                    <div class="title-line"><span class="chip">object</span><span class="k">"assembly_metadata"</span></div>
+                    <p class="note">Aggregate population statistics for the node — two parallel trees with identical keys.</p>
+                  </div>
+                  <div class="box-body">
+
+                    <div class="box">
+                      <div class="box-head">
+                        <div class="title-line"><span class="chip">object</span><span class="k">"count"</span></div>
+                        <p class="note">Integers — <em>how many</em>.</p>
+                      </div>
+                      <div class="box-body">
+                        <div class="row"><pre class="code"><span class="k">"sex"</span>:             { <span class="k">"female"</span>: <span class="n">232</span>, <span class="k">"male"</span>: <span class="n">232</span> }</pre><p class="note"><span class="chip">×2</span>two sex buckets</p></div>
+                        <div class="row"><pre class="code"><span class="k">"superpopulation"</span>: { <span class="k">"AFR"</span>: <span class="n">140</span>, <span class="k">"EAS"</span>: <span class="n">100</span>, <span class="more">…</span> }</pre><p class="note"><span class="chip">×6</span>six superpopulations</p></div>
+                        <div class="row"><pre class="code"><span class="k">"population"</span>:      { <span class="k">"ACB"</span>: <span class="n">24</span>,  <span class="k">"CHS"</span>: <span class="n">22</span>,  <span class="more">…</span> }</pre><p class="note"><span class="chip">×28</span>twenty-eight populations</p></div>
+                      </div>
+                    </div>
+
+                    <div class="box">
+                      <div class="box-head">
+                        <div class="title-line"><span class="chip">object</span><span class="k">"frequency"</span></div>
+                        <p class="note">The same buckets as fractions in <code>0–1</code>. A value present in all members serializes as integer <code>1</code>, not <code>1.0</code>.</p>
+                      </div>
+                      <div class="box-body">
+                        <div class="row"><pre class="code"><span class="k">"sex"</span>:             { <span class="k">"female"</span>: <span class="n">1</span>, <span class="k">"male"</span>: <span class="n">1</span> }</pre><p class="note"><span class="chip">×2</span></p></div>
+                        <div class="row"><pre class="code"><span class="k">"superpopulation"</span>: { <span class="k">"AFR"</span>: <span class="n">1</span>, <span class="k">"EAS"</span>: <span class="n">1</span>, <span class="more">…</span> }</pre><p class="note"><span class="chip">×6</span></p></div>
+                        <div class="row"><pre class="code"><span class="k">"population"</span>:      { <span class="k">"ACB"</span>: <span class="n">1</span>, <span class="k">"CHS"</span>: <span class="n">1</span>, <span class="more">…</span> }</pre><p class="note"><span class="chip">×28</span></p></div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div class="row"><pre class="code"><span class="k">"default_range"</span>: <span class="s">"GRCh38#0#chr8:78657129-78669457"</span></pre><p class="note">A representative genomic range for the node. Shape: <code>ASM#HAP#SEQ:start–end</code>.</p></div>
+                <div class="row"><pre class="code"><span class="k">"ogdf_coordinates"</span>: [ { <span class="k">"x"</span>: <span class="n">334</span>, <span class="k">"y"</span>: <span class="n">963</span> } ]</pre><p class="note"><span class="chip">array · 2–7</span>The node's 2-D layout polyline, from OGDF. Most nodes have two points; longer or branching nodes have more.</p></div>
+
+              </div>
+            </div>
+
+            <div class="row"><pre class="code fold">… 11 more nodes</pre></div>
+
+          </div>
+        </div>
+
+        <div class="section"><span class="sec-label">edge</span><span class="sec-desc">the graph's connectivity</span></div>
+
+        <div class="box">
+          <div class="box-head">
+            <div class="title-line"><span class="chip">array · 16</span><span class="k">"edge"</span></div>
+            <p class="note">A flat list of directed links — the wiring between nodes.</p>
+          </div>
+          <div class="box-body">
+            <div class="row"><pre class="code">{ <span class="k">"starting_node"</span>: <span class="s">"141452+"</span>, <span class="k">"ending_node"</span>: <span class="s">"141453+"</span> }</pre><p class="note">Each edge names its two endpoints by node id.</p></div>
+            <div class="row"><pre class="code fold">… 15 more edges</pre></div>
+          </div>
+        </div>
+
+        <div class="section"><span class="sec-label">sequence</span><span class="sec-desc">the bases</span></div>
+
+        <div class="box">
+          <div class="box-head">
+            <div class="title-line"><span class="chip">map · 12</span><span class="k">"sequence"</span></div>
+            <p class="note">Node id → the node's DNA string. Its keyset is identical to <code>node</code>'s — split out so the graph can load without hauling megabytes of bases.</p>
+          </div>
+          <div class="box-body">
+            <div class="row"><pre class="code"><span class="dk">"{id}"</span>: <span class="s">"AAAACCATGAAGAAGTGCCAAGAT…"</span></pre><p class="note">An ACGT string; its length equals the node's <code>length</code>.</p></div>
+            <div class="row"><pre class="code fold">… 11 more sequences</pre></div>
+          </div>
+        </div>
+
+        <div class="section"><span class="sec-label">assembly</span><span class="sec-desc">the cast of assemblies</span></div>
+
+        <div class="box">
+          <div class="box-head">
+            <div class="title-line"><span class="chip">map · 466</span><span class="k">"assembly"</span></div>
+            <p class="note">Every assembly-haplotype in the dataset, and where it sits.</p>
+          </div>
+          <div class="box-body">
+            <div class="box">
+              <div class="box-head">
+                <div class="title-line"><span class="chip">object</span><span class="dk">"{ASM#HAP}"</span></div>
+                <p class="note">A <strong>two-part</strong> key — e.g. <code>"HG00408#1"</code>. Three key shapes coexist across the file: this one, the split fields inside a node's <code>assembly[]</code>, and the three-part <code>default_range</code>.</p>
+              </div>
+              <div class="box-body">
+                <div class="row"><pre class="code"><span class="k">"sequence_id"</span>: <span class="s">"CM085957.1"</span></pre></div>
+                <div class="row"><pre class="code"><span class="k">"region"</span>:      <span class="s">"78567196-78786401"</span></pre><p class="note">Start–end of this assembly's span.</p></div>
+              </div>
+            </div>
+            <div class="row"><pre class="code fold">… 465 more assembly entries</pre></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- /ROOT BOX -->
 
   </div>
 
-  <p class="colophon">Drawn from <code>public/datasets/api-v3/il7.json</code>. Counts and cardinalities are that file's real numbers. Companion to the full field reference and gotchas in <code>notes/data-format/dataset-anatomy.md</code>.</p>
+  <p class="colophon">Drawn from <code>public/datasets/api-v3/il7.json</code>. Counts and cardinalities are that file's real numbers. Structure is shown as nested rectangular regions rather than JSON braces, so containment reads at a glance. Companion to the full field reference and gotchas in <code>notes/data-format/dataset-anatomy.md</code>.</p>
 
 </div>
 </body>
