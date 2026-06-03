@@ -27,8 +27,10 @@ export default defineConfig({
         },
     },
     optimizeDeps: {
-        esbuildOptions : {
-            target: "es2020"
+        rolldownOptions: {
+            transform: {
+                target: "es2020"
+            }
         }
     },
 
