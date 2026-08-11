@@ -14,13 +14,12 @@ Every entry in this document is subordinate to the following philosophy. Refacto
 
 **How this maps to PGB.** A `Look` is a "shader" in this conceptual sense (not the GL sense). `NodeEmphasisLook`, `HeatmapLook`, and future looks are entries in PGB's shader library. Each one owns its materials, its emphasis semantics, and the user interactions that drive its appearance. The Look system is the heart and soul of the app and is where visual complexity is *meant* to accumulate.
 
-**Consequences for refactoring.**
+**Consequences for refactoring.** The rules this philosophy implies — deepen Looks rather than decomposing them, reject refactors that pull appearance logic out into coordinators or hexagonal cores, meet new visualization requests with new Looks or new Look parameters, treat a Look's subscribed events as its parameter-binding interface, and keep the Look surface the easiest part of the system to alter — are stated normatively in [`CLAUDE.md`](../../CLAUDE.md) §Looks are the heart of the app.
 
-- **Deepen Looks; do not decompose them.** If a Look is getting larger because it's absorbing appearance logic, that is the architecture working correctly. Growth *inside* a Look is fine; growth in the negotiation *between* Looks and the rest of the app is the smell.
-- **Reject refactors that pull logic out of Looks into generic coordinators, reducers, command pipelines, or hexagonal cores.** These inversions take appearance ownership away from the shader library and hand it to a scene graph telling shaders what to be — the opposite of a shade tree. An earlier RFC draft in #40 proposed exactly this and was rejected in review. Entry #2 below was reframed for the same reason.
-- **New visualizations are new Looks or new Look parameters — never ad-hoc hacks outside the framework.** The genomics collaborators this app serves regularly request new visualization modes. Each request should be met by either creating a new Look subclass or introducing new uniforms/parameters on an existing one.
-- **A Look's subscribed events are its parameter-binding interface.** Analogous to the uniforms a RenderMan shader declares. "What can this Look be driven by?" should be answerable by reading the Look's `activate()` body — not by tracing a command bus.
-- **The Look surface must remain the easiest part of the system to manipulate, extend, and alter.** Minimal needless abstraction around it. If a proposed change makes Looks harder to write or harder to reason about locally, it is the wrong change even if it improves some other metric.
+Two consequences specific to this document:
+
+- An earlier RFC draft in #40 proposed exactly the inversion the philosophy forbids — a reducer/controller pipeline owning appearance state — and was rejected in review. Entry #1 below records what shipped instead.
+- **Entry #2 was reframed for the same reason.** Read every entry here against the philosophy before acting on it; a proposal that improves testability by relocating appearance logic out of a Look is the wrong trade even when the metrics favor it.
 
 ---
 

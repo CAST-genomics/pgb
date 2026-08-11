@@ -10,12 +10,11 @@ The system follows a **one Look per Scene** design — each Three.js Scene is pa
 
 ## Looks own visual semantics; widgets are event producers
 
-The Look is the load-bearing abstraction for what the graph *looks like*. Widgets are event producers — they translate user interaction into events that drive a Look. The relationship is:
+> **Rule:** stated in [`CLAUDE.md`](../../../CLAUDE.md) §Looks are the heart of the app. This section records how it plays out in practice.
 
-- A Look owns a coherent visual vocabulary (e.g. NodeEmphasisLook owns emphasized / deemphasized / absent partitioning; HeatmapLook owns continuous frequency coloring).
-- Widgets are free to invent their own events, event types, and payload shapes to feed a Look. Multiple widgets may drive the same Look with different events.
-- Look *reuse* across widgets is opportunistic, not symmetric. AssemblyWidget and PCLAIWidget both happen to drive NodeEmphasisLook because the Look's emphasis vocabulary generalizes to both of their needs. This is empirical — not a design requirement — and it's the right pattern when it works.
-- The constraint that has to hold is the Look's own coherence. Cross-widget symmetry of event names or state vocabularies is not a goal.
+The Look is the load-bearing abstraction for what the graph *looks like*. Widgets are event producers — they translate user interaction into events that drive a Look. A Look owns a coherent visual vocabulary: `NodeEmphasisLook` owns emphasized / deemphasized / absent partitioning, `HeatmapLook` owns continuous frequency coloring.
+
+Worth spelling out, because it reliably surprises: **Look reuse across widgets is opportunistic, not symmetric.** `AssemblyWidget` and `PCLAIWidget` both happen to drive `NodeEmphasisLook` because that Look's emphasis vocabulary generalizes to both of their needs. This is empirical, not a design requirement — it's the right pattern where it works, and no obligation where it doesn't. Cross-widget symmetry of event names or state vocabularies is not a goal; the constraint that has to hold is each Look's own coherence.
 
 When deciding to add a new Look vs. extend an existing one, see [Creating a New Look](./creating-a-new-look.md) §0.
 
