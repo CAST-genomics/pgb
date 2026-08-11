@@ -1,11 +1,25 @@
-# Glossary
+# PGB — Context
 
-Domain terms that appear across the [Assembly](./assembly.md),
-[Population](./population.md), and [PCLAI](./pclai.md) stories. Definitions
-are written for someone fluent in software but new to genomics — and for
-me, on a future conversation, when I have forgotten.
+The vocabulary of this project. When naming a concept in an issue title, a
+commit message, a refactor proposal, a hypothesis, or a test name, use the
+term as defined here rather than a synonym. Where a term has a deliberate
+alias, both are recorded.
+
+Two halves. **Domain vocabulary** is genomics — written for someone fluent
+in software but new to the biology, and for me on a future conversation
+when I have forgotten. **System vocabulary** is PGB's own architecture: the
+words that only mean something inside this codebase.
+
+Rules and conventions live in [`CLAUDE.md`](CLAUDE.md); decisions live in
+`docs/adr/`. This file defines terms only — it does not tell you what to do.
 
 ---
+
+## Domain vocabulary
+
+Terms appearing across the [Assembly](notes/data-format/stories/assembly.md),
+[Population](notes/data-format/stories/population.md), and
+[PCLAI](notes/data-format/stories/pclai.md) stories.
 
 ### admixture
 
@@ -31,8 +45,8 @@ its sample id (e.g. `HG00408`).
 
 An assembly paired with one of its two haplotypes — for diploid humans,
 each individual contributes two. Written as `ASM#HAP`, e.g.
-`HG00408#1`. The [Assembly widget](./assembly.md) and
-[PCLAI widget](./pclai.md) both list assembly-haplotypes as their rows.
+`HG00408#1`. The [Assembly widget](notes/data-format/stories/assembly.md) and
+[PCLAI widget](notes/data-format/stories/pclai.md) both list assembly-haplotypes as their rows.
 
 ### breakpoint
 
@@ -50,7 +64,7 @@ PGB datasets by `sequence_id` (e.g. `CM085957.1`).
 
 The set of pangenome-graph nodes shared by essentially all assemblies —
 the boring, invariant backbone. The opposite of a **rare allele**. In
-the [Population widget](./population.md) heatmap, core-graph nodes paint
+the [Population widget](notes/data-format/stories/population.md) heatmap, core-graph nodes paint
 uniformly bright under every selection.
 
 ### edge
@@ -123,7 +137,7 @@ A continuous, coordinate-based approach to local ancestry inference.
 Each haplotype is represented as a **point cloud** of per-window
 coordinates in a genetic embedding space (PCA by default; UMAP also
 supported). Recombination breakpoints emerge as discrete junctions
-where the coordinate changes abruptly. See [`pclai.md`](./pclai.md) for
+where the coordinate changes abruptly. See [`pclai.md`](notes/data-format/stories/pclai.md) for
 how PGB visualizes this.
 
 > Geleta, Bu, Turner, et al. *Point cloud local ancestry inference
@@ -147,7 +161,7 @@ populations. Rolls up into a **superpopulation**.
 
 A pangenome-graph node walked by only a handful of assemblies — the
 opposite of the **core graph**. Visible as a uniformly dark node under
-every selection in the [Population widget](./population.md).
+every selection in the [Population widget](notes/data-format/stories/population.md).
 
 ### recombination
 
@@ -160,7 +174,7 @@ reason ancestry varies along a single chromosome.
 
 A labeled dataset of known-ancestry haplotypes used to *define* a
 coordinate space (for PCA fitting) and to *visually anchor* the
-[PCLAI chart](./pclai.md) (drawn as colored regions for AFR / EUR / EAS /
+[PCLAI chart](notes/data-format/stories/pclai.md) (drawn as colored regions for AFR / EUR / EAS /
 AMR / WAS). In PGB the reference panel comes from
 `hprc-reference-pca.tsv`.
 
@@ -169,7 +183,7 @@ AMR / WAS). In PGB the reference panel comes from
 The single canonical walk of one assembly through the pangenome graph —
 the actual sequence of nodes that assembly traverses end-to-end. A
 subset of the assembly's full **subgraph**. In Walk mode the
-[Assembly widget](./assembly.md) emphasizes the spine and greys out the
+[Assembly widget](notes/data-format/stories/assembly.md) emphasizes the spine and greys out the
 rest of the subgraph.
 
 ### subgraph (per-assembly)
@@ -177,7 +191,7 @@ rest of the subgraph.
 The set of all graph nodes one assembly touches *anywhere* — broader
 than its spine, since an assembly can visit a node without that node
 being on its main walk. Default emphasis target for the
-[Assembly widget](./assembly.md).
+[Assembly widget](notes/data-format/stories/assembly.md).
 
 ### superpopulation
 
@@ -199,6 +213,118 @@ sequence of nodes. See **spine**.
 
 ---
 
+## System vocabulary
+
+Terms that mean something specific inside PGB. Architecture rationale lives
+in [`notes/architecture/`](notes/architecture/); the binding rules are in
+[`CLAUDE.md`](CLAUDE.md).
+
+### Look
+
+The complete visual appearance of the graph in one scene — materials, color
+schemes, emphasis states, tooltips, and per-frame animation. The central
+abstraction of the app, modeled on RenderMan-era shade trees: a Look is a
+"shader" in the conceptual sense, allowed to grow rich so the rest of the
+pipeline stays simple. Base class in `src/looks/look.ts`.
+
+### NodeEmphasisLook / HeatmapLook
+
+The two concrete Looks. `NodeEmphasisLook` owns the emphasized /
+de-emphasized / absent partitioning driven by the Assembly and PCLAI
+widgets. `HeatmapLook` owns continuous frequency coloring for the
+Population widget.
+
+### one Look per Scene
+
+The design rule that each Three.js `Scene` is paired with exactly one Look.
+Switching visualization mode means switching the active scene, which
+activates the paired Look and deactivates every other. Meshes are
+pre-created for all scenes at data-load time, so the swap is instant.
+
+### LookManager / SceneManager
+
+`LookManager` is the registry mapping scene names to Look instances; it
+hands the scene in via `Look.activate(scene)`. `SceneManager` owns scene
+lifecycle and delegates to it.
+
+### scene swap
+
+The heavyweight operation — changing the *kind of question* being asked
+(assembly emphasis vs. population heatmap). Distinct from **state changes
+within a Look**, the lightweight operation that alters individual node
+appearance while the question stays the same.
+
+### emphasized / de-emphasized / absent
+
+The three visual states a node can occupy under a selection. *Emphasized*
+matches the selection (saturated, figure against ground). *De-emphasized*
+lives in the same data space but doesn't match (muted, same chromatic
+family — it could match under a different selection). *Absent* lacks the
+relevant data category entirely and gets a categorically different cool
+color. The warm/cool split is load-bearing: a viewer reads the temperature
+shift as a difference of *kind*, not degree.
+
+Emphasis and de-emphasis are interaction-time states. Absence is a
+data-space property — fixed for the life of the dataset — that is only
+*visualized* while the relevant widget is active.
+
+### widget
+
+An event producer. Widgets translate user interaction into events that
+drive a Look; they own no visual semantics of their own. Widgets are free
+to invent their own events and payload shapes, and Look reuse across
+widgets is opportunistic rather than symmetric. The three are Assembly,
+Population, and PCLAI.
+
+### Walk mode / Subgraph mode
+
+The Assembly widget's two emphasis targets. *Subgraph* (the default)
+emphasizes every node the assembly touches anywhere; *Walk* emphasizes only
+its **spine** and greys out the remainder of the subgraph.
+
+### RibbonNode
+
+The mesh type used to draw nodes — a `THREE.Mesh` subclass carrying a
+custom triangle-strip geometry and GLSL shaders, which replaced the
+Three.js `Line2` / `LineMaterial` pipeline. Owns its own geometry build,
+coarse-to-fine spline-proximity raycast, and per-frame `halfWidth` uniform
+service. Single source of truth for `NODE_Z_OFFSET`. In `src/ribbonNode.ts`.
+
+In the ribbon shaders, **u** runs along the node's arc length (the long
+axis) and **v** runs across the ribbon's width (the short axis).
+
+### annotation track
+
+The 2D canvas strip below the 3D graph, showing gene annotations for the
+selected assembly — or node-boundary tick marks when no annotations are
+available. Split into a pure coordinate kernel
+(`AnnotationCoordinateIndex`), a view (`AnnotationCanvas`), and event
+wiring (`AnnotationTrackController`) behind the `mountAnnotationTrack`
+facade.
+
+### bidirectional mapping
+
+The 1:1 correspondence between a position on the **annotation track** (1D
+genomic space) and a node in the 3D graph — hovering either one produces
+feedback in the other. A design constraint rather than a feature; see
+[`CLAUDE.md`](CLAUDE.md).
+
+### dataset
+
+One JSON file describing the pangenome graph for a single **locus**: the
+alternative paths through a stretch of genome, which assemblies take which
+path, and where each piece sits in 3D layout space. Population counts,
+PCLAI coordinates, and sequence hang off that backbone. Illustrated in
+[`notes/data-format/dataset-anatomy.md`](notes/data-format/dataset-anatomy.md).
+
+### event bus
+
+The typed pub/sub in `src/utils/eventBus.ts` connecting widgets to Looks.
+A Look's subscribed events are its parameter-binding interface — the
+analogue of the uniforms a shader declares.
+
+---
+
 ## Reading suggestions
 
 - New to pangenomes? Start with **pangenome graph**, **node**, **edge**,
@@ -206,4 +332,7 @@ sequence of nodes. See **spine**.
 - New to ancestry? Start with **local ancestry inference**, **admixture**,
   **superpopulation** / **population**.
 - New to PCLAI? Read **PCA**, **point cloud**, **breakpoint** in that
-  order, then the [PCLAI story](./pclai.md).
+  order, then the [PCLAI story](notes/data-format/stories/pclai.md).
+- New to the codebase? Read **Look**, **one Look per Scene**, **widget**,
+  and **emphasized / de-emphasized / absent**, then
+  [`notes/architecture/look/`](notes/architecture/look/).

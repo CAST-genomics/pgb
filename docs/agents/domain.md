@@ -4,7 +4,7 @@ How the engineering skills should consume this repo's domain documentation when 
 
 ## Before exploring, read these
 
-- **`CONTEXT.md`** at the repo root — the glossary / ubiquitous language.
+- **`CONTEXT.md`** at the repo root — the ubiquitous language, in two halves: domain (genomics) vocabulary and system (PGB architecture) vocabulary.
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in.
 - **`notes/`** — this repo's knowledge base. See the map below.
 
@@ -34,7 +34,7 @@ Themed directories, and when to reach for each:
 | `notes/pangenome/` | Any domain question — graph coordinates, projection, the spine, assemblies, oriented nodes/edges, minigraph-cactus, graph terminology |
 | `notes/architecture/` | Before touching looks, scenes, widgets, the event bus, or the dataset parser. `notes/architecture/look/` is required reading for look work |
 | `notes/threejs/` | Rendering specifics — raycasting, materials, depth testing / render order, ribbon meshes, color management, morph targets |
-| `notes/data-format/` | Dataset shape. `dataset-anatomy.md` is the illustrated reference; `stories/` holds widget-anchored narratives and the glossary |
+| `notes/data-format/` | Dataset shape. `dataset-anatomy.md` is the illustrated reference; `stories/` holds the widget-anchored narratives |
 | `notes/genomics/` | Reference genomes, annotation formats (GFF3, BigBed), IGV integration, custom assemblies |
 | `notes/hprc-project/` | HPRC and PCLAI (Point Cloud Local Ancestry Inference) specifics |
 | `notes/ui/` | Color palettes, tooltips, mouse event ordering, URL/file ingestion |
