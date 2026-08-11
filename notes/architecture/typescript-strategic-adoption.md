@@ -4,7 +4,9 @@
 
 PGB is a JavaScript codebase. In April 2026 we converted the dataset ingestion layer (`datasetModel.ts`, `datasetParser.ts`, `datasetValidator.ts`) to TypeScript as a first incremental step. This document identifies the next high-value targets — places where TypeScript's type system would catch real bugs and enforce contracts that JavaScript cannot.
 
-The principle: **use TypeScript at contract boundaries** — where one part of the system hands data to another with an implicit agreement about shape and meaning. These agreements are currently documented in comments, JSDoc, or not at all. TypeScript makes them compiler-enforced.
+The governing principle — *use TypeScript at contract boundaries*, and write all new files in TypeScript — is stated in [`CLAUDE.md`](../../CLAUDE.md) §New files in TypeScript. In PGB those agreements are currently carried by comments, JSDoc, or nothing at all; TypeScript makes them compiler-enforced.
+
+This document does the part the rule can't: it names *which* boundaries are worth converting next, in priority order.
 
 ---
 
