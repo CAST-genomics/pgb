@@ -3,6 +3,7 @@ import { prettyPrint } from './utils/utils.js';
 import {searchFeatures} from "./igvCore/search/geneSearch.js"
 import {globals} from "./main.js"
 import eventBus from './utils/eventBus.ts'
+import { buildPangenomeURL } from './pangenomeURL.js'
 
 // Regular expressions for parsing genomic loci and URLs
 const LOCUS_PATTERN = { REGION: /^(chr[0-9XY]+):([0-9,]+)-([0-9,]+)$/i };
@@ -10,13 +11,12 @@ const URL_PATTERN = /^https?:\/\/.+/i;
 // Pattern to detect local file paths (relative paths starting with / or ./ or containing .json)
 const LOCAL_FILE_PATTERN = /^(\/|\.\/).*\.json$/i;
 
-const pangenomeURLTemplate = `https://pangenome-api.ucsd.edu:8000/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=v2&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000`
-
 class LocusInput {
     constructor(container, sceneManager) {
         this.container = container;
         this.sceneManager = sceneManager;
         this.version = 'v2';
+        this.lastLocus = null;   // set by ingestLocus; the anchor for rebuildWithLayout
         this.render();
         this.setupEventListeners();
     }
@@ -168,14 +168,39 @@ class LocusInput {
         this.errorDiv.style.display = 'block';
     }
 
-    async ingestLocus(chr, startBP, endBP) {
-        const path = pangenomeURLTemplate
-        .replace('_CHR_', chr)
-        .replace('_START_', startBP)
-        .replace('_END_', endBP)
-        .replace('_VERSION_', this.version);
+    /**
+     * @param {Object} [layout] - { mode, spineAssembly }. Omitted means force
+     *   layout, which is why a new locus always resets to force: every caller
+     *   except rebuildWithLayout leaves this undefined.
+     */
+    async ingestLocus(chr, startBP, endBP, layout) {
+        const path = buildPangenomeURL(chr, startBP, endBP, this.version, layout);
         console.log('path:', path);
-        await this.sceneManager.handleSearch(path);
+
+        // Remember the locus so a layout rebuild can reissue the same request.
+        this.lastLocus = { chr, startBP, endBP };
+
+        // Locus-derived requests are the only ones we can reissue, so they are
+        // the only ones marked refetchable.
+        await this.sceneManager.handleSearch(path, {
+            mode: layout?.mode ?? 'force',
+            spineAssembly: layout?.mode === 'linear' ? layout.spineAssembly : null,
+            refetchable: true
+        });
+    }
+
+    /**
+     * Reissue the last locus request under a different layout. Uses the
+     * remembered locus rather than the dataset's actual_locus, which is the
+     * graph's snapped extent and would drift on every round-trip.
+     */
+    async rebuildWithLayout(layout) {
+        if (!this.lastLocus) {
+            console.warn('rebuildWithLayout: no locus to rebuild from');
+            return;
+        }
+        const { chr, startBP, endBP } = this.lastLocus;
+        await this.ingestLocus(chr, startBP, endBP, layout);
     }
 
     normalizeDropboxUrl(url) {
@@ -195,6 +220,9 @@ class LocusInput {
 
         // Normalize Dropbox URLs to use direct download
         const normalizedUrl = this.normalizeDropboxUrl(url);
+
+        // A raw URL is not a locus query — nothing to rebuild a layout from.
+        this.lastLocus = null;
 
         try {
             await this.sceneManager.handleSearch(normalizedUrl);

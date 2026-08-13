@@ -72,11 +72,20 @@ class WidgetService {
             this.setActiveButton(null);
         } else {
             console.log('show widget- assembly')
-            this.activateLook('nodeEmphasisScene');
-            this.assemblyWidget.showCard();
-            this.setActiveButton(this.assemblyButton);
+            this.showAssemblyWidget();
         }
 
+    }
+
+    /**
+     * Open the assembly card. Also used after a layout rebuild: reset() hides
+     * every card on dataset load, which would otherwise close the panel the
+     * Rebuild button lives in.
+     */
+    showAssemblyWidget() {
+        this.activateLook('nodeEmphasisScene');
+        this.assemblyWidget.showCard();
+        this.setActiveButton(this.assemblyButton);
     }
 
     onPopulationButtonClick(event) {

@@ -9,8 +9,10 @@
 
 import {
     DatasetParseError,
+    DEFAULT_DATASET_LAYOUT,
     PCLAI_COORD_SYSTEMS,
     type PclaiCoordSystem,
+    type DatasetLayout,
     type DatasetModel,
     type DatasetIndex,
     type PclaiBoundingBox,
@@ -26,7 +28,12 @@ const UNSUPPORTED_FORMAT_MESSAGE =
 
 // ── Public API ───────────────────────────────────────────────────────
 
-export function parseDataset(json: unknown): DatasetModel {
+/**
+ * @param requestLayout  Layout the dataset was requested with.  The API does
+ *   not echo it back, so callers that issued the request snapshot it here.
+ *   Omitted fields fall back to DEFAULT_DATASET_LAYOUT.
+ */
+export function parseDataset(json: unknown, requestLayout?: Partial<DatasetLayout>): DatasetModel {
     if (!json || typeof json !== 'object') {
         throw new DatasetParseError('Input is not a JSON object');
     }
@@ -35,7 +42,7 @@ export function parseDataset(json: unknown): DatasetModel {
     assertV3Format(raw);
     validateRawDataset(raw);
 
-    return normalizeV3(raw);
+    return normalizeV3(raw, requestLayout);
 }
 
 // ── Format check ─────────────────────────────────────────────────────
@@ -186,7 +193,7 @@ function normalizeV3Assemblies(
 
 // ── V3 normalizer ────────────────────────────────────────────────────
 
-function normalizeV3(json: Record<string, unknown>): DatasetModel {
+function normalizeV3(json: Record<string, unknown>, requestLayout?: Partial<DatasetLayout>): DatasetModel {
 
     // -- Sequences --
     const sequences = new Map<string, string>();
@@ -270,8 +277,13 @@ function normalizeV3(json: Record<string, unknown>): DatasetModel {
         actualLocus:  stripGenomePrefix(json.actual_locus as string | null),
     };
 
+    // -- Layout --
+    // Snapshot of the request, not a field the API returns.
+    const layout: DatasetLayout = { ...DEFAULT_DATASET_LAYOUT, ...requestLayout };
+
     return {
         formatVersion: 'v3',
+        layout,
         locus,
         assemblyIndex: assemblyIndex.size > 0 ? assemblyIndex : null,
         sequences,

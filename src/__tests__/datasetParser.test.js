@@ -285,6 +285,49 @@ describe('v3 normalization', () => {
     })
 })
 
+// ── Layout snapshot ─────────────────────────────────────────────────
+
+describe('layout', () => {
+
+    it('defaults to force layout when no request layout is supplied', () => {
+        const result = parseDataset(makeV3())
+        expect(result.layout).toEqual({
+            mode: 'force',
+            spineAssembly: null,
+            refetchable: false,
+        })
+    })
+
+    it('passes a linear request layout through verbatim', () => {
+        const requestLayout = {
+            mode: 'linear',
+            spineAssembly: 'HG00097#1',
+            refetchable: true,
+        }
+        const result = parseDataset(makeV3(), requestLayout)
+        expect(result.layout).toEqual(requestLayout)
+    })
+
+    it('fills unspecified fields from the default', () => {
+        const result = parseDataset(makeV3(), { refetchable: true })
+        expect(result.layout).toEqual({
+            mode: 'force',
+            spineAssembly: null,
+            refetchable: true,
+        })
+    })
+
+    it('does not read layout from the payload', () => {
+        // The API does not echo linear/assembly; anything in the JSON is ignored.
+        const v3 = makeV3()
+        v3.linear = true
+        v3.assembly_spine = 'HG00099#2'
+        const result = parseDataset(v3)
+        expect(result.layout.mode).toBe('force')
+        expect(result.layout.spineAssembly).toBeNull()
+    })
+})
+
 // ── Validation ──────────────────────────────────────────────────────
 
 describe('validation', () => {
