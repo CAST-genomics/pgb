@@ -1,9 +1,9 @@
 # Sequence Tube Map — Integration Punch List
 
-**Status:** Not started. Nine steps, none landed. Tick items here as they land, and update
-this line when the work is done.
+**Status:** In progress. Step 1 landed 2026-08-17; eight remain. Tick items here as they
+land, and update this line when the work is done.
 **Date:** 2026-08-17
-**Decisions:** `docs/adr/0001-sequence-tube-map-panel.md` once #87 lands — that ADR, not
+**Decisions:** `docs/adr/0001-sequence-tube-map-panel.md` — that ADR, not
 this note, is the normative record. This is a working checklist and licenses nothing.
 **Upstream:** the API's shape now lives in `buildSeqTubeMapURL()`, `parseBands.ts` and
 `parseSegmentBoxes.ts`, and the upstream contact is recorded in the ADR. The prose
@@ -42,16 +42,17 @@ Two orderings are load-bearing and not just tidy:
 **Do this first, not the types PR.** `CLAUDE.md` points a reader at Looks by default, so
 the answer to "why isn't this a Look?" should be in the repo before a reviewer has to ask.
 
-- [ ] Create `docs/adr/0001-sequence-tube-map-panel.md` (creates `docs/adr/`, which is
+- [x] Create `docs/adr/0001-sequence-tube-map-panel.md` (creates `docs/adr/`, which is
       declared normative but has no files yet)
-- [ ] One-line pointer in `CLAUDE.md`'s Looks section
-- [ ] `CONTEXT.md`: add `band`, `segment`, `sequence tube map`, `strand`, `tube map panel`
-- [ ] `CONTEXT.md`: append the **minigraph node** alias + oriented-id/bare-id paragraph to
+- [x] One-line pointer in `CLAUDE.md`'s Looks section
+- [x] `CONTEXT.md`: add `band`, `segment`, `sequence tube map`, `strand`, `tube map panel`
+- [x] `CONTEXT.md`: append the **minigraph node** alias + oriented-id/bare-id paragraph to
       the existing `node` entry
-- [ ] Migrate `docs/adr/0001-webgl-band-renderer.md` and `docs/DISAMBIGUATING-STRANDS.md`
-      from the spike, already renamed for `strand` there by spike#60
-
-Drafts are ready: `adr-0001-sequence-tube-map-panel.md` and `context-additions.md`.
+- [x] Migrate the spike's `docs/adr/0001-webgl-band-renderer.md` — renumbered
+      `docs/adr/0002-webgl-band-renderer.md`, since `0001` is the panel decision — and
+      `docs/DISAMBIGUATING-STRANDS.md` as
+      `notes/sequence-tube-map/disambiguating-strands.md`, which is a note rather than an
+      ADR because it decides nothing
 
 > The ADR must carry the **explicit 1D↔3D correspondence flag** — `CLAUDE.md` requires any
 > change that weakens the correspondence to be flagged rather than quietly implemented, and
