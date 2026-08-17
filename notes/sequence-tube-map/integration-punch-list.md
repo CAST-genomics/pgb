@@ -5,7 +5,9 @@ this line when the work is done.
 **Date:** 2026-08-17
 **Decisions:** `docs/adr/0001-sequence-tube-map-panel.md` once #87 lands — that ADR, not
 this note, is the normative record. This is a working checklist and licenses nothing.
-**Background:** [sequence-tube-map-api.md](./sequence-tube-map-api.md)
+**Upstream:** the API's shape now lives in `buildSeqTubeMapURL()`, `parseBands.ts` and
+`parseSegmentBoxes.ts`, and the upstream contact is recorded in the ADR. The prose
+description that preceded them (`sequence-tube-map-api.md`) was retired as superseded.
 
 Epic: [`CAST-genomics/pgb#85`](https://github.com/CAST-genomics/pgb/issues/85)
 Base branch: `main`. Each item is one PR, landed incrementally.
