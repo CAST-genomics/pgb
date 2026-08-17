@@ -1,6 +1,6 @@
 # Sequence Tube Map — Integration Punch List
 
-**Status:** In progress. Step 1 landed 2026-08-17; eight remain. Tick items here as they
+**Status:** In progress. Steps 1–4 landed 2026-08-17; five remain. Tick items here as they
 land, and update this line when the work is done.
 **Date:** 2026-08-17
 **Decisions:** `docs/adr/0001-sequence-tube-map-panel.md` — that ADR, not
@@ -60,9 +60,9 @@ the answer to "why isn't this a Look?" should be in the repo before a reviewer h
 
 ## 2. `@types/three` — [#86](https://github.com/CAST-genomics/pgb/issues/86)
 
-- [ ] Add `@types/three@^0.176.0`, delete the one-line `src/types/three.d.ts` shim
-- [ ] Fix fallout in `src/app.ts`, `src/ribbonNode.ts`, `src/looks/*.ts`
-- [ ] `npm run typecheck` clean, no new `any` or `@ts-expect-error`
+- [x] Add `@types/three@^0.176.0`, delete the one-line `src/types/three.d.ts` shim
+- [x] Fix fallout in `src/app.ts`, `src/ribbonNode.ts`, `src/looks/*.ts`
+- [x] `npm run typecheck` clean, no new `any` or `@ts-expect-error`
 
 > Separate PR so the migration stays reviewable. Without it, the incoming camera and
 > frustum math arrives untyped — the fiddliest code in the whole migration.
@@ -71,29 +71,48 @@ the answer to "why isn't this a Look?" should be in the repo before a reviewer h
 
 **In the spike repo, not pgb.**
 
-- [ ] Rename throughout `trackAppearance.ts`, `parseBands.ts`, tests, docs
-- [ ] Leave `g.track` alone — that's UCSD's SVG class, with a comment saying so
-- [ ] `npm test` passes
-- [ ] All five `verify_*.mjs` Playwright scripts pass
-- [ ] `grep -rn '\btrack\b' src/` returns only upstream-SVG references
+- [x] Rename throughout `trackAppearance.ts`, `parseBands.ts`, tests, docs
+- [x] Leave `g.track` alone — that's UCSD's SVG class, with a comment saying so
+- [x] `npm test` passes
+- [x] All five `verify_*.mjs` Playwright scripts pass
+- [x] `grep -rn '\btrack\b' src/` returns only upstream-SVG references
 
 > `track` already means PGB's **annotation track**, which is unrelated. Do it here, with
 > the browser suite still available, because it isn't migrating.
 
 ## 4. Copy the viewer in — [#88](https://github.com/CAST-genomics/pgb/issues/88)
 
-- [ ] Copy modules to `pgb/src/tubemap/` — **excluding** `main.ts`, `frameMeter.ts`,
+- [x] Copy modules to `pgb/src/tubemap/` — **excluding** `main.ts`, `frameMeter.ts`,
       `nodeCatalog.ts` (harness scaffolding)
-- [ ] Keep `fetchDocument.ts` as-is; do **not** route through `loadPath`
-- [ ] Copy all 11 tests; add `// @vitest-environment jsdom` to the 7 that touch `document`
-- [ ] Copy `stm-chr1-25331046-25331646.svg` (3.5 MB) as the test corpus — not the 14 MB ones
-- [ ] Add the dev-only `?url=` route
-- [ ] Do **not** migrate the Playwright `verify_*.mjs` scripts
-- [ ] `npm test` + `npm run typecheck` clean; dev route renders fixture and a live URL
+- [x] Keep `fetchDocument.ts` as-is; do **not** route through `loadPath`
+- [x] Copy all 11 tests — **no jsdom pragma proved necessary**, see below
+- [x] Copy `stm-chr1-25331046-25331646.svg` (3.5 MB) as the test corpus — not the 14 MB ones
+- [x] Add the dev-only `?url=` route — `dev/tubemap.html` + `src/devTubeMapRoute.ts`
+- [x] Do **not** migrate the Playwright `verify_*.mjs` scripts
+- [x] `npm test` + `npm run typecheck` clean; dev route renders fixture and a live URL
 
 > Fetch without credentials — the endpoint pairs a wildcard origin with
 > `allow-credentials: true`, which browsers reject. Error responses carry no CORS headers,
 > so a 500 arrives as an opaque network failure.
+
+Four things came out other than as written, all decided during the copy:
+
+- **No test needed jsdom.** The estimate of seven counted the word *document* where the
+  modules use it for the SVG they parse. The parsers are regex kernels over a string;
+  `surfacePointer` and `segmentOverlay` name DOM types but the functions under test are
+  arithmetic. All 11 files pass under the suite's `node` environment, so the suite still
+  covers pure kernels only and this migration did not open a new category.
+- **`spikeIsGone.test.ts` became `harnessIsGone.test.ts`.** The original asserted the spike
+  repo's throwaway `spike/` directory was gone — a statement about that repo's history, and
+  vacuous here. Repointed at the boundary this repo does have: none of the three excluded
+  harness modules is present under `src/tubemap/`, and nothing imports one. Same count.
+- **The fixture lives in `src/tubemap/__tests__/fixtures/`, not `public/`.** Vite copies
+  `public/` into `dist/` verbatim, so parking test data there adds 3.5 MB to every deploy
+  for a page that is not in the build. Under `src/` the tests read it off disk and the dev
+  server serves it at the same path; `dist/` never sees it.
+- **`tsconfig.json` gained `"types": ["node"]` and `@types/node`**, for the fixture reads.
+  The tests' five `replaceAll` calls became global-regex `replace` instead of widening
+  `lib` to ES2021 — a copy should not move the repo's language floor.
 
 ## 5. Kill the `ColorManagement` global — [#89](https://github.com/CAST-genomics/pgb/issues/89)
 

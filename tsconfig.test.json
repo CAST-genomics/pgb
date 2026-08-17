@@ -1,0 +1,13 @@
+{
+  // The tests, and only the tests. They are the one place that touches the filesystem —
+  // the tube map parser tests read the committed SVG fixture off disk — so `@types/node`
+  // is switched on here and nowhere else. Kept as a separate project rather than a `types`
+  // entry on the base config so that "nothing the browser bundles imports a node builtin"
+  // is enforced rather than merely asserted in a comment.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src/**/__tests__/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

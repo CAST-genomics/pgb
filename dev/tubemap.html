@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PGB — Sequence Tube Map (dev)</title>
+    <!--
+      Dev-only. Vite's dev server serves every HTML file under the project root, while the
+      build starts from its declared inputs — `vite.config.js` declares none, so it takes
+      Vite's default of `index.html` alone. This page therefore exists under `npm run dev`
+      and is absent from `dist/`. See `src/devTubeMapRoute.ts` for the rest.
+
+      This is the replacement for the spike's standalone harness. The tube map has no home
+      in PGB until #92 wires it into the node context menu, and even after that, reaching it
+      means loading a dataset and right-clicking the right node. This page mounts the viewer
+      alone against a URL so the surface stays debuggable on its own terms.
+    -->
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: rgb(250, 250, 250);
+            font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        /* A bare full-viewport container: the map is the data. */
+        #viewer {
+            position: absolute;
+            inset: 0;
+        }
+
+        .dev-picker {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 10;
+            display: flex;
+            gap: 6px;
+            padding: 6px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .dev-picker input {
+            width: 52ch;
+            padding: 4px 6px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            font: inherit;
+        }
+
+        .dev-picker button {
+            padding: 4px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            background: rgb(245, 245, 245);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .dev-hint {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            z-index: 10;
+            color: rgba(0, 0, 0, 0.4);
+            font-size: 11px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewer"></div>
+
+    <form class="dev-picker" id="picker">
+        <input id="url" name="url" type="text" spellcheck="false" aria-label="Tube map URL">
+        <button type="submit">Open</button>
+    </form>
+
+    <div class="dev-hint">drag pans · swipe or wheel zooms · hold shift to feel strands</div>
+
+    <script type="module" src="/src/devTubeMapRoute.ts"></script>
+</body>
+</html>

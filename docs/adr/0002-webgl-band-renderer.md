@@ -13,7 +13,14 @@ migrated: 2026-08-17
 > where it was `docs/adr/0001`; it is renumbered **0002** here because PGB's `0001` is
 > [the panel decision](0001-sequence-tube-map-panel.md) that admits this code into the app.
 > It binds the tube map code and nothing else. Three reading notes, because the text is
-> left as it was written rather than rewritten into PGB's frame:
+> left as it was written rather than rewritten into PGB's frame.
+>
+> **The same three notes read the migrated source** under [`src/tubemap/`](../../src/tubemap),
+> which arrived 2026-08-17 with its comments left as written for the same reason: they are
+> the reasoning that produced the code, and rewriting prose to survive a move is how it stops
+> being trustworthy. The one thing that *was* rewritten is this ADR's own number — the source
+> said `0001`, meaning this decision, and `0001` here is a different one — so every `ADR 0001`
+> in the migrated files now reads `0002`.
 >
 > - Every bare **`CONTEXT.md`** below is the **spike's** `CONTEXT.md` and its numbered
 >   decisions — *not* PGB's `CONTEXT.md`, which is a glossary with no numbered decisions in
