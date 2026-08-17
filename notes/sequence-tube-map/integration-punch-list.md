@@ -48,8 +48,8 @@ the answer to "why isn't this a Look?" should be in the repo before a reviewer h
 - [ ] `CONTEXT.md`: add `band`, `segment`, `sequence tube map`, `strand`, `tube map panel`
 - [ ] `CONTEXT.md`: append the **minigraph node** alias + oriented-id/bare-id paragraph to
       the existing `node` entry
-- [ ] Migrate `docs/adr/0001-webgl-band-renderer.md` and `docs/DISAMBIGUATING-TRACKS.md`
-      from the spike, updated for `strand`
+- [ ] Migrate `docs/adr/0001-webgl-band-renderer.md` and `docs/DISAMBIGUATING-STRANDS.md`
+      from the spike, already renamed for `strand` there by spike#60
 
 Drafts are ready: `adr-0001-sequence-tube-map-panel.md` and `context-additions.md`.
 
