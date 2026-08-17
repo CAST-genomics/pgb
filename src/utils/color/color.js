@@ -320,8 +320,8 @@ function getRandomGrayAppleCrayonColor(includeSnow = false) {
 /**
  * Returns a color from the Apple Crayon palette by name
  * @param {string} name - The name of the color
- * @param isHexString
- * @returns {THREE.Color|undefined} A THREE.Color object or undefined if not found
+ * @param isHexString - Return the hex string form instead of a THREE.Color
+ * @returns {THREE.Color|string|undefined} The color, or undefined if not found
  */
 function getAppleCrayonColorByName(name, isHexString = false) {
     if (isHexString) {
@@ -329,6 +329,22 @@ function getAppleCrayonColorByName(name, isHexString = false) {
     }
     const color = appleCrayonColors.get(name);
     return color ? color.clone() : undefined;
+}
+
+/**
+ * Returns the hex string for an Apple Crayon palette color. Unlike
+ * getAppleCrayonColorByName, the return type is a plain string, so callers
+ * assigning to CSS/canvas color properties need no narrowing.
+ * @param {string} name - The name of the color
+ * @returns {string} The hex string
+ * @throws If the palette has no color by that name
+ */
+function getAppleCrayonColorHexStringByName(name) {
+    const hexString = appleCrayonColorsHexStrings.get(name)
+    if (undefined === hexString) {
+        throw new Error(`No Apple Crayon color named ${ name }`)
+    }
+    return hexString
 }
 
 // Color Palette drived from Rick Rubin's palette
@@ -368,5 +384,6 @@ export {
     getRandomPastelAppleCrayonColor,
     getRandomGrayAppleCrayonColor,
     getAppleCrayonColorByName,
+    getAppleCrayonColorHexStringByName,
     colorComplements
 };

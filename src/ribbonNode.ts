@@ -29,11 +29,27 @@ const _ray = new THREE.Ray()
 const _splinePoint = new THREE.Vector3()
 
 interface FrameContext {
-    camera: any
-    container: any
+    camera: THREE.OrthographicCamera
+    container: HTMLElement
 }
 
-export function buildNodeRibbonGeometry(spline: any): any {
+type NodeSpline = THREE.Curve<THREE.Vector3>
+
+interface Sample {
+    t: number
+    point: THREE.Vector3
+}
+
+/**
+ * Intersection produced by RibbonNode.raycast. Carries the squared 2D distance
+ * from the pointer to the spline, which raycastService uses to rank overlapping
+ * ribbon hits ahead of three.js' default depth ordering.
+ */
+export interface RibbonIntersection extends THREE.Intersection {
+    splineDistSq: number
+}
+
+export function buildNodeRibbonGeometry(spline: NodeSpline): THREE.BufferGeometry {
 
     const samples = adaptiveSample(spline)
 
@@ -114,8 +130,8 @@ export function buildNodeRibbonGeometry(spline: any): any {
     return geometry
 }
 
-function adaptiveSample(spline: any): Array<{ t: number; point: any }> {
-    const samples: Array<{ t: number; point: any }> = []
+function adaptiveSample(spline: NodeSpline): Sample[] {
+    const samples: Sample[] = []
     const pStart = spline.getPoint(0)
     const pEnd = spline.getPoint(1)
     samples.push({ t: 0, point: pStart })
@@ -125,7 +141,7 @@ function adaptiveSample(spline: any): Array<{ t: number; point: any }> {
     return samples
 }
 
-function subdivide(spline: any, tStart: number, tEnd: number, pStart: any, pEnd: any, samples: any[], depth: number): void {
+function subdivide(spline: NodeSpline, tStart: number, tEnd: number, pStart: THREE.Vector3, pEnd: THREE.Vector3, samples: Sample[], depth: number): void {
     const tMid = (tStart + tEnd) / 2
     const pMid = spline.getPoint(tMid)
     const deviation = pointToLineDistance(pMid, pStart, pEnd)
@@ -137,7 +153,7 @@ function subdivide(spline: any, tStart: number, tEnd: number, pStart: any, pEnd:
     }
 }
 
-function pointToLineDistance(P: any, A: any, B: any): number {
+function pointToLineDistance(P: THREE.Vector3, A: THREE.Vector3, B: THREE.Vector3): number {
     const abx = B.x - A.x
     const aby = B.y - A.y
     const apx = P.x - A.x
@@ -150,7 +166,7 @@ function pointToLineDistance(P: any, A: any, B: any): number {
 
 class RibbonNode extends THREE.Mesh {
 
-    constructor(geometry: any, material: any) {
+    constructor(geometry: THREE.BufferGeometry, material: THREE.Material) {
         super(geometry, material)
     }
 
@@ -158,7 +174,7 @@ class RibbonNode extends THREE.Mesh {
      * Wire a node mesh: bind geometry+material, attach the spline reference
      * needed by raycast and getPoint, and join the per-frame uniform tick.
      */
-    static create(geometry: any, spline: any, material: any): RibbonNode {
+    static create(geometry: THREE.BufferGeometry, spline: NodeSpline, material: THREE.Material): RibbonNode {
         const node = new RibbonNode(geometry, material)
         node.userData.spline = spline
         ribbonNodes.add(node)
@@ -172,12 +188,12 @@ class RibbonNode extends THREE.Mesh {
         ribbonNodes.delete(this)
     }
 
-    #getArcLengthTable(): { pts: any[]; cum: Float64Array; total: number; samples: number } {
+    #getArcLengthTable(): { pts: THREE.Vector3[]; cum: Float64Array; total: number; samples: number } {
         if (this.userData.arcLengthTable) return this.userData.arcLengthTable
 
-        const spline = this.userData.spline
+        const spline: NodeSpline = this.userData.spline
         const N = ARC_LENGTH_SAMPLES
-        const pts = new Array(N + 1)
+        const pts: THREE.Vector3[] = new Array(N + 1)
         for (let i = 0; i <= N; i++) pts[i] = spline.getPoint(i / N)
 
         const cum = new Float64Array(N + 1)
@@ -223,12 +239,12 @@ class RibbonNode extends THREE.Mesh {
      * raycast hit-testing from shader-uniform plumbing so it can be unit
      * tested by setting the snapshot directly.
      */
-    raycast(raycaster: any, intersects: any[]): void {
+    raycast(raycaster: THREE.Raycaster, intersects: THREE.Intersection[]): void {
 
         const halfWidth = lastHalfWidth
         if (!halfWidth || halfWidth <= 0) return
 
-        const spline = this.userData.spline
+        const spline: NodeSpline | undefined = this.userData.spline
         if (!spline) return
 
         _inverseMatrix.copy(this.matrixWorld).invert()
@@ -306,22 +322,25 @@ class RibbonNode extends THREE.Mesh {
 
             const u = this.#nativeTToArcLengthU(bestT)
 
-            intersects.push({
+            const intersection: RibbonIntersection = {
                 distance: raycaster.ray.origin.distanceTo(worldPoint),
                 point: worldPoint,
                 uv: new THREE.Vector2(u, 0.5),
                 object: this,
                 splineDistSq: bestDistSq,
-            })
+            }
+
+            intersects.push(intersection)
         }
     }
 
     /**
      * Get a world- or local-space point at arc-length fraction u along the node.
      */
-    getPoint(u: number, space?: 'world' | 'local'): any {
+    getPoint(u: number, space?: 'world' | 'local'): THREE.Vector3 {
         const nativeT = this.#arcLengthUToNativeT(u)
-        const point = this.userData.spline.getPoint(nativeT)
+        const spline: NodeSpline = this.userData.spline
+        const point = spline.getPoint(nativeT)
         point.z = NODE_Z_OFFSET
         return space === 'world' ? this.localToWorld(point) : point
     }
@@ -330,7 +349,7 @@ class RibbonNode extends THREE.Mesh {
      * Recover the arc-length parameter u from a raycast intersection.
      * The custom raycast sets uv.x to the arc-length u.
      */
-    static getParameter(intersection: any): { t: number; nodeName: string } {
+    static getParameter(intersection: THREE.Intersection): { t: number; nodeName: string } {
         const { object, uv } = intersection
         const t = uv ? uv.x : 0
         const { nodeName } = object.userData
@@ -340,8 +359,8 @@ class RibbonNode extends THREE.Mesh {
     /**
      * Find a RibbonNode by node name in a mesh group.
      */
-    static getLine(nodeName: string, nodeMeshGroup: any): RibbonNode {
-        return nodeMeshGroup.children.find((child: any) => child.userData.nodeName === nodeName) as RibbonNode
+    static getLine(nodeName: string, nodeMeshGroup: THREE.Object3D): RibbonNode {
+        return nodeMeshGroup.children.find(child => child.userData.nodeName === nodeName) as RibbonNode
     }
 
     /**
@@ -363,7 +382,7 @@ export function tickRibbonResolution(ctx: FrameContext): void {
     const halfWidth = RibbonMaterialFactory.computeHalfWidth(ctx.camera, Look.NODE_LINE_WIDTH_PIXELS, ctx.container)
     lastHalfWidth = halfWidth
     for (const node of ribbonNodes) {
-        const mat: any = node.material
+        const mat = node.material as THREE.ShaderMaterial
         if (mat?.uniforms?.halfWidth) {
             mat.uniforms.halfWidth.value = halfWidth
         }

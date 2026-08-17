@@ -31,7 +31,7 @@ class HeatmapLook extends Look {
         return new HeatmapLook(name, config);
     }
 
-    createNodeTooltipContent(nodeObject: any): string {
+    createNodeTooltipContent(nodeObject: THREE.Object3D): string {
         const { nodeName } = nodeObject.userData;
         return assemblyMetadataService.getPopulationTooltip(nodeName)
     }
@@ -43,7 +43,7 @@ class HeatmapLook extends Look {
         const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
         if (!nodeMeshGroup) return
 
-        for (const mesh of nodeMeshGroup.children) {
+        for (const mesh of nodeMeshGroup.children as THREE.Mesh[]) {
             const nodeName = mesh.userData?.nodeName
             if (!nodeName) continue
 
@@ -60,16 +60,19 @@ class HeatmapLook extends Look {
             const color = frequencyToColorContinuous(rawFrequency)
             console.log(`frequency ${ rawFrequency }`)
 
-            if (mesh.material.uniforms?.diffuse) {
-                mesh.material.uniforms.diffuse.value.copy(color)
+            // Ribbon nodes carry a ShaderMaterial whose color lives in a uniform;
+            // any other material exposes .color directly.
+            const material = mesh.material as THREE.ShaderMaterial
+            if (material.uniforms?.diffuse) {
+                material.uniforms.diffuse.value.copy(color)
             } else {
-                mesh.material.color.copy(color)
+                (material as unknown as THREE.MeshBasicMaterial).color.copy(color)
             }
-            mesh.material.needsUpdate = true
+            material.needsUpdate = true
         }
     }
 
-    activate(activeScene: any): void {
+    activate(activeScene: THREE.Scene): void {
         super.activate(activeScene);
 
         this.subscribe('superpopulation:deselected', () => {

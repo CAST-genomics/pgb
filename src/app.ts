@@ -20,7 +20,7 @@ let yyPre: number | undefined = undefined
 class App {
 
     container: HTMLElement
-    renderer: any
+    renderer: THREE.WebGLRenderer
     pangenomeService: any
     genomicService: any
     geometryManager: any
@@ -279,29 +279,25 @@ class App {
         this.widgetService.reset()
     }
 
-    updateViewToFitScene(scene: any, cameraManager: any, mapControl: any): void {
+    updateViewToFitScene(scene: THREE.Scene, cameraManager: any, mapControl: any): void {
 
         const bbox = new THREE.Box3()
 
         let foundObjects = 0;
-        scene.traverse((object: any) => {
+        scene.traverse(object => {
+
+            if (object.name === 'boundingSphereHelper') return
 
             // Handle Line2 objects (both node lines and edge lines) - check constructor name since isLine2 might not be set
-            if ((object.isLine2 || object.constructor.name === 'Line2') && object.name !== 'boundingSphereHelper') {
-                object.geometry.computeBoundingBox()
-                const objectBox = object.geometry.boundingBox.clone()
-                objectBox.applyMatrix4(object.matrixWorld)
-                bbox.union(objectBox)
-                foundObjects++;
-            }
+            const isLine2 = (object as { isLine2?: boolean }).isLine2 || object.constructor.name === 'Line2'
+            if (!isLine2 && !(object as THREE.Mesh).isMesh) return
 
-            else if (object.isMesh && object.name !== 'boundingSphereHelper') {
-                object.geometry.computeBoundingBox()
-                const objectBox = object.geometry.boundingBox.clone()
-                objectBox.applyMatrix4(object.matrixWorld)
-                bbox.union(objectBox)
-                foundObjects++;
-            }
+            const { geometry } = object as THREE.Mesh
+            geometry.computeBoundingBox()
+            const objectBox = geometry.boundingBox!.clone()
+            objectBox.applyMatrix4(object.matrixWorld)
+            bbox.union(objectBox)
+            foundObjects++;
         })
 
         // Calculate the bounding sphere from the bounding box
@@ -332,7 +328,7 @@ class App {
         // this.raycastService.updateLine2Threshold(cameraManager.camera)
     }
 
-    private createBoundingSphereHelper(boundingSphere: any): any {
+    private createBoundingSphereHelper(boundingSphere: THREE.Sphere): THREE.Mesh {
         const materialConfig = {
             color: 0xdddddd,
             wireframe: true,
@@ -368,7 +364,7 @@ class App {
         return tooltip;
     }
 
-    showTooltip(object: any, point: any, type: string): void {
+    showTooltip(object: THREE.Object3D, point: THREE.Vector3, type: string): void {
 
         if (true === this.isTooltipEnabled){
 

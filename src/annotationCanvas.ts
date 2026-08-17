@@ -1,4 +1,4 @@
-import {getAppleCrayonColorByName} from "./utils/color/color.js"
+import {getAppleCrayonColorHexStringByName} from "./utils/color/color.js"
 import appConfig from "./appConfig.js"
 
 /**
@@ -72,7 +72,7 @@ class AnnotationCanvas {
         const bpLength = Math.max(1, assemblyBPEnd - assemblyBPStart);
         const pixelPerBP = width / bpLength
 
-        ctx.fillStyle = getAppleCrayonColorByName('aluminum', true)
+        ctx.fillStyle = getAppleCrayonColorHexStringByName('aluminum')
 
         for (let i = 0; i < anchors.length; i++) {
             const { refStart, refEnd } = anchors[i]

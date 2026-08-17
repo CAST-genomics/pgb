@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import Look from './look.ts';
 import materialService from '../materialService.js';
 
@@ -30,7 +31,7 @@ class NodeEmphasisLook extends Look {
         return new NodeEmphasisLook(name, config);
     }
 
-    activate(activeScene: any): void {
+    activate(activeScene: THREE.Scene): void {
         super.activate(activeScene);
 
         this.subscribe('assembly:emphasis', data => {
