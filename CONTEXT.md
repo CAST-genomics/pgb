@@ -116,6 +116,16 @@ as a map keyed by oriented node id (e.g. `"141452+"`, where `+`/`−` is
 the strand orientation). Each node has a length, a sequence, a list of
 assemblies that walk through it, and (for HPRC data) PCLAI placements.
 
+Also called a **minigraph node** — the deliberate alias, used where the
+**sequence tube map** is involved and the word has to be told apart from a
+**segment**, the vertices *inside* one node, which that map's SVG calls
+"node" too. A node is the container; segments are its contents.
+
+Two ids name it, and they are not interchangeable: PGB keys nodes by the
+**oriented** id (`"5519+"`, orientation included), while the tube map
+API's `minigraphnode` parameter takes the **bare** id (`5519`). The seam
+is where orientation is stripped between the two.
+
 ### pangenome graph
 
 A graph data structure representing the genetic variation of many
@@ -322,6 +332,55 @@ PCLAI coordinates, and sequence hang off that backbone. Illustrated in
 The typed pub/sub in `src/utils/eventBus.ts` connecting widgets to Looks.
 A Look's subscribed events are its parameter-binding interface — the
 analogue of the uniforms a shader declares.
+
+### band
+
+The atomic drawable of a **sequence tube map**: one **strand** crossing one
+x-interval — a single `<path>` or `<rect>` in the server's `g.track`. A strand
+is made of many bands, so a band count is a count of shapes, not of haplotypes.
+*Avoid "ribbon" for a band* — a ribbon reads as the whole strand.
+
+### segment
+
+One of the sequence boxes *inside* a **sequence tube map** — a vertex of the
+minigraph-cactus subgraph it collapses, carrying an id, a length and a sequence
+(typically tiny: median 1 bp, most being single-base variants). Called *node* by
+the SVG and by upstream sequence-tube-map. The alias is renamed on our side to
+keep the two scales distinct: **node** is the graph vertex PGB draws in 3D,
+**segment** is what is found inside one.
+
+### sequence tube map
+
+A base-level picture of what is *inside* one **node** — the minigraph-cactus
+subgraph it collapses: **segments** of sequence, with every haplotype's
+**strand** threaded through them left→right. Where the 3D graph draws a node as
+one collapsed summary, this is the magnifying glass on it, and the SNVs, indels,
+duplications and inversions are what it shows. Laid out server-side by the UCSD
+API, which returns an SVG whose drawing primitives PGB parses and rasterizes
+itself.
+
+### strand
+
+One haplotype's path through a **sequence tube map**, drawn as a coloured ribbon
+running left→right. Named `sample#haplotype#contig` (e.g.
+`NA21309#2#CM092097.1`), and coloured by the same shipped PCLAI RGB the 3D graph
+and the PCLAI chart use.
+
+The deliberate alias, recorded because the collision is the reason for the
+rename: upstream sequence-tube-map and the SVG itself call this a *track*
+(`g.track`, `trackID`, `class="track<N>"`), which is unrelated to PGB's
+**annotation track**. *Strand* is the term to use; *track* survives only in code
+quoting the server's document.
+
+### tube map panel
+
+The floating, draggable, resizable card that hosts a **sequence tube map**,
+opened from a node's context menu. Not a **Look**: it owns its own WebGL scene,
+camera and render loop, and its entire input surface is `open(url: string)`.
+Why the Look rule does not reach it, and what that costs — including the panel
+adding a third representation of the locus with no **bidirectional mapping** to
+the other two — is
+[`docs/adr/0001-sequence-tube-map-panel.md`](docs/adr/0001-sequence-tube-map-panel.md).
 
 ---
 
