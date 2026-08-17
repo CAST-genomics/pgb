@@ -7,10 +7,16 @@ import {prettyPrint} from "../utils/utils.js"
 import eventBus from "../utils/eventBus.ts"
 import type { EventMap } from "../utils/eventMap.ts"
 
+/**
+ * How a caller specifies the emphasis color for a node: a single color applied
+ * to every node, or a per-node map keyed by node name (PCLAI coloring).
+ */
+export type NodeColor = THREE.ColorRepresentation | Map<string, THREE.Color>
+
 class Look {
 
-    static DEFAULT_NODE_COLOR = rubinColorsHexStrings.get('rubinGray')
-    static DEFAULT_EDGE_COLOR = rubinColorsHexStrings.get('rubinGray')
+    static DEFAULT_NODE_COLOR = rubinColorsHexStrings.get('rubinGray')!
+    static DEFAULT_EDGE_COLOR = rubinColorsHexStrings.get('rubinGray')!
 
     // Apparent line width in screen pixels (constant regardless of zoom).
     // Converted to world units per frame by tickRibbonResolution() in ribbonNode.ts.
@@ -21,9 +27,9 @@ class Look {
     genomicService: any
     geometryManager: any
     assemblyWidget: any
-    activeScene: any
+    activeScene: THREE.Scene | null
     isActive: boolean
-    materialCache: Map<string, any>
+    materialCache: Map<string, THREE.ShaderMaterial>
     emphasisStates: Map<string, string>
     protected unsubs: Array<() => void>
 
@@ -60,7 +66,7 @@ class Look {
      * Creates a Three.js mesh from geometry and context information.
      * Routes to the appropriate creation method based on context type.
      */
-    createMesh(geometry: any, context: any): any {
+    createMesh(geometry: THREE.BufferGeometry, context: any): THREE.Mesh {
         if (context.type === 'node') {
             return this.createNodeMesh(geometry, context);
         } else if (context.type === 'edge') {
@@ -73,7 +79,7 @@ class Look {
     /**
      * Creates a ribbon mesh for a node.
      */
-    createNodeMesh(geometry: any, context: any): any {
+    createNodeMesh(geometry: THREE.BufferGeometry, context: any): RibbonNode {
 
         const { nodeName, spline } = context
 
@@ -91,11 +97,12 @@ class Look {
     /**
      * Gets or creates a ribbon ShaderMaterial for a node's default state.
      */
-    getNodeRibbonMaterial(nodeName: string): any {
+    getNodeRibbonMaterial(nodeName: string): THREE.ShaderMaterial {
         const cacheKey = `ribbon:${nodeName}:normal`
 
-        if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey)
+        const cached = this.materialCache.get(cacheKey)
+        if (cached) {
+            return cached
         }
 
         const material = RibbonMaterialFactory.createMaterial(Look.DEFAULT_NODE_COLOR)
@@ -107,11 +114,12 @@ class Look {
     /**
      * Gets or creates a ribbon ShaderMaterial for a node's emphasized state.
      */
-    getNodeRibbonEmphasisMaterial(assemblyName: string, nodeName: string, nodeColor: any): any {
+    getNodeRibbonEmphasisMaterial(assemblyName: string, nodeName: string, nodeColor: NodeColor): THREE.ShaderMaterial {
         const cacheKey = `ribbon:${nodeName}:assembly:${assemblyName}`
 
-        if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey)
+        const cached = this.materialCache.get(cacheKey)
+        if (cached) {
+            return cached
         }
 
         let colorToUse
@@ -131,11 +139,12 @@ class Look {
     /**
      * Gets or creates a ribbon deemphasis material for a node.
      */
-    getNodeRibbonDeemphasisMaterial(nodeName: string, deemphasisColor: string): any {
+    getNodeRibbonDeemphasisMaterial(nodeName: string, deemphasisColor: string): THREE.ShaderMaterial {
         const cacheKey = `ribbon:${nodeName}:deemphasis:${deemphasisColor}`
 
-        if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey)
+        const cached = this.materialCache.get(cacheKey)
+        if (cached) {
+            return cached
         }
 
         const material = RibbonMaterialFactory.createMaterial(deemphasisColor)
@@ -147,11 +156,12 @@ class Look {
     /**
      * Gets or creates a ribbon absence material for a node.
      */
-    getNodeRibbonAbsenceMaterial(nodeName: string, absenceColor: string): any {
+    getNodeRibbonAbsenceMaterial(nodeName: string, absenceColor: string): THREE.ShaderMaterial {
         const cacheKey = `ribbon:${nodeName}:absence:${absenceColor}`
 
-        if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey)
+        const cached = this.materialCache.get(cacheKey)
+        if (cached) {
+            return cached
         }
 
         const material = RibbonMaterialFactory.createMaterial(absenceColor)
@@ -166,11 +176,12 @@ class Look {
      * monotonic walk. Visual partner of the gray veil painted on the
      * annotation track (annotationCanvas.renderDeEmphasisOverlay).
      */
-    getNodeRibbonOffWalkMaterial(nodeName: string, offWalkColor: string): any {
+    getNodeRibbonOffWalkMaterial(nodeName: string, offWalkColor: string): THREE.ShaderMaterial {
         const cacheKey = `ribbon:${nodeName}:offwalk:${offWalkColor}`
 
-        if (this.materialCache.has(cacheKey)) {
-            return this.materialCache.get(cacheKey)
+        const cached = this.materialCache.get(cacheKey)
+        if (cached) {
+            return cached
         }
 
         const material = RibbonMaterialFactory.createMaterial(offWalkColor)
@@ -183,7 +194,7 @@ class Look {
      * Creates a mesh for an edge (connection between nodes) using the provided geometry.
      * Edges use gradient materials that transition from start to end colors.
      */
-    createEdgeMesh(geometry: any, context: any): any {
+    createEdgeMesh(geometry: THREE.BufferGeometry, context: any): THREE.Mesh {
 
         const { startNode, endNode, edgeKey } = context;
 
@@ -205,15 +216,15 @@ class Look {
     /**
      * Creates a material for an edge arrow with a single color.
      */
-    getEdgeMaterial(color: any): any {
-        return arrowMaterialFactory(color, materialService.getTexture('arrow-white'), 1);
+    getEdgeMaterial(color: string | THREE.Color): THREE.ShaderMaterial {
+        return arrowMaterialFactory(color, materialService.getTexture('arrow-white')!, 1);
     }
 
     /**
      * Creates HTML content for a node tooltip that appears on hover.
      * Displays node name and length information.
      */
-    createNodeTooltipContent(nodeObject: any): string {
+    createNodeTooltipContent(nodeObject: THREE.Object3D): string {
         const { nodeName } = nodeObject.userData
         const { length } = this.genomicService.nodeMetadata.get(nodeName)
         const emphasisState = this.emphasisStates.get(nodeName) || 'normal'
@@ -244,7 +255,7 @@ class Look {
      * Sets the active flag and can be overridden by subclasses to enable
      * event subscriptions, start animations, or perform other activation logic.
      */
-    activate(activeScene: any): void {
+    activate(activeScene: THREE.Scene): void {
         this.isActive = true;
         this.activeScene = activeScene;
         console.log(`${this.constructor.name} is now active`)
@@ -291,7 +302,7 @@ class Look {
     setNodeEmphasis(
         assemblyName: string | undefined,
         emphasizedSet: Set<string>,
-        emphasisColor: any,
+        emphasisColor: NodeColor | undefined,
         absentSet: Set<string> | undefined,
         deemphasisColor: string | undefined,
         absenceColor: string | undefined,
@@ -354,13 +365,13 @@ class Look {
      * Applies an emphasis state to a mesh by updating its material.
      * Handles both node and edge meshes, applying appropriate materials based on state.
      */
-    applyEmphasisState(mesh: any, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string, offWalkColor?: string): void {
+    applyEmphasisState(mesh: THREE.Mesh, emphasisState: string, assemblyName: string | undefined, nodeColor?: NodeColor, deemphasisColor?: string, absenceColor?: string, offWalkColor?: string): void {
         if (!mesh.userData) return;
 
         if (emphasisState === 'deemphasized') {
             mesh.material = this.getNodeRibbonDeemphasisMaterial(mesh.userData.nodeName, deemphasisColor!);
         } else if (emphasisState === 'emphasized') {
-            mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName!, mesh.userData.nodeName, nodeColor);
+            mesh.material = this.getNodeRibbonEmphasisMaterial(assemblyName!, mesh.userData.nodeName, nodeColor!);
         } else if (emphasisState === 'absent') {
             mesh.material = this.getNodeRibbonAbsenceMaterial(mesh.userData.nodeName, absenceColor!);
         } else if (emphasisState === 'off-walk') {
@@ -381,14 +392,14 @@ class Look {
      * Updates the emphasis state for a set of nodes in the scene.
      * Traverses the NodeMeshGroup and applies the emphasis state to matching nodes.
      */
-    updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: any, deemphasisColor?: string, absenceColor?: string, offWalkColor?: string): void {
+    updateNodeEmphasis(nodeNameSet: Set<string>, emphasisState: string, assemblyName: string | undefined, nodeColor?: NodeColor, deemphasisColor?: string, absenceColor?: string, offWalkColor?: string): void {
 
         if (!this.activeScene) return;
         const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
         if (!nodeMeshGroup) return;
-        nodeMeshGroup.traverse((object: any) => {
+        nodeMeshGroup.traverse(object => {
             if (object.userData?.nodeName && nodeNameSet.has(object.userData.nodeName)) {
-                this.applyEmphasisState(object, emphasisState, assemblyName, nodeColor, deemphasisColor, absenceColor, offWalkColor);
+                this.applyEmphasisState(object as THREE.Mesh, emphasisState, assemblyName, nodeColor, deemphasisColor, absenceColor, offWalkColor);
             }
         });
     }

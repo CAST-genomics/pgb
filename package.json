@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/three": "^0.176.0",
     "hsluv": "^1.0.2",
     "igv-utils": "github:igvteam/igv-utils#v1.5.10",
     "jsdom": "^29.0.2",
