@@ -47,11 +47,10 @@ function rather than through its subscriptions. That is the *form* of the framew
 none of its substance — and it would corrupt the property `CLAUDE.md` actually cares about,
 that "what can this Look be driven by?" is answerable by reading `activate()`.
 
-The boundary this ADR draws, stated so it can be applied to the next case: **the Look
-system owns the appearance of the pangenome graph. A viewer with its own scene graph,
-drawing different data from a different source, is a panel.** `mountPclaiChart` is the
-precedent — the PCLAI chart is a whole second visualization living beside the graph, and
-nobody proposed making it a Look either.
+That reasoning is what the Looks section of [`CLAUDE.md`](../../CLAUDE.md) now states as
+the rule's boundary; this ADR is where it is derived, and the rule is stated there rather
+than restated here. `mountPclaiChart` is the precedent — the PCLAI chart is a whole second
+visualization living beside the graph, and nobody proposed making it a Look either.
 
 ## Rejected alternatives
 
@@ -113,16 +112,16 @@ implemented. Two distinct costs:
 
 The viewer does not display the server's SVG; it **parses drawing commands out of it** —
 `d` attributes matched against one path grammar, rebuilt as six floats per band and
-rasterized on the GPU. A change on UCSD's side that an SVG viewer would absorb silently — a
-text label, a stroke, a gradient — is a rendering bug for us, and there is no second surface
-to fall back to: a non-conforming document is refused whole and shows an error card. The
-full argument, the measurement that bounds the risk (127,101 of 127,101 strand paths across
-17 documents conform, with zero exceptions) and the safety that was deliberately given up
-are in [ADR 0002](0002-webgl-band-renderer.md).
+rasterized on the GPU. So a change to how UCSD draws is a rendering bug for us, and there
+is no second surface to fall back to: a non-conforming document is refused whole and shows
+an error card. [ADR 0002](0002-webgl-band-renderer.md) is that decision in full — the
+argument, the measurement that bounds the risk, and the safety deliberately given up when
+the fallback surface was deleted. It is inherited here as decided, and it is the one to
+read before touching the parser.
 
-The un-obvious half: the coupling is not the alternative to a pure viewer. The pure viewer
-does not work on this data — ~28 ms per hover in style invalidation, and a 900-megapixel
-composited layer that renders partially.
+Recorded here because it is what PGB is taking on rather than what the spike concluded:
+the coupling is not the alternative to a pure viewer. The pure viewer does not work on
+this data, which is why ADR 0002 exists at all.
 
 ### 4. The fetch ceiling cannot be gated, only waited out
 
@@ -188,6 +187,12 @@ caught by a test.** It will be caught by looking, which is how every rendering d
 this work was settled anyway.
 
 ## Consequences
+
+**This ADR precedes the code it governs, deliberately** — see the epic,
+[#85](https://github.com/CAST-genomics/pgb/issues/85). At the time of writing `src/tubemap/`
+does not exist and neither do `buildSeqTubeMapURL()` or `tubeMapTargetForNode()`; the
+consequences below are what the migration is bound to, not a description of what is in the
+tree. They stop being forward-looking as the epic's steps land.
 
 - `src/tubemap/` is a module PGB calls and does not otherwise reach into. Its seam is
   `open(url)`; widen it only deliberately.
