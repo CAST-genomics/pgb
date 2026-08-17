@@ -21,6 +21,15 @@ import { ylGnBu, ylOrRd, blues } from "../utils/color/color-ramps.js"
  *   population:deselected       — clear population heatmap colors.
  *                                 Payload: {}.
  */
+/**
+ * Narrows a scene child to a mesh carrying exactly one material — the shape
+ * every node mesh in NodeMeshGroup has. Non-mesh children (helpers, feedback
+ * dots) and multi-material meshes are skipped rather than blindly cast.
+ */
+function isSingleMaterialMesh(object: THREE.Object3D): object is THREE.Mesh<THREE.BufferGeometry, THREE.Material> {
+    return (object as THREE.Mesh).isMesh === true && !Array.isArray((object as THREE.Mesh).material)
+}
+
 class HeatmapLook extends Look {
 
     constructor(name: string, config: any) {
@@ -43,9 +52,13 @@ class HeatmapLook extends Look {
         const nodeMeshGroup = this.activeScene.getObjectByName('NodeMeshGroup')
         if (!nodeMeshGroup) return
 
-        for (const mesh of nodeMeshGroup.children as THREE.Mesh[]) {
-            const nodeName = mesh.userData?.nodeName
+        for (const child of nodeMeshGroup.children) {
+            if (!isSingleMaterialMesh(child)) continue
+
+            const nodeName = child.userData?.nodeName
             if (!nodeName) continue
+
+            const mesh = child
 
             const { frequency } = this.genomicService.nodeMetadata.get(nodeName)
 
@@ -62,11 +75,12 @@ class HeatmapLook extends Look {
 
             // Ribbon nodes carry a ShaderMaterial whose color lives in a uniform;
             // any other material exposes .color directly.
-            const material = mesh.material as THREE.ShaderMaterial
-            if (material.uniforms?.diffuse) {
-                material.uniforms.diffuse.value.copy(color)
-            } else {
-                (material as unknown as THREE.MeshBasicMaterial).color.copy(color)
+            const { material } = mesh
+            const diffuse = material instanceof THREE.ShaderMaterial ? material.uniforms.diffuse : undefined
+            if (diffuse) {
+                diffuse.value.copy(color)
+            } else if ('color' in material) {
+                (material.color as THREE.Color).copy(color)
             }
             material.needsUpdate = true
         }

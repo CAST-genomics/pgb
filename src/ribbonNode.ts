@@ -45,7 +45,7 @@ interface Sample {
  * from the pointer to the spline, which raycastService uses to rank overlapping
  * ribbon hits ahead of three.js' default depth ordering.
  */
-export interface RibbonIntersection extends THREE.Intersection {
+interface RibbonIntersection extends THREE.Intersection {
     splineDistSq: number
 }
 
