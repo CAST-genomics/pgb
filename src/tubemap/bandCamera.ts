@@ -48,22 +48,35 @@ export interface Frustum {
  */
 export const MAX_ZOOM_FACTOR = 200
 
-/** CSS pixels per world unit at which the content's full width fills the viewport. */
-export function fitZoom(contentWidth: number, viewport: Viewport): number {
-    return viewport.width / contentWidth
+/**
+ * CSS pixels per world unit at which the **whole map** is on screen — both axes, whichever
+ * binds.
+ *
+ * It was `viewport.width / contentWidth`, fit-to-width, and on every document this was
+ * built against the two are the same number: a 14:1 strip that fills the width to the pixel
+ * is nowhere near filling the height. Tall maps break that equivalence. `141457` of
+ * `il7.json` is 4717 × 7115 — 464 strands over 90 bp — and fit-to-width put 40% of it on
+ * screen with no way to see the rest, because fit is also the *floor* of the zoom clamp.
+ *
+ * The property this restores is the one the navigator is built on and the spike had for
+ * free: **at fit, the viewport rect covers the whole thumbnail**, so a mini map that is
+ * entirely framed means a map that is entirely on screen. A strip is unaffected — its width
+ * still binds, to the same number as before.
+ */
+export function fitZoom(content: Size, viewport: Viewport): number {
+    return Math.min(viewport.width / content.width, viewport.height / content.height)
 }
 
 /** The zoom clamp `MapControls` enforces: fit at the bottom, 200× fit at the top. */
-export function zoomRange(contentWidth: number, viewport: Viewport): { min: number, max: number } {
-    const fit = fitZoom(contentWidth, viewport)
+export function zoomRange(content: Size, viewport: Viewport): { min: number, max: number } {
+    const fit = fitZoom(content, viewport)
 
     return { min: fit, max: fit * MAX_ZOOM_FACTOR }
 }
 
 /**
  * The frustum for a viewport. Height follows the viewport rather than the content: on a
- * 14:1 strip most of the screen is empty at fit, which is what fit-to-width has always
- * meant here.
+ * 14:1 strip most of the screen is empty at fit, which is what fitting a strip means.
  */
 export function pixelFrustum(viewport: Viewport): Frustum {
     const halfWidth = viewport.width * 0.5

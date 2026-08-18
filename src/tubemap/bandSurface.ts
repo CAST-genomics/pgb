@@ -587,7 +587,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
         // Fit moves with the viewport, so the clamp does too — and `update()` is what
         // pulls the current zoom back inside it.
-        const range = zoomRange(drawing.map.content.width, size)
+        const range = zoomRange(drawing.map.content, size)
 
         controls.minZoom = range.min
         controls.maxZoom = range.max
@@ -613,7 +613,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         const { camera, controls } = context
 
         camera.position.set(0, 0, 5)
-        camera.zoom = zoomRange(drawing.map.content.width, size).min
+        camera.zoom = zoomRange(drawing.map.content, size).min
 
         // `controls.update()` rebuilds the projection matrix only when it changes the
         // zoom itself. Setting it here and leaving that to the controls opens the map at
@@ -1078,7 +1078,7 @@ function renderThumbnail(context: Context, content: Size, size: Size, pixelRatio
     camera.near = 0.1
     camera.far = 100
     camera.position.set(0, 0, 5)
-    camera.zoom = fitZoom(content.width, size)
+    camera.zoom = fitZoom(content, size)
     frameCamera(camera, size)
 
     const surfaceCoverage = {

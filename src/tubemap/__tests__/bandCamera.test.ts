@@ -24,21 +24,48 @@ import {
 
 describe('fitZoom', () => {
 
-    it('is the pixels-per-unit that shows the content’s whole width', () => {
-        expect(fitZoom(1000, { width: 500, height: 300 })).toBe(0.5)
-        expect(fitZoom(1000, { width: 2000, height: 300 })).toBe(2)
+    /** A strip: 1000 × 60, so the width binds at every viewport used here. */
+    const strip = { width: 1000, height: 60 }
+
+    it('is the pixels-per-unit that shows a strip’s whole width', () => {
+        expect(fitZoom(strip, { width: 500, height: 300 })).toBe(0.5)
+        expect(fitZoom(strip, { width: 2000, height: 300 })).toBe(2)
     })
 
-    it('ignores the viewport’s height, because fit is to width', () => {
-        expect(fitZoom(1000, { width: 500, height: 300 }))
-            .toBe(fitZoom(1000, { width: 500, height: 900 }))
+    it('ignores the viewport’s height for a strip, whose width binds', () => {
+        expect(fitZoom(strip, { width: 500, height: 300 }))
+            .toBe(fitZoom(strip, { width: 500, height: 900 }))
+    })
+
+    /**
+     * The case fit-to-width got wrong. il7's `141457` is 4717 × 7115 — 464 strands over a
+     * 90 bp span — so its height binds, and fitting its width would leave most of it off
+     * screen at the one zoom the clamp cannot go below.
+     */
+    it('is bound by the height of a map taller than it is wide', () => {
+        const tall = { width: 4717, height: 7115 }
+        const viewport = { width: 1299, height: 791 }
+
+        expect(fitZoom(tall, viewport)).toBeCloseTo(791 / 7115, 12)
+        expect(fitZoom(tall, viewport)).toBeLessThan(1299 / 4717)
+    })
+
+    it('puts every map wholly on screen at fit, which is what the navigator means by fit', () => {
+        const viewport = { width: 1299, height: 791 }
+
+        for (const content of [{ width: 35562, height: 6325 }, { width: 4717, height: 7115 }]) {
+            const zoom = fitZoom(content, viewport)
+
+            expect(content.width * zoom).toBeLessThanOrEqual(viewport.width + 1e-9)
+            expect(content.height * zoom).toBeLessThanOrEqual(viewport.height + 1e-9)
+        }
     })
 })
 
 describe('zoomRange', () => {
 
     it('bottoms out at fit and tops out 200× above it', () => {
-        const range = zoomRange(1000, { width: 500, height: 300 })
+        const range = zoomRange({ width: 1000, height: 60 }, { width: 500, height: 300 })
 
         expect(range.min).toBe(0.5)
         expect(range.max).toBe(0.5 * MAX_ZOOM_FACTOR)
@@ -47,7 +74,7 @@ describe('zoomRange', () => {
     it('holds the ceiling at 200× so a band stays reachable on the widest strip', () => {
         // 5514+ is 177,994 units wide; a band is 15. At the ceiling that is ~0.47 css px
         // per band under the SVG surface's 4× cap and 23 px here.
-        const range = zoomRange(177993.57, { width: 1400, height: 900 })
+        const range = zoomRange({ width: 177993.57, height: 7785 }, { width: 1400, height: 900 })
 
         expect(15 * range.max).toBeGreaterThan(20)
     })
@@ -75,7 +102,7 @@ describe('pixelFrustum', () => {
         const viewport = { width: 1400, height: 900 }
         const frame = pixelFrustum(viewport)
 
-        expect((frame.right - frame.left) / fitZoom(108982.57, viewport)).toBeCloseTo(108982.57, 6)
+        expect((frame.right - frame.left) / fitZoom({ width: 108982.57, height: 7785 }, viewport)).toBeCloseTo(108982.57, 6)
     })
 })
 
@@ -111,7 +138,7 @@ describe('visibleContentRect', () => {
 
     it('is the whole map when the camera sits at the origin at fit zoom', () => {
         const viewport = { width: 1400, height: 900 }
-        const zoom = fitZoom(content.width, viewport)
+        const zoom = fitZoom(content, viewport)
         const visible = visibleContentRect({ x: 0, y: 0, zoom }, viewport, content)
 
         expect(visible.x).toBeCloseTo(0, 6)
