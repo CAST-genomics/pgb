@@ -108,6 +108,16 @@ class GenomicService {
 
     }
 
+    /**
+     * The parsed node, as the dataset holds it — the whole `NodeModel`, not the
+     * render-oriented summary in `nodeMetadata`. The context menu's tube map item needs
+     * `assemblies` and `defaultRange` to decide eligibility (`tubeMapTargetForNode`), and
+     * neither survives into `nodeMetadata`.
+     */
+    getNode(nodeName) {
+        return this._dataset ? this._dataset.nodes.get(nodeName) : undefined
+    }
+
     getAssemblyTrackModel(assemblyKey) {
         return this.assemblyTrackMap.get(assemblyKey)
     }
