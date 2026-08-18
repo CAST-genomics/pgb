@@ -41,6 +41,19 @@ import { shieldFromMap } from './surfacePointer.ts'
 const THUMBNAIL_WIDTH = 720
 
 /**
+ * And the ceiling on the other axis, as a fraction of the host's height.
+ *
+ * Width alone used to decide the widget, because every document it was tuned against was a
+ * wide strip and the height that followed from the aspect was always small. That is a
+ * property of those documents, not of the maps: `141457` of `il7.json` is 4717 × 7115 —
+ * 464 strands over a 90 bp span, **taller than it is wide** — and at width 720 its
+ * thumbnail came out 1086 px tall, covering the map it is a thumbnail of.
+ *
+ * A third of the host is the most a widget in the corner can take without being the view.
+ */
+const THUMBNAIL_HEIGHT_FRACTION = 1 / 3
+
+/**
  * Fill the thumbnail canvas, already sized to `size` CSS pixels at `pixelRatio` device
  * pixels per CSS pixel. May be async; a failure costs the picture, not the affordance.
  */
@@ -99,9 +112,18 @@ export function createNavigator(parent: HTMLElement, options: NavigatorOptions):
         return null === content ? 1 : thumbnail.width / content.width
     }
 
-    /** The widget's size at a given width, at the map's own aspect. */
-    function sizeFor(width: number, mapContent: Size): Size {
-        return { width, height: Math.max(1, Math.round(width * mapContent.height / mapContent.width)) }
+    /**
+     * The largest the map fits at its own aspect inside `bounds`. Both axes bind, so a
+     * strip is decided by the width and a tall map by the height, and neither can run past
+     * the box it was given.
+     */
+    function sizeWithin(bounds: Size, mapContent: Size): Size {
+        const scale = Math.min(bounds.width / mapContent.width, bounds.height / mapContent.height)
+
+        return {
+            width: Math.max(1, Math.round(mapContent.width * scale)),
+            height: Math.max(1, Math.round(mapContent.height * scale))
+        }
     }
 
     /**
@@ -113,9 +135,13 @@ export function createNavigator(parent: HTMLElement, options: NavigatorOptions):
      * the only place the navigator's position is decided.
      */
     function layout(mapContent: Size): void {
-        const available = parent.clientWidth - element.offsetLeft * 2
+        const availableWidth = parent.clientWidth - element.offsetLeft * 2
+        const availableHeight = parent.clientHeight * THUMBNAIL_HEIGHT_FRACTION
 
-        thumbnail = sizeFor(Math.max(1, Math.min(THUMBNAIL_WIDTH, available)), mapContent)
+        thumbnail = sizeWithin({
+            width: Math.max(1, Math.min(THUMBNAIL_WIDTH, availableWidth)),
+            height: Math.max(1, Math.min(THUMBNAIL_WIDTH, availableHeight))
+        }, mapContent)
 
         element.style.width = `${thumbnail.width}px`
         element.style.height = `${thumbnail.height}px`
@@ -218,7 +244,10 @@ export function createNavigator(parent: HTMLElement, options: NavigatorOptions):
             // CSS from there. So a resize costs no repaint, a host that widens later gets
             // a sharp thumbnail rather than a stretched one, and a map that arrives while
             // the host is collapsed is not permanently a one-pixel picture.
-            const baked = sizeFor(THUMBNAIL_WIDTH, mapContent)
+            // Bounded on both axes for the same reason the widget is, and by the same
+            // number on each: a tall map baked at full width is a canvas taller than the
+            // screen, of which the widget would show a fraction.
+            const baked = sizeWithin({ width: THUMBNAIL_WIDTH, height: THUMBNAIL_WIDTH }, mapContent)
 
             canvas.width = Math.round(baked.width * ratio)
             canvas.height = Math.round(baked.height * ratio)

@@ -17,6 +17,18 @@
  * SVG surface passed it false because its highlight cost ~28 ms a swap, and there is no
  * longer a caller with a reason to leave the mode unreachable. The key is always live.
  *
+ * ## The key is claimed only under the cursor
+ *
+ * The listeners are the window's, because a key has no position and because a window that
+ * loses focus never reports the key coming up. **Entering** the mode, though, is a claim on
+ * a key the rest of PGB and the OS also use, and the panel is one card floating over an app
+ * that is still running underneath it: `Shift` held over the 3D graph, or as part of a
+ * screen-capture shortcut, used to arm the feeler and put its badge on screen.
+ *
+ * So the mode is entered only while the pointer is over the surface, and leaving with the
+ * key down ends it. Key-up ends it from anywhere, deliberately — a mode that could only be
+ * left where it was entered would strand the surface in it.
+ *
  * The module survives the surface it was factored out for, because what it owns is still
  * one coherent thing and still not the surface's: the listeners, the flag, the
  * `is-feeling` class the stylesheet hangs the cursor off, and the badge — including the
@@ -54,6 +66,8 @@ export function watchFeelerKey(options: FeelerKeyOptions): FeelerKey {
     root.append(badge)
 
     let held = false
+    /** Whether the pointer is over the surface. Only then does `Shift` mean anything here. */
+    let under = false
 
     function enter(): void {
         if (held) {
@@ -76,7 +90,7 @@ export function watchFeelerKey(options: FeelerKeyOptions): FeelerKey {
     }
 
     function onKeyDown(event: KeyboardEvent): void {
-        if ('Shift' === event.key) {
+        if ('Shift' === event.key && under) {
             enter()
         }
     }
@@ -92,6 +106,23 @@ export function watchFeelerKey(options: FeelerKeyOptions): FeelerKey {
     function onBlur(): void {
         leave()
     }
+
+    function onPointerOver(): void {
+        under = true
+    }
+
+    // `pointermove` as well as `pointerenter`: a card mounted under a stationary cursor gets
+    // no enter event, and the first move is the earliest honest moment to say the pointer is
+    // here. Leaving ends the mode as well as the claim — the badge belongs to the surface
+    // the cursor is on.
+    function onPointerOut(): void {
+        under = false
+        leave()
+    }
+
+    root.addEventListener('pointerenter', onPointerOver)
+    root.addEventListener('pointermove', onPointerOver)
+    root.addEventListener('pointerleave', onPointerOut)
 
     view.addEventListener('keydown', onKeyDown)
     view.addEventListener('keyup', onKeyUp)
@@ -111,6 +142,9 @@ export function watchFeelerKey(options: FeelerKeyOptions): FeelerKey {
             view.removeEventListener('keydown', onKeyDown)
             view.removeEventListener('keyup', onKeyUp)
             view.removeEventListener('blur', onBlur)
+            root.removeEventListener('pointerenter', onPointerOver)
+            root.removeEventListener('pointermove', onPointerOver)
+            root.removeEventListener('pointerleave', onPointerOut)
             badge.remove()
         }
     }
