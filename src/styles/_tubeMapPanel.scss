@@ -46,12 +46,19 @@
   }
 
   // Entering fullscreen makes the card the whole screen, so its floating geometry — the
-  // margins that place it, the size it was dragged to, the grip that changes that size —
+  // margins that place it, the position it was dragged to, the size the grip gave it —
   // has nothing left to describe.
+  //
+  // `!important` throughout, and `inset` rather than `margin`, because every one of those
+  // values is *inline*: `Draggable` writes `left`/`top` on the element, and the UA resize
+  // grip writes `width`/`height` there too. A stylesheet loses to both, so without this the
+  // ordinary path — open the panel, drag it aside, size it, then hit ⛶ — put a small card
+  // adrift in the middle of a black fullscreen backdrop.
   &:fullscreen {
-    margin: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
     max-width: none;
     max-height: none;
     resize: none;

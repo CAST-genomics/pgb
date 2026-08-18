@@ -30,7 +30,15 @@
  *
  * There is no navbar button. Unlike the PCLAI chart the panel is meaningless without a
  * node, so a button that opened it empty would be a dead affordance — the context menu
- * (#92) is the way in, and `open()` is what it calls.
+ * (#92) is the way in, and `open()` is what it calls. It is also the way *back* in, which
+ * is what makes `close()` safe to offer: a card with no dismissal would sit over the graph
+ * until the locus changed, and closing costs nothing that re-opening does not restore,
+ * because the surface stays mounted.
+ *
+ * The card is appended to `document.body` and its ancestors are styled by nothing, which is
+ * what keeps fullscreen honest — a transformed or `contain`-ed ancestor would make the
+ * fullscreen element paint inside that ancestor's box. The viewer's own `contain: layout
+ * paint` sits on `.stm-root`, a *descendant*, and constrains nothing above it.
  */
 
 import eventBus from './utils/eventBus.ts'
@@ -41,8 +49,6 @@ import { mountTubeMapSurface, type TubeMapSurfaceHandle } from './tubemap/tubeMa
 const CONTAINER_ID = 'tube-map-panel-container'
 
 export interface TubeMapPanelOptions {
-    /** The card's element id. One panel is the rule, so the default is the only one there is. */
-    containerId?: string
     /**
      * How the surface gets mounted. Injected only so the panel's own behaviour can be
      * tested without a WebGL context; PGB always takes the default.
@@ -74,20 +80,27 @@ export interface TubeMapPanelHandle {
  * after the map. Coordinates are grouped because a nine-digit run is unreadable, and the
  * id is the bare `minigraphnode` the API takes rather than PGB's oriented `5519+`, so the
  * header names what was actually asked for.
+ *
+ * Written here rather than reused: #91 asked for the viewer's `formatLocus`/`formatLength`,
+ * and neither exists — in the viewer or anywhere else in PGB. What exists is
+ * `prettyPrint` in `src/utils/utils.js`, which groups one number and is not a locus, and
+ * `formatBases` in `src/tubemap/segmentOverlay.ts`, which is a segment's length in a
+ * tooltip. If a locus formatter is ever wanted in more than one place, this is the one to
+ * lift.
  */
 export function formatPanelTitle({ minigraphnode, chrom, start, end }: SeqTubeMapTarget): string {
-    return `${minigraphnode} · ${chrom}:${group(start)}-${group(end)}`
+    return `${minigraphnode} · ${chrom}:${formatCoordinate(start)}-${formatCoordinate(end)}`
 }
 
-function group(coordinate: number): string {
+function formatCoordinate(coordinate: number): string {
     return coordinate.toLocaleString('en-US')
 }
 
 export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPanelHandle {
 
-    const { containerId = CONTAINER_ID, mountSurface = mountTubeMapSurface } = options
+    const { mountSurface = mountTubeMapSurface } = options
 
-    const { card, title, fullscreenButton, closeButton, body } = createCardDOM(containerId)
+    const { card, title, fullscreenButton, closeButton, body } = createCardDOM()
 
     const surface = mountSurface(body)
     const draggable = new Draggable(card)
@@ -150,10 +163,12 @@ interface CardDOM {
  * The card, built here rather than in `index.html`, because it is created on a click and
  * destroyed on a locus change — markup that spends most of the session absent.
  */
-function createCardDOM(containerId: string): CardDOM {
+function createCardDOM(): CardDOM {
     const card = document.createElement('div')
-    card.id = containerId
-    card.className = 'tube-map-panel__card card position-absolute'
+    card.id = CONTAINER_ID
+    // Positioned by `_tubeMapPanel.scss`, which is where the card's geometry lives; a
+    // Bootstrap positioning class here would be a second place to look for it.
+    card.className = 'tube-map-panel__card card'
     card.hidden = true
 
     const header = document.createElement('div')
