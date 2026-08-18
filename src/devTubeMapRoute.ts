@@ -6,6 +6,9 @@
  * *which* URL is the host's job, and this one decides it the crudest way there is — a query
  * parameter and a text field. `mountTubeMapPanel` (#91) is the real host and makes the same
  * call; the context menu (#92) is what will finally build the URL from a clicked node.
+ * The panel has a dev page of its own — `dev/tubemap-panel.html` — because the card, its
+ * resize grip and its fullscreen button are a different thing to look at than the surface;
+ * this page stays the one that mounts the viewer alone.
  *
  * Reachable at `/dev/tubemap.html` under `npm run dev` and nowhere else. The dev server
  * serves every HTML file under the project root; the build starts from its inputs, and
