@@ -1,7 +1,10 @@
 # Sequence Tube Map — Integration Punch List
 
-**Status:** In progress. Steps 1–4 landed 2026-08-17 and step 5 on 2026-08-18; four remain.
-Tick items here as they land, and update this line when the work is done.
+**Status:** Done. Steps 1–4 landed 2026-08-17 and steps 5–8 on 2026-08-18, the last of them
+in [#99](https://github.com/CAST-genomics/pgb/pull/99), which made the viewer user-reachable.
+Step 9 was **reversed** rather than completed: the spike is not archived, it becomes a
+research laboratory. Epic [#85](https://github.com/CAST-genomics/pgb/issues/85) is closed and
+this checklist is now a record rather than a plan.
 **Date:** 2026-08-17
 **Decisions:** `docs/adr/0001-sequence-tube-map-panel.md` — that ADR, not
 this note, is the normative record. This is a working checklist and licenses nothing.
@@ -14,8 +17,9 @@ Base branch: `main`. Each item is one PR, landed incrementally.
 
 **Every PR body needs `Closes #<n>` on its own line.**
 
-Nothing is user-reachable until step 8. Step 4 adds the dev route, so steps 5–7 are
-testable without clicking through the 3D graph.
+Nothing was user-reachable until step 8. Step 4 adds the dev route, so steps 5–7 were
+testable without clicking through the 3D graph — and the dev route earns its keep past the
+migration, being the one way to open a captured document when the API is unreachable.
 
 ---
 
@@ -25,7 +29,7 @@ testable without clicking through the 3D graph.
 1 ─┐
 2 ─┼─► 4 ─► 5 ─┐
 3 ─┘           ├─► 7 ─┐
-      2 ─► 6 ──┴──────┴─► 8 ─► 9 (archive)
+      2 ─► 6 ──┴──────┴─► 8 ─► 9 (reversed: laboratory, not archive)
 ```
 
 Two orderings are load-bearing and not just tidy:
@@ -194,15 +198,25 @@ Model on `src/widgets/mountPclaiChart.js`.
 
 **First point at which the feature is user-reachable.**
 
-## 9. Archive the spike repo
+## 9. ~~Archive the spike repo~~ — the spike becomes a research laboratory
 
-- [ ] README → pointer to `pgb/src/tubemap/` and `pgb/docs/adr/0001`
-- [ ] Re-file spike #50, #48, #32, #58 on pgb under #85; close there with links
-- [ ] Leave spike #23 open-and-archived (UCSD's ~14 MB ceiling — theirs, not ours)
-- [ ] Leave behind as the lab notebook: `SPEC.md`, `docs/RENDERING.md`, all 17 notes, the
-      PNGs, the two 14 MB fixtures, and `CONTEXT.md` (its live constraints moved into the
-      ADR; its reversal history and measurements are the record)
-- [ ] GitHub-archive the repo
+**Status: reversed 2026-08-18**, once the viewer had shipped. The repo is *not* archived. It
+stays live as the place to explore visualization metaphors and affordances for making tube
+map data more tractable — work that wants a standalone surface and no obligation to be
+shippable, which a spike repo is for and PGB's tree is not. #85 carries the decision.
+
+- [ ] README → pointer to `pgb/src/tubemap/` and `pgb/docs/adr/0001`. The one item worth
+      keeping, and worth more now the repo stays live: two viewers exist, and without it
+      nothing says which one ships.
+- [x] ~~Re-file spike #50, #48, #32, #58 on pgb~~ — they stay in the spike, whose subject
+      they are. An answer arrives in PGB as a change to `src/tubemap/`, not as an issue move.
+- [x] ~~Leave spike #23 open-and-archived~~ — it stays open, in a live repo.
+- [x] ~~Leave behind as the lab notebook~~ — `SPEC.md`, `docs/RENDERING.md`, the notes, the
+      PNGs, the two 14 MB fixtures and `CONTEXT.md` all stay, and are working material now
+      rather than a sealed record.
+- [x] ~~GitHub-archive the repo~~ — reversed.
+
+The direction of travel is one-way: **the laboratory explores, PGB ships.**
 
 ---
 

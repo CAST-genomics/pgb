@@ -24,12 +24,11 @@ migrated: 2026-08-17
 >
 > - Every bare **`CONTEXT.md`** below is the **spike's** `CONTEXT.md` and its numbered
 >   decisions — *not* PGB's `CONTEXT.md`, which is a glossary with no numbered decisions in
->   it. The spike's copy stays in the archived repo as the record of how this was arrived
->   at.
+>   it. The spike's copy stays in that repo as the record of how this was arrived at.
 > - Bare **`src/…`** paths are the spike's, and land under **`src/tubemap/`** in PGB.
 >   Bare **`#NN`** are spike issues.
-> - `notes/…` links point into the archived spike repo, which is where the measurements
->   they name live.
+> - `notes/…` links point into the spike repo, which is where the measurements they name
+>   live.
 
 > **Measured 2026-08-14.** The decision below is confirmed by a working renderer rather
 > than by argument: 40,442 bands in one instanced draw call, 8.3–8.4 ms per frame from

@@ -194,6 +194,30 @@ re-checks. Stated plainly: **a regression that makes the feeler slow again will 
 caught by a test.** It will be caught by looking, which is how every rendering decision in
 this work was settled anyway.
 
+## The spike after the migration
+
+**Amended 2026-08-18, once the viewer had shipped.** This ADR was written expecting
+[`CAST-genomics/sequence-tube-map-spike`](https://github.com/CAST-genomics/sequence-tube-map-spike)
+to be GitHub-archived at the end of the migration, and every reference to it here and in
+[ADR 0002](0002-webgl-band-renderer.md) read as a pointer into a sealed record. That is
+reversed: the repo stays live, as a **research laboratory** for visualization metaphors and
+affordances that make tube map data more tractable. Such work wants a standalone surface and
+no obligation to be shippable, which is what a spike repo is for and what PGB's tree is not.
+
+The consequence that matters to a reader here is that **two implementations of this viewer
+now exist at once**, and this is the one that ships. So:
+
+- The direction of travel is one-way. The laboratory explores; a metaphor that earns its
+  place arrives in PGB as a change to `src/tubemap/` under this ADR's terms. A change does
+  not arrive as a second implementation to reconcile, and `src/tubemap/` is never
+  re-synchronised wholesale from the spike.
+- Its four open questions — strand disambiguation (spike #32, #50), hollow unscored strands
+  (#48), the slow-server spinner (#58) — stay there rather than being re-filed here. They are
+  the laboratory's subject. Cost 6 below is the same question, and nothing about it is
+  decided in either place.
+- Links into the spike's notes and `CONTEXT.md` stay good, and are now links into working
+  material rather than into an archive.
+
 ## Consequences
 
 **This ADR precedes the code it governs, deliberately** — see the epic,
