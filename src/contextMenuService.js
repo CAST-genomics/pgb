@@ -1,4 +1,5 @@
 import { globals } from "./main.js"
+import { applyTubeMapMenuItem, isMenuItemDisabled, showTubeMapPanel, tubeMapMenuState } from "./tubeMapMenuCommand.ts"
 
 class ContextMenuService {
     constructor(container, raycastService, genomicService) {
@@ -44,16 +45,23 @@ class ContextMenuService {
             <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px;">
                 <li data-action="copy-info" style="padding: 6px 12px; cursor: pointer; pointer-events: auto;">Copy Sequence</li>
                 <li data-action="assemblies" style="padding: 6px 12px; cursor: pointer; pointer-events: auto;">Copy Assemblies, Haplotypes, Sequence IDs, and BP Ranges</li>
+                <li data-action="sequence-tube-map" style="padding: 6px 12px; cursor: pointer; pointer-events: auto;">Sequence Tube Map</li>
             </ul>
         `;
 
+
+        // Rewritten on every right-click by `applyTubeMapMenuItem`: whether the clicked
+        // node has a tube map is a property of the node, not of the menu.
+        this.tubeMapItem = this.contextMenu.querySelector('li[data-action="sequence-tube-map"]');
 
         const listItems = this.contextMenu.querySelectorAll('li');
         for (const listItem of listItems) {
 
             listItem.addEventListener('mouseover', () => {
                 globals.app.disableTooltip()
-                listItem.style.backgroundColor = '#f0f0f0'
+                if (!isMenuItemDisabled(listItem)) {
+                    listItem.style.backgroundColor = '#f0f0f0'
+                }
             });
             listItem.addEventListener('mouseout', () => {
                 globals.app.enableTooltip()
@@ -64,6 +72,12 @@ class ContextMenuService {
             listItem.addEventListener('mousedown', (e) => {
                 e.stopPropagation();
                 e.preventDefault();
+                // A disabled item swallows the click rather than dismissing the menu: the
+                // reason it carries is the answer to "why did nothing happen?", and
+                // dismissing would take it away before it was read.
+                if (isMenuItemDisabled(listItem)) {
+                    return;
+                }
                 this.handleContextMenuAction(action);
             });
         }
@@ -81,6 +95,16 @@ class ContextMenuService {
     handleContextMenuAction(action) {
         if (!this.currentNodeName) {
             console.warn(`No current Node Name. Bailing.`)
+            return;
+        }
+
+        if (action === 'sequence-tube-map') {
+            // The state written onto the item when the menu was presented, so that what
+            // opens can never disagree with what the item said it would open.
+            if (this.tubeMapState && this.tubeMapState.enabled) {
+                showTubeMapPanel(this.tubeMapState.target);
+            }
+            this.dismissContextMenu();
             return;
         }
 
@@ -128,6 +152,8 @@ class ContextMenuService {
 
             const { nodeName } = intersection
             this.currentNodeName = nodeName
+            this.tubeMapState = tubeMapMenuState(this.genomicService.getNode(nodeName));
+            applyTubeMapMenuItem(this.tubeMapItem, this.tubeMapState);
             this.presentContextMenu(event);
         }
     }
