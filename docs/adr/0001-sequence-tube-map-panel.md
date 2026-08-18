@@ -88,6 +88,14 @@ per material and per texture if the render differs, and the fixture render is pi
 before and after. Never toggle it per frame — that makes correctness depend on render
 order.
 
+**Resolved 2026-08-18** ([#89](https://github.com/CAST-genomics/pgb/issues/89)). The
+assignment is gone and the flag was defensive, not load-bearing: the fixture render and
+PGB's own graph are both byte-identical either side of the deletion, so nothing needed
+setting per material or per texture. The renderer's `outputColorSpace` stays — that one is
+per instance, and the two viewers hold different answers at the same time. This cost is no
+longer accepted; it is paid. `src/tubemap/__tests__/colorManagementIsUntouched.test.ts`
+keeps it paid.
+
 ### 2. The 1D↔3D correspondence is weakened, and the panel occludes the graph
 
 **Flagged explicitly, as [`CLAUDE.md`](../../CLAUDE.md) requires**, rather than quietly

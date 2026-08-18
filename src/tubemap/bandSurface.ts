@@ -100,7 +100,6 @@
 
 import {
     BufferAttribute,
-    ColorManagement,
     type DataTexture,
     GLSL3,
     InstancedBufferAttribute,
@@ -134,10 +133,6 @@ import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
 import { canvasPoint, overChrome } from './surfacePointer.ts'
 import { APPEARANCE_ROW, createStrandAppearance, type StrandAppearance } from './strandAppearance.ts'
-
-// Bands carry the colours the document gave them, byte for byte. We are reproducing a
-// picture, not lighting a scene, so nothing converts colour anywhere.
-ColorManagement.enabled = false
 
 /** Quads per band along its span. See the note on tessellation error above. */
 export const RUNGS = 64
@@ -488,7 +483,16 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             )
         }
 
+        // Bands carry the colours the document gave them, byte for byte: we are reproducing
+        // a picture, not lighting a scene. Nothing here converts colour, and nothing needs
+        // the `ColorManagement` global turned off to keep it that way (`pgb#89`) — the
+        // bands are a `RawShaderMaterial`, which three appends no conversion to, over a
+        // `DataTexture` left at `NoColorSpace`. This is per renderer, so PGB's own renderer
+        // — which does light a scene, and wants sRGB output — is untouched by it.
         renderer.outputColorSpace = LinearSRGBColorSpace
+
+        // White and black are the two colours the sRGB transfer function fixes, so the
+        // clears come out the same whatever the global happens to say.
         renderer.setClearColor(0xffffff, 1)
 
         const scene = new Scene()
