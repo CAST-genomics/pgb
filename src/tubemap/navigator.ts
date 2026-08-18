@@ -37,8 +37,15 @@ import { shieldFromMap } from './surfacePointer.ts'
  * At 720 the same two are 51 px and 26 px, both showing where the strands swap and where
  * the strip narrows — landmarks a researcher can aim at. See
  * `notes/2026-08-14-navigator-thumbnail-aspect.md`.
+ *
+ * **Taken to 75% of that area on 2026-08-18**, looking at it in the panel: the widget was
+ * right about the map and too loud beside it. Area, so each axis gets `sqrt(0.75)` ≈ 0.866
+ * and the height ceiling below moves with it; scaling one axis alone would change the box
+ * the thumbnail is fitted into and, on one shape of map or the other, its size on screen.
+ * 720 × 0.866 is 624, which puts the 28:1 `5514+` at 22 px rather than 26 — still the
+ * picture the note called legible, and closer to the 13 px it called a hairline than it was.
  */
-const THUMBNAIL_WIDTH = 720
+const THUMBNAIL_WIDTH = 624
 
 /**
  * And the ceiling on the other axis, as a fraction of the host's height.
@@ -49,9 +56,10 @@ const THUMBNAIL_WIDTH = 720
  * 464 strands over a 90 bp span, **taller than it is wide** — and at width 720 its
  * thumbnail came out 1086 px tall, covering the map it is a thumbnail of.
  *
- * A third of the host is the most a widget in the corner can take without being the view.
+ * A third of the host was the most a widget in the corner could take without being the
+ * view; `sqrt(0.75)` of that is what the 75% reduction above leaves it.
  */
-const THUMBNAIL_HEIGHT_FRACTION = 1 / 3
+const THUMBNAIL_HEIGHT_FRACTION = 0.289
 
 /**
  * Fill the thumbnail canvas, already sized to `size` CSS pixels at `pixelRatio` device

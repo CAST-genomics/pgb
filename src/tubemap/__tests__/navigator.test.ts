@@ -51,8 +51,8 @@ describe('navigator layout', () => {
         // The committed fixture's content size — 5.6:1.
         await navigator.setMap({ width: 35562, height: 6325 }, paintNothing)
 
-        expect(widget(parent).style.width).toBe('720px')
-        expect(widget(parent).style.height).toBe('128px')
+        expect(widget(parent).style.width).toBe('624px')
+        expect(widget(parent).style.height).toBe('111px')
     })
 
     it('fits a map taller than it is wide inside the host, rather than filling it', async () => {
@@ -66,8 +66,8 @@ describe('navigator layout', () => {
         const width = Number.parseFloat(size.style.width)
         const height = Number.parseFloat(size.style.height)
 
-        expect(height).toBeLessThanOrEqual(700 * 0.35)
-        expect(width).toBeLessThan(720)
+        expect(height).toBeLessThanOrEqual(700 * 0.29)
+        expect(width).toBeLessThan(624)
         // Still the map's own aspect — a thumbnail of a different shape is a lie.
         expect(width / height).toBeCloseTo(4717 / 7115, 2)
     })
@@ -78,7 +78,7 @@ describe('navigator layout', () => {
 
         await navigator.setMap({ width: 4717, height: 7115 }, paintNothing)
 
-        expect(Number.parseFloat(widget(parent).style.height)).toBeLessThanOrEqual(300 * 0.35)
+        expect(Number.parseFloat(widget(parent).style.height)).toBeLessThanOrEqual(300 * 0.29)
     })
 
     it('keeps a strip inside a narrow host, which was already true', async () => {

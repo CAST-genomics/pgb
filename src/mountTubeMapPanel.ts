@@ -61,7 +61,7 @@ const HOST_SELECTOR = '#pgb-three-container'
  * opening size this replaces was legible but spent most of a right-click on a card the user
  * then had to resize. The grip and fullscreen are still there for the rest.
  */
-const HOST_AREA_FRACTION = 0.85
+export const HOST_AREA_FRACTION = 0.75
 
 export interface TubeMapPanelOptions {
     /**

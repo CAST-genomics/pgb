@@ -12,7 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import eventBus from '../utils/eventBus.ts'
 import { buildSeqTubeMapURL, type SeqTubeMapTarget } from '../pangenomeURL.ts'
-import { mountTubeMapPanel, formatPanelTitle, panelGeometryForHost } from '../mountTubeMapPanel.ts'
+import { mountTubeMapPanel, formatPanelTitle, panelGeometryForHost, HOST_AREA_FRACTION } from '../mountTubeMapPanel.ts'
 import type { TubeMapSurfaceHandle } from '../tubemap/tubeMapSurface.ts'
 
 const TARGET: SeqTubeMapTarget = {
@@ -75,12 +75,14 @@ function hostRect(width: number, height: number, left = 0, top = 0): DOMRect {
 
 describe('panelGeometryForHost', () => {
 
-    it('covers 85% of the host by area — about 92% of each axis', () => {
+    it('covers HOST_AREA_FRACTION of the host by area, on both axes alike', () => {
         const geometry = panelGeometryForHost(hostRect(1000, 1000), { x: 0, y: 0 })!
 
-        expect(geometry.width).toBe(922)
-        expect(geometry.height).toBe(922)
-        expect((geometry.width * geometry.height) / (1000 * 1000)).toBeCloseTo(0.85, 2)
+        // Asserted against the constant rather than a pinned pixel count: the fraction is
+        // a matter of taste and gets tuned by looking at it, and a test that has to be
+        // edited to change it says nothing about whether the arithmetic is right.
+        expect(geometry.width).toBe(geometry.height)
+        expect((geometry.width * geometry.height) / (1000 * 1000)).toBeCloseTo(HOST_AREA_FRACTION, 2)
     })
 
     it('centres the card on the host, in page coordinates', () => {
@@ -113,8 +115,9 @@ describe('mountTubeMapPanel', () => {
         panel = mountTubeMapPanel({ mountSurface: spy.mountSurface, host })
 
         const styled = card()!.style
-        expect(styled.width).toBe('1106px')
-        expect(styled.height).toBe('830px')
+        const expected = panelGeometryForHost(hostRect(1200, 900, 0, 0), { x: 0, y: 0 })!
+        expect(styled.width).toBe(`${expected.width}px`)
+        expect(styled.height).toBe(`${expected.height}px`)
         // The margins that placed the card are gone, or they would offset what was just set.
         expect(styled.margin).toBe('0px')
     })
