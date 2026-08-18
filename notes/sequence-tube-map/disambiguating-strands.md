@@ -15,7 +15,7 @@ are tried and as some of them fail. Migrated from the spike repo 2026-08-17.
 > [`CAST-genomics/sequence-tube-map-spike`](https://github.com/CAST-genomics/sequence-tube-map-spike)
 > and left in its own voice: bare `#NN` are spike issues, `SPEC.md` and `CONTEXT.md` are the
 > spike's, bare `src/…` paths land under `src/tubemap/` in PGB, and `notes/…` links point
-> into the archived spike repo where the measurements live.
+> into the spike repo where the measurements live.
 
 The problem itself is pinned in **#32**, which measured it and deliberately stopped there.
 This document is the layer above the tickets that build pieces of an answer — **#38**
