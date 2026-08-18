@@ -140,6 +140,57 @@ export function panelGeometryForHost(host: DOMRect, scroll = { x: window.scrollX
     }
 }
 
+/** The four inline properties that say where a floating card is and how big it is. */
+interface FloatingGeometry {
+    width: string
+    height: string
+    left: string
+    top: string
+}
+
+/**
+ * `geometry`'s position, moved the least it takes to put the card inside the window.
+ *
+ * Exists because the card's `left`/`top` are page coordinates written once — at mount, by
+ * `Draggable`, or by the resize grip — and nothing re-checks them against a window that has
+ * since changed size. Restoring them after fullscreen is the moment that matters: a card
+ * put back at coordinates the viewport no longer contains has, from the researcher's side
+ * of the screen, simply vanished.
+ *
+ * Measured from the card's own box, so a card larger than the window is pinned to the
+ * top-left rather than pushed off the other way. Left alone when the position is not a
+ * pixel value — a stylesheet-placed card is the stylesheet's business.
+ */
+export function clampIntoView(
+    card: HTMLElement,
+    geometry: FloatingGeometry,
+    viewport = { width: window.innerWidth, height: window.innerHeight },
+    scroll = { x: window.scrollX, y: window.scrollY }
+): { left: string; top: string } {
+
+    const left = parsePixels(geometry.left)
+    const top = parsePixels(geometry.top)
+
+    if (null === left || null === top) return { left: geometry.left, top: geometry.top }
+
+    const { width, height } = card.getBoundingClientRect()
+
+    return {
+        left: `${clamp(left, scroll.x, scroll.x + Math.max(0, viewport.width - width))}px`,
+        top: `${clamp(top, scroll.y, scroll.y + Math.max(0, viewport.height - height))}px`,
+    }
+}
+
+function clamp(value: number, low: number, high: number): number {
+    return Math.min(Math.max(value, low), Math.max(low, high))
+}
+
+function parsePixels(value: string): number | null {
+    if (!value.endsWith('px')) return null
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : null
+}
+
 export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPanelHandle {
 
     const { mountSurface = mountTubeMapSurface, host = document.querySelector<HTMLElement>(HOST_SELECTOR) } = options
@@ -157,14 +208,47 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
 
     let destroyed = false
 
+    /**
+     * The card's inline geometry as it was the moment before fullscreen took it, or `null`
+     * when the card is not on its way through fullscreen. `close` clears it: a panel
+     * dismissed from fullscreen is not owed its old size back on the way out, and putting
+     * it back would fight the hide.
+     */
+    let floatingGeometry: FloatingGeometry | null = null
+
     function open(target: SeqTubeMapTarget, url: string = buildSeqTubeMapURL(target)): void {
         title.textContent = formatPanelTitle(target)
         card.hidden = false
         void surface.open(url)
     }
 
+    // Leaving fullscreen is part of going away, not a separate thing the user has to
+    // remember to do first. Hiding the card while it is the fullscreen element does not
+    // end fullscreen — the document stays in it with nothing painted, which is a black
+    // screen the app cannot be driven out of: no graph to right-click, so no way to open
+    // the panel that would restore it. The two adjacent header buttons make that one
+    // mis-click away, so `close` owns the exit.
     function close(): void {
+        floatingGeometry = null
+        leaveFullscreen()
         card.hidden = true
+    }
+
+    /** True while this card — not some other element, and not nothing — is fullscreen. */
+    function isFullscreen(): boolean {
+        return card.ownerDocument.fullscreenElement === card
+    }
+
+    /**
+     * Leave fullscreen if this card is in it, and say nothing when it is not.
+     *
+     * The rejection is swallowed deliberately: `exitFullscreen` rejects when the document
+     * left fullscreen between the check and the call — Esc, a tab switch, the UA's own
+     * control — and in every one of those cases the state asked for has already arrived.
+     */
+    function leaveFullscreen(): void {
+        if (!isFullscreen()) return
+        void card.ownerDocument.exitFullscreen?.().catch(() => {})
     }
 
     // The card is what goes fullscreen, not the body: the header is the only thing saying
@@ -172,15 +256,79 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
     // nothing in particular. The viewer's ResizeObserver does the rest — entering and
     // leaving are both just a resize of its root.
     function toggleFullscreen(): void {
-        if (card.ownerDocument.fullscreenElement === card) {
-            void card.ownerDocument.exitFullscreen()
+        if (isFullscreen()) {
+            leaveFullscreen()
             return
         }
-        void card.requestFullscreen()
+
+        floatingGeometry = readGeometry()
+
+        // Rejected when the browser refuses the request — a gesture it did not count as
+        // one, a permissions policy. The card stays where it is, which is the honest
+        // outcome; an unhandled rejection in the console is not.
+        void card.requestFullscreen().catch(() => { floatingGeometry = null })
+    }
+
+    /**
+     * What every exit from fullscreen does, whichever one it was: the button, Esc, the UA's
+     * own control, or another element taking fullscreen away.
+     *
+     * The card is **put back explicitly** rather than left to the UA. Its floating geometry
+     * is four inline properties — `Draggable` writes `left`/`top`, the resize grip writes
+     * `width`/`height` — and going fullscreen means a stylesheet rule overriding all four
+     * with `!important`. Whether unwinding that leaves the card where it was is a question
+     * about a UA's top-layer bookkeeping, and this panel's whole job on exit is that the
+     * researcher gets back the card they had. So it is restored from a value read on the
+     * way in, and clamped into the viewport on the way out — a card restored to coordinates
+     * the window no longer contains is gone as surely as a hidden one.
+     */
+    function restoreFloatingGeometry(): void {
+        if (isFullscreen() || null === floatingGeometry) return
+
+        const geometry = floatingGeometry
+        floatingGeometry = null
+
+        card.style.width = geometry.width
+        card.style.height = geometry.height
+
+        const { left, top } = clampIntoView(card, geometry)
+        card.style.left = left
+        card.style.top = top
+    }
+
+    /**
+     * The card's floating geometry as four inline values, kept as strings so an empty one —
+     * a card never dragged or sized, placed by the stylesheet's margins — is restored as
+     * empty rather than frozen at whatever it computed to.
+     */
+    function readGeometry(): FloatingGeometry {
+        return {
+            width: card.style.width,
+            height: card.style.height,
+            left: card.style.left,
+            top: card.style.top,
+        }
+    }
+
+    /**
+     * Keep the button describing the way out rather than the way in, for every way in and
+     * out there is: the button, Esc, and the UA's own fullscreen control all arrive here.
+     */
+    function syncFullscreenButton(): void {
+        const label = isFullscreen() ? 'Exit fullscreen' : 'Fullscreen'
+        fullscreenButton.title = label
+        fullscreenButton.setAttribute('aria-label', label)
+        fullscreenButton.setAttribute('aria-pressed', String(isFullscreen()))
+    }
+
+    function onFullscreenChange(): void {
+        restoreFloatingGeometry()
+        syncFullscreenButton()
     }
 
     closeButton.addEventListener('click', close)
     fullscreenButton.addEventListener('click', toggleFullscreen)
+    card.ownerDocument.addEventListener('fullscreenchange', onFullscreenChange)
 
     const datasetUnsub = eventBus.subscribe('datasetLoaded', () => destroy())
 
@@ -189,8 +337,14 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
         destroyed = true
 
         datasetUnsub()
+        // Before the card leaves the document: a fullscreen element that is removed does
+        // end fullscreen, but only once the removal happens, and `destroy` runs on a
+        // locus change the user did not connect to the panel at all.
+        floatingGeometry = null
+        leaveFullscreen()
         closeButton.removeEventListener('click', close)
         fullscreenButton.removeEventListener('click', toggleFullscreen)
+        card.ownerDocument.removeEventListener('fullscreenchange', onFullscreenChange)
         draggable.destroy()
         surface.destroy()
         card.remove()

@@ -12,7 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import eventBus from '../utils/eventBus.ts'
 import { buildSeqTubeMapURL, type SeqTubeMapTarget } from '../pangenomeURL.ts'
-import { mountTubeMapPanel, formatPanelTitle, panelGeometryForHost, HOST_AREA_FRACTION } from '../mountTubeMapPanel.ts'
+import { mountTubeMapPanel, formatPanelTitle, panelGeometryForHost, clampIntoView, HOST_AREA_FRACTION } from '../mountTubeMapPanel.ts'
 import type { TubeMapSurfaceHandle } from '../tubemap/tubeMapSurface.ts'
 
 const TARGET: SeqTubeMapTarget = {
@@ -47,6 +47,23 @@ function card(): HTMLElement | null {
 
 let panel: { destroy(): void } | null = null
 
+/**
+ * Put `element` in fullscreen as far as this file is concerned, and hand back the spy
+ * standing in for `exitFullscreen`. jsdom implements neither, and both are the whole
+ * subject of the tests below — a card that hides without leaving fullscreen takes the app
+ * with it.
+ */
+function enterFullscreen(element: HTMLElement | null): ReturnType<typeof vi.fn> {
+    const exit = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => element })
+    Object.defineProperty(document, 'exitFullscreen', { configurable: true, writable: true, value: exit })
+    return exit
+}
+
+function clearFullscreen(): void {
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => null })
+}
+
 beforeEach(() => {
     document.body.replaceChildren()
 })
@@ -54,6 +71,7 @@ beforeEach(() => {
 afterEach(() => {
     panel?.destroy()
     panel = null
+    clearFullscreen()
     eventBus.clearEvent('datasetLoaded')
 })
 
@@ -208,6 +226,140 @@ describe('mountTubeMapPanel', () => {
         expect(request).toHaveBeenCalledTimes(1)
     })
 
+    it('toggling off exits fullscreen rather than asking for it twice', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        const element = card()!
+        const request = vi.fn().mockResolvedValue(undefined)
+        ;(element as any).requestFullscreen = request
+        const exit = enterFullscreen(element)
+
+        element.querySelector<HTMLButtonElement>('.tube-map-panel__fullscreen')!.click()
+
+        expect(exit).toHaveBeenCalledTimes(1)
+        expect(request).not.toHaveBeenCalled()
+    })
+
+    it('closing while fullscreen leaves fullscreen: a hidden fullscreen card is a black screen', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        handle.open(TARGET)
+        const element = card()!
+        const exit = enterFullscreen(element)
+
+        element.querySelector<HTMLButtonElement>('.tube-map-panel__close')!.click()
+
+        expect(exit).toHaveBeenCalledTimes(1)
+        expect(element.hidden).toBe(true)
+    })
+
+    it('leaves fullscreen when nothing is in it, quietly', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        const exit = enterFullscreen(null)
+
+        card()!.querySelector<HTMLButtonElement>('.tube-map-panel__close')!.click()
+
+        expect(exit).not.toHaveBeenCalled()
+    })
+
+    it('a locus change leaves fullscreen as well as taking the card away', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        handle.open(TARGET)
+        const exit = enterFullscreen(card()!)
+
+        eventBus.publish('datasetLoaded', { dataset: {} as never })
+
+        expect(exit).toHaveBeenCalledTimes(1)
+        expect(card()).toBeNull()
+    })
+
+    it('labels the button with the way out while fullscreen, however it was entered', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        const button = card()!.querySelector<HTMLButtonElement>('.tube-map-panel__fullscreen')!
+        expect(button.title).toBe('Fullscreen')
+
+        enterFullscreen(card()!)
+        document.dispatchEvent(new Event('fullscreenchange'))
+        expect(button.title).toBe('Exit fullscreen')
+        expect(button.getAttribute('aria-pressed')).toBe('true')
+
+        enterFullscreen(null)
+        document.dispatchEvent(new Event('fullscreenchange'))
+        expect(button.title).toBe('Fullscreen')
+        expect(button.getAttribute('aria-pressed')).toBe('false')
+    })
+
+    it('puts the card back at the size and place fullscreen took it from', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        handle.open(TARGET)
+        const element = card()!
+        // What a drag and a grip-resize leave behind: four inline values, and the only
+        // record of the size the researcher chose.
+        element.style.width = '640px'
+        element.style.height = '300px'
+        element.style.left = '120px'
+        element.style.top = '80px'
+
+        ;(element as any).requestFullscreen = vi.fn().mockResolvedValue(undefined)
+        const button = element.querySelector<HTMLButtonElement>('.tube-map-panel__fullscreen')!
+
+        button.click()
+        enterFullscreen(element)
+        document.dispatchEvent(new Event('fullscreenchange'))
+
+        // The UA is entitled to leave the card anywhere on the way out; the panel is not
+        // entitled to hand back anything but what it was given.
+        element.style.width = '100%'
+        element.style.height = '100%'
+        element.style.left = '0px'
+        element.style.top = '0px'
+
+        enterFullscreen(null)
+        document.dispatchEvent(new Event('fullscreenchange'))
+
+        expect(element.style.width).toBe('640px')
+        expect(element.style.height).toBe('300px')
+        expect(element.style.left).toBe('120px')
+        expect(element.style.top).toBe('80px')
+        expect(element.hidden).toBe(false)
+    })
+
+    it('restores nothing when the card was closed from fullscreen: the hide stands', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        handle.open(TARGET)
+        const element = card()!
+        ;(element as any).requestFullscreen = vi.fn().mockResolvedValue(undefined)
+
+        element.querySelector<HTMLButtonElement>('.tube-map-panel__fullscreen')!.click()
+        enterFullscreen(element)
+        document.dispatchEvent(new Event('fullscreenchange'))
+
+        element.querySelector<HTMLButtonElement>('.tube-map-panel__close')!.click()
+        enterFullscreen(null)
+        document.dispatchEvent(new Event('fullscreenchange'))
+
+        expect(element.hidden).toBe(true)
+    })
+
     it('is destroyed by a locus change: node ids do not survive one', () => {
         const spy = surfaceSpy()
         const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
@@ -241,5 +393,44 @@ describe('mountTubeMapPanel', () => {
 
         expect(spy.destroy).toHaveBeenCalledTimes(1)
         expect(card()).toBeNull()
+    })
+})
+
+
+describe('clampIntoView', () => {
+
+    /** A card of a known size, since jsdom lays nothing out. */
+    function sized(width: number, height: number): HTMLElement {
+        const element = document.createElement('div')
+        element.getBoundingClientRect = () => hostRect(width, height)
+        return element
+    }
+
+    const viewport = { width: 1000, height: 800 }
+    const scroll = { x: 0, y: 0 }
+
+    it('leaves a card that is already inside the window alone', () => {
+        const geometry = { width: '400px', height: '300px', left: '120px', top: '80px' }
+        expect(clampIntoView(sized(400, 300), geometry, viewport, scroll)).toEqual({ left: '120px', top: '80px' })
+    })
+
+    it('pulls a card back when the window no longer reaches it', () => {
+        const geometry = { width: '400px', height: '300px', left: '1400px', top: '900px' }
+        expect(clampIntoView(sized(400, 300), geometry, viewport, scroll)).toEqual({ left: '600px', top: '500px' })
+    })
+
+    it('pins a card larger than the window to the top-left rather than off the other edge', () => {
+        const geometry = { width: '2000px', height: '1600px', left: '-300px', top: '-200px' }
+        expect(clampIntoView(sized(2000, 1600), geometry, viewport, scroll)).toEqual({ left: '0px', top: '0px' })
+    })
+
+    it('is measured in page coordinates, which is what the card is positioned in', () => {
+        const geometry = { width: '400px', height: '300px', left: '10px', top: '10px' }
+        expect(clampIntoView(sized(400, 300), geometry, viewport, { x: 200, y: 100 })).toEqual({ left: '200px', top: '100px' })
+    })
+
+    it('leaves a stylesheet-placed card to the stylesheet', () => {
+        const geometry = { width: '', height: '', left: '', top: '' }
+        expect(clampIntoView(sized(400, 300), geometry, viewport, scroll)).toEqual({ left: '', top: '' })
     })
 })
