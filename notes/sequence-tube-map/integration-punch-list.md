@@ -1,7 +1,7 @@
 # Sequence Tube Map — Integration Punch List
 
-**Status:** In progress. Steps 1–4 landed 2026-08-17; five remain. Tick items here as they
-land, and update this line when the work is done.
+**Status:** In progress. Steps 1–4 landed 2026-08-17 and step 5 on 2026-08-18; four remain.
+Tick items here as they land, and update this line when the work is done.
 **Date:** 2026-08-17
 **Decisions:** `docs/adr/0001-sequence-tube-map-panel.md` — that ADR, not
 this note, is the normative record. This is a working checklist and licenses nothing.
@@ -116,10 +116,20 @@ Four things came out other than as written, all decided during the copy:
 
 ## 5. Kill the `ColorManagement` global — [#89](https://github.com/CAST-genomics/pgb/issues/89)
 
-- [ ] Delete the module-scope `ColorManagement.enabled = false`
-- [ ] Pixel-diff the fixture render before/after — zero difference means done
-- [ ] If it differs: set colour space **per material and per texture** instead
-- [ ] Confirm PGB's 3D graph is visually unchanged
+- [x] Delete the module-scope `ColorManagement.enabled = false`
+- [x] Pixel-diff the fixture render before/after — zero difference means done
+- [x] If it differs: set colour space **per material and per texture** instead — it did not
+      differ, so nothing per material or per texture was needed
+- [x] Confirm PGB's 3D graph is visually unchanged
+
+Landed 2026-08-18. Both renders — the fixture at `/dev/tubemap.html` and PGB's own graph on
+`/datasets/api-v3/cici.json` — are byte-identical either side of the deletion, screenshotted
+through Playwright at device scale. So the flag was defensive rather than load-bearing, as
+the ADR expected: the bands are a `RawShaderMaterial`, which three appends no conversion to,
+over a `DataTexture` left at `NoColorSpace`, and the only `Color` values in the path are the
+white and black it clears to. `outputColorSpace` stays — it is set per renderer, not
+globally. `colorManagementIsUntouched.test.ts` guards against the assignment coming back,
+whether under `src/tubemap/` or through a module the viewer imports.
 
 > This is the one thing an isolated scene graph does **not** isolate. PGB sets the flag
 > `true` in `rendererFactory.js`, the viewer set it `false` at module scope, and one shared
