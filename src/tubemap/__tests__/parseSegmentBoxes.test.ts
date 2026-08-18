@@ -125,6 +125,46 @@ describe('parseSegmentBoxes', () => {
         expect(new Set(boxes.map(box => box.stroke))).toEqual(new Set([2]))
     })
 
+    /**
+     * The server spells one coordinate two ways inside a single box. This is verbatim from
+     * node `141457` of `il7.json` (chr8:78,771,162-78,771,252), fetched 2026-08-18: the
+     * outline's top half spells the left edge `4067.8571428571427` and its bottom half
+     * spells the same edge `4067.857142857143` — two doubles one ulp apart, a relative
+     * difference of 1.1e-16.
+     *
+     * Nothing about the rectangle is wrong; only the printing is. An exact `!==` on the
+     * redundancy check therefore refused a well-formed document, and the error card blamed
+     * the grammar for a difference four hundred million times smaller than a screen pixel.
+     */
+    it('accepts a box whose coordinates are spelled to different last digits', () => {
+        const box = '<path id="181810314" d="'
+            + 'M 4067.8571428571427 -40 Q 4067.8571428571427 -49 4076.8571428571427 -49 '
+            + 'L 4128.857142857143 -49 Q 4137.857142857143 -49 4137.857142857143 -40 '
+            + 'L 4137.857142857143 6920 Q 4137.857142857143 6929 4128.857142857143 6929 '
+            + 'L 4076.857142857143 6929 Q 4067.857142857143 6929 4067.857142857143 6920 '
+            + 'L 4067.857142857143 -40" sequence="ACGT" '
+            + 'style="fill: rgb(255, 255, 255); fill-opacity: 0.4; stroke: rgb(0, 0, 0); stroke-width: 2px;"'
+
+        const boxes = parseSegmentBoxes(`<g class="node">${box}</path></g>`, { x: 0, y: 0 })
+
+        expect(boxes).toHaveLength(1)
+        expect(boxes[0].width).toBeCloseTo(70, 9)
+        expect(boxes[0].height).toBeCloseTo(6978, 9)
+        expect(boxes[0].radius).toBe(9)
+    })
+
+    /**
+     * The tolerance absorbs printing, not geometry. A whole unit off is a different shape
+     * and stays refused — the check exists because a mis-numbered group yields a plausible
+     * rectangle, and loosening it into meaninglessness would give that back.
+     */
+    it('still refuses a box that is off by a whole unit', () => {
+        const text = readFixture()
+
+        expect(() => parseSegmentBoxes(text.replace('d="M 11 20 Q 11 11', 'd="M 12 20 Q 12 11'), { x: 0, y: 0 }))
+            .toThrow(NonConformingDocument)
+    })
+
     it('refuses a document whose boxes carry no stroke width it can read', () => {
         const text = readFixture()
 
