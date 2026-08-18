@@ -100,10 +100,14 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
 
     const { mountSurface = mountTubeMapSurface } = options
 
-    const { card, title, fullscreenButton, closeButton, body } = createCardDOM()
+    const { card, header, title, fullscreenButton, closeButton, body } = createCardDOM()
 
     const surface = mountSurface(body)
-    const draggable = new Draggable(card)
+    // The header, and only the header. The card carries `resize: both`, and the browser
+    // paints that grip inside the card's own box — so a `Draggable` grabbing the whole
+    // card claims the grip's mousedown and defaults it away, and the corner drags the
+    // panel instead of resizing it.
+    const draggable = new Draggable(card, { handle: header })
 
     let destroyed = false
 
@@ -153,6 +157,7 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
 
 interface CardDOM {
     card: HTMLElement
+    header: HTMLElement
     title: HTMLElement
     fullscreenButton: HTMLButtonElement
     closeButton: HTMLButtonElement
@@ -192,7 +197,7 @@ function createCardDOM(): CardDOM {
     card.append(header, body)
     document.body.append(card)
 
-    return { card, title, fullscreenButton, closeButton, body }
+    return { card, header, title, fullscreenButton, closeButton, body }
 }
 
 function iconButton(className: string, glyph: string, label: string): HTMLButtonElement {
