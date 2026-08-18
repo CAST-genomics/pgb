@@ -48,7 +48,28 @@ import { mountTubeMapSurface, type TubeMapSurfaceHandle } from './tubemap/tubeMa
 
 const CONTAINER_ID = 'tube-map-panel-container'
 
+/** The app surface the panel is sized against: PGB's 3D view, not the whole window. */
+const HOST_SELECTOR = '#pgb-three-container'
+
+/**
+ * How much of the host the card covers when it first opens — **by area**, which is the
+ * quantity that reads as "most of the app" to someone looking at it. Each axis therefore
+ * gets `sqrt(0.85)` ≈ 92%, not 85%: taking 85% of both axes would leave 72% of the area.
+ *
+ * Large on purpose. The map is a 14:1-to-28:1 strip carrying up to ~460 strands, so height
+ * is what separates them and width is what makes a band more than a hairline; the 896×256
+ * opening size this replaces was legible but spent most of a right-click on a card the user
+ * then had to resize. The grip and fullscreen are still there for the rest.
+ */
+const HOST_AREA_FRACTION = 0.85
+
 export interface TubeMapPanelOptions {
+    /**
+     * The surface the card is sized and centred against. Defaults to PGB's 3D container,
+     * falling back to the document element when it is absent — a dev route, or a test.
+     */
+    host?: HTMLElement | null
+
     /**
      * How the surface gets mounted. Injected only so the panel's own behaviour can be
      * tested without a WebGL context; PGB always takes the default.
@@ -96,9 +117,32 @@ function formatCoordinate(coordinate: number): string {
     return coordinate.toLocaleString('en-US')
 }
 
+/**
+ * The card's opening geometry over a host of this size: `HOST_AREA_FRACTION` of its area,
+ * centred on it, in the page coordinates the card's `position: absolute` is resolved in.
+ *
+ * Returns `null` for a host with no area — an unlaid-out container, or jsdom — where the
+ * stylesheet's fixed opening size is the better answer than a zero-sized card.
+ */
+export function panelGeometryForHost(host: DOMRect, scroll = { x: window.scrollX, y: window.scrollY }): { width: number; height: number; left: number; top: number } | null {
+
+    if (host.width <= 0 || host.height <= 0) return null
+
+    const axis = Math.sqrt(HOST_AREA_FRACTION)
+    const width = Math.round(host.width * axis)
+    const height = Math.round(host.height * axis)
+
+    return {
+        width,
+        height,
+        left: Math.round(host.left + scroll.x + (host.width - width) / 2),
+        top: Math.round(host.top + scroll.y + (host.height - height) / 2),
+    }
+}
+
 export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPanelHandle {
 
-    const { mountSurface = mountTubeMapSurface } = options
+    const { mountSurface = mountTubeMapSurface, host = document.querySelector<HTMLElement>(HOST_SELECTOR) } = options
 
     const { card, header, title, fullscreenButton, closeButton, body } = createCardDOM()
 
@@ -108,6 +152,8 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
     // card claims the grip's mousedown and defaults it away, and the corner drags the
     // panel instead of resizing it.
     const draggable = new Draggable(card, { handle: header })
+
+    sizeToHost(card, host)
 
     let destroyed = false
 
@@ -151,6 +197,29 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
     }
 
     return { open, close, destroy }
+}
+
+/**
+ * Write the opening geometry onto the card, once, at mount.
+ *
+ * Inline, because that is the only thing that wins: the stylesheet's margins place the
+ * card, and both `Draggable` and the resize grip write inline `left`/`top`/`width`/`height`
+ * of their own. Zeroing the margins here keeps `Draggable`'s margin arithmetic reading the
+ * same values this wrote.
+ *
+ * Not re-applied on window resize. Once the card has been dragged or sized it is the user's,
+ * and a window resize that moved it back under the cursor would be the app taking it away.
+ */
+function sizeToHost(card: HTMLElement, host: HTMLElement | null): void {
+
+    const geometry = panelGeometryForHost((host ?? document.documentElement).getBoundingClientRect())
+    if (!geometry) return
+
+    card.style.margin = '0'
+    card.style.width = `${geometry.width}px`
+    card.style.height = `${geometry.height}px`
+    card.style.left = `${geometry.left}px`
+    card.style.top = `${geometry.top}px`
 }
 
 // ── DOM construction ────────────────────────────────────────────────

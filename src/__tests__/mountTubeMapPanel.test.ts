@@ -12,7 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import eventBus from '../utils/eventBus.ts'
 import { buildSeqTubeMapURL, type SeqTubeMapTarget } from '../pangenomeURL.ts'
-import { mountTubeMapPanel, formatPanelTitle } from '../mountTubeMapPanel.ts'
+import { mountTubeMapPanel, formatPanelTitle, panelGeometryForHost } from '../mountTubeMapPanel.ts'
 import type { TubeMapSurfaceHandle } from '../tubemap/tubeMapSurface.ts'
 
 const TARGET: SeqTubeMapTarget = {
@@ -68,7 +68,57 @@ describe('formatPanelTitle', () => {
     })
 })
 
+/** A host of a known size, since jsdom lays nothing out. */
+function hostRect(width: number, height: number, left = 0, top = 0): DOMRect {
+    return { width, height, left, top, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) } as DOMRect
+}
+
+describe('panelGeometryForHost', () => {
+
+    it('covers 85% of the host by area — about 92% of each axis', () => {
+        const geometry = panelGeometryForHost(hostRect(1000, 1000), { x: 0, y: 0 })!
+
+        expect(geometry.width).toBe(922)
+        expect(geometry.height).toBe(922)
+        expect((geometry.width * geometry.height) / (1000 * 1000)).toBeCloseTo(0.85, 2)
+    })
+
+    it('centres the card on the host, in page coordinates', () => {
+        const geometry = panelGeometryForHost(hostRect(1000, 800, 200, 100), { x: 0, y: 0 })!
+
+        expect(geometry.left).toBe(200 + Math.round((1000 - geometry.width) / 2))
+        expect(geometry.top).toBe(100 + Math.round((800 - geometry.height) / 2))
+    })
+
+    it('adds the page scroll, because the card is positioned in the document', () => {
+        const geometry = panelGeometryForHost(hostRect(1000, 800, 0, 0), { x: 40, y: 60 })!
+
+        expect(geometry.left).toBe(40 + Math.round((1000 - geometry.width) / 2))
+        expect(geometry.top).toBe(60 + Math.round((800 - geometry.height) / 2))
+    })
+
+    it('declines to size against a host with no area, leaving the stylesheet to answer', () => {
+        expect(panelGeometryForHost(hostRect(0, 0), { x: 0, y: 0 })).toBeNull()
+    })
+})
+
 describe('mountTubeMapPanel', () => {
+
+    it('opens at the host\'s size, not the stylesheet\'s', () => {
+        const spy = surfaceSpy()
+        const host = document.createElement('div')
+        host.getBoundingClientRect = () => hostRect(1200, 900, 0, 0)
+        document.body.append(host)
+
+        panel = mountTubeMapPanel({ mountSurface: spy.mountSurface, host })
+
+        const styled = card()!.style
+        expect(styled.width).toBe('1106px')
+        expect(styled.height).toBe('830px')
+        // The margins that placed the card are gone, or they would offset what was just set.
+        expect(styled.margin).toBe('0px')
+    })
+
 
     it('builds its own card and hands the viewer the body, not the card', () => {
         const spy = surfaceSpy()
