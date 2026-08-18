@@ -138,11 +138,18 @@ whether under `src/tubemap/` or through a module the viewer imports.
 
 ## 6. URL builder + eligibility — [#90](https://github.com/CAST-genomics/pgb/issues/90)
 
-- [ ] `buildSeqTubeMapURL({chrom, start, end, minigraphnode})` in `src/pangenomeURL.js`
-- [ ] `tubeMapTargetForNode(node)` → target or `null`
-- [ ] Strip orientation: PGB keys `"5519+"`, the API's `minigraphnode` takes `5519`
-- [ ] Tests against `cici.json`, including **all 15 ineligible nodes returning `null`**
-- [ ] Spot-check the derived interval against the known-good URL for node 5504
+- [x] `buildSeqTubeMapURL({chrom, start, end, minigraphnode})` — in `src/pangenomeURL.ts`,
+      not `.js`: the file did not exist, and a new file is TypeScript (`CLAUDE.md`). The
+      `/json` template the issue expected to find beside it is still inline in
+      `src/locusInput.js`; moving it is a separate change and was left alone.
+- [x] `tubeMapTargetForNode(node)` → target or `null`
+- [x] Strip orientation: PGB keys `"5519+"`, the API's `minigraphnode` takes `5519`
+- [x] Tests against `cici.json`, including **all 15 ineligible nodes returning `null`**
+- [x] Spot-check the derived interval against the known-good URL for node 5504
+
+Landed 2026-08-18. The interval comes from the node's `GRCh38` assembly entry, falling back
+to `default_range` when there is none; a test holds the two to agreement on all 30 eligible
+nodes of `cici.json`, and the gate is checked to catch exactly the 15 ineligible ones.
 
 > Parameter gotchas: `pathnumoption` is load-bearing but only its *presence* matters (drop
 > it and 369 strands become 46; any value works). `version=v2` and
