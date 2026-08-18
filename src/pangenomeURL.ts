@@ -25,13 +25,6 @@ export interface SeqTubeMapTarget {
 }
 
 /**
- * What the builder accepts: a target, with the node id allowed to arrive as the number it
- * is on the wire rather than only as the string PGB carries it as.
- */
-export type SeqTubeMapRequest =
-    Omit<SeqTubeMapTarget, 'minigraphnode'> & { minigraphnode: string | number }
-
-/**
  * The `/seqtubemap` URL for one interval of one minigraph node.
  *
  * Three parameters are fixed, and none of them behaves the way its name suggests:
@@ -47,9 +40,7 @@ export type SeqTubeMapRequest =
  * depends on it; the tests compare whole strings, and matching them by eye is easier when
  * the order is stable.
  */
-export function buildSeqTubeMapURL(
-    { chrom, start, end, minigraphnode }: SeqTubeMapRequest,
-): string {
+export function buildSeqTubeMapURL({ chrom, start, end, minigraphnode }: SeqTubeMapTarget): string {
     const params = new URLSearchParams({
         chrom,
         start: String(start),
@@ -57,7 +48,7 @@ export function buildSeqTubeMapURL(
         version: 'v2',
         pathnumoption: 'normal',
         nodewidthoption: 'compressed',
-        minigraphnode: String(minigraphnode),
+        minigraphnode,
     })
 
     return `${PANGENOME_API_ORIGIN}/seqtubemap?${params}`
@@ -89,16 +80,22 @@ export function tubeMapTargetForNode(node: NodeModel): SeqTubeMapTarget | null {
 
 // ── Internals ────────────────────────────────────────────────────────
 
+/** A node's placement on the reference: the target, less the node id. */
+type ReferenceInterval = Omit<SeqTubeMapTarget, 'minigraphnode'>
+
 /** PGB keys nodes by orientation — `"5519+"`; the API's `minigraphnode` takes `5519`. */
 function stripOrientation(nodeName: string): string | null {
     const match = /^(\d+)[+-]?$/.exec(nodeName)
     return match ? match[1] : null
 }
 
-function referenceIntervalFromAssemblies(node: NodeModel): Omit<SeqTubeMapTarget, 'minigraphnode'> | null {
-    const entries = [...node.assemblies, ...node.duplicatedAssemblies]
-
-    for (const entry of entries) {
+/**
+ * Only `assemblies` — the unique mappings — is searched. A `duplicatedAssemblies` entry is
+ * one of several regions the node maps to, so it names no single interval to ask for, and
+ * this gate exists precisely to avoid asking a question whose wrong answer looks right.
+ */
+function referenceIntervalFromAssemblies(node: NodeModel): ReferenceInterval | null {
+    for (const entry of node.assemblies) {
         if (entry.assemblyName !== REFERENCE_ASSEMBLY) continue
         if (!entry.sequenceId) continue
         if (typeof entry.start !== 'number' || typeof entry.end !== 'number') continue
@@ -110,7 +107,7 @@ function referenceIntervalFromAssemblies(node: NodeModel): Omit<SeqTubeMapTarget
 }
 
 /** `"GRCh38#0#chr1:25200904-25236799"` → the interval; anything else → `null`. */
-function referenceIntervalFromDefaultRange(defaultRange: string | null): Omit<SeqTubeMapTarget, 'minigraphnode'> | null {
+function referenceIntervalFromDefaultRange(defaultRange: string | null): ReferenceInterval | null {
     if (!defaultRange) return null
 
     const match = /^([^#]+)#[^#]*#([^:]+):(\d+)-(\d+)$/.exec(defaultRange)

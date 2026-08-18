@@ -1,23 +1,18 @@
 /**
  * The tube map's URL builder and its eligibility gate.
  *
- * Both matter for reasons the code cannot state on its own, so they are pinned here:
- *
- *  - The three fixed query parameters do not mean what they are named
- *    (`docs/adr/0001-sequence-tube-map-panel.md`, issue #90). `pathnumoption`'s *presence*
- *    is load-bearing; `version` and `nodewidthoption` are the server's own defaults, but an
- *    unrecognised value for either is a 500. So the built URL is compared against a
- *    captured known-good URL, character for character, rather than parameter by parameter.
- *  - A node with no GRCh38 placement has no tube map, and the API will not say so — it
- *    answers an unknown `minigraphnode` with 200 and a plausible map of different data. The
- *    gate is the only thing standing between a researcher and that map, so all 15
- *    ineligible nodes in `cici.json` are named and checked individually.
+ * Both are checked against things the code cannot state on its own. The three fixed query
+ * parameters do not behave the way their names read, so the built URL is compared against a
+ * captured known-good URL character for character rather than parameter by parameter. And
+ * the gate is the only thing standing between a researcher and a plausible map of different
+ * data — `docs/adr/0001-sequence-tube-map-panel.md` §5 is why — so all 15 ineligible nodes
+ * of `cici.json` are named and checked one at a time rather than counted.
  */
 
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseDataset } from '../datasetParser.ts'
-import type { DatasetModel, NodeModel } from '../datasetModel.ts'
+import type { AssemblyEntry, DatasetModel, NodeModel } from '../datasetModel.ts'
 import { buildSeqTubeMapURL, tubeMapTargetForNode } from '../pangenomeURL.ts'
 
 const CICI_PATH = 'public/datasets/api-v3/cici.json'
@@ -71,11 +66,6 @@ describe('buildSeqTubeMapURL', () => {
         expect(params.get('version')).toBe('v2')
         expect(params.get('nodewidthoption')).toBe('compressed')
     })
-
-    it('accepts a numeric minigraphnode', () => {
-        expect(buildSeqTubeMapURL({ chrom: 'chr1', start: 25200904, end: 25236799, minigraphnode: 5504 }))
-            .toBe(KNOWN_GOOD_5504)
-    })
 })
 
 describe('tubeMapTargetForNode', () => {
@@ -127,11 +117,68 @@ describe('tubeMapTargetForNode', () => {
         }
     })
 
-    it('returns null for a node with no assemblies and no default range', () => {
-        expect(tubeMapTargetForNode({
-            name: '5504+', length: 0, assemblies: [], duplicatedAssemblies: [],
-            assemblyMetadata: null, pclaiCoordinatesBySystem: new Map(),
-            ogdfCoordinates: [], defaultRange: null,
-        })).toBeNull()
+    /**
+     * The two derivation paths, one at a time. `cici.json` cannot separate them — every one
+     * of its 30 eligible nodes carries a GRCh38 assembly entry, so the fixture never
+     * reaches the `default_range` parse on a node that has a map. These synthesise the
+     * cases the fixture does not contain, which is the only way the fallback the module
+     * documents is checked at all.
+     */
+    describe('on synthesised nodes', () => {
+
+        function bareNode(fields: Partial<NodeModel>): NodeModel {
+            return {
+                name: '5504+', length: 0, assemblies: [], duplicatedAssemblies: [],
+                assemblyMetadata: null, pclaiCoordinatesBySystem: new Map(),
+                ogdfCoordinates: [], defaultRange: null,
+                ...fields,
+            }
+        }
+
+        function placement(fields: Partial<AssemblyEntry>): AssemblyEntry {
+            return {
+                assemblyName: 'GRCh38', haplotype: '0', sequenceId: 'chr1',
+                pathStrand: '.', nodeStrand: '.', start: 100, end: 200, take: 'yes',
+                ...fields,
+            }
+        }
+
+        it('falls back to default_range when there is no GRCh38 assembly entry', () => {
+            expect(tubeMapTargetForNode(bareNode({
+                defaultRange: 'GRCh38#0#chr1:25200904-25236799',
+            }))).toEqual({ chrom: 'chr1', start: 25200904, end: 25236799, minigraphnode: '5504' })
+        })
+
+        it('rejects a default_range on any other reference', () => {
+            expect(tubeMapTargetForNode(bareNode({
+                defaultRange: 'HG01433#2#JBHDSK010000040.1:25443422-25443533',
+            }))).toBeNull()
+        })
+
+        it('derives the interval from the GRCh38 assembly entry alone', () => {
+            expect(tubeMapTargetForNode(bareNode({
+                assemblies: [placement({ start: 25200904, end: 25236799 })],
+            }))).toEqual({ chrom: 'chr1', start: 25200904, end: 25236799, minigraphnode: '5504' })
+        })
+
+        it('ignores non-reference assembly entries', () => {
+            expect(tubeMapTargetForNode(bareNode({
+                assemblies: [placement({ assemblyName: 'HG00408', sequenceId: 'JBHDVK010000002.1' })],
+            }))).toBeNull()
+        })
+
+        /**
+         * A duplicated mapping is one of several regions the node occupies, so it names no
+         * single interval to ask the server for. It must not open the gate.
+         */
+        it('does not accept a duplicated GRCh38 mapping as a placement', () => {
+            expect(tubeMapTargetForNode(bareNode({
+                duplicatedAssemblies: [placement({})],
+            }))).toBeNull()
+        })
+
+        it('returns null with neither a placement nor a default range', () => {
+            expect(tubeMapTargetForNode(bareNode({}))).toBeNull()
+        })
     })
 })

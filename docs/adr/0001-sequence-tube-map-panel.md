@@ -198,9 +198,12 @@ this work was settled anyway.
 
 **This ADR precedes the code it governs, deliberately** — see the epic,
 [#85](https://github.com/CAST-genomics/pgb/issues/85). At the time of writing `src/tubemap/`
-does not exist and neither do `buildSeqTubeMapURL()` or `tubeMapTargetForNode()`; the
+did not exist and neither did `buildSeqTubeMapURL()` or `tubeMapTargetForNode()`; the
 consequences below are what the migration is bound to, not a description of what is in the
-tree. They stop being forward-looking as the epic's steps land.
+tree. They stop being forward-looking as the epic's steps land — `src/tubemap/` with
+[#88](https://github.com/CAST-genomics/pgb/issues/88), and the two functions with
+[#90](https://github.com/CAST-genomics/pgb/issues/90), which put them in
+`src/pangenomeURL.ts` rather than the `.js` file the issue named.
 
 - `src/tubemap/` is a module PGB calls and does not otherwise reach into. Its seam is
   `open(url)`; widen it only deliberately.
