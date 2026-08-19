@@ -24,7 +24,8 @@ export function buildPangenomeURL(chr, startBP, endBP, version, layout) {
         .replace('_VERSION_', version);
 
     if (layout?.mode === 'linear' && layout.spineAssembly) {
-        return `${path}&linear=true&assembly=${encodeURIComponent(layout.spineAssembly)}`;
+        //bp_scaled_spine defaults to true, can change should this become a toggle at some point
+        return `${path}&linear=true&assembly=${encodeURIComponent(layout.spineAssembly)}&bp_scaled_spine=true`;
     }
 
     return path;
