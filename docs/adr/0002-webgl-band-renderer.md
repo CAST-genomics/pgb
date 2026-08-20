@@ -251,6 +251,12 @@ Two further consequences, both measured:
   `trackID`; a `DataTexture` holds one texel of appearance per strand. Highlighting is
   a ~2 KB upload whose cost is independent of how many strands are lit — retiring the
   ~28 ms wall that `CONTEXT.md` #15 ran into, and reviving feeler mode.
+
+    **Two texels per strand since 2026-08-20**, and so a ~4 KB upload. The table gained a
+    second plane of per-strand *modifiers* to carry the feeler's **thickness floor**
+    (pgb #112), the emphasis texel having no byte left in it. The claim this consequence
+    was making is untouched: the cost is still one write per strand and nothing per band,
+    and still independent of how many strands are lit.
 - **The canvas is viewport-sized.** The 2026-08-13 rendering failure is not fixed but
   made structurally impossible: there is no oversized composited layer to tile.
 - ~~**`viewportTransform.ts` survives untouched** and drives an `OrthographicCamera`. No

@@ -45,6 +45,11 @@ export interface TubeMapSurfaceOptions {
      */
     pickReadout?: boolean
     /**
+     * Override the thickness floor the feeler draws its strand at, in css pixels. Harness
+     * instrumentation for #112 — see `BandSurfaceOptions.strandFloorCssPx`.
+     */
+    strandFloorCssPx?: number
+    /**
      * How long to wait for the server before calling it a server-side problem, in
      * milliseconds. Defaults to `PATIENCE_MS` (90 s).
      *
@@ -89,7 +94,10 @@ export function mountTubeMapSurface(
     // The gate belongs to the band parser, and the band parser is the only way in. "A
     // non-conforming document is refused" is therefore true of the viewer outright, with
     // no surface left that would draw one anyway.
-    const surface: BandSurface = createBandSurface(root, { pickReadout: options.pickReadout })
+    const surface: BandSurface = createBandSurface(root, {
+        pickReadout: options.pickReadout,
+        strandFloorCssPx: options.strandFloorCssPx
+    })
 
     // Appended after the surface's own nodes so the spinner and the error state cover
     // the picture rather than sitting under it.

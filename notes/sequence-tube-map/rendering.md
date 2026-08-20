@@ -181,7 +181,7 @@ of compositing over white — would help here more than anywhere.
 Everything else is drawn at the scale the camera says, and the server's numbers survive
 the trip unmodified.
 
-Two corrections qualify, and they are the same correction at two ends of one problem:
+Three corrections qualify. The first two are the same correction at two ends of one problem:
 
 - **`uPad`** grows a band to cover a device pixel. A band thinner than a sample row falls
   between rows and disappears, and its *colour* is the information — a band that isn't
@@ -191,6 +191,14 @@ Two corrections qualify, and they are the same correction at two ends of one pro
 - **The segment-box visibility threshold** hides a box until it is ~1.5 css px wide. A box
   narrower than that carries nothing — it is an outline with no readable interior and no
   hoverable area — so the honest correction is to withhold it rather than to inflate it.
+- **The feeler's thickness floor** (pgb #112) grows the *one* strand under the feeler to a
+  minimum of 2 css px, symmetrically about its own centreline. The information at stake is
+  identity rather than colour: at fit 2.6 strands share every device pixel row, so no band
+  owns enough of a row to be told from its neighbours, and receding the crowd does not change
+  that. Same shape of correction as `uPad` and quoted the same way — a floor, never a fixed
+  size, so above it the clamp is inert and the map is byte-identical to what it was. Chosen
+  off a sweep in
+  [`measurements/2026-08-20-a-thickness-floor-at-fit.md`](./measurements/2026-08-20-a-thickness-floor-at-fit.md).
 
 **A stroke width is not one of them, decided 2026-08-15.** A segment box's 2-unit stroke
 was going to be pinned at 2 css px, on the reasoning that a border should stay crisp. The

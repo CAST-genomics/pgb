@@ -25,6 +25,10 @@
  * `?pick` did come across, because it is not a way of deciding which URL — it reads the
  * pick pass out loud, and is the only thing that makes a pick happen on a plain hover
  * rather than under the feeler. See `BandSurfaceOptions.pickReadout`.
+ *
+ * `?floor=` is here on the same terms: it does not decide a URL, it sets how thick the feeler
+ * draws the strand it is on so the value can be judged by looking (#112). See
+ * `notes/sequence-tube-map/dev-affordances.md` §3.1.
  */
 
 import { mountTubeMapSurface } from './tubemap/tubeMapSurface.ts'
@@ -53,7 +57,19 @@ if (pickReadout) {
     hint.textContent += ' · picking the strand under the cursor'
 }
 
-const viewer = mountTubeMapSurface(container, { pickReadout })
+// `?floor=` overrides how thick the feeler draws the strand it is on, in css pixels, and
+// `?floor=0` switches the floor off. The value shipped was chosen by looking at a sweep of
+// candidates through this parameter (#112); it stays so the judgement can be re-run.
+const requestedFloor = Number(parameters.get('floor'))
+const strandFloorCssPx = parameters.has('floor') && Number.isFinite(requestedFloor)
+    ? requestedFloor
+    : undefined
+
+if (undefined !== strandFloorCssPx) {
+    hint.textContent += ` · thickness floor ${strandFloorCssPx} css px`
+}
+
+const viewer = mountTubeMapSurface(container, { pickReadout, strandFloorCssPx })
 
 // The field is filled in rather than left blank, so what is on screen is always something
 // the reader can see, edit and paste elsewhere.

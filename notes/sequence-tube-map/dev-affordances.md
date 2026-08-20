@@ -56,6 +56,7 @@ look at. Entry points: `src/devTubeMapRoute.ts`, `src/devTubeMapPanelRoute.ts` �
 |---|---|---|
 | `?url=` | both | open this document instead of the default fixture |
 | `?pick` | `tubemap.html` only | mount the pick readout (§3) |
+| `?floor=` | `tubemap.html` only | the feeler's thickness floor in css px; `0` switches it off (§3.1) |
 
 Both pages also fill a text field with the URL, so you can paste one in live rather than
 reloading. On the panel page the field feeds an **Open** button; on the viewer page it is a
@@ -129,6 +130,28 @@ mountTubeMapPanel({ mountSurface: c => mountTubeMapSurface(c, { pickReadout: tru
 
 Implementation: `BandSurfaceOptions.pickReadout` in `src/tubemap/bandSurface.ts`.
 
+### 3.1 `?floor=` — the feeler's thickness floor
+
+The strand under the feeler is drawn at a minimum thickness of `FLOOR_CSS_PX` css pixels so
+that it can be found at fit, where a band is 0.19 px tall (pgb #112). `?floor=` overrides that
+number and `?floor=0` switches it off, which is how the shipped value was chosen — by looking
+at a sweep of candidates rather than by argument:
+
+```bash
+open 'http://localhost:5173/dev/tubemap.html?pick&floor=0'    # the control: no floor
+open 'http://localhost:5173/dev/tubemap.html?pick&floor=3'
+```
+
+The hint line in the corner names the floor the page was opened with, so a screenshot says
+which arm of the sweep it is. The floor is carried as a byte in 1/32 px steps, so it saturates
+at 7.97 css px — four times the tallest value anyone has wanted to look at, but `?floor=20`
+will draw 7.97 and the hint will still say 20. `scripts/verify_floor.mjs` drives the whole sweep and takes the
+photographs; the verdict and the rejected values are in
+[`measurements/2026-08-20-a-thickness-floor-at-fit.md`](./measurements/2026-08-20-a-thickness-floor-at-fit.md).
+
+Implementation: `BandSurfaceOptions.strandFloorCssPx`, and `FLOOR_CSS_PX` in
+`src/tubemap/strandAppearance.ts`.
+
 ---
 
 ## 4. Surface gestures
@@ -151,6 +174,9 @@ The feeler is the one with rules worth knowing (`src/tubemap/feelerKey.ts`):
   shows its tooltip exactly as it does without the key. Holding the key *is* the act of
   isolating a strand, and a map that moved under a sweep would slide the strand out from
   under the cursor mid-gesture.
+- **The strand it is on is drawn at a floor of 2 css px** where the band would otherwise be
+  thinner than that, which is the only reason one strand can be found at fit. Above the floor
+  it does nothing. `?floor=` (§3.1) is how to see it with the floor off.
 - A `feeler` badge fades in while it is active. If you see the badge, the mode is on.
 
 Two things are easy to miss because they look like decoration:

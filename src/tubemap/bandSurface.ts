@@ -66,16 +66,17 @@
  *
  * ## Feeler mode
  *
- * Holding `Shift` turns the cursor into a feeler: the strand it touches is drawn in full,
- * everything else recedes, and releasing brings the whole map back. The emphasis *follows*
+ * Holding `Shift` turns the cursor into a feeler: the strand it touches is drawn in full and
+ * at no less than a floor of screen-space thickness (#112), everything else recedes, and
+ * releasing brings the whole map back. The emphasis *follows*
  * the cursor rather than accumulating — that reversal is the user's, and `strandAppearance.ts`
  * carries the reasoning. Hover alone does nothing, and the controls are switched off for the
  * duration — `Shift` arbitrates pointer ownership (`CONTEXT.md` #13, #14).
  *
  * The same interaction was built on the SVG surface and shipped switched off, because
  * invoking it invalidated style across ~10,000 elements at ~28 ms a swap. Here the
- * appearance of every strand is one texel in a 2 KB table (`strandAppearance.ts`), so a touch
- * writes one byte and the frame that follows uploads the table. Nothing per band, nothing
+ * appearance of every strand is two texels in a 4 KB table (`strandAppearance.ts`), so a touch
+ * writes two bytes and the frame that follows uploads the table. Nothing per band, nothing
  * per lit strand — which is what makes lighting one strand and lighting two hundred cost the
  * same, and why this ships on rather than behind a flag. Measured in
  * `scripts/verify_highlight.mjs`. It is the only feeler now, and the flag that switched
@@ -100,7 +101,6 @@
 
 import {
     BufferAttribute,
-    type DataTexture,
     GLSL3,
     InstancedBufferAttribute,
     InstancedBufferGeometry,
@@ -132,7 +132,12 @@ import { THICKNESS, parseBands, type ParsedMap } from './parseBands.ts'
 import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
 import { canvasPoint, overChrome } from './surfacePointer.ts'
-import { APPEARANCE_ROW, createStrandAppearance, type StrandAppearance } from './strandAppearance.ts'
+import {
+    APPEARANCE_ROW,
+    FLOOR_STEPS_PER_PX,
+    createStrandAppearance,
+    type StrandAppearance
+} from './strandAppearance.ts'
 import { createStrandLabel, type StrandLabel } from './strandLabel.ts'
 
 /** Quads per band along its span. See the note on tessellation error above. */
@@ -146,10 +151,17 @@ uniform mat4 modelViewMatrix;
 uniform float uThickness;
 uniform float uPad;
 
-// One texel per strand: RGB is the document's colour, alpha is emphasis. See
-// strandAppearance.ts — this is why highlighting costs the same however many are lit.
+// Two texels per strand, a plane apart: RGB and emphasis, then the strand's modifiers, of
+// which red is the thickness floor. See strandAppearance.ts — this is why highlighting costs
+// the same however many strands are lit.
 uniform sampler2D uAppearance;
 uniform float uAppearanceRow;
+uniform float uAppearancePlane;
+
+// One css pixel in world units, which is what the floor is quoted in, and the steps-per-pixel
+// the table encodes it with. The pick pass sets the pixel to zero: see PICK_FRAGMENT.
+uniform float uFloorPixel;
+uniform float uFloorSteps;
 
 in vec2 aParam;     // x: curve parameter 0..1, y: 0 = upper edge, 1 = lower edge
 in vec4 iSpan;      // x0, y0, width, y1  — y0/y1 are the upper edge, world space
@@ -158,6 +170,7 @@ in float iStrandId; // the haplotype this band belongs to: its appearance, and t
 
 flat out vec3 vColor;
 flat out float vEmphasis;
+flat out float vGrow;
 
 flat out vec4 vSpan;
 flat out vec2 vControl;
@@ -181,19 +194,30 @@ void main() {
     // smoothstep. No bezier evaluation in y at all.
     float y = mix(iSpan.y, iSpan.w, t * t * (3.0 - 2.0 * t)) - side * uThickness;
 
-    // Grow the band by a pixel on each side so a band thinner than one pixel still
-    // covers a fragment to compute coverage in. Without this a 0.19 px band would
-    // simply miss every sample point and vanish.
-    y += (1.0 - 2.0 * side) * uPad;
-
     // Exact texels by integer id — no filtering, so no chance of two haplotypes'
     // appearance being blended into a third that belongs to neither.
     int id = int(iStrandId + 0.5);
     int row = int(uAppearanceRow);
-    vec4 appearance = texelFetch(uAppearance, ivec2(id - (id / row) * row, id / row), 0);
+    ivec2 at = ivec2(id - (id / row) * row, id / row);
+    vec4 appearance = texelFetch(uAppearance, at, 0);
+    vec4 modifier = texelFetch(uAppearance, at + ivec2(0, int(uAppearancePlane)), 0);
 
     vColor = appearance.rgb;
     vEmphasis = appearance.a;
+
+    // The thickness floor, in world units, and how far the band has to grow to reach it.
+    // Zero for every strand but the one under the feeler, and zero for that one too at any
+    // zoom where the band is already thicker than the floor — so above the floor every line
+    // below this is the arithmetic that was here before it existed.
+    float floorWorld = modifier.r * 255.0 / uFloorSteps * uFloorPixel;
+
+    vGrow = max(0.0, floorWorld - uThickness);
+
+    // Grow the band by a pixel on each side so a band thinner than one pixel still
+    // covers a fragment to compute coverage in. Without this a 0.19 px band would
+    // simply miss every sample point and vanish. Half the floor's growth rides along, which
+    // is what makes the dilation symmetric about the band's own centreline.
+    y += (1.0 - 2.0 * side) * (uPad + 0.5 * vGrow);
 
     vSpan = iSpan;
     vControl = iControl;
@@ -220,6 +244,7 @@ uniform float uHalfPixel;
 
 flat in vec4 vSpan;
 flat in vec2 vControl;
+flat in float vGrow;
 in float vT;
 in vec2 vWorld;
 
@@ -257,8 +282,12 @@ float bandCoverage() {
     float tTop = parameterAt(p, vControl.x, vT);
     float tBot = parameterAt(p, vControl.y, vT);
 
-    float yTop = mix(vSpan.y, vSpan.w, tTop * tTop * (3.0 - 2.0 * tTop));
-    float yBot = mix(vSpan.y, vSpan.w, tBot * tBot * (3.0 - 2.0 * tBot)) - uThickness;
+    // The two edges of the band, moved apart by the floor and by nothing else. vGrow is zero
+    // unless this strand is floored and under-thick at this zoom, and half of it goes to each
+    // edge, so the centreline between them does not move: the band says exactly where the
+    // haplotype is, and only lies about how thick it is.
+    float yTop = mix(vSpan.y, vSpan.w, tTop * tTop * (3.0 - 2.0 * tTop)) + 0.5 * vGrow;
+    float yBot = mix(vSpan.y, vSpan.w, tBot * tBot * (3.0 - 2.0 * tBot)) - uThickness - 0.5 * vGrow;
 
     float lo = max(yBot, vWorld.y - uHalfPixel);
     float hi = min(yTop, vWorld.y + uHalfPixel);
@@ -318,6 +347,13 @@ void main() {
  * the strand's emphasis; this one does not, because a receded strand is exactly what the
  * feeler is reaching for next. A pick pass that dimmed with the picture would make the
  * strands a sweep has not yet touched progressively harder to touch.
+ *
+ * **Nor is the thickness floor**, which `bandPicker.ts` switches off by setting `uFloorPixel`
+ * to zero. This is the one place the two passes are allowed to disagree about where a band
+ * is, and the reason is a loop: the floor is applied to the strand the pick *answered with*,
+ * so honouring it here would let that answer widen its own target. At fit the floored strand
+ * would cover ten of its neighbours' rows and a sweep could never reach past it. The floor is
+ * a way of showing the researcher the strand they have got, not a way of getting it.
  */
 const PICK_FRAGMENT = /* glsl */`
 precision highp float;
@@ -398,6 +434,15 @@ export interface BandSurfaceOptions {
      * the highlight cost rather than asserting it (#39).
      */
     pickReadout?: boolean
+    /**
+     * Override how thick the feeler draws the strand it is on, in css pixels. Defaults to
+     * `FLOOR_CSS_PX`; zero switches the floor off.
+     *
+     * Harness instrumentation, `?floor=`: the value is a judgement made by looking at a
+     * sweep of candidates (#112), and this is what puts a candidate on screen. Nothing in
+     * the product passes it.
+     */
+    strandFloorCssPx?: number
 }
 
 export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions = {}): BandSurface {
@@ -729,8 +774,9 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     /**
      * Move the emphasis to one strand, or to none.
      *
-     * This is the whole cost of highlighting: one byte per strand in the appearance table,
-     * nothing per band, then a 2 KB upload on the frame that draws it. It is timed rather
+     * This is the whole cost of highlighting: two bytes per strand in the appearance table —
+     * emphasis and thickness floor — nothing per band, then a 4 KB upload on the frame that
+     * draws it. It is timed rather
      * than asserted — but only while the readout is mounted, so the clock stays out of the
      * path when nobody is reading it.
      */
@@ -982,9 +1028,9 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             // Colour is not an instance attribute. It is a texel the vertex shader fetches
             // by strand id, which is what makes highlighting a table write — see
             // `strandAppearance.ts`.
-            const appearance = createStrandAppearance(map)
+            const appearance = createStrandAppearance(map, { floorCssPx: options.strandFloorCssPx })
 
-            bindAppearance(built, appearance.texture)
+            bindAppearance(built, appearance)
 
             // The parser's own array, uploaded without a copy. Declared `in float` in the
             // shader, so GL widens the two bytes on the way in and nothing here has to
@@ -1123,9 +1169,14 @@ function renderThumbnail(context: Context, content: Size, size: Size, pixelRatio
     camera.zoom = fitZoom(content, size)
     frameCamera(camera, size)
 
+    // Including the floor's css pixel, which at this camera is ~150 world units. Nothing is
+    // floored while this runs — the thumbnail is painted once, on the frame the document
+    // arrives, when no strand is under a feeler — but the uniform is borrowed and handed back
+    // with the other two rather than left to be true by luck.
     const surfaceCoverage = {
         halfPixel: material.uniforms.uHalfPixel.value,
-        pad: material.uniforms.uPad.value
+        pad: material.uniforms.uPad.value,
+        floorPixel: material.uniforms.uFloorPixel.value
     }
 
     setCoverage(material, camera.zoom, pixelRatio)
@@ -1143,6 +1194,7 @@ function renderThumbnail(context: Context, content: Size, size: Size, pixelRatio
         renderer.setRenderTarget(null)
         material.uniforms.uHalfPixel.value = surfaceCoverage.halfPixel
         material.uniforms.uPad.value = surfaceCoverage.pad
+        material.uniforms.uFloorPixel.value = surfaceCoverage.floorPixel
         target.dispose()
     }
 
@@ -1173,14 +1225,28 @@ function bandUniforms(): Record<string, { value: unknown }> {
         uHalfPixel: { value: 0 },
         uPad: { value: 0 },
         uAppearance: { value: null },
-        uAppearanceRow: { value: APPEARANCE_ROW }
+        uAppearanceRow: { value: APPEARANCE_ROW },
+        uAppearancePlane: { value: 0 },
+        uFloorPixel: { value: 0 },
+        uFloorSteps: { value: FLOOR_STEPS_PER_PX }
     }
 }
 
-/** Point both materials at one document's appearance table, or at none. */
-function bindAppearance(context: Context, texture: DataTexture | null): void {
+/**
+ * Point both materials at one document's appearance table, or at none.
+ *
+ * The plane offset travels with the texture because it is a property of that table: it is
+ * the document's own row count, so binding one without the other is how a strand's floor
+ * gets read out of another strand's colour.
+ */
+function bindAppearance(context: Context, appearance: StrandAppearance | null): void {
+    const texture = null === appearance ? null : appearance.texture
+    const plane = null === appearance ? 0 : appearance.planeRows
+
     context.material.uniforms.uAppearance.value = texture
+    context.material.uniforms.uAppearancePlane.value = plane
     context.pickMaterial.uniforms.uAppearance.value = texture
+    context.pickMaterial.uniforms.uAppearancePlane.value = plane
 }
 
 /** Point an orthographic camera at a viewport-sized frustum, in CSS pixels. */
@@ -1194,13 +1260,20 @@ function frameCamera(camera: OrthographicCamera, size: Viewport): void {
     camera.updateProjectionMatrix()
 }
 
-/** How much world one device pixel covers, which is what the fragment shader measures
- *  coverage against and what keeps a sub-pixel band from missing every sample. */
+/**
+ * How much world one device pixel covers, which is what the fragment shader measures
+ * coverage against and what keeps a sub-pixel band from missing every sample.
+ *
+ * And how much one *css* pixel covers, which is the unit the thickness floor is quoted in —
+ * a floor measured in device pixels would be half as tall on a retina display as on the
+ * screen beside it, and the number was chosen by looking.
+ */
 function setCoverage(material: RawShaderMaterial, zoom: number, pixelRatio: number): void {
     const pixel = devicePixel(zoom, pixelRatio)
 
     material.uniforms.uHalfPixel.value = pixel * 0.5
     material.uniforms.uPad.value = pixel
+    material.uniforms.uFloorPixel.value = pixel * pixelRatio
 }
 
 /**
