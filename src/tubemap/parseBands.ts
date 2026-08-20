@@ -7,9 +7,10 @@
  * Deliberately regex over raw response text, never `DOMParser`: building 40,442 DOM
  * nodes is exactly the cost this renderer exists to escape.
  *
- * A band is six floats — `x0, y0, width, y1, uTop, uBottom` — plus a `trackID`. The two
- * `u` values are the control abscissae of the *top* and *bottom* edges as a fraction of
- * the span, and they differ (0.70000 vs 0.69874 in the first band of `5520+`), so a
+ * A band is six floats — `x0, y0, width, y1, uTop, uBottom` — plus a `trackID` and the
+ * `trackName` that says which haplotype that integer is. The two `u` values are the
+ * control abscissae of the *top* and *bottom* edges as a fraction of the span, and they
+ * differ (0.70000 vs 0.69874 in the first band of `5520+`), so a
  * band's thickness varies along its length. The two edges are not translates of each
  * other and the "offset the top edge by THICKNESS" shortcut would be wrong.
  *
@@ -52,6 +53,14 @@ export interface ParsedMap {
     bandCount: number
     /** RGB triples, one per strand, indexed by strand id. */
     strandColors: Uint8Array
+    /** What the document calls each strand, indexed by strand id.
+     *
+     *  **Opaque strings.** The chr8 fixture spells 463 of its 464 names with four
+     *  `#`-separated parts (`NA21309#2#CM092102.1#0`) and one with three, so PanSN is
+     *  already false in this repo and nothing here splits on the separator. What the
+     *  document spells is what the feeler reads out and what a researcher pastes
+     *  elsewhere, so it round-trips verbatim or not at all. */
+    strandNames: string[]
     strandCount: number
     /** Extent of the content, in world units. Centred on the origin. */
     content: { width: number, height: number }
@@ -68,6 +77,7 @@ export interface ParsedMap {
  * source text keeps the upstream name and only what we build out of it is renamed.
  */
 const FILL = 'style="fill: rgb\\((\\d+), (\\d+), (\\d+)\\); fill-opacity: 1;" trackID="(\\d+)"'
+    + ' trackName="([^"]+)"'
 
 /** A degenerate band: flat, so its control abscissae carry no information. */
 const RECT = `<rect x="${N}" y="${N}" width="${N}" height="${N}" ${FILL}`
@@ -106,7 +116,10 @@ export function parseBands(text: string): ParsedMap {
 
     const geometry = new Float32Array(expected * 6)
     const strandIds = new Uint16Array(expected)
-    const colors = new Map<number, [number, number, number]>()
+    /** How the document draws each strand and what it calls it, taken from the first band
+     *  carrying the id. One map rather than two, so a strand's colour and its name cannot
+     *  be populated from different bands or drained in different orders. */
+    const strands = new Map<number, { rgb: [number, number, number], name: string }>()
 
     let bands = 0
     let maxStrandId = -1
@@ -127,6 +140,7 @@ export function parseBands(text: string): ParsedMap {
         let green: number
         let blue: number
         let id: number
+        let name: string
 
         if (isRect) {
             x0 = +match[1]
@@ -154,20 +168,22 @@ export function parseBands(text: string): ParsedMap {
             green = +match[6]
             blue = +match[7]
             id = +match[8]
+            name = match[9]
         } else {
-            x0 = +match[9]
-            y0 = +match[10]
-            controlTop = +match[11]
-            x1 = +match[15]
-            y1 = +match[16]
-            controlBottom = +match[18]
+            x0 = +match[10]
+            y0 = +match[11]
+            controlTop = +match[12]
+            x1 = +match[16]
+            y1 = +match[17]
+            controlBottom = +match[19]
 
             assertGrammar(match, x0, y0, x1, y1, controlTop, controlBottom)
 
-            red = +match[24]
-            green = +match[25]
-            blue = +match[26]
-            id = +match[27]
+            red = +match[25]
+            green = +match[26]
+            blue = +match[27]
+            id = +match[28]
+            name = match[29]
         }
 
         // The instance buffer stores ids as Uint16. Silently wrapping would draw a
@@ -194,8 +210,8 @@ export function parseBands(text: string): ParsedMap {
         geometry[at + 5] = (controlBottom - x0) / width
         strandIds[bands] = id
 
-        if (false === colors.has(id)) {
-            colors.set(id, [red, green, blue])
+        if (false === strands.has(id)) {
+            strands.set(id, { rgb: [red, green, blue], name })
         }
 
         if (id > maxStrandId) {
@@ -216,19 +232,24 @@ export function parseBands(text: string): ParsedMap {
     }
 
     const strandCount = maxStrandId + 1
-    const strandColors = new Uint8Array(strandCount * 3)
 
-    for (const [id, rgb] of colors) {
-        strandColors[id * 3] = rgb[0]
-        strandColors[id * 3 + 1] = rgb[1]
-        strandColors[id * 3 + 2] = rgb[2]
-    }
-
-    if (colors.size !== strandCount) {
+    // Before the tables are built, not after: they are indexed by strand id and dense, and
+    // a document numbering its strands with a gap in it has no such table to fill.
+    if (strands.size !== strandCount) {
         throw new NonConformingDocument(
-            `The document draws ${colors.size} strands but numbers them up to ${maxStrandId}; `
+            `The document draws ${strands.size} strands but numbers them up to ${maxStrandId}; `
             + 'trackID must run from 0 upward with no gaps.'
         )
+    }
+
+    const strandColors = new Uint8Array(strandCount * 3)
+    const strandNames = new Array<string>(strandCount)
+
+    for (const [id, strand] of strands) {
+        strandColors[id * 3] = strand.rgb[0]
+        strandColors[id * 3 + 1] = strand.rgb[1]
+        strandColors[id * 3 + 2] = strand.rgb[2]
+        strandNames[id] = strand.name
     }
 
     return {
@@ -236,6 +257,7 @@ export function parseBands(text: string): ParsedMap {
         strandIds,
         bandCount: bands,
         strandColors,
+        strandNames,
         strandCount,
         content: { width: viewBox.width, height: viewBox.height },
         centre: { x: centreX, y: centreY }
@@ -265,15 +287,15 @@ function assertGrammar(
         }
     }
 
-    expect(+match[12], y0, 'first control ordinate')
-    expect(+match[13], controlTop, 'second control abscissa')
-    expect(+match[14], y1, 'second control ordinate')
-    expect(+match[17], y1 + THICKNESS, 'vertical closing edge')
-    expect(+match[19], y1 + THICKNESS, 'return first control ordinate')
-    expect(+match[20], controlBottom, 'return second control abscissa')
-    expect(+match[21], y0 + THICKNESS, 'return second control ordinate')
-    expect(+match[22], x0, 'return endpoint abscissa')
-    expect(+match[23], y0 + THICKNESS, 'return endpoint ordinate')
+    expect(+match[13], y0, 'first control ordinate')
+    expect(+match[14], controlTop, 'second control abscissa')
+    expect(+match[15], y1, 'second control ordinate')
+    expect(+match[18], y1 + THICKNESS, 'vertical closing edge')
+    expect(+match[20], y1 + THICKNESS, 'return first control ordinate')
+    expect(+match[21], controlBottom, 'return second control abscissa')
+    expect(+match[22], y0 + THICKNESS, 'return second control ordinate')
+    expect(+match[23], x0, 'return endpoint abscissa')
+    expect(+match[24], y0 + THICKNESS, 'return endpoint ordinate')
 
     if (false === (x1 > x0)) {
         throw new NonConformingDocument(`A band spans ${x0} to ${x1}; every band must run left to right.`)

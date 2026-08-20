@@ -165,6 +165,35 @@ export const SURFACE_STYLES = `
     opacity: 1;
 }
 
+/* The name of the strand under the feeler (#111), anchored to the surface's top-left corner
+   and moved with a \`transform\` — the same arrangement as the segment tooltip, and for the
+   same reason: a transform does not invalidate layout, so a label following the cursor
+   cannot make the surface's own per-move \`getBoundingClientRect\` a forced reflow.
+
+   Monospace, inherited from \`.stm-root\`: it is a name to be read character by character and
+   pasted into other tools, not prose. No transition — it is placed and shown in the same
+   frame the pick answers, and a fade would lag the emphasis it belongs to.
+
+   Inert, like the badge: the map underneath keeps answering the cursor, so the label is
+   never the thing the pointer is over instead of the strand it names. */
+.stm-strand-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--stm-chrome);
+    color: var(--stm-ink);
+    white-space: nowrap;
+    pointer-events: none;
+    display: none;
+    z-index: 3;
+}
+
+.stm-strand-label.is-shown {
+    display: block;
+}
+
 /* ── PGB's node tooltip, borrowed outright ────────────────────────────────────────────────
 
    Copied 2026-08-15 from pgb/src/styles/_toolTipContainer.scss and _lookToolTip.scss — the

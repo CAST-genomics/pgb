@@ -10,7 +10,20 @@
 import { describe, expect, it } from 'vitest'
 import { NonConformingDocument } from '../documentGrammar.ts'
 import { MAX_STRAND_ID, THICKNESS, parseBands } from '../parseBands.ts'
-import { readFixture } from './fixture.ts'
+import { readFixture, readTallFixture } from './fixture.ts'
+
+/** Every `trackID`/`trackName` pair the document spells out, read straight off the text.
+ *  The parser's own answer is checked against this rather than against a hand-copied list,
+ *  so the assertion covers all 369 and 464 names rather than the three worth typing out. */
+function namesInSource(text: string): Map<number, string> {
+    const spelled = new Map<number, string>()
+
+    for (const match of text.matchAll(/trackID="(\d+)" trackName="([^"]*)"/g)) {
+        spelled.set(Number(match[1]), match[2])
+    }
+
+    return spelled
+}
 
 /** What the node survey recorded for the committed document. */
 const SURVEYED = { bands: 10270, strands: 369, width: 35562.42857142856 }
@@ -157,5 +170,57 @@ describe('parseBands', () => {
 
     it('holds THICKNESS at the surveyed constant', () => {
         expect(THICKNESS).toBe(15)
+    })
+
+    /**
+     * The names are what makes a strand a haplotype rather than an integer, and they are
+     * the one field here that can be wrong without the picture changing at all: a name
+     * table off by one row names the neighbouring haplotype, and every map drawn from it
+     * looks exactly like a working one.
+     */
+    describe('strand names', () => {
+
+        it('carries one name per strand, for every strand the document draws', () => {
+            for (const text of [readFixture(), readTallFixture()]) {
+                const map = parseBands(text)
+
+                expect(map.strandNames).toHaveLength(map.strandCount)
+                expect(map.strandNames.every(name => name.length > 0)).toBe(true)
+            }
+        })
+
+        it('maps every strand id to the name it carries in the source text', () => {
+            for (const text of [readFixture(), readTallFixture()]) {
+                const map = parseBands(text)
+                const spelled = namesInSource(text)
+
+                expect(spelled.size).toBe(map.strandCount)
+
+                for (const [id, name] of spelled) {
+                    expect(map.strandNames[id]).toBe(name)
+                }
+            }
+        })
+
+        it('round-trips a four-part name verbatim, alongside a three-part one', () => {
+            // The chr8 document spells 463 of its 464 names with four `#`-separated parts
+            // and one with three, so any PanSN assumption is already false in this repo.
+            // Pinned by hand as well as derived, because the derived check above would pass
+            // just as happily against a parser that split and rejoined them.
+            const map = parseBands(readTallFixture())
+
+            expect(map.strandNames[0]).toBe('CHM13#0#chr8#0')
+            expect(map.strandNames[1]).toBe('GRCh38#0#chr8')
+            expect(map.strandNames[10]).toBe('HG00133#1#CM090052.1#0')
+        })
+
+        it('refuses a document that draws a band with no name on it', () => {
+            // Same treatment as a band with no fill: the whole document, rather than a map
+            // whose feeler answers "" for one haplotype and a name for the rest.
+            const text = readFixture()
+
+            expect(() => parseBands(text.replace(/ trackName="[^"]*"/, '')))
+                .toThrow(NonConformingDocument)
+        })
     })
 })
