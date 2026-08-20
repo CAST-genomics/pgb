@@ -9,8 +9,6 @@
  * given a set of spine node extents and their reference bp extents, is the
  * mapping uniform? Feed it grid-pitch extents (what the backend emits today)
  * and it fails; feed it bp-proportional extents and it passes.
- *
- * See notes/architecture/spine-bp-registration-plan.md.
  */
 
 import { describe, it, expect } from 'vitest'
