@@ -5,7 +5,7 @@
  * node environment; locusInput.js is the only consumer.
  */
 
-const pangenomeURLTemplate = `http://pangenome-api.ucsd.edu:8000/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=v2&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000`
+const pangenomeURLTemplate = `https://pangenome-api.ucsd.edu:8000/json?chrom=_CHR_&start=_START_&end=_END_&graphtype=minigraph&version=v2&debug_small_graphs=false&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000`
 
 /**
  * Build a pangenome API request URL.
