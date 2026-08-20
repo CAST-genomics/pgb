@@ -159,8 +159,9 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--rule);
   <div class="colophon">
     <div>Origin<br><span>conversation, 19 Aug 2026</span></div>
     <div>Prior art<br><span>Rao &amp; Card, CHI '94</span></div>
-    <div>Strategy note<br><span>docs/DISAMBIGUATING-STRANDS.md § A, C</span></div>
-    <div>Status<br><span>proposal · nothing rendered</span></div>
+    <div>Strategy note<br><span>disambiguating-strands.md § A, C</span></div>
+    <div>Status<br><span>§03.3 refuted 20 Aug 2026 · see §03a</span></div>
+    <div>Outcome<br><span>docs/adr/0003 — the inset is passive</span></div>
   </div>
 </header>
 
@@ -329,6 +330,73 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--rule);
     <strong>That asymmetry is the whole argument for moving the handle</strong>, and it is not a
     matter of taste.
   </p>
+
+  <div class="callout warn">
+    <span class="label">Refuted, 20 August 2026 — §03.3 is wrong</span>
+    <p>
+      <strong>The budget cannot be bought at any size a panel can be.</strong> The section above
+      is left as written, because it is the argument the measurement was made against and
+      rewriting it would hide what was tested. Everything under this callout replaces it.
+    </p>
+    <p>
+      The arithmetic in §03.3 is right and its conclusion does not follow from it.
+      <code>5,700 px</code> is correctly derived and then called <em>"roughly 10× zoom on a
+      600 px panel. Not exotic."</em> The unstated step is that a 600 px panel zoomed 10× shows
+      one-tenth of the cloud in each axis — so the pair separated to 4 px is separated
+      <em>only while the other 99% of the space is off screen</em>. That is not a scatter plot
+      you traverse; it is a viewport into a smear, and it forfeits the one property §04 sells
+      the chart on, that the whole bounded space is on screen at once. The two claims —
+      <em>nothing is hidden</em> and <em>zoom until the points separate</em> — cannot both hold.
+    </p>
+    <p>
+      Measured directly, rather than reasoned about, on a 512 px chart framed tight to the
+      data:
+    </p>
+    <div class="tablewrap">
+    <table>
+      <thead><tr><th>Document</th><th>Placed strands</th><th>Distinct pixels</th><th>Median nearest neighbour</th><th>Individually pointable</th></tr></thead>
+      <tbody>
+        <tr><td><code>stm-chr1-25331046-25331646</code></td><td>363</td><td>206</td><td class="hi">0.39 px</td><td>10</td></tr>
+        <tr><td><code>stm-chr8-78771162-78771252</code></td><td>452</td><td>261</td><td class="hi">0.39 px</td><td>14</td></tr>
+        <tr><td><code>5520+</code></td><td>347</td><td>206</td><td class="hi">0.39 px</td><td>10</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      460 haplotypes land on about 200 pixels. Ten of them can be pointed at; the rest are one
+      smear. The median is <strong>identical to two significant figures across three
+      documents</strong>, so this is a property of the cohort and not of a locus — which is the
+      one thing §03.3 could have hoped for and did not get. With a 5 px pick radius the median
+      cursor position covers <strong>51 haplotypes</strong> at 576 px and 80 at 400 px.
+    </p>
+    <p>
+      Resizing does not rescue it. A resizable card tops out near 1,400 px, which moves the
+      median from 0.39 px to about 1.4 px — a real improvement and nowhere near a selector.
+    </p>
+    <p>
+      And underneath the pixel limit is one no zoom reaches: <code>pclaiX</code> and
+      <code>pclaiY</code> are published to <strong>three decimals</strong>, so the data's own
+      quantum is 0.001 against a median neighbour distance of 0.0028. <strong>The median pair
+      is 2.8 quanta apart.</strong> Even an infinite plot bottoms out with points stacked on
+      the grid the document publishes them on, close to where the interesting separation is.
+      §03.3 treats resolution as continuous and buyable; it is neither.
+    </p>
+    <p>
+      So Strategy C's finding stands unqualified — <em>no PCLAI-derived channel can individuate
+      a strand</em> — and this document's one attempt to escape it fails. The two-panel loop of
+      §05 survives intact; only its direction changes. Selection does not travel right from the
+      chart to the strip, because the chart cannot address a haplotype. Picking travels left,
+      from the strip to the chart, and the chart answers <em>which lobe, how near its edge</em>
+      — which is what the coordinate has the bits for, and what §04 called a position report
+      before this section asked it to be an index as well.
+    </p>
+    <p>
+      What individuates a strand is its <strong>name</strong>. <code>trackName</code> is on
+      every band in the document, it was being discarded by the parser, and it is exact.
+      <code>docs/adr/0003-passive-pclai-inset.md</code> carries the decision and the full
+      measurements; <code>pgb#110</code> is the spec built on it.
+    </p>
+  </div>
 
   <h3>4 · The per-node coordinate becomes a feature</h3>
   <p>
@@ -848,6 +916,12 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--rule);
           is selection plumbing rather than rendering, and it is a larger question than the lens —
           but the lens is what makes it worth having at fit, so the lens goes first.
         </p>
+        <p><em><strong>Amended 20 Aug 2026.</strong> Neither zoomable nor driving selection —
+          see §03a. What was built instead is a passive inset: it plots the cloud, it recedes
+          when the feeler is out, it rings the haplotype under the cursor, and it takes no
+          pointer input at all. There is no selection to plumb and no owner needed for it. The
+          ordering advice above survives: the floor still goes first, because the inset can name
+          where a strand sits and only the floor can make that strand visible at fit.</em></p>
       </div>
       <span class="cost">needs an owner<br>for selection</span>
     </div>
@@ -882,13 +956,17 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--rule);
 </section>
 
 <footer>
-  Sequence tube map spike · concept note, 19 August 2026 · to be folded into
-  docs/DISAMBIGUATING-STRANDS.md as an outcome under Strategy A once rendered<br>
+  Sequence tube map spike · concept note, 19 August 2026 · <b>§03.3 refuted 20 August 2026</b>,
+  which is §03a; the rest is left as written<br>
+  Migrated into <code>CAST-genomics/pgb</code> 20 August 2026 with the rest of the spike's
+  research record. The outcome is
+  <code>docs/adr/0003-passive-pclai-inset.md</code> — the inset is a passive position report —
+  and the spec built on it is <code>pgb#110</code><br>
   Prior art: Rao &amp; Card, CHI '94 · Furnas, generalized fisheye views, CHI '86 ·
   Tufte, <i>The Visual Display of Quantitative Information</i> (lie factor, data-ink) ·
   Rams, ten principles (unobtrusive, honest, as little design as possible)<br>
-  Measurements quoted from docs/RENDERING.md, docs/DISAMBIGUATING-STRANDS.md,
-  notes/2026-08-14-feeler-mode-on-the-gpu.md, scripts/strand_grouping_survey.py
+  Measurements quoted from rendering.md, disambiguating-strands.md,
+  measurements/2026-08-14-feeler-mode-on-the-gpu.md, scripts/strand_grouping_survey.py
 </footer>
 
 </div>

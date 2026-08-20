@@ -56,10 +56,12 @@ tiers and those are **superseded**, not inherited:
 Long-form arguments, each self-contained HTML:
 
 - **[`table-lens-concepts-for-strand-disambiguation.html`](table-lens-concepts-for-strand-disambiguation.html)**
-  — the Table Lens proposal that led to the PCLAI inset. **§03.3 is wrong** and the
-  correction has not been written into it: it argues the resolution limit is a budget a
-  scatter plot can buy by zooming, and ADR 0003 measures that it is not, at any size a panel
-  can be.
+  — the Table Lens proposal that led to the PCLAI inset. **§03.3 was refuted on 2026-08-20**
+  and the refutation is written into the document as **§03a**, a callout following the
+  section it replaces. The original text is left as written, because it is the argument the
+  measurement was made against. Read §03a for what actually happened: the resolution is not
+  buyable at any size a panel can be, and the published three-decimal precision sits
+  underneath the pixel limit.
 - **[`routes-not-ribbons.html`](routes-not-ribbons.html)** — grouping strands by the nodes
   they traverse.
 - **[`tracing-strand-463.html`](tracing-strand-463.html)** — following one haplotype.
