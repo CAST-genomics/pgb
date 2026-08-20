@@ -23,7 +23,7 @@ class GeometryFactory {
 
         this.#createNodeGeometries(dataset.nodes);
 
-        this.#createEdgeGeometries(dataset.edges);
+        this.#createEdgeGeometries(dataset.edges, this.#spineNodeIds(dataset));
 
         const result = {
             splines: this.splines,
@@ -81,19 +81,48 @@ class GeometryFactory {
     }
 
     /**
-     * Create edge line geometries without materials
+     * The node ids of the spine walk, when the dataset was laid out linearly.
+     * Null in force mode, or when the spine assembly can't be resolved to a walk.
      */
-    #createEdgeGeometries(edges) {
+    #spineNodeIds(dataset) {
+        const { mode, spineAssembly } = dataset.layout || {};
+        if (mode !== 'linear' || !spineAssembly) {
+            return null;
+        }
+
+        const assemblyKey = this.genomicService.resolveAssemblyKey(spineAssembly);
+        const walk = assemblyKey && this.genomicService.assemblyWalkMap.get(assemblyKey);
+        if (!walk) {
+            return null;
+        }
+
+        return new Set(walk.spineFeatures.spine.nodes.map(({ id }) => id));
+    }
+
+    /**
+     * Create edge line geometries without materials
+     *
+     * @param {Set<string>|null} spineNodeIds - In linear mode the spine is drawn as a
+     * straight run of nodes, so the edges joining spine nodes to each other add nothing
+     * but overdraw along that run. Skip them. Edges with at least one off-spine endpoint
+     * still carry the graph's branching structure and are kept.
+     */
+    #createEdgeGeometries(edges, spineNodeIds) {
 
         for (const { startingNode, endingNode } of edges) {
 
             const startNodeName = this.getActualSignedNodeName(startingNode);
+            const endNodeName = this.getActualSignedNodeName(endingNode);
+
+            if (spineNodeIds && spineNodeIds.has(startNodeName) && spineNodeIds.has(endNodeName)) {
+                continue;
+            }
+
             const startParam = this.getSplineParameter(startingNode, 'starting');
             const startSpline = this.splines.get(startNodeName);
             const xyzStart = startSpline.getPoint(startParam);
             xyzStart.z = GeometryFactory.EDGE_LINE_Z_OFFSET;
 
-            const endNodeName = this.getActualSignedNodeName(endingNode);
             const endParam = this.getSplineParameter(endingNode, 'ending');
             const endSpline = this.splines.get(endNodeName);
             const xyzEnd = endSpline.getPoint(endParam);
