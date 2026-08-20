@@ -17,6 +17,7 @@
     "hsluv": "^1.0.2",
     "igv-utils": "github:igvteam/igv-utils#v1.5.10",
     "jsdom": "^29.0.2",
+    "playwright": "^1.62.1",
     "sass": "^1.88.0",
     "three": "^0.176.0",
     "typescript": "^6.0.2",

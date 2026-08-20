@@ -8,13 +8,13 @@
  * side of.
  *
  * Rewritten from `spike/bandSurface.ts` after the verdict in
- * `notes/2026-08-14-three-js-renderer-verdict.md`. Two things changed in the rewrite and
+ * `notes/sequence-tube-map/measurements/2026-08-14-three-js-renderer-verdict.md`. Two things changed in the rewrite and
  * nothing else did:
  *
  * - **Only analytic coverage is built.** The spike carried both arms on a live toggle so
  *   they could be judged against each other on the same frame; that comparison is over
  *   and technique C won, so the `#ifdef` ladder, the second WebGL context and the camera
- *   hand-off between them are all gone. `docs/RENDERING.md` keeps the comparison.
+ *   hand-off between them are all gone. `notes/sequence-tube-map/rendering.md` keeps the comparison.
  * - **The camera is framed in pixels**, not in the content's own width — see
  *   `bandCamera.ts` for why, which is entirely about what a resize should do.
  *

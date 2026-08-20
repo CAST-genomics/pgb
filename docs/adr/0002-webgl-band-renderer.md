@@ -33,7 +33,7 @@ migrated: 2026-08-17
 > **Measured 2026-08-14.** The decision below is confirmed by a working renderer rather
 > than by argument: 40,442 bands in one instanced draw call, 8.3–8.4 ms per frame from
 > fit to 200× zoom, worst frame 10.5 ms, on an M1 Pro through ANGLE Metal. Full result in
-> [`notes/2026-08-14-three-js-renderer-verdict.md`](https://github.com/CAST-genomics/sequence-tube-map-spike/blob/main/notes/2026-08-14-three-js-renderer-verdict.md).
+> [`notes/…/2026-08-14-three-js-renderer-verdict.md`](../../notes/sequence-tube-map/measurements/2026-08-14-three-js-renderer-verdict.md).
 >
 > **Several consequences below are wrong and are corrected in place**, each marked. In
 > summary: the camera is driven by `MapControls`, not by an `{x, y, scale}` object; the
@@ -278,6 +278,6 @@ Two further consequences, both measured:
   PGB's 3D stack" was a virtue; the overlap is now the point, and the version is
   pinned to PGB's `^0.176.0`.
 - **This does not address transport.** The largest catalogued nodes cannot be fetched
-  at all — see [`notes/2026-08-13-api-fetch-ceiling.md`](https://github.com/CAST-genomics/sequence-tube-map-spike/blob/main/notes/2026-08-13-api-fetch-ceiling.md).
+  at all — see [`notes/…/2026-08-13-api-fetch-ceiling.md`](../../notes/sequence-tube-map/measurements/2026-08-13-api-fetch-ceiling.md).
   A compact geometry format from UCSD is the natural follow-on, and this decision is
   what makes that request specific enough to be worth making.

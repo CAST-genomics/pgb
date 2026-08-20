@@ -10,7 +10,7 @@
  * surfaces read the same bytes in incompatible ways — `DOMParser` into a live tree, or a
  * regex into six floats per band — and neither reading belongs to the fetch.
  *
- * Note from the CORS survey (`notes/2026-08-12-api-reachability-and-cors.md`): the API's
+ * Note from the CORS survey (`notes/sequence-tube-map/measurements/2026-08-12-api-reachability-and-cors.md`): the API's
  * error responses carry no CORS headers, so a 500 reaches the browser as an opaque
  * network failure rather than a status. Both paths below are therefore live.
  *
@@ -29,7 +29,7 @@
  * `PATIENCE_MS` is 90 s, and it is a *guardrail, not a diagnosis*. The slowest observed
  * success took 65.6 s, so the limit sits above every response known to arrive and gives up
  * on the rest. Diagnosing why the server takes that long is UCSD's, and deliberately not
- * this viewer's — see `notes/2026-08-13-api-fetch-ceiling.md`.
+ * this viewer's — see `notes/sequence-tube-map/measurements/2026-08-13-api-fetch-ceiling.md`.
  */
 
 /**

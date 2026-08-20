@@ -36,7 +36,7 @@ import { shieldFromMap } from './surfacePointer.ts'
  * (28:1). Rendered and looked at: the picture survives at 26 px and is a hairline at 13.
  * At 720 the same two are 51 px and 26 px, both showing where the strands swap and where
  * the strip narrows — landmarks a researcher can aim at. See
- * `notes/2026-08-14-navigator-thumbnail-aspect.md`.
+ * `notes/sequence-tube-map/measurements/2026-08-14-navigator-thumbnail-aspect.md`.
  *
  * **Taken to 75% of that area on 2026-08-18**, looking at it in the panel: the widget was
  * right about the map and too loud beside it. Area, so each axis gets `sqrt(0.75)` ≈ 0.866

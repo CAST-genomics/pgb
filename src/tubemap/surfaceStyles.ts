@@ -121,7 +121,7 @@ export const SURFACE_STYLES = `
    document's own numbers — nothing about the size is decided here.
 
    Nothing is pinned to a css size: the border scales with the camera like the 15-unit bands
-   do. See *What the renderer corrects, and what it leaves alone* in docs/RENDERING.md. */
+   do. See *What the renderer corrects, and what it leaves alone* in notes/sequence-tube-map/rendering.md. */
 .stm-segment {
     position: absolute;
     box-sizing: border-box;

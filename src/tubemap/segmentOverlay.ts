@@ -35,7 +35,7 @@
  * ## What is not corrected
  *
  * The 2-unit stroke and the radius-9 corners scale with the camera like everything else.
- * `docs/RENDERING.md` has the numbers under *What the renderer corrects, and what it leaves
+ * `notes/sequence-tube-map/rendering.md` has the numbers under *What the renderer corrects, and what it leaves
  * alone*: a scaling stroke spans 0.016 css px at fit and 3.1 px at 200×, and there was never
  * anything to fix. Nor is the arrival animated — a box reaching the threshold already has a
  * 0.17 px stroke the browser antialiases to a faint line, which thickens on its own.
