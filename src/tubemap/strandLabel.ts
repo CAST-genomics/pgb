@@ -69,7 +69,7 @@ export function createStrandLabel(root: HTMLElement): StrandLabel {
 
         show(name: string, at: Point, within: Size): void {
             if (name !== shown) {
-                element.textContent = name
+                element.replaceChildren(...spell(root.ownerDocument, name))
 
                 // Before measuring: `offsetWidth` on a `display: none` element is zero,
                 // and the clamp below is measured against it.
@@ -105,4 +105,36 @@ export function createStrandLabel(root: HTMLElement): StrandLabel {
             element.remove()
         }
     }
+}
+
+/**
+ * The name as nodes: its `#` separators wrapped so the stylesheet can put a little air on
+ * either side of them, and everything else as plain text.
+ *
+ * **This adds no characters.** The element's `textContent` is still the document's own
+ * spelling, character for character — the separation is margin on a span, not a space in
+ * the string — so what is on screen is what a researcher would type, and a name that ever
+ * becomes selectable copies verbatim.
+ *
+ * It is also not a parse: nothing here counts the parts or assigns them meaning, which is
+ * what would break on the chr8 fixture's four-part names. A name with no `#` in it at all
+ * comes through as one text node.
+ *
+ * Exported for the one thing about this label that is not obvious by looking: an inserted
+ * space and a margin are the same picture, and only one of them is still the name.
+ */
+export function spell(doc: Document, name: string): Node[] {
+    // Capturing split, so the separators survive in the list rather than being consumed.
+    return name.split(/(#)/).filter(piece => '' !== piece).map(piece => {
+        if ('#' !== piece) {
+            return doc.createTextNode(piece)
+        }
+
+        const hash = doc.createElement('span')
+
+        hash.className = 'stm-strand-hash'
+        hash.textContent = piece
+
+        return hash
+    })
 }

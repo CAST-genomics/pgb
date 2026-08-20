@@ -250,6 +250,20 @@ export const SURFACE_STYLES = `
 
    The font is overridden because \`.stm-root\` sets a monospace \`font\` shorthand for the
    readouts, and PGB's tooltip is not monospace. */
+
+/* The \`#\`s, given a little room on either side.
+
+   A haplotype name is several fields run together and the separator is what tells a reader
+   where one ends — set solid, \`NA21309#2#CM092097.1\` reads as one long token. The air is
+   margin rather than an inserted space: the element's text stays the document's own
+   spelling exactly, so nothing on screen is a character a researcher would then type.
+
+   \`strandLabel.ts\` wraps them; it counts nothing and assumes nothing about how many there
+   are, which is what keeps the four-part names working. */
+.stm-strand-hash {
+    margin: 0 0.09em;
+}
+
 .graph-tooltip,
 .stm-strand-label {
     top: 0;
@@ -297,6 +311,11 @@ export const SURFACE_STYLES = `
     font-size: 0.9rem;
     line-height: 1.4;
     font-weight: 600;
+    /* The one place this departs from the tooltip's type, and only just: a haplotype name
+       is read character by character and copied out by eye, where a tooltip's prose rows
+       are read as words. A little air between the glyphs keeps the string legible without
+       loosening it into a row of loose letters. */
+    letter-spacing: 0.02em;
     white-space: nowrap;
     pointer-events: none;
     display: none;
