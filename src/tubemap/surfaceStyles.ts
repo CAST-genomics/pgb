@@ -165,35 +165,6 @@ export const SURFACE_STYLES = `
     opacity: 1;
 }
 
-/* The name of the strand under the feeler (#111), anchored to the surface's top-left corner
-   and moved with a \`transform\` — the same arrangement as the segment tooltip, and for the
-   same reason: a transform does not invalidate layout, so a label following the cursor
-   cannot make the surface's own per-move \`getBoundingClientRect\` a forced reflow.
-
-   Monospace, inherited from \`.stm-root\`: it is a name to be read character by character and
-   pasted into other tools, not prose. No transition — it is placed and shown in the same
-   frame the pick answers, and a fade would lag the emphasis it belongs to.
-
-   Inert, like the badge: the map underneath keeps answering the cursor, so the label is
-   never the thing the pointer is over instead of the strand it names. */
-.stm-strand-label {
-    position: absolute;
-    top: 0;
-    left: 0;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: var(--stm-chrome);
-    color: var(--stm-ink);
-    white-space: nowrap;
-    pointer-events: none;
-    display: none;
-    z-index: 3;
-}
-
-.stm-strand-label.is-shown {
-    display: block;
-}
-
 /* ── PGB's node tooltip, borrowed outright ────────────────────────────────────────────────
 
    Copied 2026-08-15 from pgb/src/styles/_toolTipContainer.scss and _lookToolTip.scss — the
@@ -279,15 +250,56 @@ export const SURFACE_STYLES = `
 
    The font is overridden because \`.stm-root\` sets a monospace \`font\` shorthand for the
    readouts, and PGB's tooltip is not monospace. */
-.graph-tooltip {
+.graph-tooltip,
+.stm-strand-label {
     top: 0;
     left: 0;
     z-index: 3;
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-.graph-tooltip.is-shown {
+.graph-tooltip.is-shown,
+.stm-strand-label.is-shown {
     display: block;
+}
+
+/* The name of the strand under the feeler (#111).
+
+   **The same card as the tooltip above it**, and that is a design constraint rather than a
+   convenience: a researcher crosses between the 3D graph, the segment tooltip and this
+   label constantly, and a readout that changed medium — dark pill here, light card there —
+   would read as a different *kind* of object rather than as one more thing the viewer is
+   telling them. So it takes PGB's ground, border, radius and sans-serif face, and its own
+   type is \`.node-title\`'s: this is one identifier, which is exactly what a title row is.
+
+   It is still its own element and not \`.graph-tooltip\` — sharing an appearance is not the
+   same as sharing an owner, and #111 keeps the two separate (see \`strandLabel.ts\`). What
+   is shared is stated once, here, in the selector lists above.
+
+   Not monospace, though the name is an identifier: \`.stm-root\`'s monospace shorthand is
+   for the numeric readouts, and PGB's tooltips — where a researcher reads node ids of the
+   same shape — are set in the UI face. Matching them wins over matching the readouts.
+
+   Anchored and moved exactly as the tooltip is, and inert for the same reason the badge is:
+   the map underneath keeps answering the cursor, so the label is never the thing the pointer
+   is over instead of the strand it names.
+
+   The \`display: none\` below sits after \`.is-shown\` in source order and loses to it on
+   specificity, which is how being shown stays a class here exactly as it is for the
+   tooltip. */
+.stm-strand-label {
+    position: absolute;
+    padding: 0.375rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #B8B8B8;
+    background: rgba(255, 255, 255, 0.85);
+    color: #212529;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    display: none;
 }
 
 /* Instrumentation, not chrome: only ?pick puts this on the surface.

@@ -23,6 +23,13 @@
  * no segment box is wide enough to be drawn at all, so mostly they never meet). If the
  * label ever grows a second row, that is when merging them is worth reconsidering.
  *
+ * It does, however, **look exactly like one**: PGB's tooltip ground, border, radius and
+ * sans-serif face, with the name set as a `.node-title`. A researcher crosses between the
+ * 3D graph, the segment tooltip and this label constantly, and a readout that changed
+ * medium between them would read as a different kind of object rather than as one more
+ * thing the viewer is saying. Sharing an appearance is not sharing an owner; the shared
+ * declarations are stated once in `surfaceStyles.ts`.
+ *
  * Inert to the pointer, like the badge and the `?pick` readout: the map underneath keeps
  * answering, so the cursor is never over the label instead of over the strand it names.
  */
