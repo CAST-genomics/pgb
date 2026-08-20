@@ -5,6 +5,26 @@
 and [`0002`](../../docs/adr/0002-webgl-band-renderer.md) are the normative records. This note
 describes what exists and licenses nothing.
 
+> **Where the issue numbers point.** Most of this was built in
+> [`CAST-genomics/sequence-tube-map-spike`](https://github.com/CAST-genomics/sequence-tube-map-spike)
+> before any of it reached PGB, so the numbers below split two ways and are marked
+> accordingly:
+>
+> - **`spike #NN`** — an issue in the spike repo, where the work was actually done:
+>   [#23](https://github.com/CAST-genomics/sequence-tube-map-spike/issues/23) (the API's
+>   size ceiling, still open),
+>   [#38](https://github.com/CAST-genomics/sequence-tube-map-spike/issues/38) (picking) and
+>   [#39](https://github.com/CAST-genomics/sequence-tube-map-spike/issues/39) (the feeler).
+> - **`pgb #NN`** — this repo, for work done after the migration:
+>   [#99](https://github.com/CAST-genomics/pgb/pull/99) (the context menu, and the three
+>   tall-document defects in §2).
+>
+> Worth marking rather than leaving to context: all three spike numbers *also* resolve
+> against PGB's tracker, to unrelated merged PRs. A bare `#38` here would silently read as
+> "Remove event bus self-consumption from widgets" — a plausible wrong answer rather than a
+> dead link. Same convention as [ADR `0002`](../../docs/adr/0002-webgl-band-renderer.md),
+> which reads bare `#NN` in the migrated text as spike issues.
+
 Everything here is reachable without loading a dataset, without the API being up, and without
 clicking through the 3D graph. None of it is discoverable from the running app — that is the
 point of writing it down.
@@ -69,9 +89,9 @@ Vite's dev server serves them at their on-disk path anyway.
 | `stm-chr1-25331046-25331646.svg` | 35562 × 6325 — a **5.6:1 strip** | node 5519; the default on both pages, and where every parser test starts |
 | `stm-chr8-78771162-78771252.svg` | 4717 × 7115 — **taller than wide** | node 141457; the shape the strip cannot catch |
 
-The tall one is worth knowing about. Three defects fixed in #99 were all the assumption that
-every tube map is a strip — the navigator's height had no ceiling, `fitZoom` fitted the width
-rather than the map — and **none of them could fail against the default fixture**. If you
+The tall one is worth knowing about. Three defects fixed in pgb #99 were all the assumption
+that every tube map is a strip — the navigator's height had no ceiling, `fitZoom` fitted the
+width rather than the map — and **none of them could fail against the default fixture**. If you
 touch framing, fitting, or the navigator's sizing, open the tall one before you believe
 anything. Rationale in full: `src/tubemap/__tests__/fixture.ts`.
 
@@ -90,7 +110,8 @@ Two things it does that nothing else does:
 
 - It makes a pick happen on a **plain hover**. Without it, a pick only runs under the feeler.
 - It states the cost rather than asserting it — which is how the pick answer was checked
-  against the document by hand (#38) and how the highlight cost was established (#39).
+  against the document by hand (spike #38) and how the highlight cost was established
+  (spike #39).
 
 The `table` figures stay at zero until you hold `Shift`; nothing writes the appearance table
 without the feeler. The first pick is dramatically slower than the rest (~38 ms against a
@@ -169,7 +190,7 @@ map, with the URL on a line of its own. The five kinds (`src/tubemap/loadFailure
 | Kind | Means | Where to look |
 |---|---|---|
 | `unreachable` | the bytes never arrived | network, URL, server |
-| `slow` | accepted, unfinished inside `PATIENCE_MS` (90 s) | nowhere — this is the known server defect (#23) |
+| `slow` | accepted, unfinished inside `PATIENCE_MS` (90 s) | nowhere — this is the known server defect (spike #23) |
 | `absent` | bytes arrived and are not a tube map | nothing is broken; there is no map for what you asked |
 | `undrawable` | parsed, refused off the band grammar | ADR `0002`'s gate |
 | `internal` | a bug here | here |
