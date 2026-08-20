@@ -394,11 +394,12 @@ quoting the server's document.
 ### feeler
 
 The held-`Shift` mode over a **sequence tube map**: while the key is down, the
-**strand** under the cursor is drawn as the document drew it and every other
-strand recedes to a ghost of itself. A mode that is *held* rather than toggled,
-and one that does not accumulate — moving on hands the emphasis to the next
-strand. Entered only while the pointer is over the surface, since `Shift` is a
-key the rest of PGB and the OS also use.
+**strand** under the cursor is drawn as the document drew it, every other
+strand recedes to a ghost of itself, and a label following the cursor gives
+that strand's **name**. A mode that is *held* rather than toggled, and one that
+does not accumulate — moving on hands the emphasis to the next strand. Entered
+only while the pointer is over the surface, since `Shift` is a key the rest of
+PGB and the OS also use. Plain hover does none of it.
 
 ### placement
 

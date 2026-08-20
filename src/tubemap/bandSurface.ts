@@ -133,6 +133,7 @@ import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
 import { canvasPoint, overChrome } from './surfacePointer.ts'
 import { APPEARANCE_ROW, createStrandAppearance, type StrandAppearance } from './strandAppearance.ts'
+import { createStrandLabel, type StrandLabel } from './strandLabel.ts'
 
 /** Quads per band along its span. See the note on tessellation error above. */
 export const RUNGS = 64
@@ -411,6 +412,10 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     // mount layers on top — the navigator, the badge, and the status layer that has to be
     // able to cover a refused document's error message with nothing showing through it.
     const segments: SegmentOverlay = createSegmentOverlay(host)
+
+    // What the feeler is touching, by name (#111). Mounted over the segments so a name is
+    // never covered by a box, and inert, so the map underneath keeps answering the cursor.
+    const strandLabel: StrandLabel = createStrandLabel(host)
 
     const readout = true === options.pickReadout ? doc.createElement('div') : null
 
@@ -705,7 +710,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         // crosses gaps between bands constantly, and springing back to full colour in each
         // of them would strobe.
         if (feeler.active()) {
-            focus(result.strandId)
+            touch(result.strandId)
         }
 
         if (null === readout) {
@@ -751,6 +756,36 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     }
 
     /**
+     * Say what the emphasized strand is called, beside the cursor, or say nothing.
+     *
+     * Read from the parsed document rather than asked of the GPU: the pick pass answers
+     * with a strand id, and `strandNames` is what turns that integer into the thing a
+     * researcher can write down. Over empty space there is no name — the same state the
+     * emphasis takes, and for the same reason.
+     *
+     * Placed from `cursor` and `framed` rather than from the event, because this runs on
+     * the pick frame: both are already the surface's own numbers and neither costs a
+     * layout read.
+     */
+    function nameStrand(strandId: number | null): void {
+        if (null === drawing || null === cursor || null === strandId) {
+            strandLabel.hide()
+            return
+        }
+
+        strandLabel.show(drawing.map.strandNames[strandId], cursor, framed)
+    }
+
+    /**
+     * Hand the feeler one strand, or none: what is lit and what is named are one answer to
+     * one question, and the two must never be given different ones.
+     */
+    function touch(strandId: number | null): void {
+        focus(strandId)
+        nameStrand(strandId)
+    }
+
+    /**
      * `Shift` down: the cursor becomes a feeler.
      *
      * The controls are switched off for the duration, which is `CONTEXT.md` #13 — `Shift`
@@ -767,15 +802,20 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
         // The map recedes on the key alone, before any movement: the mode is legible
         // immediately, and holding `Shift` over a strand emphasizes it without a nudge.
-        focus(null)
+        // Nothing is named until the pick answers — a name is an answer about one strand,
+        // and at this instant the mode has not asked yet.
+        touch(null)
         schedulePick()
     }
 
-    /** `Shift` up: the emphasis goes with it. Highlighting is the mode, not a state. */
+    /** `Shift` up: the emphasis goes with it, and so does the name. Both are the mode, not
+     *  a state — a name left on screen would refer to a strand that is no longer lit. */
     function leaveFeelerMode(): void {
         if (null !== context) {
             context.controls.enabled = true
         }
+
+        strandLabel.hide()
 
         if (true === drawing?.appearance.release()) {
             scheduleDraw()
@@ -830,7 +870,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         cursor = null
 
         if (feeler.active()) {
-            focus(null)
+            touch(null)
         }
 
         if (null !== readout) {
@@ -975,6 +1015,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             // Before the drawing goes: the mode owns the controls and the cursor, and
             // leaving it held over an empty surface would leave both switched off.
             feeler.release()
+            strandLabel.hide()
             releaseDrawing()
 
             // In the same call that empties the scene, so a refused document cannot leave
@@ -1024,6 +1065,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             doc.removeEventListener('pointerup', onPointerUp)
             doc.removeEventListener('pointercancel', onPointerUp)
             feeler.destroy()
+            strandLabel.destroy()
             segments.destroy()
             readout?.remove()
 
