@@ -79,7 +79,7 @@ npm run preview
 
 ## License
 
-[MIT](LICENSE) © Center for Admixture Science and Technology (CAST)
+[MIT](LICENSE) © The Regents of the University of California
 
 ## Contributing
 
