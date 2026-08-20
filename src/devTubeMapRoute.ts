@@ -21,6 +21,10 @@
  * driven by a catalogue of every eligible minigraph node, and an FPS meter. The catalogue
  * becomes `tubeMapTargetForNode` on real dataset nodes (#90), and the FPS meter answered a
  * question the spike closed. Both stayed behind.
+ *
+ * `?pick` did come across, because it is not a way of deciding which URL — it reads the
+ * pick pass out loud, and is the only thing that makes a pick happen on a plain hover
+ * rather than under the feeler. See `BandSurfaceOptions.pickReadout`.
  */
 
 import { mountTubeMapSurface } from './tubemap/tubeMapSurface.ts'
@@ -36,10 +40,20 @@ const FIXTURE_URL = '/src/tubemap/__tests__/fixtures/stm-chr1-25331046-25331646.
 const container = document.getElementById('viewer') as HTMLElement
 const picker = document.getElementById('picker') as HTMLFormElement
 const field = document.getElementById('url') as HTMLInputElement
+const hint = document.getElementById('hint') as HTMLElement
 
-const initialUrl = new URLSearchParams(window.location.search).get('url') ?? FIXTURE_URL
+const parameters = new URLSearchParams(window.location.search)
+const initialUrl = parameters.get('url') ?? FIXTURE_URL
 
-const viewer = mountTubeMapSurface(container)
+// `?pick` reads the pick pass out loud: the strand under the cursor, what asking cost, and
+// what the worst appearance-table write cost. Feeling strands runs the same pass without it.
+const pickReadout = parameters.has('pick')
+
+if (pickReadout) {
+    hint.textContent += ' · picking the strand under the cursor'
+}
+
+const viewer = mountTubeMapSurface(container, { pickReadout })
 
 // The field is filled in rather than left blank, so what is on screen is always something
 // the reader can see, edit and paste elsewhere.
