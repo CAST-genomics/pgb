@@ -2,8 +2,8 @@
  * What feeler mode does and what it costs — #39's acceptance, run rather than argued.
  *
  * Two claims are under test. The first is the one the appearance table exists to make:
- * emphasis is a table write and a 2 KB upload, so moving it costs the same wherever it moves
- * and whatever the document. The second is the behaviour the user corrected on looking at the
+ * emphasis is a table write and a 4 KB upload — two planes of 2 KB — so moving it costs the
+ * same wherever it moves and whatever the document. The second is the behaviour the user corrected on looking at the
  * built thing: **the emphasis follows the cursor and does not accumulate** — a sweep hands it
  * along rather than leaving a trail of lit strands behind. `strandAppearance.test.ts` pins that
  * structurally, by counting texels; the sweep's screenshot here is what shows it.
@@ -25,9 +25,12 @@ const DOCUMENT = process.argv[2] ?? '/src/tubemap/__tests__/fixtures/stm-chr1-25
 const URL = `http://localhost:5173/dev/tubemap.html?pick&url=${encodeURIComponent(DOCUMENT)}`
 /** A vertical sweep crosses the bundle, which is what a researcher does with a feeler. */
 const SWEEP_STEPS = 260
-const SHOTS = 'notes'
-/** Screenshots are named for the document, so two runs do not overwrite each other. */
-const LABEL = /minigraphnode=(\d+)/.exec(DOCUMENT)?.[1] ?? 'fixture'
+const SHOTS = 'notes/sequence-tube-map/measurements'
+/** Screenshots are named for the document, so two runs do not overwrite each other. A node
+ *  number, whether the document came from the API or from the committed copy of one. */
+const LABEL = /stm-node-(\d+)/.exec(DOCUMENT)?.[1]
+    ?? /minigraphnode=(\d+)/.exec(DOCUMENT)?.[1]
+    ?? 'fixture'
 
 const browser = await chromium.launch({ headless: false })
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } })
@@ -38,14 +41,16 @@ await page.waitForSelector('.stm-pick')
 await page.waitForFunction(() => document.querySelector('.stm-status')?.hidden === true)
 
 const map = await page.evaluate(async source => {
-    const { parseBands } = await import('/src/parseBands.ts')
+    const { parseBands } = await import('/src/tubemap/parseBands.ts')
     const parsed = parseBands(await (await fetch(source)).text())
 
     return { strands: parsed.strandCount, bands: parsed.bandCount }
 }, DOCUMENT)
 
 const canvas = await page.locator('canvas.stm-canvas').boundingBox()
-const rows = Math.ceil(map.strands / 256)
+// Two planes — colour and emphasis, then the per-strand modifiers the thickness floor lives
+// in. See `strandAppearance.ts`.
+const rows = Math.ceil(map.strands / 256) * 2
 
 console.log(`document:  ${map.strands} strands · ${map.bands} bands · ${DOCUMENT}`)
 console.log(`viewport:  ${canvas.width} x ${canvas.height} css px`)

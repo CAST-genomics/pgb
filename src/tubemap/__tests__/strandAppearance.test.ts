@@ -13,6 +13,9 @@
 import { describe, expect, it } from 'vitest'
 import {
     APPEARANCE_ROW,
+    FLOOR_STEPS_PER_PX,
+    FLOOR_CSS_PX,
+    NO_FLOOR,
     PLAIN,
     RECEDED,
     createStrandAppearance,
@@ -45,6 +48,37 @@ function texel(appearance: StrandAppearance, strandId: number): number[] {
     return Array.from(data.subarray(at, at + 4))
 }
 
+/**
+ * The four modifier bytes for `strandId`, addressed the way the shader addresses them: the
+ * same column, `planeRows` rows further down. Byte 0 is the thickness floor.
+ */
+function modifier(appearance: StrandAppearance, strandId: number): number[] {
+    const data = bytes(appearance)
+    const row = (strandId / APPEARANCE_ROW | 0) + appearance.planeRows
+    const at = (row * appearance.width + strandId % APPEARANCE_ROW) * 4
+
+    return Array.from(data.subarray(at, at + 4))
+}
+
+/** The thickness floor the shader will read for `strandId`, in raw bytes. */
+function floorByte(appearance: StrandAppearance, strandId: number): number {
+    return modifier(appearance, strandId)[0]
+}
+
+/** The byte a floored strand carries at the shipped floor. */
+const FLOORED = Math.round(FLOOR_CSS_PX * FLOOR_STEPS_PER_PX)
+
+/** True when no strand in the document carries a floor. */
+function nothingFloored(appearance: StrandAppearance, strandCount: number): boolean {
+    for (let id = 0; id < strandCount; id += 1) {
+        if (NO_FLOOR !== floorByte(appearance, id)) {
+            return false
+        }
+    }
+
+    return true
+}
+
 /** Every strand drawn as the document drew it, which is what the feeler away looks like. */
 function nothingReceded(appearance: StrandAppearance, strandCount: number): boolean {
     for (let id = 0; id < strandCount; id += 1) {
@@ -64,7 +98,10 @@ describe('createStrandAppearance', () => {
             const appearance = createStrandAppearance(document(strandCount))
 
             expect(appearance.width).toBe(APPEARANCE_ROW)
-            expect(appearance.height).toBe(Math.ceil(strandCount / APPEARANCE_ROW))
+            expect(appearance.planeRows).toBe(Math.ceil(strandCount / APPEARANCE_ROW))
+
+            // Two planes stacked: colour and emphasis, then the per-strand modifiers.
+            expect(appearance.height).toBe(2 * appearance.planeRows)
             expect(bytes(appearance).length).toBe(appearance.width * appearance.height * 4)
 
             // Every strand has a texel of its own, including the last one.
@@ -73,9 +110,11 @@ describe('createStrandAppearance', () => {
         }
     })
 
-    it('is a couple of kilobytes at every real strand count', () => {
+    it('is a few kilobytes at every real strand count', () => {
+        // Two planes of two rows: 4 KB. The upload is still the whole table on the frame
+        // that draws it, and still does not scale with the number of bands.
         for (const strandCount of [369, 378, 464]) {
-            expect(bytes(createStrandAppearance(document(strandCount))).length).toBe(2048)
+            expect(bytes(createStrandAppearance(document(strandCount))).length).toBe(4096)
         }
     })
 
@@ -191,6 +230,138 @@ describe('createStrandAppearance', () => {
         expect(appearance.release()).toBe(false)
     })
 
+    it('floors the focused strand and nothing else', () => {
+        const appearance = createStrandAppearance(document(464))
+
+        expect(nothingFloored(appearance, 464)).toBe(true)
+
+        appearance.focus(300)
+
+        expect(floorByte(appearance, 300)).toBe(FLOORED)
+        expect(floorByte(appearance, 299)).toBe(NO_FLOOR)
+        expect(floorByte(appearance, 301)).toBe(NO_FLOOR)
+        expect(floorByte(appearance, 0)).toBe(NO_FLOOR)
+        expect(floorByte(appearance, 463)).toBe(NO_FLOOR)
+    })
+
+    it('reads the floor from the texel the shader will fetch, past the row boundary', () => {
+        // The one way this can be silently wrong. Strand 300 sits in the second row of each
+        // plane, so a modifier plane addressed as "one row down" rather than "planeRows down"
+        // would floor a strand the cursor is nowhere near, and both pictures look like a
+        // working floor.
+        const appearance = createStrandAppearance(document(464))
+        const data = bytes(appearance)
+
+        appearance.focus(300)
+
+        // Written where the shader looks: column 44 of plane 1's second row.
+        const at = ((appearance.planeRows + 1) * appearance.width + 44) * 4
+
+        expect(data[at]).toBe(FLOORED)
+
+        // And nowhere else in the table. A floor leaking into the colour plane would be a
+        // haplotype quietly repainted.
+        let floored = 0
+
+        for (let id = 0; id < 464; id += 1) {
+            if (NO_FLOOR !== floorByte(appearance, id)) {
+                floored += 1
+            }
+
+            expect(texel(appearance, id).slice(0, 3))
+                .toEqual([id % 256, id * 2 % 256, id * 3 % 256])
+        }
+
+        expect(floored).toBe(1)
+    })
+
+    it('addresses the modifier plane on a document that fits in one row', () => {
+        // Both planes are one row tall here, so an offset of "one row" and an offset of
+        // "planeRows" agree — which is exactly why this cannot be the only case tested, and
+        // why it has to be tested too: the shipped documents have 369 to 464 strands, and a
+        // smaller one must not read its floor out of its own colour.
+        const appearance = createStrandAppearance(document(200))
+
+        expect(appearance.planeRows).toBe(1)
+        expect(appearance.height).toBe(2)
+
+        appearance.focus(199)
+
+        expect(floorByte(appearance, 199)).toBe(FLOORED)
+        expect(texel(appearance, 199).slice(0, 3)).toEqual([199, 398 % 256, 597 % 256])
+        expect(nothingFloored(appearance, 199)).toBe(true)
+    })
+
+    it('moves the floor with the emphasis, and never leaves one behind', () => {
+        const appearance = createStrandAppearance(document(464))
+
+        appearance.focus(300)
+        appearance.focus(301)
+
+        expect(floorByte(appearance, 300)).toBe(NO_FLOOR)
+        expect(floorByte(appearance, 301)).toBe(FLOORED)
+
+        // Across a sweep, exactly one strand carries a floor — the same one that is lit.
+        for (let id = 0; id < 200; id += 1) {
+            appearance.focus(id)
+
+            let floored = 0
+
+            for (let other = 0; other < 464; other += 1) {
+                if (NO_FLOOR !== floorByte(appearance, other)) {
+                    floored += 1
+                }
+            }
+
+            expect(floored).toBe(1)
+            expect(floorByte(appearance, id)).toBe(FLOORED)
+        }
+    })
+
+    it('floors nothing over empty space, and nothing on the key alone', () => {
+        const appearance = createStrandAppearance(document(464))
+
+        appearance.focus(null)
+        expect(nothingFloored(appearance, 464)).toBe(true)
+
+        appearance.focus(300)
+        appearance.focus(null)
+        expect(nothingFloored(appearance, 464)).toBe(true)
+    })
+
+    it('releases the floor with the emphasis', () => {
+        // Story 4: the strand deflates to its true hairline the instant the key comes up, so
+        // a dilated band on screen always means the feeler is out.
+        const appearance = createStrandAppearance(document(464))
+
+        appearance.focus(300)
+        appearance.release()
+
+        expect(nothingFloored(appearance, 464)).toBe(true)
+        expect(nothingReceded(appearance, 464)).toBe(true)
+    })
+
+    it('carries the floor the surface was built with, in 1/32 css pixel steps', () => {
+        // The sweep's affordance: the value is a per-strand byte, so a different floor is a
+        // different byte and not a different mechanism.
+        for (const floorCssPx of [1, 1.5, 2, 3]) {
+            const appearance = createStrandAppearance(document(369), { floorCssPx })
+
+            appearance.focus(7)
+
+            expect(floorByte(appearance, 7)).toBe(floorCssPx * FLOOR_STEPS_PER_PX)
+        }
+
+        // A floor of zero is the mechanism switched off: the table says "no floor", which is
+        // what every unfocused strand says, so the shader clamps nothing anywhere.
+        const off = createStrandAppearance(document(369), { floorCssPx: 0 })
+
+        off.focus(7)
+
+        expect(floorByte(off, 7)).toBe(NO_FLOOR)
+        expect(texel(off, 7)[3]).toBe(PLAIN)
+    })
+
     it('costs the same to move the focus as to set it, and nothing scales with the map', () => {
         // Not a timing test — the claim is structural. Each write touches one byte per strand
         // and nothing per band, so what it costs cannot depend on where the focus was, where
@@ -216,9 +387,10 @@ describe('createStrandAppearance', () => {
             touched.push(changed)
         }
 
-        // The first focus recedes 463 strands and leaves one alone. Every move after it
-        // un-emphasizes one strand and emphasizes another: two bytes, forever.
-        expect(touched[0]).toBe(463)
-        expect(touched.slice(1)).toEqual(new Array(199).fill(2))
+        // The first focus recedes 463 strands, leaves one alone, and floors that one. Every
+        // move after it un-emphasizes one strand and emphasizes another, and moves the floor
+        // between the same two: four bytes, forever.
+        expect(touched[0]).toBe(464)
+        expect(touched.slice(1)).toEqual(new Array(199).fill(4))
     })
 })

@@ -32,9 +32,9 @@
  * ## The pick material's contract
  *
  * The material handed in must be the band material's twin — same vertex shader, same
- * coverage uniforms — differing only in what it writes. This module drives `uHalfPixel`
- * and `uPad` on it, because the size of a pick pixel is this module's business and
- * follows from the frustum it builds. See `PICK_FRAGMENT` in `bandSurface.ts` for what
+ * coverage uniforms — differing only in what it writes. This module drives `uHalfPixel`,
+ * `uPad` and `uFloorPixel` on it, because the size of a pick pixel is this module's business
+ * and follows from the frustum it builds. See `PICK_FRAGMENT` in `bandSurface.ts` for what
  * the fragments write and why alpha is the hit flag.
  */
 
@@ -109,6 +109,12 @@ export function createBandPicker(
 
             material.uniforms.uHalfPixel.value = size * 0.5
             material.uniforms.uPad.value = size
+
+            // No thickness floor in the pick pass: a css pixel of zero world size is how the
+            // shared vertex shader is told there isn't one. The floor dilates the strand the
+            // *previous* pick answered with, so honouring it here would let that answer widen
+            // its own target and a sweep at fit could never get past it. See PICK_FRAGMENT.
+            material.uniforms.uFloorPixel.value = 0
 
             renderer.getClearColor(clearColor)
 

@@ -394,12 +394,28 @@ quoting the server's document.
 ### feeler
 
 The held-`Shift` mode over a **sequence tube map**: while the key is down, the
-**strand** under the cursor is drawn as the document drew it, every other
-strand recedes to a ghost of itself, and a label following the cursor gives
-that strand's **name**. A mode that is *held* rather than toggled, and one that
-does not accumulate — moving on hands the emphasis to the next strand. Entered
+**strand** under the cursor is drawn in the document's own colour and at no
+less than the **thickness floor**, every other strand recedes to a ghost of
+itself, and a label following the cursor gives that strand's **name**. A mode
+that is *held* rather than toggled, and one that does not accumulate — moving
+on hands the emphasis to the next strand, and the floor goes with it. Entered
 only while the pointer is over the surface, since `Shift` is a key the rest of
 PGB and the OS also use. Plain hover does none of it.
+
+### thickness floor
+
+The minimum screen-space thickness the **feeler** draws its **strand** at — 2
+css px, grown symmetrically about the band's own centreline, so the strand's
+*position* stays exactly truthful while its extent does not. Carried as a
+per-strand byte in the appearance table beside the emphasis byte, so a set of
+strands could be floored later without another upload path.
+
+It exists because at fit a band is 0.19 css px tall and 2.6 strands share every
+device pixel row: receding the crowd does not change how much of a row the
+focused band owns. **Self-annulling** — above the floor the clamp does nothing
+and the map is byte-identical to what it was, and below it is exactly the
+regime where the overdrawn neighbours were never resolvable anyway. Not applied
+to picking, which answers off the document's own geometry.
 
 ### placement
 
