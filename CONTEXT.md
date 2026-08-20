@@ -102,6 +102,16 @@ ancestry it traces back to. Classical LAI produces discrete labels (a
 finite set like AFR/EUR/EAS); PCLAI replaces these with **continuous
 coordinates** in a learned embedding space.
 
+### lobe
+
+One of the five clusters the PCLAI coordinates fall into. k-means finds
+k=5 in all six surveyed datasets at silhouette 0.89–0.93, and **99.5–99.8%**
+of the coordinate's variance lies *between* lobes against 0.2–0.5% within
+them. So the lobe is the thing a PCLAI coordinate individuates: it answers
+*which ancestry group*, and cannot answer *which haplotype* — the
+information is not in the coordinate. See
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
+
 ### locus
 
 A specific region of the genome. Each PGB dataset is one locus,
@@ -362,15 +372,57 @@ itself.
 ### strand
 
 One haplotype's path through a **sequence tube map**, drawn as a coloured ribbon
-running left→right. Named `sample#haplotype#contig` (e.g.
-`NA21309#2#CM092097.1`), and coloured by the same shipped PCLAI RGB the 3D graph
-and the PCLAI chart use.
+running left→right, and coloured by the same shipped PCLAI RGB the 3D graph and
+the PCLAI chart use.
+
+A strand's **name** is `#`-separated and starts `sample#haplotype`, but the
+number of components is **not fixed** and the name is parsed as an opaque
+string. `stm-chr1-25331046-25331646.svg` spells all 369 of its names with three
+(`NA21309#2#CM092097.1`); `stm-chr8-78771162-78771252.svg` spells 463 of its 464
+with four (`NA21309#2#CM092102.1#0`) and one with three. Anything wanting to
+address a strand from PGB's side — which speaks
+**assembly-haplotype** — has to bridge that, and the bridge is harder than
+[ADR 0001](docs/adr/0001-sequence-tube-map-panel.md) records; see
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md) §4.
 
 The deliberate alias, recorded because the collision is the reason for the
 rename: upstream sequence-tube-map and the SVG itself call this a *track*
 (`g.track`, `trackID`, `class="track<N>"`), which is unrelated to PGB's
 **annotation track**. *Strand* is the term to use; *track* survives only in code
 quoting the server's document.
+
+### feeler
+
+The held-`Shift` mode over a **sequence tube map**: while the key is down, the
+**strand** under the cursor is drawn as the document drew it and every other
+strand recedes to a ghost of itself. A mode that is *held* rather than toggled,
+and one that does not accumulate — moving on hands the emphasis to the next
+strand. Entered only while the pointer is over the surface, since `Shift` is a
+key the rest of PGB and the OS also use.
+
+### placement
+
+A **strand**'s PCLAI coordinate within one **sequence tube map** document,
+carried on every **band** as `pclaiX` / `pclaiY`, or **absent** — spelled
+`pclaiX="None"`, which the renderer already draws grey.
+
+How many strands are unplaced is a property of the document and never a
+constant: 6 in `stm-chr1-25331046-25331646`, 12 in
+`stm-chr8-78771162-78771252`, 99 in `5520+`. A strand has one placement per
+document because each document covers one **node** — that is a property of
+the window, not of the haplotype, since PCLAI is per (haplotype, node).
+
+### PCLAI inset
+
+The passive chart over a **sequence tube map**, plotting one dot per placed
+**strand** in the open document over the ancestry colour ramp. Holding the
+feeler over a strand recedes the crowd and rings that haplotype's dot.
+
+Distinct from the [PCLAI chart](notes/data-format/stories/pclai.md), the
+**widget** card that indexes **node**s in the 3D graph: the two share a
+coordinate space and a ramp and nothing else. The inset takes no pointer input
+at all — why, and what that costs, is
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
 
 ### tube map panel
 
