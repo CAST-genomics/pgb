@@ -5,6 +5,12 @@ in [#99](https://github.com/CAST-genomics/pgb/pull/99), which made the viewer us
 Step 9 was **reversed** rather than completed: the spike is not archived, it becomes a
 research laboratory. Epic [#85](https://github.com/CAST-genomics/pgb/issues/85) is closed and
 this checklist is now a record rather than a plan.
+
+**Reversed again 2026-08-20.** The laboratory arrangement was abandoned and the spike's
+research apparatus — measurements, surveys, essays, the wide captured documents and the
+Playwright harnesses — migrated here. Two repos meant two places to look and two
+vocabularies drifting apart. [`README.md`](README.md) records what came across and why; the
+spike repo stays as the git history of how the viewer was built, and nothing new goes there.
 **Date:** 2026-08-17
 **Decisions:** `docs/adr/0001-sequence-tube-map-panel.md` — that ADR, not
 this note, is the normative record. This is a working checklist and licenses nothing.
@@ -200,10 +206,18 @@ Model on `src/widgets/mountPclaiChart.js`.
 
 ## 9. ~~Archive the spike repo~~ — the spike becomes a research laboratory
 
-**Status: reversed 2026-08-18**, once the viewer had shipped. The repo is *not* archived. It
-stays live as the place to explore visualization metaphors and affordances for making tube
-map data more tractable — work that wants a standalone surface and no obligation to be
-shippable, which a spike repo is for and PGB's tree is not. #85 carries the decision.
+**Status: reversed 2026-08-18, and reversed back 2026-08-20.** The repo was not archived on
+2026-08-18; it stayed live as the place to explore visualization metaphors and affordances
+for making tube map data more tractable — work that wants a standalone surface and no
+obligation to be shippable, which a spike repo is for and PGB's tree is not. #85 carries
+that decision.
+
+Two days of working across both repos said otherwise. The research and the implementation
+kept needing each other: ADR 0003 cites measurements a PGB reader could not open, pgb#112
+cannot be judged without a document that was not here, and the vocabulary had started to
+drift. On **2026-08-20** the apparatus migrated — see [`README.md`](README.md). The repo is
+still not *archived*: it holds the git history of how the viewer was built. It is no longer
+where work happens.
 
 - [ ] README → pointer to `pgb/src/tubemap/` and `pgb/docs/adr/0001`. The one item worth
       keeping, and worth more now the repo stays live: two viewers exist, and without it

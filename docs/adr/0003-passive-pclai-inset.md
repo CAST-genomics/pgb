@@ -18,8 +18,8 @@ drags, resizes and hides, and is otherwise transparent to the pointer.
 This is written down because the obvious reading of the picture is wrong in a way that costs
 real work. A scatter plot of 460 addressable haplotypes *looks* like an index, and the
 proposal that produced this inset
-([`table-lens-concepts-for-strand-disambiguation.html`](https://github.com/CAST-genomics/sequence-tube-map-spike)
-in the spike, §03) argued exactly that: the tube map cannot magnify in the axis that matters
+([`table-lens-concepts-for-strand-disambiguation.html`](../../notes/sequence-tube-map/table-lens-concepts-for-strand-disambiguation.html),
+§03) argued exactly that: the tube map cannot magnify in the axis that matters
 but a chart can, so selection should move into the chart. Without this document the first
 reviewer would be right to ask why hovering a dot does nothing, and a later change would be
 right to "fix" it by adding a click handler.
@@ -31,7 +31,7 @@ than argued.
 
 ### The coordinate does not individuate a haplotype
 
-`DISAMBIGUATING-STRANDS.md` in the spike established, from a survey of six PGB datasets, that
+[`disambiguating-strands.md`](../../notes/sequence-tube-map/disambiguating-strands.md) established, from a survey of six PGB datasets, that
 **99.5–99.8%** of the PCLAI coordinate's variance separates five clusters and **0.2–0.5%**
 lies within them. k-means finds k=5 in all six at silhouette 0.89–0.93. A haplotype's median
 nearest neighbour sits **0.064–0.088% of the cloud's diameter** away.
@@ -49,7 +49,7 @@ a scatter plot could buy by zooming. Measured on a 512 px chart framed tight to 
 |---|---|---|---|---|
 | `stm-chr1-25331046-25331646` | 363 | 206 | **0.39 px** | 10 |
 | `stm-chr8-78771162-78771252` | 452 | 261 | **0.39 px** | 14 |
-| `5520+` (spike, not in this repo) | 347 | 206 | **0.39 px** | 10 |
+| `5520+` | 347 | 206 | **0.39 px** | 10 |
 
 A 512 px plot offers roughly ten pointable haplotypes and one smear holding the rest. The
 figure is **identical across three documents**, so it is a property of the cohort rather than

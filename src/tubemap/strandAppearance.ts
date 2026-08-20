@@ -42,11 +42,11 @@
  * The RGB half of a texel is the document's own colour for that strand and nothing ever
  * writes it again: PCLAI colour is shared vocabulary with PGB's 3D graph and its PCLAI
  * chart, and a researcher reads the three panels together
- * (`docs/DISAMBIGUATING-STRANDS.md`, constraint 1). Only emphasis moves.
+ * (`notes/sequence-tube-map/disambiguating-strands.md`, constraint 1). Only emphasis moves.
  *
  * The fragment shader multiplies coverage by emphasis, so a receded band becomes a ghost of
  * itself: whatever is behind it — the ground, or the focused strand it crosses — shows
- * through. Of the four treatments weighed in `docs/DISAMBIGUATING-STRANDS.md` this is
+ * through. Of the four treatments weighed in `notes/sequence-tube-map/disambiguating-strands.md` this is
  * "translucent", chosen over desaturation because grey already means something here
  * (`pclaiX="None"`, including `GRCh38#0#chr1`) and over removal because a haplotype's path
  * is read against its neighbours.
@@ -56,7 +56,7 @@
  * a fraction of its own colour; that is brightening the one rather than dimming the others,
  * which #39 forbids in as many words, and it was measured to buy nothing at fit on `5520+`
  * anyway. Removed. What it was reaching for — legibility below one pixel per band — is a
- * pixel budget, and the candidates are in `docs/DISAMBIGUATING-STRANDS.md`.
+ * pixel budget, and the candidates are in `notes/sequence-tube-map/disambiguating-strands.md`.
  *
  * ## Why a 256-wide grid rather than one long row
  *
@@ -85,7 +85,7 @@ export const PLAIN = 255
  * 8% is dim enough that the focused strand reads out of a crowd of 463 instantly, and not so
  * dim that the crowd stops being there — the envelope of the bundle is the context that
  * makes a single path meaningful. Looked at on `5520+` at fit and zoomed, per
- * `docs/DISAMBIGUATING-STRANDS.md` constraint 5.
+ * `notes/sequence-tube-map/disambiguating-strands.md` constraint 5.
  */
 export const RECEDED = 20
 

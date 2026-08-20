@@ -14,7 +14,7 @@
  *
  * - **unreachable** — the bytes never arrived. Look at the network, the URL, the server.
  *   The API's error responses carry no CORS headers, so a 500 reaches us as an opaque
- *   failure (`notes/2026-08-12-api-reachability-and-cors.md`); that is still this.
+ *   failure (`notes/sequence-tube-map/measurements/2026-08-12-api-reachability-and-cors.md`); that is still this.
  * - **slow** — the server accepted the request and did not finish it inside
  *   `PATIENCE_MS`. Kept apart from `unreachable` for the reader's sake: nothing is wrong
  *   with the network, the URL or the browser, and every one of those is where

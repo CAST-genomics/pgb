@@ -1,11 +1,14 @@
 /**
  * The tube map documents committed to this repo, and the whole test corpus.
  *
- * The spike ran its parser tests against three captured documents. Only the smallest came
- * across (3.5 MB); the other two are 14 MB each and stay in the spike repo, where
- * the record of what they measured stays with them. What they proved that this one does not
- * — that the parser holds up on a 177,994-unit-wide document with 40,442 bands — was a
- * question about the parser's arithmetic, and it was answered before the migration.
+ * The spike ran its parser tests against three captured documents. At migration only the
+ * smallest came across (3.5 MB) and the other two, 14 MB each, stayed behind. **They are
+ * here now, 2026-08-20**, along with the rest of the spike's research apparatus: the
+ * separation turned out to cost more than the bytes do. `5514+` and `5520+` are the wide
+ * strips — 177,994 units and 40,442 bands — and they are what the fit-to-screen regime can
+ * be exercised against, which nothing else in this corpus can do. They are *not* read by
+ * the unit tests, which stay on the two small documents so the suite stays fast; they exist
+ * for the Playwright harnesses in `scripts/` and for looking at.
  *
  * It sits here rather than in `public/` — where the spike kept it — because it is test data
  * and nothing the app ships ever asks for it. Vite copies `public/` into `dist/` verbatim,

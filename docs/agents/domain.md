@@ -38,7 +38,7 @@ Themed directories, and when to reach for each:
 | `notes/genomics/` | Reference genomes, annotation formats (GFF3, BigBed), IGV integration, custom assemblies |
 | `notes/hprc-project/` | HPRC and PCLAI (Point Cloud Local Ancestry Inference) specifics |
 | `notes/ui/` | Color palettes, tooltips, mouse event ordering, URL/file ingestion |
-| `notes/sequence-tube-map/` | The tube map panel. `dev-affordances.md` is the one to read first — the dev pages, `?url`/`?pick`, the fixtures, and the gestures none of which are discoverable from the app |
+| `notes/sequence-tube-map/` | The tube map panel, and the whole research record migrated from the spike on 2026-08-20. `README.md` maps it; `dev-affordances.md` is the one to read first — the dev pages, `?url`/`?pick`, the fixtures, and the gestures none of which are discoverable from the app. `disambiguating-strands.md` is the live strategy document; `measurements/` holds the dated notes and screenshots; `spike-context.md` and `spike-spec.md` are superseded and normative nowhere |
 | `notes/spikes/`, `notes/artwork/` | Experimental snippets and screenshots — rarely load-bearing |
 
 ## Use the glossary's vocabulary
