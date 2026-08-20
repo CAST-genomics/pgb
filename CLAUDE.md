@@ -64,3 +64,7 @@ The five canonical triage roles, using their default label strings. See `docs/ag
 ### Domain docs
 
 Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, plus the `notes/` knowledge base. See `docs/agents/domain.md`.
+
+### Releases
+
+A release is a git tag, a GitHub release page, and a matching `version` in `package.json`. See `docs/agents/release-process.md`.
