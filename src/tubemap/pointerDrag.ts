@@ -10,6 +10,11 @@
  * It knows about pointers and nothing else: what a drag *means* — screen deltas,
  * grab offsets, which class to wear — stays with the caller, which is the half that
  * actually differs between the two.
+ *
+ * Three things end a drag, and the last two exist because the first can be missed: the
+ * `pointerup` (or `pointercancel`), losing the capture, and a `pointermove` arriving with no
+ * button pressed. A drag left in flight is worse than one that ends early — it refuses every
+ * later press, so the affordance is dead for the rest of the session.
  */
 
 export interface PointerDragOptions {
@@ -62,8 +67,36 @@ export function createPointerDrag(element: HTMLElement, options: PointerDragOpti
     }
 
     function onPointerMove(event: PointerEvent): void {
+        if (event.pointerId !== pointer) {
+            return
+        }
+
+        // A move with nothing pressed is not part of a drag, whatever this thinks. If a
+        // `pointerup` was ever missed — a capture lost to a fullscreen change, a button
+        // released where no event reached us — the drag would otherwise stay in flight
+        // forever: hovering near the element would keep dragging it, and every later press
+        // would be refused because one is already running. This is what makes that state
+        // unreachable rather than merely unlikely.
+        if (0 === event.buttons) {
+            release()
+            return
+        }
+
+        options.onMove(event)
+    }
+
+    /**
+     * Capture went somewhere else, or the browser dropped it.
+     *
+     * Fired whenever the element stops being the capture target, including for reasons this
+     * code did not ask for. Without this the drag freezes — no more moves arrive — while
+     * still counting as in flight, which is the same dead end the `buttons` test above
+     * closes from the other side.
+     */
+    function onLostCapture(event: PointerEvent): void {
         if (event.pointerId === pointer) {
-            options.onMove(event)
+            pointer = null
+            options.onEnd()
         }
     }
 
@@ -77,6 +110,7 @@ export function createPointerDrag(element: HTMLElement, options: PointerDragOpti
     element.addEventListener('pointermove', onPointerMove)
     element.addEventListener('pointerup', onPointerUp)
     element.addEventListener('pointercancel', onPointerUp)
+    element.addEventListener('lostpointercapture', onLostCapture)
 
     return {
 
@@ -94,6 +128,7 @@ export function createPointerDrag(element: HTMLElement, options: PointerDragOpti
             element.removeEventListener('pointermove', onPointerMove)
             element.removeEventListener('pointerup', onPointerUp)
             element.removeEventListener('pointercancel', onPointerUp)
+            element.removeEventListener('lostpointercapture', onLostCapture)
         }
     }
 }

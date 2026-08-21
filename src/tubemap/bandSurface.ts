@@ -90,6 +90,17 @@
  * can refuse the same document, they are mounted and emptied in the same calls the scene is,
  * and they are placed from the camera in the same `requestAnimationFrame` that renders it.
  *
+ * ## The PCLAI inset is not in the scene either
+ *
+ * `pclaiInset.ts` plots one dot per placed strand over the ancestry ramp, as divs, and the
+ * wiring is the same as the boxes': built from the parsed document in `show`, emptied in
+ * `clear`, destroyed with the surface. It is not placed from the camera — the cloud is a
+ * position report in coordinate space and has nothing to do with where the view is.
+ *
+ * The feeler drives it through `touch`, on the same transition that writes the appearance
+ * table and names the strand: one question, one answer, three places it shows up. Listeners
+ * outside the surface get the same transition through `onFocusStrand`.
+ *
  * ## Drawing happens on demand
  *
  * The spike ran an unconditional animation loop because it was also reading a frame
@@ -130,6 +141,7 @@ import type { Point, Size } from './geometry.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
 import { THICKNESS, parseBands, type ParsedMap } from './parseBands.ts'
 import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
+import { createPclaiInset, type PclaiInset } from './pclaiInset.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
 import { canvasPoint, overChrome } from './surfacePointer.ts'
 import {
@@ -443,6 +455,18 @@ export interface BandSurfaceOptions {
      * the product passes it.
      */
     strandFloorCssPx?: number
+    /**
+     * Called with the strand under the feeler, or `null`, on the same transition that writes
+     * the appearance table — so what is lit, what is named and whatever else reports on the
+     * gesture can never be given different answers.
+     *
+     * Push, not poll: a listener never reaches into the renderer or a frame loop, and this
+     * surface never learns what a listener does with the answer. The PCLAI inset is driven
+     * through the same transition, and this is the seam a cross-panel link into PGB's 3D
+     * graph or annotation track would attach to — ADR 0001's deferred obligation. Nothing
+     * here builds one, and nothing here publishes: the panel stays bus-silent.
+     */
+    onFocusStrand?(strandId: number | null): void
 }
 
 export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions = {}): BandSurface {
@@ -507,6 +531,19 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             controls.update()
         }
     })
+
+    // Where every haplotype in this document sits in the ancestry cloud (#113). Mounted and
+    // emptied in the same calls the scene is, like the segment boxes, and inert to the
+    // pointer: it reports on the map and takes nothing from it. It reads the parsed document
+    // and nothing else — no camera, no frame loop, and no event bus.
+    //
+    // **After the navigator, and that is load-bearing.** The two widgets share z-index 2, so
+    // the later mount wins where they overlap. Grown large in a short panel the cloud reaches
+    // the navigator, and mounted first it was the navigator that answered the pointer at the
+    // cloud's own resize grip — leaving a widget that could no longer be resized. The
+    // navigator is a picture; the grip is a control, and a control that cannot be reached is
+    // worse than a thumbnail partly covered. The cloud can also be dragged off it, or hidden.
+    const pclaiInset: PclaiInset = createPclaiInset(host)
 
     function viewport(): Viewport {
         return { width: canvas.clientWidth, height: canvas.clientHeight }
@@ -829,6 +866,8 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     function touch(strandId: number | null): void {
         focus(strandId)
         nameStrand(strandId)
+        pclaiInset.focus(strandId)
+        options.onFocusStrand?.(strandId)
     }
 
     /**
@@ -862,6 +901,8 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         }
 
         strandLabel.hide()
+        pclaiInset.focus(null)
+        options.onFocusStrand?.(null)
 
         if (true === drawing?.appearance.release()) {
             scheduleDraw()
@@ -1049,6 +1090,10 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
             segments.show(boxes)
 
+            // This document's cloud, replacing the previous one's. Opening another node
+            // rebuilds it here, which is the only place it is ever built.
+            pclaiInset.show(map)
+
             reframe()
             fit()
 
@@ -1067,6 +1112,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             // In the same call that empties the scene, so a refused document cannot leave
             // the previous map's boxes floating over an error message.
             segments.clear()
+            pclaiInset.clear()
             mapNavigator.clear()
 
             if (null !== context) {
@@ -1087,6 +1133,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             const refit = untouched
 
             mapNavigator.relayout()
+            pclaiInset.relayout()
             reframe()
 
             if (refit) {
@@ -1112,6 +1159,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             doc.removeEventListener('pointercancel', onPointerUp)
             feeler.destroy()
             strandLabel.destroy()
+            pclaiInset.destroy()
             segments.destroy()
             readout?.remove()
 

@@ -5,7 +5,13 @@
  *
  * The map is the data: no chrome inside the viewing surface. Every affordance here
  * is layered over the picture rather than arranged around it.
+ *
+ * The one interpolation is the PCLAI inset's ring, imported rather than written twice: the
+ * inset sizes the ringed dot's geometry around it, and a stylesheet that disagreed would
+ * draw a ring of one weight around a dot spaced for another.
  */
+
+import { RING_WIDTH } from './pclaiInset.ts'
 
 export const SURFACE_STYLES = `
 .stm-root {
@@ -323,13 +329,21 @@ export const SURFACE_STYLES = `
 
 /* Instrumentation, not chrome: only ?pick puts this on the surface.
 
-   Top left and below the ?fps pill, which is the one corner nothing else claims: the
-   harness's URL picker fills the top right at a higher z-index and hid this completely,
-   and the navigator owns the bottom left. */
+   Bottom right, stacked directly above the mode badge, and the rule is the corner rather
+   than the pixels: **a diagnostic readout sits out of the way of what the app draws.** It
+   was top left, which was the one corner nothing claimed at the time — the harness's URL
+   picker fills the top right at a higher z-index and hid it completely, and the navigator
+   owns the bottom left. The PCLAI inset claims the top left now, and a readout over the
+   cloud is exactly what this rule forbids.
+
+   The offset clears the badge: 12 px of margin, the badge's own height, and 10 px between
+   them. The badge is the only other thing in this corner and it is fixed-height, so the
+   two stack rather than overlap whether or not the feeler is out. Anything added here next
+   goes above this one, not beside it. */
 .stm-pick {
     position: absolute;
-    left: 12px;
-    top: 46px;
+    right: 12px;
+    bottom: 44px;
     padding: 4px 10px;
     border-radius: 4px;
     background: var(--stm-chrome);
@@ -337,6 +351,188 @@ export const SURFACE_STYLES = `
     font-variant-numeric: tabular-nums;
     pointer-events: none;
     z-index: 3;
+}
+
+/* The PCLAI inset: the document's ancestry cloud, over the ramp that calibrates it.
+
+   Top left, and moved from there by dragging its header. \`transform\` rather than
+   \`left\`/\`top\` for the same reason the tooltips use one — it does not invalidate layout,
+   so a drag cannot turn the surface's own per-move \`getBoundingClientRect\` into a forced
+   reflow. The navigator owns the bottom left and the two do not meet at rest: it is anchored
+   to the bottom edge and capped at 28.9% of the host's height.
+
+   **Transparent to the pointer, except where it is not.** The widget and the plot are
+   \`pointer-events: none\`, so a drag that starts on the cloud pans the map and a wheel over
+   it zooms the map — a passive readout must never eat a gesture aimed at the picture it
+   reports on. The header, the grip and the restore chip take their own events and call
+   \`shieldFromMap\`, which is what stops the map answering them as well.
+
+   z-index 2, with the navigator: under the tooltips and the strand label at 3, which may
+   legitimately cross it, and under the status layer at 4, which has to be able to cover a
+   refused document with nothing showing through. */
+.stm-pclai-inset {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(70, 74, 82, 0.55);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.stm-pclai-inset[hidden],
+.stm-pclai-restore[hidden] {
+    display: none;
+}
+
+/* The drag handle, and the only row in this widget that is not the plot. Small and quiet:
+   it is a grip and a label, and the cloud is the thing being looked at. */
+.stm-pclai-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 22px;
+    padding: 0 8px;
+    color: rgb(70, 74, 82);
+    cursor: grab;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+}
+
+.stm-pclai-inset.is-dragging .stm-pclai-header {
+    cursor: grabbing;
+}
+
+.stm-pclai-title {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.stm-pclai-dismiss,
+.stm-pclai-restore {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.stm-pclai-dismiss {
+    padding: 0 2px;
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* What is left of the widget once it has been dismissed: enough to bring it back, and no
+   more. It sits where the widget sat, so the thing that returns appears where it went. */
+.stm-pclai-restore {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--stm-chrome);
+    color: var(--stm-ink);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+/* The plot: the ramp, and the dots over it.
+
+   The ramp is a **legend**, and where it is stretched to is written from \`pclaiInset.ts\`
+   rather than declared here: it covers exactly the box \`strandCoordinates.ts\` maps the
+   ramp's domain onto, so a dot's own colour is the colour beneath it. It is a translucent
+   PNG, so it is composited over white here exactly as PGB's own PCLAI chart composites it —
+   the two scatters read as one legend or they read as two different claims about ancestry.
+
+   It runs to the widget's border on the left, right and bottom, with no margin between: a
+   white surround read as a frame around the picture rather than as part of it. The border is
+   the frame now, and it is one grey line.
+
+   The plot therefore **clips**, and the widget's \`overflow: hidden\` is what does it. A dot
+   is centred on its coordinate and the ramp's domain extremes are real positions, so a
+   haplotype at the edge of the cloud is drawn as half a dot against the border — see the
+   note in \`pclaiInset.ts\`. Insetting the dots to avoid that while the ramp still filled the
+   box would put every dot on a colour that is not its own, which is the one thing this plot
+   may not do. */
+.stm-pclai-plot {
+    position: relative;
+    background-color: #ffffff;
+    background-image: url('/images/pca-chart-background.png');
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+
+/* One haplotype. Positioned when the document is plotted and again when the grip resizes
+   the plot — the dots reproject rather than the plot scaling as a bitmap. It does not pan,
+   zoom or follow the camera.
+
+   The transition is on the two properties the ring changes and is short enough to read as
+   the dot growing rather than as an animation to wait for. Position is not transitioned:
+   the ring must be *on* the haplotype under the cursor, never sliding towards it. */
+.stm-pclai-dot {
+    position: absolute;
+    border-radius: 50%;
+    transition: opacity 90ms ease-out, box-shadow 90ms ease-out;
+}
+
+/* The feeler is out: the crowd recedes, exactly as the strands in the map do, so one gesture
+   has one idiom in both panels.
+
+   Not the map's own 8%, and the difference is the substrate. A receded band is drawn over
+   white and 8% is what left the bundle's envelope legible; a receded dot sits on a saturated
+   colour ramp, where 8% is gone entirely and the cloud stops being context for the ring.
+   Chosen by looking at both fixtures. */
+.stm-pclai-plot.is-feeling .stm-pclai-dot {
+    opacity: 0.28;
+}
+
+/* The one haplotype under the feeler. The ring is the mark and the growth is what makes it
+   findable at a glance; neither would do on its own, because a bigger dot inside a cluster
+   is still the same hue as the cluster.
+
+   **Grey, and thin.** It was 2 px of near-black, which read as a heavy object sitting on the
+   cloud rather than as a mark on one dot of it — the crowd around it is receded and pastel,
+   so the ring never needed that much weight to win. A hairline of mid grey is still
+   unmistakable against every part of the ramp, checked in the dense pink arm where a ring
+   has the least contrast to work with.
+
+   It is deliberately **not in the ancestry palette**, which is pastel hues throughout, so a
+   ring can never be mistaken for a haplotype. Grey does carry a meaning in this data — the
+   document fills unplaced strands with a light \`rgb(211, 211, 211)\` — but nothing that
+   collides here: this is a dark stroke rather than a pale fill, and an unplaced haplotype is
+   never drawn in this plot at all. */
+.stm-pclai-plot.is-feeling .stm-pclai-dot.is-ringed {
+    opacity: 1;
+    box-shadow: 0 0 0 ${RING_WIDTH}px rgba(90, 94, 102, 0.95);
+    z-index: 1;
+}
+
+/* The resize grip: two rules of the corner it is in, drawn as a diagonal. It takes its own
+   pointer events, like the header, and nothing else in the widget does. */
+.stm-pclai-grip {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    pointer-events: auto;
+    touch-action: none;
+    background:
+        linear-gradient(315deg, transparent 0 3px, rgba(20, 22, 26, 0.35) 3px 4px, transparent 4px 6px,
+            rgba(20, 22, 26, 0.35) 6px 7px, transparent 7px);
 }
 
 .stm-navigator {
