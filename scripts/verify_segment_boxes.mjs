@@ -13,6 +13,15 @@
  * Headed, for the same reason `verify_pick.mjs` is: headless chromium rasterizes the pick
  * pass in software, and the feeler check reads what that pass answered.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — and the one place in `scripts/verify_*.mjs`
+ * where that is a debt rather than a reason (#126). The subject really is DOM layout: 767
+ * elements' widths, a visibility threshold in css pixels, and computed `cursor` and
+ * `background-color`. `.stm-segment` states its own `box-sizing`, which is why nothing is
+ * known to be wrong; what keeps the script here is that its geometry is written against a
+ * viewport-filling canvas — `innerWidth`, and a cursor parked at 700, 450 — and the panel's
+ * body is not that. **This is the first script to move to `dev/tubemap-app.html`**, and
+ * moving it means re-anchoring those coordinates to the canvas's own box.
+ *
  *     node scripts/verify_segment_boxes.mjs   # with `npm run dev` already up
  */
 

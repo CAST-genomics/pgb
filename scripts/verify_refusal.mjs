@@ -15,6 +15,11 @@
  * Screenshots land in /tmp/stm-refusal-*.png so that looking at the four states is one
  * step rather than a setup.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — a choice now rather than the only option
+ * (#126). The subject is *state*: that a refusal arrives, replaces and cannot be read as an
+ * empty map. Nothing here is a measurement of a box, so nothing here can be told apart by a
+ * cascade; the bare page also keeps the request interception aimed at one document loader.
+ *
  *     node scripts/verify_refusal.mjs   # with `npm run dev` already up
  */
 

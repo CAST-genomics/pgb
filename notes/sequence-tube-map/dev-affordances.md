@@ -31,11 +31,11 @@ point of writing it down.
 
 ---
 
-## 1. The two dev pages
+## 1. The three dev pages
 
 Vite's dev server serves every HTML file under the project root, while the build starts from
 its declared inputs, and `vite.config.js` declares none — so it takes Vite's default of
-`index.html` alone. **Both pages exist under `npm run dev` and are absent from `dist/`.**
+`index.html` alone. **All three pages exist under `npm run dev` and are absent from `dist/`.**
 
 ```bash
 npm run dev     # http://localhost:5173
@@ -45,19 +45,26 @@ npm run dev     # http://localhost:5173
 |---|---|---|
 | `/dev/tubemap.html` | the viewer alone, `mountTubeMapSurface` | parsing, pan/zoom, the feeler, the navigator, segment boxes |
 | `/dev/tubemap-panel.html` | the whole card, `mountTubeMapPanel` | drag, resize grip, fullscreen, reframe-on-resize |
+| `/dev/tubemap-app.html` | the same card, under `index.html`'s cascade | anything that is a *box*: layout under Bootstrap's reset |
 
-They are two pages rather than one because the card and the surface are different things to
-look at. Entry points: `src/devTubeMapRoute.ts`, `src/devTubeMapPanelRoute.ts` — both are
-*hosts*, which is why they sit outside `src/tubemap/`.
+The first two are separate because the card and the surface are different things to look at.
+Entry points: `src/devTubeMapRoute.ts`, `src/devTubeMapPanelRoute.ts` — both are *hosts*,
+which is why they sit outside `src/tubemap/`.
+
+The third shares the panel's entry point and differs from `/dev/tubemap-panel.html` in its
+`<link>` tags and nothing else: it adds the two Bootstrap stylesheets `index.html` loads.
+That is deliberate to the point of being the whole design — a divergence in the page chrome
+would make the difference between the two say something about the page rather than about the
+cascade, which is why what they share lives in `dev/devPage.css`. See §6.
 
 ### Query parameters
 
 | Parameter | Page | Effect |
 |---|---|---|
 | `?url=` | both | open this document instead of the default fixture |
-| `?pick` | `tubemap.html` only | mount the pick readout (§3) |
-| `?floor=` | `tubemap.html` only | the feeler's thickness floor in css px; `0` switches it off (§3.1) |
-| `?samples=` | `tubemap.html` only | how finely the pick pass samples the cursor's pixel; `1` is the pre-#120 target (§3.2) |
+| `?pick` | all three | mount the pick readout (§3) |
+| `?floor=` | all three | the feeler's thickness floor in css px; `0` switches it off (§3.1) |
+| `?samples=` | all three | how finely the pick pass samples the cursor's pixel; `1` is the pre-#120 target (§3.2) |
 
 Both pages also fill a text field with the URL, so you can paste one in live rather than
 reloading. On the panel page the field feeds an **Open** button; on the viewer page it is a
@@ -67,7 +74,8 @@ form you submit.
 open 'http://localhost:5173/dev/tubemap.html'
 open 'http://localhost:5173/dev/tubemap.html?pick'
 open 'http://localhost:5173/dev/tubemap.html?url=/src/tubemap/__tests__/fixtures/stm-chr8-78771162-78771252.svg'
-open 'http://localhost:5173/dev/tubemap-panel.html?pick'   # ← no effect, see §3
+open 'http://localhost:5173/dev/tubemap-panel.html?pick'
+open 'http://localhost:5173/dev/tubemap-app.html?pick'    # the same, under Bootstrap
 ```
 
 A live API URL works in either field. `buildSeqTubeMapURL()` in `src/pangenomeURL.ts` is what
@@ -132,14 +140,17 @@ without the feeler. The first pick is dramatically slower than the rest (~38 ms 
 ~3.5 ms steady state) because the pick structures are cold — `worst` is sticky, so it will
 keep showing that first number for the life of the page.
 
-The flag is honoured **only on `/dev/tubemap.html`**. The panel route calls
-`mountTubeMapPanel()` bare, and the panel has no `pickReadout` of its own to pass down — but
-it does take a `mountSurface` injection seam, so a dev route that wanted the readout inside
-the card could supply one without the panel growing an option:
+The flag is honoured on all three pages. The panel has no `pickReadout` of its own — its
+options are about the *card* — but it takes a `mountSurface` injection seam, and
+`devTubeMapPanelRoute.ts` supplies one, so the readout reaches the surface inside the card
+without the panel growing an option:
 
 ```ts
 mountTubeMapPanel({ mountSurface: c => mountTubeMapSurface(c, { pickReadout: true }) })
 ```
+
+That seam is what makes `/dev/tubemap-app.html` able to host a `scripts/verify_*.mjs` at all
+(§6), rather than being a page you can only look at.
 
 Implementation: `BandSurfaceOptions.pickReadout` in `src/tubemap/bandSurface.ts`.
 
@@ -229,7 +240,8 @@ Two things are easy to miss because they look like decoration:
 
 ## 5. Panel affordances
 
-On `/dev/tubemap-panel.html`, the card carries more than it looks like:
+On `/dev/tubemap-panel.html` and `/dev/tubemap-app.html`, the card carries more than it
+looks like:
 
 - **Drag by the header only.** The card carries `resize: both` and the browser paints that
   grip inside the card's own box, so a drag handle on the whole card would claim the grip's
@@ -246,7 +258,46 @@ On `/dev/tubemap-panel.html`, the card carries more than it looks like:
 
 ---
 
-## 6. Failure states you can produce on purpose
+## 6. `/dev/tubemap-app.html` — the cascade the app ships
+
+The other two pages load PGB's own stylesheet and nothing else. `index.html` loads Bootstrap
+5, whose reset is `*,::after,::before{box-sizing:border-box}`, so until this page existed the
+viewer was only ever *looked at* — and every `scripts/verify_*.mjs` only ever driven — in a
+cascade the app does not have. Any assumption Bootstrap overrides was invisible to every check
+we run: `box-sizing`, `line-height`, `font`, heading and list margins, `button` styling.
+
+It cost once. #123 gave the PCLAI cloud breathing room as a transparent border outside
+`.stm-pclai-plot`'s content box; under the reset that pad eats **inward**, collapsing the
+coordinate frame to `size - 2 * PLOT_PAD` while `plotCloud` still projects over `size`, so the
+cloud overhung and the widget's `overflow: hidden` shaved the bottom-right lobes. At the 900 px
+cap the extreme dot's ink sat 15.95 px outside the plot's border box. #123 was verified by
+pixel sampling — in the one environment where the bug cannot occur. #125 fixed it with
+`box-sizing: content-box`, and #126 built this page so the class of bug is checkable.
+
+```bash
+node scripts/verify_pclai_pad.mjs   # with `npm run dev` already up
+```
+
+That script is the seam the unit test in `pclaiPlotBoxSizing.test.ts` explicitly is not: the
+test guards one CSS declaration, because jsdom computes no layout. This one drives the page,
+drags the grip to the cap, and measures every dot's rect against the plot's border box. It is
+headless, unlike the rest of `scripts/verify_*.mjs` — layout is the same in software as on a
+GPU — and it refuses to report anything unless an unstyled `div` on the page really is
+`border-box`, so the harness cannot quietly stop being the thing it exists to be.
+
+Every other `verify_*.mjs` still drives `/dev/tubemap.html`, and each now says in its own
+header why. The short version: they measure the canvas — a readback, a raster, a cost — and a
+stylesheet does not reach inside one. The exception is `verify_segment_boxes.mjs`, whose
+subject genuinely *is* DOM layout; it stays on the bare page only because its geometry is
+written against a viewport-filling canvas, and it is the first script to move.
+
+Two things not proposed, then or now: dropping Bootstrap, or scoping it away from the panel.
+Both are far larger than the problem, and neither is needed once the viewer is verified where
+it actually runs.
+
+---
+
+## 7. Failure states you can produce on purpose
 
 Point `?url=` at something that isn't there and you get a classified error in place of the
 map, with the URL on a line of its own. The five kinds (`src/tubemap/loadFailure.ts`):
@@ -266,7 +317,7 @@ network failure rather than a status — it will read as `unreachable`.
 
 ---
 
-## 7. The real way in, and its gate
+## 8. The real way in, and its gate
 
 In the shipped app the viewer is reached by **right-clicking a node** in the 3D graph and
 choosing **Sequence Tube Map** (`src/tubeMapMenuCommand.ts`). Right-click only; left-click
@@ -282,7 +333,7 @@ no haplotype greying, no error. There is no way to detect that at request time.
 
 ---
 
-## 8. What deliberately does not exist
+## 9. What deliberately does not exist
 
 The spike's harness had two more affordances, and they did not come across:
 

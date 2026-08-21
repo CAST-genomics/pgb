@@ -15,6 +15,10 @@
  * - **Nothing is predicted that can be read.** The focused strand and the costs come out of
  *   the surface's own readout, which is the state the interaction actually reached.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — a choice now rather than the only option
+ * (#126). Both claims are about the canvas: a table write and its upload cost, and a
+ * photograph of what the raster did with them. A stylesheet reaches neither.
+ *
  *     node scripts/verify_highlight.mjs                    # the committed 600 bp fixture
  *     node scripts/verify_highlight.mjs '<url>'            # a live node; 5520 is the record
  */
