@@ -542,6 +542,14 @@ export const SURFACE_STYLES = `
    ringed whole, and clear of the resize grip. */
 .stm-pclai-plot {
     position: relative;
+    /* Stated, and load-bearing. \`resizePlot\` writes the *content* box — the coordinate
+       frame the domain is mapped onto — and the pad is a border outside it. PGB's
+       \`index.html\` loads Bootstrap, whose reset makes every element \`border-box\`, and under
+       that the pad eats inward instead: the frame shrinks to \`size - 2 * PLOT_PAD\` while
+       \`plotCloud\` still projects over \`size\`, so the cloud overhangs the bottom-right by a
+       whole pad and \`overflow: hidden\` shaves it. That is the bug #123 shipped with, and it
+       was invisible from \`dev/tubemap.html\`, which loads no Bootstrap. */
+    box-sizing: content-box;
     border: ${PLOT_PAD}px solid transparent;
     /* Two layers, and the second is why. The ramp is a translucent PNG, so what it is
        composited over decides its colour: painted on the content box alone, the interior sat
