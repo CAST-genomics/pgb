@@ -50,6 +50,11 @@ export interface TubeMapSurfaceOptions {
      */
     strandFloorCssPx?: number
     /**
+     * Override how finely the pick pass samples the cursor's css pixel. Harness
+     * instrumentation for #120 — see `BandSurfaceOptions.pickSamples`.
+     */
+    pickSamples?: number
+    /**
      * How long to wait for the server before calling it a server-side problem, in
      * milliseconds. Defaults to `PATIENCE_MS` (90 s).
      *
@@ -96,7 +101,8 @@ export function mountTubeMapSurface(
     // no surface left that would draw one anyway.
     const surface: BandSurface = createBandSurface(root, {
         pickReadout: options.pickReadout,
-        strandFloorCssPx: options.strandFloorCssPx
+        strandFloorCssPx: options.strandFloorCssPx,
+        pickSamples: options.pickSamples
     })
 
     // Appended after the surface's own nodes so the spinner and the error state cover

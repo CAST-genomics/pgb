@@ -323,7 +323,7 @@ footer{
       <span class="r">04</span>
       <div><h3>Hit-testing is the same shader</h3>
       <p>A second pass writes strand ids instead of colour through the identical vertex shader
-      and the identical coverage test, into a 1×1 target that is read back.</p></div>
+      and the identical coverage test, into a one-pixel-wide target that is read back.</p></div>
       <span class="cost">no spatial index<br>no CPU geometry at all</span>
     </div>
   </div>
@@ -953,6 +953,20 @@ float bandCoverage() {
   camera's entire frustum is the one CSS pixel under the cursor; the target is 1×1; the pixel is
   read back synchronously.</p>
 
+  <p class="side"><b>Superseded, 2026-08-21 (pgb #120).</b> The frustum is unchanged — still
+  exactly one CSS pixel under the cursor — but the target is now <b>1×32</b>, and the column is
+  read back rather than the pixel. At fit about six haplotypes lie inside that one pixel, and a
+  single texel with no depth buffer answered with whichever was drawn last, discarding five real
+  answers with nothing on screen saying they existed. Screen resolution is a display constraint,
+  not a property of the geometry, so the pass samples the same region more finely: each texel is
+  <sup>1</sup>⁄<sub>32</sub> CSS px, and the answer is the <i>set</i> in the vertical order the
+  strands are stacked. <code>uPad</code> follows the sample cell rather than the CSS pixel, which
+  is what keeps a strand outside the cursor's pixel from ever being named. The set collapses to
+  one as the view magnifies, so everything the rest of this section says about a single answer
+  stays true at the zoom where the picture is unambiguous. Read the diagram below as one
+  <i>sample</i>, repeated 32 times down the pixel:
+  <code>measurements/2026-08-21-how-finely-to-sample-a-pick.md</code>.</p>
+
   <figure class="figframe">
     <svg viewBox="0 0 900 260" role="img" aria-label="The pick pass: a one-pixel frustum, a 1x1 target, two bytes of id">
       <rect x="0" y="30" width="330" height="150" fill="none" stroke="var(--rule)"/>
@@ -1035,9 +1049,11 @@ void main() {
     target clears to 0, so “nothing here” is distinguishable from strand 0 — a real haplotype on
     every document we have.</li>
     <li><strong>Blending is off and there is no depth buffer</strong>, so the last fragment written
-    wins; instances are drawn in document order, so that is the topmost band — the same answer SVG's
-    own hit-testing gave, and the one the researcher is looking at where strands cross. Blending two
-    ids would produce a third naming a strand neither band belongs to.</li>
+    wins <i>within one sample</i>; instances are drawn in document order, so that is the topmost
+    band — the same answer SVG's own hit-testing gave, and the one the researcher is looking at
+    where strands cross. Blending two ids would produce a third naming a strand neither band
+    belongs to. (Before #120 this rule decided the whole answer, because there was only one
+    sample.)</li>
     <li><strong>Emphasis is deliberately not applied here.</strong> A receded strand is exactly what
     the feeler is reaching for next; a pick pass that dimmed along with the picture would make the
     strands a sweep has not yet touched progressively harder to touch.</li>
@@ -1116,7 +1132,7 @@ void main() {
       <tr><td>Load a document</td><td>bytes of SVG text (regex, one pass)</td><td>~87 ms, once</td></tr>
       <tr><td>Pan or zoom</td><td class="hi">nothing</td><td>8.3–8.4 ms</td></tr>
       <tr><td>Move the highlight</td><td class="hi">strand count (464 bytes)</td><td>&lt; 0.1 ms</td></tr>
-      <tr><td>Pick under the cursor</td><td>a 1×1 readback; all 40,442 instances still run their vertex shader</td><td>within the 9.4 ms frame</td></tr>
+      <tr><td>Pick under the cursor</td><td>a 1×32 column read back; all 40,442 instances still run their vertex shader</td><td>within the 9.4 ms frame — and flat from 1 to 128 samples, since the vertex shader dominates</td></tr>
       <tr><td>Resize</td><td>nothing — the frustum is recomputed, geometry is not</td><td>one frame</td></tr>
     </tbody>
     <caption><b>Table 6.</b> The shape of the design, as costs. Only two rows scale with anything, and

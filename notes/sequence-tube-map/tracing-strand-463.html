@@ -1443,6 +1443,13 @@ coverage = (hi − lo) / 2.0272 = 0.40547 / 2.0272 = <b>0.2000</b></pre>
   boxes and no CPU geometry. It re-renders the scene through a camera whose entire frustum is
   that one CSS pixel, into a 1×1 target, and reads the pixel back.</p>
 
+  <p class="side"><b>Superseded, 2026-08-21 (pgb #120).</b> The frustum is still exactly one CSS
+  pixel; the target is now <b>1×32</b> and the whole column is read back, so the pass answers with
+  every strand in that pixel — about six at fit — in the order they are stacked on screen, rather
+  than with whichever was drawn last. 463 is still one of them, and is still what the two bytes
+  decode to; it is now one row of a column rather than the only answer there was room for.
+  <code>measurements/2026-08-21-how-finely-to-sample-a-pick.md</code>.</p>
+
   <div class="codeblock">
     <span class="label">The pick camera</span>
 <pre>world  = (−53639.4286 + (756.9 − 700) / 0.246645,

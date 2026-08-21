@@ -291,7 +291,7 @@ export const SURFACE_STYLES = `
    label constantly, and a readout that changed medium — dark pill here, light card there —
    would read as a different *kind* of object rather than as one more thing the viewer is
    telling them. So it takes PGB's ground, border, radius and sans-serif face, and its own
-   type is \`.node-title\`'s: this is one identifier, which is exactly what a title row is.
+   type is \`.node-title\`'s: each row is one identifier, which is exactly what a title row is.
 
    It is still its own element and not \`.graph-tooltip\` — sharing an appearance is not the
    same as sharing an owner, and #111 keeps the two separate (see \`strandLabel.ts\`). What
@@ -326,6 +326,40 @@ export const SURFACE_STYLES = `
     white-space: nowrap;
     pointer-events: none;
     display: none;
+}
+
+/* One haplotype name, one row (#120).
+
+   The label names every strand inside the cursor's css pixel — six at fit — and the
+   map lights exactly one of them, the one nearest the cursor. \`.is-emphasized\` is that one,
+   and the receded rows say the same thing about the same strands that the map is saying
+   underneath: a name at full strength refers to the strand currently emphasized, and a faded
+   one is a neighbour the researcher would have to move to reach.
+
+   0.55 rather than the map's 0.08: text has to stay readable to be worth drawing at all,
+   where a receded band only has to stay present. The two are the same statement, not the same
+   number. */
+.stm-strand-name {
+    opacity: 0.55;
+    font-weight: 400;
+}
+
+.stm-strand-name.is-emphasized {
+    opacity: 1;
+    font-weight: 600;
+}
+
+/* What the cap left out, above the list and below it (#120).
+
+   Two counts rather than one total, because direction is the only part of this a researcher
+   can act on — it is which way to move the cursor. Set smaller and lighter than a name and in
+   the numeric face: this is the viewer talking about the list, not another entry in it. */
+.stm-strand-count {
+    opacity: 0.45;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0;
 }
 
 /* Instrumentation, not chrome: only ?pick puts this on the surface.

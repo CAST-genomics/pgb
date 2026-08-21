@@ -393,14 +393,37 @@ quoting the server's document.
 
 ### feeler
 
-The held-`Shift` mode over a **sequence tube map**: while the key is down, the
+The held-`Shift` mode over a **sequence tube map**: while the key is down, one
 **strand** under the cursor is drawn in the document's own colour and at no
 less than the **thickness floor**, every other strand recedes to a ghost of
-itself, and a label following the cursor gives that strand's **name**. A mode
+itself, and a label following the cursor names the whole **pick set**. A mode
 that is *held* rather than toggled, and one that does not accumulate — moving
 on hands the emphasis to the next strand, and the floor goes with it. Entered
 only while the pointer is over the surface, since `Shift` is a key the rest of
 PGB and the OS also use. Plain hover does none of it.
+
+**The label names the set; the emphasis and the floor stay on exactly one.**
+Flooring six strands at 2 css px each is a blob that follows nothing, which is
+the opposite of what the floor is for — so one strand carries them and the label
+shows the others, so nothing found is hidden. Which one: see **thickness
+floor**. The label marks that strand's row at full strength and recedes the
+rest, matching the map, so a name at full strength always refers to the strand
+currently emphasized.
+
+### pick set
+
+Every **strand** inside the cursor's one css pixel, in the vertical order they
+appear on screen. About six at fit on `5520+`, where a **band** is 0.19 css px
+tall; **exactly one** at any zoom where every band exceeds a pixel, which is
+what makes reporting the set need no mode and no threshold.
+
+The pick pass frames that same one css pixel and photographs it into a `1 × 32`
+column rather than a single texel, so it answers with the set instead of with
+whichever band was drawn last. The window is a css pixel at every sample count;
+only the resolution inside it moves, and `uPad` is quoted against the sample
+cell so that a strand outside the cursor's pixel is never reported. 32 is a
+measurement, not a guess:
+[`measurements/2026-08-21-how-finely-to-sample-a-pick.md`](notes/sequence-tube-map/measurements/2026-08-21-how-finely-to-sample-a-pick.md).
 
 ### thickness floor
 
@@ -416,6 +439,13 @@ focused band owns. **Self-annulling** — above the floor the clamp does nothing
 and the map is byte-identical to what it was, and below it is exactly the
 regime where the overdrawn neighbours were never resolvable anyway. Not applied
 to picking, which answers off the document's own geometry.
+
+Carried by exactly one strand at a time, out of the **pick set**: the one
+holding the sample nearest the cursor's own y. Not quite *nearest centreline* —
+a centreline is not something the pick pass has, and recovering one would mean
+per-band geometry on the CPU, which is what the pass exists to avoid. The two
+differ only inside a thirty-second of a css pixel, and both strands are named
+either way.
 
 ### placement
 

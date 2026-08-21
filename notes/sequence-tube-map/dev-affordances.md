@@ -57,6 +57,7 @@ look at. Entry points: `src/devTubeMapRoute.ts`, `src/devTubeMapPanelRoute.ts` �
 | `?url=` | both | open this document instead of the default fixture |
 | `?pick` | `tubemap.html` only | mount the pick readout (§3) |
 | `?floor=` | `tubemap.html` only | the feeler's thickness floor in css px; `0` switches it off (§3.1) |
+| `?samples=` | `tubemap.html` only | how finely the pick pass samples the cursor's pixel; `1` is the pre-#120 target (§3.2) |
 
 Both pages also fill a text field with the URL, so you can paste one in live rather than
 reloading. On the panel page the field feeds an **Open** button; on the viewer page it is a
@@ -100,12 +101,16 @@ anything. Rationale in full: `src/tubemap/__tests__/fixture.ts`.
 
 ## 3. `?pick` — reading the pick pass out loud
 
-`?pick` mounts a small readout in the surface's top-left corner. It reports the strand under
+`?pick` mounts a small readout in the surface's top-left corner. It reports the strands under
 the cursor, what asking cost, and what the feeler's appearance-table write cost:
 
 ```
-strand 201 · 3.50 ms · worst 37.90 ms · focus — · table 0.000 ms, worst 0.000 ms
+strand 224 251 253 87 159 360 · 3.50 ms · worst 37.90 ms · focus 159 · table 0.000 ms, worst 0.000 ms
 ```
+
+**The first field is a set, in the order the strands are stacked on screen** (pgb #120) — at
+fit on `5520+` it is six or seven ids, and it collapses to one as you magnify. `focus` is the
+single strand the feeler has lit out of that set, which is the one nearest the cursor.
 
 Two things it does that nothing else does:
 
@@ -151,6 +156,31 @@ photographs; the verdict and the rejected values are in
 
 Implementation: `BandSurfaceOptions.strandFloorCssPx`, and `FLOOR_CSS_PX` in
 `src/tubemap/strandAppearance.ts`.
+
+### 3.2 `?samples=` — how finely the pick reads the cursor's pixel
+
+The pick pass frames one css pixel of map and photographs it into a `1 x PICK_SAMPLES` column,
+so it can answer with *every* strand in that pixel rather than whichever was drawn last
+(pgb #120). `?samples=` overrides the count, and `?samples=1` is the single-texel target the
+pass used before #120 — the control arm:
+
+```bash
+open 'http://localhost:5173/dev/tubemap.html?pick&samples=1'     # the control: one answer
+open 'http://localhost:5173/dev/tubemap.html?pick&samples=128'
+```
+
+**The window does not change with it — only the resolution.** Every value frames the same one
+css pixel; a higher one divides it into more sample cells. `uPad` is sized to the cell rather
+than to the pixel, which is what keeps a strand outside the cursor's pixel from ever being
+reported, and it follows this parameter automatically.
+
+The hint line names the sample count the page was opened with. `scripts/verify_pick_set.mjs`
+drives the whole sweep, checks that the set collapses to one as the view magnifies, and takes
+the photographs; the verdict and the rejected values are in
+[`measurements/2026-08-21-how-finely-to-sample-a-pick.md`](./measurements/2026-08-21-how-finely-to-sample-a-pick.md).
+
+Implementation: `BandSurfaceOptions.pickSamples`, and `PICK_SAMPLES` in
+`src/tubemap/bandPicker.ts`.
 
 ---
 
