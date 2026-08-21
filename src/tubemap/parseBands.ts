@@ -7,8 +7,11 @@
  * Deliberately regex over raw response text, never `DOMParser`: building 40,442 DOM
  * nodes is exactly the cost this renderer exists to escape.
  *
- * A band is six floats — `x0, y0, width, y1, uTop, uBottom` — plus a `trackID` and the
- * `trackName` that says which haplotype that integer is. The two `u` values are the
+ * A band is six floats — `x0, y0, width, y1, uTop, uBottom` — plus a `trackID`, the
+ * `trackName` that says which haplotype that integer is, and where the inference places
+ * that haplotype in the ancestry cloud (`pclaiX`, `pclaiY`, `pclaiScore`). The placement
+ * is read on the same pass over the same elements — it is an attribute of a band, not a
+ * second document — and it is what `pclaiInset.ts` plots. The two `u` values are the
  * control abscissae of the *top* and *bottom* edges as a fraction of the span, and they
  * differ (0.70000 vs 0.69874 in the first band of `5520+`), so a
  * band's thickness varies along its length. The two edges are not translates of each
@@ -44,6 +47,9 @@ export const THICKNESS = 15
 /** Largest strand id the Uint16 instance buffer can hold without wrapping. */
 export const MAX_STRAND_ID = 65535
 
+/** How the document spells "the inference placed this haplotype nowhere". */
+const ABSENT = 'None'
+
 export interface ParsedMap {
     /** Six floats per band, document order: x0, y0, width, y1, uTop, uBottom. World
      *  coordinates, y up, centred on the origin. `y0`/`y1` are the upper edge. */
@@ -61,6 +67,31 @@ export interface ParsedMap {
      *  document spells is what the feeler reads out and what a researcher pastes
      *  elsewhere, so it round-trips verbatim or not at all. */
     strandNames: string[]
+    /** Where the document places each strand in the ancestry cloud, indexed by strand id,
+     *  or `null` for a strand it does not place.
+     *
+     *  **Absent is not the origin.** `pclaiX="None"` is how the document says the inference
+     *  produced nothing for this haplotype here, and zero would be a position — a plausible
+     *  one, near the middle of the cloud. How many there are is a property of the document:
+     *  6 in the chr1 strip, 12 in the chr8 document and 99 in `5520+`, so nothing may
+     *  assume a count.
+     *
+     *  PCLAI coordinates, not world coordinates: the plane is the one
+     *  `strandCoordinates.ts` frames, and no conversion this file performs touches them. */
+    strandPlacements: Array<Point | null>
+    /** What the document says about each placement's confidence, indexed by strand id, or
+     *  `null` where the document says nothing.
+     *
+     *  **The document's own spelling, opaque, like a name.** It is usually an integer —
+     *  `995`, `840` — but every fixture in this repo also spells two of them `impainted`,
+     *  on strands that *are* placed, and those two are not a number with a bad value: they
+     *  are a different kind of answer. Reading the field as a number would either refuse
+     *  four real documents or quietly turn a category into `NaN`, so it is carried
+     *  verbatim and whoever eventually displays it decides what the categories mean.
+     *
+     *  Carried and not yet displayed — opacity and size are the channels it would naturally
+     *  take in the inset and both are spoken for. */
+    strandScores: Array<string | null>
     strandCount: number
     /** Extent of the content, in world units. Centred on the origin. */
     content: { width: number, height: number }
@@ -78,6 +109,11 @@ export interface ParsedMap {
  */
 const FILL = 'style="fill: rgb\\((\\d+), (\\d+), (\\d+)\\); fill-opacity: 1;" trackID="(\\d+)"'
     + ' trackName="([^"]+)"'
+    // Where the haplotype sits in the ancestry cloud, and how confident the inference was.
+    // `[^>]*?` rather than the attributes actually in between — `class` and `color`, both
+    // restatements of what the fill and the id already say — so a document that adds an
+    // attribute there still parses. It cannot run past the element: `>` is excluded.
+    + '[^>]*? pclaiX="([^"]*)" pclaiY="([^"]*)" pclaiScore="([^"]*)"'
 
 /** A degenerate band: flat, so its control abscissae carry no information. */
 const RECT = `<rect x="${N}" y="${N}" width="${N}" height="${N}" ${FILL}`
@@ -119,7 +155,12 @@ export function parseBands(text: string): ParsedMap {
     /** How the document draws each strand and what it calls it, taken from the first band
      *  carrying the id. One map rather than two, so a strand's colour and its name cannot
      *  be populated from different bands or drained in different orders. */
-    const strands = new Map<number, { rgb: [number, number, number], name: string }>()
+    const strands = new Map<number, {
+        rgb: [number, number, number],
+        name: string,
+        placement: Point | null,
+        score: string | null
+    }>()
 
     let bands = 0
     let maxStrandId = -1
@@ -141,6 +182,9 @@ export function parseBands(text: string): ParsedMap {
         let blue: number
         let id: number
         let name: string
+        let placementX: string
+        let placementY: string
+        let score: string
 
         if (isRect) {
             x0 = +match[1]
@@ -169,21 +213,27 @@ export function parseBands(text: string): ParsedMap {
             blue = +match[7]
             id = +match[8]
             name = match[9]
+            placementX = match[10]
+            placementY = match[11]
+            score = match[12]
         } else {
-            x0 = +match[10]
-            y0 = +match[11]
-            controlTop = +match[12]
-            x1 = +match[16]
-            y1 = +match[17]
-            controlBottom = +match[19]
+            x0 = +match[13]
+            y0 = +match[14]
+            controlTop = +match[15]
+            x1 = +match[19]
+            y1 = +match[20]
+            controlBottom = +match[22]
 
             assertGrammar(match, x0, y0, x1, y1, controlTop, controlBottom)
 
-            red = +match[25]
-            green = +match[26]
-            blue = +match[27]
-            id = +match[28]
-            name = match[29]
+            red = +match[28]
+            green = +match[29]
+            blue = +match[30]
+            id = +match[31]
+            name = match[32]
+            placementX = match[33]
+            placementY = match[34]
+            score = match[35]
         }
 
         // The instance buffer stores ids as Uint16. Silently wrapping would draw a
@@ -211,7 +261,12 @@ export function parseBands(text: string): ParsedMap {
         strandIds[bands] = id
 
         if (false === strands.has(id)) {
-            strands.set(id, { rgb: [red, green, blue], name })
+            strands.set(id, {
+                rgb: [red, green, blue],
+                name,
+                placement: readPlacement(placementX, placementY),
+                score: readScore(score)
+            })
         }
 
         if (id > maxStrandId) {
@@ -244,12 +299,16 @@ export function parseBands(text: string): ParsedMap {
 
     const strandColors = new Uint8Array(strandCount * 3)
     const strandNames = new Array<string>(strandCount)
+    const strandPlacements = new Array<Point | null>(strandCount)
+    const strandScores = new Array<string | null>(strandCount)
 
     for (const [id, strand] of strands) {
         strandColors[id * 3] = strand.rgb[0]
         strandColors[id * 3 + 1] = strand.rgb[1]
         strandColors[id * 3 + 2] = strand.rgb[2]
         strandNames[id] = strand.name
+        strandPlacements[id] = strand.placement
+        strandScores[id] = strand.score
     }
 
     return {
@@ -258,6 +317,8 @@ export function parseBands(text: string): ParsedMap {
         bandCount: bands,
         strandColors,
         strandNames,
+        strandPlacements,
+        strandScores,
         strandCount,
         content: { width: viewBox.width, height: viewBox.height },
         centre: { x: centreX, y: centreY }
@@ -287,19 +348,50 @@ function assertGrammar(
         }
     }
 
-    expect(+match[13], y0, 'first control ordinate')
-    expect(+match[14], controlTop, 'second control abscissa')
-    expect(+match[15], y1, 'second control ordinate')
-    expect(+match[18], y1 + THICKNESS, 'vertical closing edge')
-    expect(+match[20], y1 + THICKNESS, 'return first control ordinate')
-    expect(+match[21], controlBottom, 'return second control abscissa')
-    expect(+match[22], y0 + THICKNESS, 'return second control ordinate')
-    expect(+match[23], x0, 'return endpoint abscissa')
-    expect(+match[24], y0 + THICKNESS, 'return endpoint ordinate')
+    expect(+match[16], y0, 'first control ordinate')
+    expect(+match[17], controlTop, 'second control abscissa')
+    expect(+match[18], y1, 'second control ordinate')
+    expect(+match[21], y1 + THICKNESS, 'vertical closing edge')
+    expect(+match[23], y1 + THICKNESS, 'return first control ordinate')
+    expect(+match[24], controlBottom, 'return second control abscissa')
+    expect(+match[25], y0 + THICKNESS, 'return second control ordinate')
+    expect(+match[26], x0, 'return endpoint abscissa')
+    expect(+match[27], y0 + THICKNESS, 'return endpoint ordinate')
 
     if (false === (x1 > x0)) {
         throw new NonConformingDocument(`A band spans ${x0} to ${x1}; every band must run left to right.`)
     }
+}
+
+/**
+ * A band's placement, as the document spells it: a coordinate pair, or `null` where the
+ * inference produced nothing.
+ *
+ * `None` is the document's own word for absence and the only non-numeric spelling this
+ * accepts — anything else is refused rather than read as absent, because a placement
+ * silently dropped is a haplotype missing from a cloud that still reads as complete.
+ * The two axes are refused together: a strand placed on one axis and not the other is not
+ * a thing this data has, and half a coordinate is not a position.
+ */
+function readPlacement(x: string, y: string): Point | null {
+    if (ABSENT === x && ABSENT === y) {
+        return null
+    }
+
+    const at = { x: Number(x), y: Number(y) }
+
+    if (false === Number.isFinite(at.x) || false === Number.isFinite(at.y)) {
+        throw new NonConformingDocument(
+            `A band is placed at pclaiX="${x}" pclaiY="${y}", which is neither a coordinate nor "${ABSENT}".`
+        )
+    }
+
+    return at
+}
+
+/** The score as the document spells it, with its word for absence turned into one. */
+function readScore(score: string): string | null {
+    return ABSENT === score ? null : score
 }
 
 function parseViewBox(text: string): { minX: number, minY: number, width: number, height: number } {

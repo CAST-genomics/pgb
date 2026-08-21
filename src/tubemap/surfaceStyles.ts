@@ -5,7 +5,13 @@
  *
  * The map is the data: no chrome inside the viewing surface. Every affordance here
  * is layered over the picture rather than arranged around it.
+ *
+ * The one interpolation is `DOT_SIZE`, and it is imported rather than written twice: the
+ * inset positions its dots in css pixels around a centre, so a stylesheet that disagreed
+ * with it about a dot's width would offset the whole cloud by half the difference.
  */
+
+import { DOT_SIZE } from './pclaiInset.ts'
 
 export const SURFACE_STYLES = `
 .stm-root {
@@ -337,6 +343,53 @@ export const SURFACE_STYLES = `
     font-variant-numeric: tabular-nums;
     pointer-events: none;
     z-index: 3;
+}
+
+/* The PCLAI inset (#113): the document's ancestry cloud, over the ramp that calibrates it.
+
+   Top right, opposite the navigator, which owns the bottom left. Its size is written from
+   \`INSET_SIZE\` rather than declared here — the dots are positioned in those pixels, and a
+   surface sized in two places is how a cloud ends up subtly off the ramp underneath it.
+
+   The ramp is a **legend**, and where it is stretched to is written from \`INSET_SIZE\` in
+   \`pclaiInset.ts\` rather than declared here: it covers exactly the box
+   \`strandCoordinates.ts\` maps the ramp's domain onto, so a dot's own colour is the colour
+   beneath it. It is a translucent PNG, so it is composited over white here exactly as PGB's
+   own PCLAI chart composites it — the two scatters read as one legend or they read as two
+   different claims about ancestry.
+
+   Inert to the pointer, like the badge and the strand label: this is a readout, and a pan
+   or a wheel aimed at the map must not be eaten by the thing reporting on it. #114 gives it
+   a drag handle and a resize grip, which are the only two things it will take events for.
+
+   z-index 2, beside the navigator: under the tooltips and the strand label at 3, which may
+   legitimately cross it, and under the status layer at 4, which has to be able to cover a
+   refused document with nothing showing through. */
+.stm-pclai-inset {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: #ffffff;
+    background-image: url('/images/pca-chart-background.png');
+    background-repeat: no-repeat;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.14);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.stm-pclai-inset[hidden] {
+    display: none;
+}
+
+/* One haplotype. Positioned once, when the document is plotted, and never moved: the inset
+   does not pan, zoom or follow the camera. */
+.stm-pclai-dot {
+    position: absolute;
+    width: ${DOT_SIZE}px;
+    height: ${DOT_SIZE}px;
+    border-radius: 50%;
 }
 
 .stm-navigator {

@@ -90,6 +90,13 @@
  * can refuse the same document, they are mounted and emptied in the same calls the scene is,
  * and they are placed from the camera in the same `requestAnimationFrame` that renders it.
  *
+ * ## The PCLAI inset is not in the scene either
+ *
+ * `pclaiInset.ts` plots one dot per placed strand over the ancestry ramp, as divs, and the
+ * wiring is the same as the boxes': built from the parsed document in `show`, emptied in
+ * `clear`, destroyed with the surface. It is not placed from the camera — the cloud is a
+ * position report in coordinate space and has nothing to do with where the view is.
+ *
  * ## Drawing happens on demand
  *
  * The spike ran an unconditional animation loop because it was also reading a frame
@@ -130,6 +137,7 @@ import type { Point, Size } from './geometry.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
 import { THICKNESS, parseBands, type ParsedMap } from './parseBands.ts'
 import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
+import { createPclaiInset, type PclaiInset } from './pclaiInset.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
 import { canvasPoint, overChrome } from './surfacePointer.ts'
 import {
@@ -457,6 +465,12 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     // mount layers on top — the navigator, the badge, and the status layer that has to be
     // able to cover a refused document's error message with nothing showing through it.
     const segments: SegmentOverlay = createSegmentOverlay(host)
+
+    // Where every haplotype in this document sits in the ancestry cloud (#113). Mounted
+    // and emptied in the same calls the scene is, like the segment boxes, and inert to the
+    // pointer: it reports on the map and takes nothing from it. It reads the parsed
+    // document and nothing else — no camera, no frame loop, and no event bus.
+    const pclaiInset: PclaiInset = createPclaiInset(host)
 
     // What the feeler is touching, by name (#111). Mounted over the segments so a name is
     // never covered by a box, and inert, so the map underneath keeps answering the cursor.
@@ -1049,6 +1063,10 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
             segments.show(boxes)
 
+            // This document's cloud, replacing the previous one's. Opening another node
+            // rebuilds it here, which is the only place it is ever built.
+            pclaiInset.show(map)
+
             reframe()
             fit()
 
@@ -1067,6 +1085,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             // In the same call that empties the scene, so a refused document cannot leave
             // the previous map's boxes floating over an error message.
             segments.clear()
+            pclaiInset.clear()
             mapNavigator.clear()
 
             if (null !== context) {
@@ -1112,6 +1131,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             doc.removeEventListener('pointercancel', onPointerUp)
             feeler.destroy()
             strandLabel.destroy()
+            pclaiInset.destroy()
             segments.destroy()
             readout?.remove()
 
