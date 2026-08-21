@@ -48,18 +48,20 @@ import type { ParsedMap } from './parseBands.ts'
 import { projectPlacement } from './strandCoordinates.ts'
 
 /**
- * How big the inset is, in css pixels.
+ * How big the **plot** is, in css pixels — the box the ramp is stretched over and the
+ * projection maps the ramp's domain onto. The widget around it is larger by `PLOT_INSET`
+ * on each side, so this is not the size of anything you can measure with a ruler on
+ * screen; #114's drag handle and resize grip size themselves from the widget, not here.
  *
- * Square, because the ramp is: the image covers the whole surface and the projection maps
- * the ramp's domain onto the same box, so a non-square inset would stretch the legend away
- * from the coordinates it calibrates. Small enough to be an annotation on the map rather
- * than a second view of it, which is the same judgement that took the navigator to 75% of
- * its measured size.
+ * Square, because the ramp is: a non-square plot would stretch the legend away from the
+ * coordinates it calibrates. Small enough to be an annotation on the map rather than a
+ * second view of it, which is the same judgement that took the navigator to 75% of its
+ * measured size.
  *
  * Owned here rather than in the stylesheet because the dots are positioned in these
- * pixels: two spellings of the surface's size is how a cloud ends up subtly off its ramp.
+ * pixels: two spellings of the plot's size is how a cloud ends up subtly off its ramp.
  */
-export const INSET_SIZE: Size = { width: 216, height: 216 }
+export const PLOT_SIZE: Size = { width: 216, height: 216 }
 
 /**
  * How wide a dot is, in css pixels.
@@ -111,12 +113,12 @@ export function plotCloud(map: ParsedMap, surface: Size): PlottedDot[] {
             continue
         }
 
-        const at = strandId * 3
+        const red = strandId * 3
 
         dots.push({
             strandId,
             at: projectPlacement(placement, surface),
-            color: `rgb(${map.strandColors[at]}, ${map.strandColors[at + 1]}, ${map.strandColors[at + 2]})`
+            color: `rgb(${map.strandColors[red]}, ${map.strandColors[red + 1]}, ${map.strandColors[red + 2]})`
         })
     }
 
@@ -143,9 +145,9 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
     // Here rather than in the stylesheet, from the same constants the dots are placed with:
     // the ramp is stretched over exactly the box `strandCoordinates.ts` maps the ramp's
     // domain onto, which is what makes a dot's colour the colour underneath it.
-    element.style.width = `${INSET_SIZE.width + PLOT_INSET * 2}px`
-    element.style.height = `${INSET_SIZE.height + PLOT_INSET * 2}px`
-    element.style.backgroundSize = `${INSET_SIZE.width}px ${INSET_SIZE.height}px`
+    element.style.width = `${PLOT_SIZE.width + PLOT_INSET * 2}px`
+    element.style.height = `${PLOT_SIZE.height + PLOT_INSET * 2}px`
+    element.style.backgroundSize = `${PLOT_SIZE.width}px ${PLOT_SIZE.height}px`
     element.style.backgroundPosition = `${PLOT_INSET}px ${PLOT_INSET}px`
 
     parent.append(element)
@@ -153,9 +155,10 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
     return {
 
         show(map: ParsedMap): void {
+            const cloud = plotCloud(map, PLOT_SIZE)
             const fragment = doc.createDocumentFragment()
 
-            for (const dot of plotCloud(map, INSET_SIZE)) {
+            for (const dot of cloud) {
                 const point = doc.createElement('div')
 
                 point.className = 'stm-pclai-dot'
@@ -167,7 +170,13 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
             }
 
             element.replaceChildren(fragment)
-            element.hidden = false
+
+            // A document that places nobody gets no widget rather than an empty one. An
+            // empty plot over the ramp is a picture of a cohort with no ancestry, which is
+            // a claim; showing nothing says nothing, which is the true thing to say about a
+            // document that carries no placements. Every document in this repo places most
+            // of its strands, so this is the non-HPRC case rather than a locus.
+            element.hidden = 0 === cloud.length
         },
 
         clear(): void {

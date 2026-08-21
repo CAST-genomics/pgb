@@ -74,7 +74,9 @@ export interface ParsedMap {
      *  produced nothing for this haplotype here, and zero would be a position — a plausible
      *  one, near the middle of the cloud. How many there are is a property of the document:
      *  6 in the chr1 strip, 12 in the chr8 document and 99 in `5520+`, so nothing may
-     *  assume a count.
+     *  assume a count. A document carrying no placement attributes at all — which no
+     *  document in this repo is, and which the band survey behind ADR `0002` never ruled
+     *  out — places nobody, and is drawn as the map it still is.
      *
      *  PCLAI coordinates, not world coordinates: the plane is the one
      *  `strandCoordinates.ts` frames, and no conversion this file performs touches them. */
@@ -110,10 +112,20 @@ export interface ParsedMap {
 const FILL = 'style="fill: rgb\\((\\d+), (\\d+), (\\d+)\\); fill-opacity: 1;" trackID="(\\d+)"'
     + ' trackName="([^"]+)"'
     // Where the haplotype sits in the ancestry cloud, and how confident the inference was.
+    //
     // `[^>]*?` rather than the attributes actually in between — `class` and `color`, both
     // restatements of what the fill and the id already say — so a document that adds an
     // attribute there still parses. It cannot run past the element: `>` is excluded.
-    + '[^>]*? pclaiX="([^"]*)" pclaiY="([^"]*)" pclaiScore="([^"]*)"'
+    //
+    // **Optional, unlike everything else in the grammar.** The band survey ADR `0002` rests
+    // its whole-document refusal on covered geometry and fill across 17 documents; it did
+    // not ask about these three attributes, and all four documents committed here are HPRC.
+    // A tube map is a map first, so a document that says nothing about ancestry draws its
+    // map and gets no cloud — refusing it would be this parser using evidence it does not
+    // have. A placement that is *present and malformed* is refused, in `readPlacement`:
+    // that is a document making a claim this renderer cannot read, which is what the gate
+    // is for.
+    + '(?:[^>]*? pclaiX="([^"]*)" pclaiY="([^"]*)" pclaiScore="([^"]*)")?'
 
 /** A degenerate band: flat, so its control abscissae carry no information. */
 const RECT = `<rect x="${N}" y="${N}" width="${N}" height="${N}" ${FILL}`
@@ -182,9 +194,9 @@ export function parseBands(text: string): ParsedMap {
         let blue: number
         let id: number
         let name: string
-        let placementX: string
-        let placementY: string
-        let score: string
+        let placementX: string | undefined
+        let placementY: string | undefined
+        let score: string | undefined
 
         if (isRect) {
             x0 = +match[1]
@@ -364,16 +376,25 @@ function assertGrammar(
 }
 
 /**
- * A band's placement, as the document spells it: a coordinate pair, or `null` where the
- * inference produced nothing.
+ * A band's placement, as the document spells it: a coordinate pair, or `null` where there
+ * is none to read.
  *
- * `None` is the document's own word for absence and the only non-numeric spelling this
- * accepts — anything else is refused rather than read as absent, because a placement
- * silently dropped is a haplotype missing from a cloud that still reads as complete.
- * The two axes are refused together: a strand placed on one axis and not the other is not
- * a thing this data has, and half a coordinate is not a position.
+ * Two different absences arrive as the same `null`, deliberately. A document with no
+ * `pclaiX` attribute at all is not an HPRC document and says nothing about ancestry; a
+ * document spelling it `None` says the inference ran and placed this haplotype nowhere.
+ * Neither is a position, and the inset draws a dot for neither — the distinction would
+ * only matter to something that reported *why* a haplotype is missing, which nothing does.
+ *
+ * Anything else is refused rather than read as absent, because a placement silently
+ * dropped is a haplotype missing from a cloud that still reads as complete. The two axes
+ * are refused together: a strand placed on one axis and not the other is not a thing this
+ * data has, and half a coordinate is not a position.
  */
-function readPlacement(x: string, y: string): Point | null {
+function readPlacement(x: string | undefined, y: string | undefined): Point | null {
+    if (undefined === x || undefined === y) {
+        return null
+    }
+
     if (ABSENT === x && ABSENT === y) {
         return null
     }
@@ -389,9 +410,9 @@ function readPlacement(x: string, y: string): Point | null {
     return at
 }
 
-/** The score as the document spells it, with its word for absence turned into one. */
-function readScore(score: string): string | null {
-    return ABSENT === score ? null : score
+/** The score as the document spells it, with either absence turned into one. */
+function readScore(score: string | undefined): string | null {
+    return undefined === score || ABSENT === score ? null : score
 }
 
 function parseViewBox(text: string): { minX: number, minY: number, width: number, height: number } {

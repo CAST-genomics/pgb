@@ -311,12 +311,25 @@ describe('parseBands', () => {
             expect(map.strandScores[315]).toBeNull()
         })
 
-        it('refuses a document whose bands carry no placement at all', () => {
-            // Same treatment as a band with no name: the whole document, rather than an
-            // inset that silently plots nothing and reads as a locus where nobody is placed.
+        it('draws a document that says nothing about ancestry as a document that places nobody', () => {
+            // Not a refusal. The survey behind ADR 0002 covered geometry and fill, not these
+            // three attributes, and every document committed here is HPRC — so a tube map
+            // without them is a map this renderer has no evidence it cannot draw. It draws,
+            // and its cloud is empty.
+            const text = readFixture().replace(/ pclai[XY]="[^"]*"/g, '').replace(/ pclaiScore="[^"]*"/g, '')
+            const map = parseBands(text)
+
+            expect(map.bandCount).toBe(SURVEYED.bands)
+            expect(map.strandPlacements.every(placement => null === placement)).toBe(true)
+            expect(map.strandScores.every(score => null === score)).toBe(true)
+        })
+
+        it('refuses a band placed on one axis and not the other', () => {
+            // Half a coordinate is not a position, and the two absences this parser accepts
+            // — no attributes at all, and `None` on both — are both whole answers.
             const text = readFixture()
 
-            expect(() => parseBands(text.replace(/ pclaiX="[^"]*"/g, '')))
+            expect(() => parseBands(text.replace(/pclaiY="0.12"/g, 'pclaiY="None"')))
                 .toThrow(NonConformingDocument)
         })
 

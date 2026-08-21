@@ -348,10 +348,10 @@ export const SURFACE_STYLES = `
 /* The PCLAI inset (#113): the document's ancestry cloud, over the ramp that calibrates it.
 
    Top right, opposite the navigator, which owns the bottom left. Its size is written from
-   \`INSET_SIZE\` rather than declared here — the dots are positioned in those pixels, and a
+   \`PLOT_SIZE\` rather than declared here — the dots are positioned in those pixels, and a
    surface sized in two places is how a cloud ends up subtly off the ramp underneath it.
 
-   The ramp is a **legend**, and where it is stretched to is written from \`INSET_SIZE\` in
+   The ramp is a **legend**, and where it is stretched to is written from \`PLOT_SIZE\` in
    \`pclaiInset.ts\` rather than declared here: it covers exactly the box
    \`strandCoordinates.ts\` maps the ramp's domain onto, so a dot's own colour is the colour
    beneath it. It is a translucent PNG, so it is composited over white here exactly as PGB's
