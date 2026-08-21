@@ -193,6 +193,28 @@ export function cloudState(map: ParsedMap, focused: number | null): CloudState {
 }
 
 /**
+ * How large the grip may make a plot, given the widget's non-plot extent (`chrome`: the mat
+ * on both axes, and the header on one) and the panel it lives in.
+ *
+ * **The panel binds before the ceiling does**, and that is the whole point of this. The
+ * surface root clips what leaves it, so a plot grown past the panel carries the grip — which
+ * sits at the widget's far corner — out of the panel with it. The grip is then not merely
+ * awkward to hit: the browser answers that point with the canvas, so the grab pans the map
+ * instead, and no gesture is left that shrinks the plot again. The researcher has resized
+ * their way into a widget they cannot resize.
+ *
+ * A panel too small even for `MIN_PLOT_SIZE` gets a plot below it rather than a hidden grip:
+ * a floor exists to keep the lobes separable, and a cloud too small to read is a better
+ * failure than a control nobody can reach.
+ */
+export function fitPlotSize(wanted: number, chrome: Size, host: Size): number {
+    const cap = Math.min(MAX_PLOT_SIZE, host.width - chrome.width, host.height - chrome.height)
+    const floor = Math.min(MIN_PLOT_SIZE, cap)
+
+    return Math.round(clamp(wanted, Math.max(1, floor), Math.max(1, cap)))
+}
+
+/**
  * Where a widget of size `widget` may sit inside a panel of size `host`, in css pixels from
  * the panel's top-left corner.
  *
@@ -324,9 +346,19 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
         place()
     }
 
+    /** The widget's extent that is not the plot: the mat on both axes, and the header on
+     *  one. Measured rather than computed from `MAT`, so the stylesheet stays the one place
+     *  the header's height is decided. */
+    function chromeSize(): Size {
+        return {
+            width: Math.max(0, element.offsetWidth - plot.offsetWidth),
+            height: Math.max(0, element.offsetHeight - plot.offsetHeight)
+        }
+    }
+
     /** Size the plot, and lay the cloud out again in it. */
     function resizePlot(next: number): void {
-        size = clamp(Math.round(next), MIN_PLOT_SIZE, MAX_PLOT_SIZE)
+        size = fitPlotSize(next, chromeSize(), hostSize())
 
         plot.style.width = `${size}px`
         plot.style.height = `${size}px`
@@ -513,6 +545,11 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
         },
 
         relayout(): void {
+            // The panel getting smaller is the other way to strand the grip outside it, so
+            // the plot is re-fitted rather than only repositioned. A panel that grows again
+            // does not grow the plot back: the size is the researcher's to choose, and this
+            // only ever takes away what cannot be shown.
+            resizePlot(size)
             keepInside()
         },
 

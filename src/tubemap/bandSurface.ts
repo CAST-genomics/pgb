@@ -482,12 +482,6 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     // able to cover a refused document's error message with nothing showing through it.
     const segments: SegmentOverlay = createSegmentOverlay(host)
 
-    // Where every haplotype in this document sits in the ancestry cloud (#113). Mounted
-    // and emptied in the same calls the scene is, like the segment boxes, and inert to the
-    // pointer: it reports on the map and takes nothing from it. It reads the parsed
-    // document and nothing else — no camera, no frame loop, and no event bus.
-    const pclaiInset: PclaiInset = createPclaiInset(host)
-
     // What the feeler is touching, by name (#111). Mounted over the segments so a name is
     // never covered by a box, and inert, so the map underneath keeps answering the cursor.
     const strandLabel: StrandLabel = createStrandLabel(host)
@@ -537,6 +531,19 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             controls.update()
         }
     })
+
+    // Where every haplotype in this document sits in the ancestry cloud (#113). Mounted and
+    // emptied in the same calls the scene is, like the segment boxes, and inert to the
+    // pointer: it reports on the map and takes nothing from it. It reads the parsed document
+    // and nothing else — no camera, no frame loop, and no event bus.
+    //
+    // **After the navigator, and that is load-bearing.** The two widgets share z-index 2, so
+    // the later mount wins where they overlap. Grown large in a short panel the cloud reaches
+    // the navigator, and mounted first it was the navigator that answered the pointer at the
+    // cloud's own resize grip — leaving a widget that could no longer be resized. The
+    // navigator is a picture; the grip is a control, and a control that cannot be reached is
+    // worse than a thumbnail partly covered. The cloud can also be dragged off it, or hidden.
+    const pclaiInset: PclaiInset = createPclaiInset(host)
 
     function viewport(): Viewport {
         return { width: canvas.clientWidth, height: canvas.clientHeight }

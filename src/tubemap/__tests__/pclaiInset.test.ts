@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { cloudState, plotCloud, withinHost } from '../pclaiInset.ts'
+import { MAX_PLOT_SIZE, MIN_PLOT_SIZE, cloudState, fitPlotSize, plotCloud, withinHost } from '../pclaiInset.ts'
 import { parseBands, type ParsedMap } from '../parseBands.ts'
 import { RAMP_DOMAIN, projectPlacement } from '../strandCoordinates.ts'
 import { readFixture, readTallFixture } from './fixture.ts'
@@ -169,3 +169,57 @@ describe('withinHost', () => {
             .toEqual({ x: 0, y: 0 })
     })
 })
+
+/**
+ * How large the grip is allowed to make the plot.
+ *
+ * This is the one thing in the widget that can lock the researcher out of it. The root
+ * clips what leaves it, so a plot grown past the panel takes the grip — which sits at the
+ * widget's far corner — out of the panel with it. The grip is then not merely hard to
+ * hit: `elementFromPoint` returns the canvas, so the grab pans the map, and there is no
+ * gesture left that shrinks the plot again. Found by growing one in a 1000 x 560 panel.
+ */
+describe('fitPlotSize', () => {
+
+    /** The widget's non-plot extent: mat on both axes, and the header on one. */
+    const CHROME = { width: 28, height: 36 }
+
+    it('leaves a plot the panel can show alone', () => {
+        expect(fitPlotSize(300, CHROME, { width: 1200, height: 900 })).toBe(300)
+    })
+
+    it('caps the plot at what the panel can show, on whichever axis binds', () => {
+        // 560 - 36 leaves 524 on the short axis, so that is the answer even though the
+        // panel is wide enough for far more.
+        expect(fitPlotSize(816, CHROME, { width: 1000, height: 560 })).toBe(524)
+    })
+
+    it('keeps the whole widget inside the panel, so the grip stays reachable', () => {
+        const host = { width: 1000, height: 560 }
+        const size = fitPlotSize(5000, CHROME, host)
+
+        expect(size + CHROME.width).toBeLessThanOrEqual(host.width)
+        expect(size + CHROME.height).toBeLessThanOrEqual(host.height)
+    })
+
+    it('still refuses to make a plot larger than the ceiling', () => {
+        expect(fitPlotSize(5000, CHROME, { width: 4000, height: 4000 })).toBe(MAX_PLOT_SIZE)
+    })
+
+    it('holds the floor while the panel has room for it', () => {
+        expect(fitPlotSize(10, CHROME, { width: 1200, height: 900 })).toBe(MIN_PLOT_SIZE)
+    })
+
+    it('goes below the floor rather than hide the grip in a panel too small for it', () => {
+        // A floor that puts the grip outside the panel is worse than a plot below the
+        // floor: one is a small cloud, the other is a widget nobody can shrink again.
+        const host = { width: 200, height: 120 }
+        const size = fitPlotSize(PLOT_FLOOR_PROBE, CHROME, host)
+
+        expect(size).toBeLessThan(MIN_PLOT_SIZE)
+        expect(size + CHROME.height).toBeLessThanOrEqual(host.height)
+    })
+})
+
+/** A request larger than any small panel can hold, used to probe the floor. */
+const PLOT_FLOOR_PROBE = 400
