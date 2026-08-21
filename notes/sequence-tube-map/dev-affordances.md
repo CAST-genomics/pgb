@@ -61,14 +61,14 @@ cascade, which is why what they share lives in `dev/devPage.css`. See §6.
 
 | Parameter | Page | Effect |
 |---|---|---|
-| `?url=` | both | open this document instead of the default fixture |
+| `?url=` | all three | open this document instead of the default fixture |
 | `?pick` | all three | mount the pick readout (§3) |
-| `?floor=` | all three | the feeler's thickness floor in css px; `0` switches it off (§3.1) |
-| `?samples=` | all three | how finely the pick pass samples the cursor's pixel; `1` is the pre-#120 target (§3.2) |
+| `?floor=` | `tubemap.html` only | the feeler's thickness floor in css px; `0` switches it off (§3.1) |
+| `?samples=` | `tubemap.html` only | how finely the pick pass samples the cursor's pixel; `1` is the pre-#120 target (§3.2) |
 
-Both pages also fill a text field with the URL, so you can paste one in live rather than
-reloading. On the panel page the field feeds an **Open** button; on the viewer page it is a
-form you submit.
+All three pages also fill a text field with the URL, so you can paste one in live rather than
+reloading. On the two panel pages the field feeds an **Open** button; on the viewer page it is
+a form you submit.
 
 ```bash
 open 'http://localhost:5173/dev/tubemap.html'
@@ -149,8 +149,10 @@ without the panel growing an option:
 mountTubeMapPanel({ mountSurface: c => mountTubeMapSurface(c, { pickReadout: true }) })
 ```
 
-That seam is what makes `/dev/tubemap-app.html` able to host a `scripts/verify_*.mjs` at all
-(§6), rather than being a page you can only look at.
+`?floor=` and `?samples=` are **not** passed down that seam, and the asymmetry is the point:
+`?pick` is there because `verify_segment_boxes.mjs` needs it on the day it moves to
+`/dev/tubemap-app.html` (§6). The other two belong to scripts that photograph the canvas and
+have no reason to move.
 
 Implementation: `BandSurfaceOptions.pickReadout` in `src/tubemap/bandSurface.ts`.
 
@@ -275,7 +277,7 @@ pixel sampling — in the one environment where the bug cannot occur. #125 fixed
 `box-sizing: content-box`, and #126 built this page so the class of bug is checkable.
 
 ```bash
-node scripts/verify_pclai_pad.mjs   # with `npm run dev` already up
+node scripts/verify_pclai_pad.mjs   # from the repo root, with `npm run dev` already up
 ```
 
 That script is the seam the unit test in `pclaiPlotBoxSizing.test.ts` explicitly is not: the
@@ -290,6 +292,25 @@ header why. The short version: they measure the canvas — a readback, a raster,
 stylesheet does not reach inside one. The exception is `verify_segment_boxes.mjs`, whose
 subject genuinely *is* DOM layout; it stays on the bare page only because its geometry is
 written against a viewport-filling canvas, and it is the first script to move.
+
+### The three latent cases, looked at
+
+#126 left three classes flagged as *possibly* fragile — `.stm-pclai-dot`, `.stm-pclai-inset`
+and `.stm-strand-label` declare no `box-sizing`, while `.stm-segment` and `.stm-navigator-rect`
+do — and said they were worth a look once there was a harness to look with. Looked at on this
+page, 2026-08-21, and **all three are inert rather than fragile**:
+
+| Class | Under the reset | Why it cannot bite |
+|---|---|---|
+| `.stm-pclai-dot` | `border-box` | JS writes its width, but it has no border and no padding, so both box models give the same box. The ring is a `box-shadow`, which is outside the box either way. |
+| `.stm-pclai-inset` | `border-box`, 1 px border | `width: auto` — the widget is sized by its flex content. Measured 154 px outer against a 152 px content box. |
+| `.stm-strand-label` | `border-box`, 1 px border + padding | `width: auto`, and `strandLabel.ts` writes only `left`/`top`. Never a specified width for the border to be subtracted from. |
+
+`box-sizing` can only bite where a width is *specified*, and the only two specified widths in
+this widget are the plot's — which now states `content-box` — and the dot's, which has nothing
+to subtract. **No second live bug, and no pre-emptive edits made.** The rule this leaves is the
+one worth carrying: a class that starts combining a JS-written width with a border has to state
+its own `box-sizing`, and this script is where that shows up.
 
 Two things not proposed, then or now: dropping Bootstrap, or scoping it away from the panel.
 Both are far larger than the problem, and neither is needed once the viewer is verified where

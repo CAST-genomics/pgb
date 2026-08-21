@@ -34,12 +34,14 @@
  * The viewport is large enough that `MAX_PLOT_SIZE` binds before the panel does, so "the cap"
  * is the cap the constant names — the size the overhang was measured at in #125.
  *
- *     node scripts/verify_pclai_pad.mjs   # with `npm run dev` already up
+ *     node scripts/verify_pclai_pad.mjs   # from the repo root, with `npm run dev` already up
  */
 
 import { chromium } from 'playwright'
+import { readFileSync } from 'node:fs'
 
 const URL = 'http://localhost:5173/dev/tubemap-app.html'
+const PAGE = 'dev/tubemap-app.html'
 
 /** The inset's own numbers, restated: `pclaiInset.ts`. */
 const PLOT_PAD = 16
@@ -47,7 +49,7 @@ const MAX_PLOT_SIZE = 900
 
 /** Big enough that `fitPlotSize`'s ceiling binds before the panel's own size does. */
 const VIEWPORT = { width: 1600, height: 1400 }
-const SHOT = 'notes/sequence-tube-map/measurements/pclai-pad-app-cascade.png'
+const SHOT = '/tmp/stm-pclai-pad.png'
 
 const results = []
 const check = (name, passed, detail) => {
@@ -125,8 +127,26 @@ async function stretchToCap() {
 // ── 1. The harness is the harness ──────────────────────────────────────────────────────
 //
 // Everything below is a statement about PGB's cascade, and is worth nothing if the page has
-// stopped carrying it. Bootstrap's reset is the specific thing #123 died on, so the specific
-// thing to confirm is that `*` really is `border-box` here.
+// stopped carrying it. Two ways it can stop, and both are checked before anything is measured.
+//
+// The stylesheets first, read out of the two files rather than off the running page: this
+// page's whole value is being `index.html`'s cascade, and a version bump in `index.html` that
+// is not copied across would silently make it a page testing some *other* Bootstrap. Compared
+// as a set of hrefs, so reordering or reformatting either file is not a failure.
+const cdn = /<link[^>]+href="(https:\/\/cdn\.jsdelivr\.net\/[^"]+)"/g
+const stylesheets = file => [...readFileSync(file, 'utf8').matchAll(cdn)].map(match => match[1]).sort()
+
+const shipped = stylesheets('index.html')
+const harness = stylesheets(PAGE)
+
+check('the page loads the stylesheets index.html loads',
+    shipped.length > 0 && shipped.join('|') === harness.join('|'),
+    shipped.join('|') === harness.join('|')
+        ? `${shipped.length} matching`
+        : `index.html ${shipped.join(' ')} vs ${PAGE} ${harness.join(' ')}`)
+
+// And then the effect, off the running page. Bootstrap's reset is the specific thing #123 died
+// on, so the specific thing to confirm is that `*` really is `border-box` here.
 const reset = await page.evaluate(() => ({
     body: getComputedStyle(document.body).boxSizing,
     // A bare element with no rule of its own: whatever the universal selector says.

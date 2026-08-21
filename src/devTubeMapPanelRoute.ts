@@ -30,32 +30,27 @@ const FIXTURE_TARGET: SeqTubeMapTarget = {
 }
 
 /**
- * The harness parameters `devTubeMapRoute.ts` documents — `?pick`, `?floor=`, `?samples=` —
- * honoured here too, and for the same reason they exist there: none of them decides which URL,
- * they only make the surface say out loud what it is doing.
+ * `?pick`, honoured here as `devTubeMapRoute.ts` honours it, and for the same reason it exists
+ * there: it does not decide which URL, it reads the pass that has already run.
  *
- * They are here so that this page, and `dev/tubemap-app.html` above it, can host a
- * `scripts/verify_*.mjs` at all. Every one of those scripts drives `dev/tubemap.html`, which
- * loads no Bootstrap — so nothing we check runs under the cascade the app ships (#126). A
- * script whose subject is DOM layout belongs on the app-cascade page, and this is what makes
- * moving one a change of URL rather than a change of harness.
+ * It is here because one named script needs it. `scripts/verify_segment_boxes.mjs` is the one
+ * `verify_*.mjs` whose subject is genuinely DOM layout, so it is the one that belongs on
+ * `dev/tubemap-app.html` under the cascade the app ships (#126) — and its last section drives
+ * `?pick` to reach the strand under a segment box. Without this, moving it would mean changing
+ * the harness rather than the URL.
+ *
+ * `?floor=` and `?samples=` are deliberately **not** here. They belong to two scripts that
+ * photograph the canvas, which is not a thing a stylesheet reaches, and whose headers now say
+ * so; adding them would be capability for a migration nobody has a reason to make.
  *
  * Passed through `mountSurface` rather than through the panel: the panel's own options are
  * about the *card*, and instrumentation for the surface has no business widening them.
  */
 const parameters = new URLSearchParams(window.location.search)
-const requestedFloor = Number(parameters.get('floor'))
-const requestedSamples = Number(parameters.get('samples'))
 
 const panel = mountTubeMapPanel({
     mountSurface: container => mountTubeMapSurface(container, {
-        pickReadout: parameters.has('pick'),
-        strandFloorCssPx: parameters.has('floor') && Number.isFinite(requestedFloor)
-            ? requestedFloor
-            : undefined,
-        pickSamples: parameters.has('samples') && Number.isInteger(requestedSamples) && requestedSamples > 0
-            ? requestedSamples
-            : undefined
+        pickReadout: parameters.has('pick')
     })
 })
 

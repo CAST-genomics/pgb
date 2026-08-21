@@ -14,14 +14,9 @@
       `scripts/verify_*.mjs` only ever driven — in a cascade PGB does not have, so any
       assumption Bootstrap overrides was invisible to every check we run.
 
-      It has already cost once. #123 gave the PCLAI cloud breathing room as a transparent
-      border outside the plot's content box; Bootstrap's reset — `*,::after,::before{
-      box-sizing:border-box}` — makes that pad eat inward instead, collapsing the coordinate
-      frame to `size - 2 * PLOT_PAD` while `plotCloud` still projects over `size`, so the
-      cloud overhung and `overflow: hidden` shaved the bottom-right lobes. #123 was verified
-      by pixel sampling in the one environment where the bug cannot occur. #125 fixed it with
-      `box-sizing: content-box`; `scripts/verify_pclai_pad.mjs` drives *this* page and is
-      what would have caught it.
+      It has already cost once — the PCLAI pad #123 shipped, which Bootstrap's reset turned
+      inward. `notes/sequence-tube-map/dev-affordances.md` §6 is where that story is told;
+      `scripts/verify_pclai_pad.mjs` drives *this* page and is what would have caught it.
 
       Only the stylesheets are copied, not `index.html`'s Bootstrap JS bundle: nothing here
       carries a `data-bs-*` attribute, and a script changes no cascade. If a page ever needs
