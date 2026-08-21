@@ -329,13 +329,21 @@ export const SURFACE_STYLES = `
 
 /* Instrumentation, not chrome: only ?pick puts this on the surface.
 
-   Top left and below the ?fps pill, which is the one corner nothing else claims: the
-   harness's URL picker fills the top right at a higher z-index and hid this completely,
-   and the navigator owns the bottom left. */
+   Bottom right, stacked directly above the mode badge, and the rule is the corner rather
+   than the pixels: **a diagnostic readout sits out of the way of what the app draws.** It
+   was top left, which was the one corner nothing claimed at the time — the harness's URL
+   picker fills the top right at a higher z-index and hid it completely, and the navigator
+   owns the bottom left. The PCLAI inset claims the top left now, and a readout over the
+   cloud is exactly what this rule forbids.
+
+   The offset clears the badge: 12 px of margin, the badge's own height, and 10 px between
+   them. The badge is the only other thing in this corner and it is fixed-height, so the
+   two stack rather than overlap whether or not the feeler is out. Anything added here next
+   goes above this one, not beside it. */
 .stm-pick {
     position: absolute;
-    left: 12px;
-    top: 46px;
+    right: 12px;
+    bottom: 44px;
     padding: 4px 10px;
     border-radius: 4px;
     background: var(--stm-chrome);
@@ -347,9 +355,15 @@ export const SURFACE_STYLES = `
 
 /* The PCLAI inset (#113): the document's ancestry cloud, over the ramp that calibrates it.
 
-   Top right, opposite the navigator, which owns the bottom left. Its size is written from
-   \`PLOT_SIZE\` rather than declared here — the dots are positioned in those pixels, and a
-   surface sized in two places is how a cloud ends up subtly off the ramp underneath it.
+   Top left. Its size is written from \`PLOT_SIZE\` rather than declared here — the dots are
+   positioned in those pixels, and a surface sized in two places is how a cloud ends up
+   subtly off the ramp underneath it.
+
+   The navigator owns the bottom left and the two never meet: the navigator is anchored to
+   the bottom edge and capped at 28.9% of the host's height, so the tallest it can be still
+   leaves the top corner alone. The \`?pick\` readout used to be here and moved to the
+   bottom right when this arrived: diagnostics sit out of the way of what the app draws,
+   not over it.
 
    The ramp is a **legend**, and where it is stretched to is written from \`PLOT_SIZE\` in
    \`pclaiInset.ts\` rather than declared here: it covers exactly the box
@@ -362,12 +376,12 @@ export const SURFACE_STYLES = `
    or a wheel aimed at the map must not be eaten by the thing reporting on it. #114 gives it
    a drag handle and a resize grip, which are the only two things it will take events for.
 
-   z-index 2, beside the navigator: under the tooltips and the strand label at 3, which may
+   z-index 2, with the navigator: under the tooltips and the strand label at 3, which may
    legitimately cross it, and under the status layer at 4, which has to be able to cover a
    refused document with nothing showing through. */
 .stm-pclai-inset {
     position: absolute;
-    right: 16px;
+    left: 16px;
     top: 16px;
     border-radius: 4px;
     overflow: hidden;
