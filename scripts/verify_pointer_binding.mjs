@@ -16,6 +16,12 @@
  * the rect was `pointer-events: none`, so the element under the cursor over it was the
  * canvas and the pick ran on the map the navigator was covering.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — a choice now rather than the only option
+ * (#126). What routes a pointer is `pointer-events` and capture, which Bootstrap's reset does
+ * not touch, and the two chrome elements dragged here — `.stm-navigator-rect` and the status
+ * layer — already state their own `box-sizing`. `dev/tubemap-app.html` is where this belongs
+ * the day the panel's own chrome joins the elements under test.
+ *
  *     node scripts/verify_pointer_binding.mjs   # with `npm run dev` already up
  */
 

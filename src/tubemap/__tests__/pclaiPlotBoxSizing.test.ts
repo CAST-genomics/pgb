@@ -10,7 +10,7 @@
  * into half dots and half rings. That is what #123 shipped, and it is the exact symptom #123
  * set out to remove.
  *
- * It survived review because the two dev pages that mount the viewer — `dev/tubemap.html`
+ * It survived review because the two dev pages that mounted the viewer — `dev/tubemap.html`
  * and `dev/tubemap-panel.html` — load no Bootstrap, so the plot is `content-box` there by
  * the UA default and the picture is correct in the one place anybody looked at it.
  *
@@ -20,7 +20,9 @@
  * extreme dot's ink sat 15.95 px outside the plot's border box, and 12.88 px inside it once
  * this line was added. What is here is the one line whose deletion silently reinstates that,
  * and it is not a substitute for a browser harness that mounts the viewer under PGB's own
- * stylesheet — no such harness exists, which is why #123 could ship.
+ * stylesheet. That harness now exists — `dev/tubemap-app.html`, driven by
+ * `scripts/verify_pclai_pad.mjs` (#126) — and it is the one that measures the layout; this
+ * stays as the cheap guard that runs in `npm test` and names the declaration.
  */
 
 import { describe, expect, it } from 'vitest'

@@ -25,6 +25,12 @@
  * - **Nothing is predicted that can be read.** Which strand the feeler is on comes out of the
  *   surface's own readout.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — a choice now rather than the only option
+ * (#126). The sweep is a set of photographs of the canvas and the inertness check compares two
+ * canvases byte for byte; the app cascade would change the size of both and the subject of
+ * neither. The bare page also gives the map the whole viewport, which is what makes a 0.19 px
+ * band the thing being looked at rather than a card border.
+ *
  *     node scripts/verify_floor.mjs                 # the committed 600 bp fixture
  *     node scripts/verify_floor.mjs '<url>'         # 5520 is the record: 464 strands, 14 MB
  */

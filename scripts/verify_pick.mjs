@@ -15,6 +15,11 @@
  *   `zoomToCursor` held the point under the cursor fixed across 130 wheel steps; it does
  *   not, quite, and the drift looked exactly like a picking bug.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — a choice now rather than the only option
+ * (#126). What is measured here is a readback off a WebGL texture against ground truth
+ * computed on the CPU, and no stylesheet reaches inside a canvas. The app cascade could only
+ * move the canvas's box, and the box is read off the DOM rather than assumed.
+ *
  *     node scripts/verify_pick.mjs        # with `npm run dev` already up
  */
 

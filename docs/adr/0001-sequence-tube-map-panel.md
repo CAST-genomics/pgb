@@ -194,6 +194,20 @@ re-checks. Stated plainly: **a regression that makes the feeler slow again will 
 caught by a test.** It will be caught by looking, which is how every rendering decision in
 this work was settled anyway.
 
+**Amended 2026-08-21 (#126).** "Those scripts are not migrating" did not hold, and saying so
+here is cheaper than leaving a normative document contradicted by the tree. Nine now live in
+`scripts/`, added one at a time as each ticket needed something a unit test could not reach —
+so the machinery arrived by the increment rather than as a suite, which is why the original
+judgement went stale without anyone deciding against it. Two things about them are unchanged
+and still the cost this section records: **none of them runs in CI**, and most are headed on
+purpose, because headless chromium rasterizes in software and a picture of that says nothing.
+They are run by hand, against `npm run dev`, when the thing they measure is in question.
+
+The one that is not headed is `verify_pclai_pad.mjs`, because it measures layout rather than
+raster; it is also the first to drive `dev/tubemap-app.html`, the page that carries the app's
+own stylesheet cascade. Each script's header now states which page hosts it and why. The
+performance claim above is still a dated record rather than something CI re-checks.
+
 ## The spike after the migration
 
 **Amended 2026-08-18, once the viewer had shipped.** This ADR was written expecting

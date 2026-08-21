@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PGB — Tube Map Panel, app cascade (dev)</title>
+    <!--
+      Dev-only, and absent from `dist/` for the reason `dev/tubemap.html` spells out.
+
+      **The same page as `dev/tubemap-panel.html`, under the cascade the app ships.** Same
+      entry point, same fixture, same dev chrome from `dev/devPage.css`; the only difference
+      is the two Bootstrap `<link>` tags below, copied from `index.html`. That is the whole
+      idea (#126): until this page existed, the viewer was only ever looked at — and every
+      `scripts/verify_*.mjs` only ever driven — in a cascade PGB does not have, so any
+      assumption Bootstrap overrides was invisible to every check we run.
+
+      It has already cost once — the PCLAI pad #123 shipped, which Bootstrap's reset turned
+      inward. `notes/sequence-tube-map/dev-affordances.md` §6 is where that story is told;
+      `scripts/verify_pclai_pad.mjs` drives *this* page and is what would have caught it.
+
+      Only the stylesheets are copied, not `index.html`'s Bootstrap JS bundle: nothing here
+      carries a `data-bs-*` attribute, and a script changes no cascade. If a page ever needs
+      a Bootstrap *component* to reproduce something, that is the line to bring across.
+    -->
+    <!-- index.html's cascade, in index.html's order. -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="/src/styles/app.scss">
+
+    <link rel="stylesheet" href="/dev/devPage.css">
+</head>
+<body>
+    <div class="dev-picker">
+        <input id="url" name="url" type="text" spellcheck="false" aria-label="Tube map URL">
+        <button id="open" type="button">Open</button>
+    </div>
+
+    <div class="dev-hint">drag the header · drag the bottom-right grip to resize · ⛶ for fullscreen</div>
+
+    <script type="module" src="/src/devTubeMapPanelRoute.ts"></script>
+</body>
+</html>

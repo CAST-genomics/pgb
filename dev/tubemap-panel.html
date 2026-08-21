@@ -10,59 +10,15 @@
       That page mounts the viewer alone. This one mounts the panel `mountTubeMapPanel`
       builds, over a stand-in for the graph it will float above, so that drag, the resize
       grip and fullscreen can be tried against a real map. See `src/devTubeMapPanelRoute.ts`.
+
+      **The bare cascade**: PGB's own stylesheet and nothing else. `dev/tubemap-app.html`
+      mounts the identical page under `index.html`'s full cascade, Bootstrap's reset
+      included; the two differ in their `<link>` tags and in nothing else, which is what
+      makes the difference between them readable as the cascade's doing (#126). Judge the
+      card here; verify the layout there.
     -->
     <link rel="stylesheet" href="/src/styles/app.scss">
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            /* A stand-in for the 3D graph: the panel occludes something, which is the cost
-               ADR 0001 records, and it should be visible while judging the card. */
-            background: repeating-linear-gradient(
-                45deg, rgb(240, 242, 246), rgb(240, 242, 246) 12px,
-                rgb(232, 235, 240) 12px, rgb(232, 235, 240) 24px);
-            font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-        }
-
-        .dev-picker {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            z-index: 1100;
-            display: flex;
-            gap: 6px;
-            padding: 6px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.92);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(0, 0, 0, 0.1);
-        }
-
-        .dev-picker input {
-            width: 52ch;
-            padding: 4px 6px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-            font: inherit;
-        }
-
-        .dev-picker button {
-            padding: 4px 12px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-            background: rgb(245, 245, 245);
-            font: inherit;
-            cursor: pointer;
-        }
-
-        .dev-hint {
-            position: absolute;
-            bottom: 14px;
-            right: 14px;
-            color: rgba(0, 0, 0, 0.4);
-            font-size: 11px;
-            pointer-events: none;
-        }
-    </style>
+    <link rel="stylesheet" href="/dev/devPage.css">
 </head>
 <body>
     <div class="dev-picker">

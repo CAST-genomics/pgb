@@ -41,6 +41,10 @@
  * - **Nothing is predicted that can be read.** Every set below comes out of the surface's own
  *   readout, which prints what the pass returned.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — a choice now rather than the only option
+ * (#126). This chooses a sampling resolution for a readback, off the surface's own readout;
+ * the cascade cannot reach a texel.
+ *
  *     node scripts/verify_pick_set.mjs                 # the committed 600 bp fixture
  *     node scripts/verify_pick_set.mjs '<url>'         # 5520 is the record: 464 strands
  */

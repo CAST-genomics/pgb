@@ -548,7 +548,8 @@ export const SURFACE_STYLES = `
        that the pad eats inward instead: the frame shrinks to \`size - 2 * PLOT_PAD\` while
        \`plotCloud\` still projects over \`size\`, so the cloud overhangs the bottom-right by a
        whole pad and \`overflow: hidden\` shaves it. That is the bug #123 shipped with, and it
-       was invisible from \`dev/tubemap.html\`, which loads no Bootstrap. */
+       was invisible from \`dev/tubemap.html\`, which loads no Bootstrap. \`dev/tubemap-app.html\`
+       is the page that does, and \`scripts/verify_pclai_pad.mjs\` measures this there. */
     box-sizing: content-box;
     border: ${PLOT_PAD}px solid transparent;
     /* Two layers, and the second is why. The ramp is a translucent PNG, so what it is

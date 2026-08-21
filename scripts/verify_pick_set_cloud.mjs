@@ -26,6 +26,13 @@
  *   are under it, come out of the surface's own readout; how many dots the cloud marked is
  *   counted off the DOM the surface built.
  *
+ * **Host: `dev/tubemap.html`**, the bare page — a choice now rather than the only option
+ * (#126). Half the subject here *is* DOM: the cloud's dots are elements. But what is measured
+ * about them is which ones the surface marked and how far apart it placed them — projection,
+ * not layout — and the cascade-sensitive half of this widget, the box the dots are placed in,
+ * is `scripts/verify_pclai_pad.mjs`'s whole subject, on `dev/tubemap-app.html`. Move this one
+ * there if the marks ever start being measured against anything but each other.
+ *
  *     node scripts/verify_pick_set_cloud.mjs             # the committed 600 bp fixture
  *     node scripts/verify_pick_set_cloud.mjs '<url>'     # 5520 is the record: 464 strands
  */
