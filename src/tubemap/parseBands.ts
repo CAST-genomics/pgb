@@ -136,6 +136,20 @@ const PATH = `<path d="M ${N} ${N} C ${N} ${N} ${N} ${N} ${N} ${N} V ${N} `
 
 const ELEMENT = new RegExp(`(?:${RECT})|(?:${PATH})`, 'g')
 
+/**
+ * One strand's colour, as CSS.
+ *
+ * Stated once because two panels now paint with it — the cloud's dots and the feeler label's
+ * swatches — and a haplotype that were a different colour in the two would break the one thing
+ * the colour is for. It is the document's own bytes and nothing here adjusts them:
+ * `CONTEXT.md` and `strandAppearance.ts` both turn on the colour being untouched.
+ */
+export function strandCss(colors: Uint8Array, strandId: number): string {
+    const red = strandId * 3
+
+    return `rgb(${colors[red]}, ${colors[red + 1]}, ${colors[red + 2]})`
+}
+
 export function parseBands(text: string): ParsedMap {
     // Said before anything about bands, because the common way to arrive here with the
     // wrong bytes is an HTML error page or a redirect, and "no drawable elements in

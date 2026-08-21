@@ -16,7 +16,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { createStrandLabel, spell, windowOnto } from '../strandLabel.ts'
+import { createStrandLabel, spell, windowOnto, type LabelledStrand } from '../strandLabel.ts'
 
 /** What the element would read out — the text of the nodes, concatenated. */
 function textOf(nodes: Node[]): string {
@@ -60,48 +60,73 @@ describe('spell', () => {
     })
 })
 
+/** A set as the label takes it. The colours are the part `windowOnto` never looks at, so they
+ *  are distinct here only to prove the window carries each name's own one along with it. */
+function set(...names: string[]): LabelledStrand[] {
+    return names.map((name, at) => ({ name, color: `rgb(${at}, 0, 0)` }))
+}
+
+/** The names a listing would draw, which is what every expectation below is about. */
+function spelled(listing: { names: LabelledStrand[] }): string[] {
+    return listing.names.map(strand => strand.name)
+}
+
 describe('windowOnto', () => {
 
-    const names = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    const names = set('a', 'b', 'c', 'd', 'e', 'f', 'g')
 
     it('shows the whole set when it fits, hiding nothing', () => {
-        expect(windowOnto(['a', 'b', 'c'], 1, 4)).toEqual({
-            names: ['a', 'b', 'c'], emphasized: 1, above: 0, below: 0
-        })
+        const shown = windowOnto(set('a', 'b', 'c'), 1, 4)
+
+        expect(spelled(shown)).toEqual(['a', 'b', 'c'])
+        expect(shown).toMatchObject({ emphasized: 1, above: 0, below: 0 })
     })
 
     it('is byte-for-byte the single name when the set has collapsed to one', () => {
         // The zoom at which the picture stops being ambiguous. Nothing about the label may
         // betray that it can do more.
-        expect(windowOnto(['only'], 0, 4)).toEqual({
-            names: ['only'], emphasized: 0, above: 0, below: 0
-        })
+        const shown = windowOnto(set('only'), 0, 4)
+
+        expect(spelled(shown)).toEqual(['only'])
+        expect(shown).toMatchObject({ emphasized: 0, above: 0, below: 0 })
+    })
+
+    it('carries each name\'s own colour into the window', () => {
+        // The swatch is the whole point of the colour being here, and a window that shifted
+        // the colours by one would paint every name with its neighbour's mark.
+        expect(windowOnto(names, 5, 3).names).toEqual([
+            { name: 'e', color: 'rgb(4, 0, 0)' },
+            { name: 'f', color: 'rgb(5, 0, 0)' },
+            { name: 'g', color: 'rgb(6, 0, 0)' }
+        ])
     })
 
     it('caps from the top when the lit strand is near the top', () => {
-        expect(windowOnto(names, 0, 3)).toEqual({
-            names: ['a', 'b', 'c'], emphasized: 0, above: 0, below: 4
-        })
+        const shown = windowOnto(names, 0, 3)
+
+        expect(spelled(shown)).toEqual(['a', 'b', 'c'])
+        expect(shown).toMatchObject({ emphasized: 0, above: 0, below: 4 })
     })
 
     it('slides the window so the lit strand is always named', () => {
         const shown = windowOnto(names, 5, 3)
 
-        expect(shown.names).toContain('f')
-        expect(shown.names[shown.emphasized]).toBe('f')
+        expect(spelled(shown)).toContain('f')
+        expect(shown.names[shown.emphasized].name).toBe('f')
         expect(shown.above + shown.names.length + shown.below).toBe(names.length)
     })
 
     it('keeps the set in its screen order, unbroken', () => {
         // A window, not a selection: what is drawn is a run of neighbours, so the order on
         // screen is still the order down the map.
-        expect(windowOnto(names, 3, 3).names).toEqual(['c', 'd', 'e'])
+        expect(spelled(windowOnto(names, 3, 3))).toEqual(['c', 'd', 'e'])
     })
 
     it('clamps at the bottom rather than running off the end', () => {
-        expect(windowOnto(names, 6, 3)).toEqual({
-            names: ['e', 'f', 'g'], emphasized: 2, above: 4, below: 0
-        })
+        const shown = windowOnto(names, 6, 3)
+
+        expect(spelled(shown)).toEqual(['e', 'f', 'g'])
+        expect(shown).toMatchObject({ emphasized: 2, above: 4, below: 0 })
     })
 
     it('always names the lit strand, wherever it is in the set', () => {
@@ -109,7 +134,7 @@ describe('windowOnto', () => {
             for (let at = 0; at < names.length; at += 1) {
                 const shown = windowOnto(names, at, cap)
 
-                expect(shown.names[shown.emphasized]).toBe(names[at])
+                expect(shown.names[shown.emphasized]).toEqual(names[at])
                 expect(shown.above + shown.names.length + shown.below).toBe(names.length)
             }
         }
@@ -137,7 +162,7 @@ describe('a set of one', () => {
         const root = document.createElement('div')
 
         document.body.append(root)
-        createStrandLabel(root).show(names, emphasized, AT, WITHIN)
+        createStrandLabel(root).show(set(...names), emphasized, AT, WITHIN)
 
         return root.querySelector('.stm-strand-label') as HTMLElement
     }
@@ -161,6 +186,27 @@ describe('a set of one', () => {
 
         expect(marked).toHaveLength(1)
         expect(marked[0].textContent).toBe('c')
+    })
+
+    it('gives every row the strand\'s own colour, and spends none of it on the text', () => {
+        // The swatch is the cloud's dot, moved next to the name. The measurement behind that
+        // is in `strandLabel.ts`: no strand colour in either fixture reaches 3:1 against this
+        // card, so a coloured *name* is one nobody could read.
+        const element = label(['a', 'b', 'c'], 1)
+        const swatches = [...element.querySelectorAll('.stm-strand-swatch')] as HTMLElement[]
+
+        expect(swatches.map(swatch => swatch.style.background))
+            .toEqual(['rgb(0, 0, 0)', 'rgb(1, 0, 0)', 'rgb(2, 0, 0)'])
+
+        for (const row of element.querySelectorAll('.stm-strand-name')) {
+            expect((row as HTMLElement).style.color).toBe('')
+        }
+    })
+
+    it('leaves the name exactly the document\'s, swatch and all', () => {
+        // The swatch is an empty element, so it adds no characters — the claim `spell` exists
+        // to protect, now that something else shares the row with the name.
+        expect(label(['NA21309#2#CM092102.1#0']).textContent).toBe('NA21309#2#CM092102.1#0')
     })
 
     it('says how many the cap hid, and on which side', () => {

@@ -112,6 +112,14 @@ strand 224 251 253 87 159 360 · 3.50 ms · worst 37.90 ms · focus 159 · table
 fit on `5520+` it is six or seven ids, and it collapses to one as you magnify. `focus` is the
 single strand the feeler has lit out of that set, which is the one nearest the cursor.
 
+Hold `Shift` and all three panels answer with that set at once: the map lights the one strand,
+the label lists the names with a colour swatch each, and the PCLAI inset marks every placed
+member of the set while the rest of the cloud greys out.
+`scripts/verify_pick_set_cloud.mjs` checks that the label and the cloud never report different
+counts, and
+[`measurements/2026-08-21-the-pick-set-in-the-cloud.md`](./measurements/2026-08-21-the-pick-set-in-the-cloud.md)
+records why each of them is drawn the way it is.
+
 Two things it does that nothing else does:
 
 - It makes a pick happen on a **plain hover**. Without it, a pick only runs under the feeler.

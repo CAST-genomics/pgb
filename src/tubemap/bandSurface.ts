@@ -139,7 +139,7 @@ import { createBandPicker, PICK_SAMPLES, type BandPicker, type StrandColumn } fr
 import { watchFeelerKey, type FeelerKey } from './feelerKey.ts'
 import type { Point, Size } from './geometry.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
-import { THICKNESS, parseBands, type ParsedMap } from './parseBands.ts'
+import { THICKNESS, parseBands, strandCss, type ParsedMap } from './parseBands.ts'
 import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
 import { createPclaiInset, type PclaiInset } from './pclaiInset.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
@@ -867,7 +867,8 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
      *
      * Read from the parsed document rather than asked of the GPU: the pick pass answers
      * with strand ids, and `strandNames` is what turns those integers into the things a
-     * researcher can write down. Over empty space there are no names — the same state the
+     * researcher can write down. `strandCss` gives each one the colour it already has in the
+     * cloud, so the label's swatches and the cloud's dots are the same marks. Over empty space there are no names — the same state the
      * emphasis takes, and for the same reason.
      *
      * The list arrives in screen order and is passed on in it, alongside which of them the
@@ -884,10 +885,13 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             return
         }
 
-        const { strandNames } = drawing.map
+        const { strandNames, strandColors } = drawing.map
 
         strandLabel.show(
-            column.strandIds.map(id => strandNames[id]),
+            column.strandIds.map(id => ({
+                name: strandNames[id],
+                color: strandCss(strandColors, id)
+            })),
             column.nearest,
             cursor,
             framed
@@ -908,7 +912,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
         focus(lit)
         nameStrands(column)
-        pclaiInset.focus(lit)
+        pclaiInset.focus(column.strandIds, column.nearest)
         options.onFocusStrand?.(lit)
     }
 
@@ -943,7 +947,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         }
 
         strandLabel.hide()
-        pclaiInset.focus(null)
+        pclaiInset.focus(NOTHING.strandIds, NOTHING.nearest)
         options.onFocusStrand?.(null)
 
         if (true === drawing?.appearance.release()) {

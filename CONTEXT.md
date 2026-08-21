@@ -425,6 +425,28 @@ cell so that a strand outside the cursor's pixel is never reported. 32 is a
 measurement, not a guess:
 [`measurements/2026-08-21-how-finely-to-sample-a-pick.md`](notes/sequence-tube-map/measurements/2026-08-21-how-finely-to-sample-a-pick.md).
 
+**All three panels report the same set**, in the idiom each of them already
+has. The map lights one **strand**; the label lists the set, one name per row,
+each with a filled swatch in that strand's own colour and a ring on the lit
+one; the **PCLAI inset** marks every **placed** member of the set at one size
+and rings the same lit one. Nowhere may two of them state different counts of
+what is under the cursor — that is the whole of #120, and the reason the inset
+was changed with the label rather than after it.
+
+The cloud's third tier is **greyed as well as faded**, and this is the one
+place desaturation is allowed: a dot sits on the ramp's own rendering of its
+coordinate, so fading a colour over the colour it matches subtracts almost
+nothing, and an unplaced haplotype is never drawn in that plot at all — so
+grey collides with nothing there, where in the map it means `pclaiX="None"`.
+
+The **label's colour is on the swatch and never on the text.** Every one of the
+464 strand colours on `5520+` is a pastel: against the label's white card the
+best reaches 2.74:1 and the median is 1.88:1, so none clears even the 3:1 that
+large text asks for. Legibility is the hard constraint; the swatch is where the
+colour goes. Both judgements, and the spread measurement that says marking the
+set is worth anything at all:
+[`measurements/2026-08-21-the-pick-set-in-the-cloud.md`](notes/sequence-tube-map/measurements/2026-08-21-the-pick-set-in-the-cloud.md).
+
 ### thickness floor
 
 The minimum screen-space thickness the **feeler** draws its **strand** at — 2

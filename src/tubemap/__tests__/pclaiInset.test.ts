@@ -119,7 +119,7 @@ describe('cloudState', () => {
     it('rings the focused haplotype and recedes the rest', () => {
         const map = parseBands(readFixture())
 
-        expect(cloudState(map, 368)).toEqual({ receded: true, ringed: 368 })
+        expect(cloudState(map, [368], 0)).toEqual({ receded: true, ringed: 368, inSet: [] })
     })
 
     it('recedes the crowd and rings nothing for a strand the document does not place', () => {
@@ -128,13 +128,69 @@ describe('cloudState', () => {
         const map = parseBands(readFixture())
 
         expect(map.strandPlacements[315]).toBeNull()
-        expect(cloudState(map, 315)).toEqual({ receded: true, ringed: null })
+        expect(cloudState(map, [315], 0)).toEqual({ receded: true, ringed: null, inSet: [] })
     })
 
     it('leaves the cloud at rest when the feeler is on nothing', () => {
         const map = parseBands(readFixture())
 
-        expect(cloudState(map, null)).toEqual({ receded: false, ringed: null })
+        expect(cloudState(map, [], -1)).toEqual({ receded: false, ringed: null, inSet: [] })
+    })
+
+    it('lifts the rest of the pick set out of the crowd, keeping the map\'s order', () => {
+        // The whole of #120 reaching the cloud: six strands share the cursor's css pixel, the
+        // map lights one, and the other five must not vanish from the panel that reports on
+        // where they came from.
+        const map = parseBands(readFixture())
+
+        expect(cloudState(map, [10, 11, 12, 13, 14], 2)).toEqual({
+            receded: true, ringed: 12, inSet: [10, 11, 13, 14]
+        })
+    })
+
+    it('never puts the ringed strand in the set as well', () => {
+        const map = parseBands(readFixture())
+        const state = cloudState(map, [10, 11, 12], 1)
+
+        expect(state.ringed).toBe(11)
+        expect(state.inSet).not.toContain(11)
+    })
+
+    it('drops an unplaced strand from the set, wherever it sits in it', () => {
+        // A set of six can legitimately put four dots on the plot, and the label is what says
+        // so — it names all six. Drawing the missing two anywhere is the one thing forbidden.
+        const map = parseBands(readFixture())
+
+        expect(map.strandPlacements[315]).toBeNull()
+        expect(cloudState(map, [10, 315, 12], 0).inSet).toEqual([12])
+    })
+
+    it('still lifts the set when the lit strand itself is unplaced', () => {
+        // The case the cloud was blank in before: the feeler is on a strand with no
+        // placement, so nothing is ringed — but its neighbours are still under the cursor
+        // and still have coordinates worth showing.
+        const map = parseBands(readFixture())
+
+        expect(cloudState(map, [10, 315, 12], 1)).toEqual({
+            receded: true, ringed: null, inSet: [10, 12]
+        })
+    })
+
+    it('recedes the crowd for a set that places nobody at all', () => {
+        const map = parseBands(readFixture())
+        const unplaced: number[] = []
+
+        for (let id = 0; id < map.strandCount && unplaced.length < 2; id += 1) {
+            if (null === map.strandPlacements[id]) {
+                unplaced.push(id)
+            }
+        }
+
+        // Still receded: the feeler is on something, and a cloud springing back to full
+        // colour would say it is not.
+        expect(cloudState(map, unplaced, 0)).toEqual({
+            receded: true, ringed: null, inSet: []
+        })
     })
 })
 
