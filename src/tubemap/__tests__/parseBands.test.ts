@@ -10,7 +10,45 @@
 import { describe, expect, it } from 'vitest'
 import { NonConformingDocument } from '../documentGrammar.ts'
 import { MAX_STRAND_ID, THICKNESS, parseBands } from '../parseBands.ts'
-import { readFixture } from './fixture.ts'
+import { readFixture, readTallFixture } from './fixture.ts'
+
+/** Every `trackID`/`trackName` pair the document spells out, read straight off the text.
+ *  The parser's own answer is checked against this rather than against a hand-copied list,
+ *  so the assertion covers all 369 and 464 names rather than the three worth typing out. */
+function namesInSource(text: string): Map<number, string> {
+    const spelled = new Map<number, string>()
+
+    for (const match of text.matchAll(/trackID="(\d+)" trackName="([^"]*)"/g)) {
+        spelled.set(Number(match[1]), match[2])
+    }
+
+    return spelled
+}
+
+/** Every `trackID`'s placement and score, read straight off the text, so the parser's
+ *  answer is checked against all 369 and 464 rather than the two worth typing out. */
+function placementsInSource(text: string): Map<number, { x: number, y: number } | null> {
+    const spelled = new Map<number, { x: number, y: number } | null>()
+
+    for (const match of text.matchAll(/trackID="(\d+)"[^>]*? pclaiX="([^"]*)" pclaiY="([^"]*)"/g)) {
+        const id = Number(match[1])
+
+        if (false === spelled.has(id)) {
+            spelled.set(id, 'None' === match[2] ? null : { x: Number(match[2]), y: Number(match[3]) })
+        }
+    }
+
+    return spelled
+}
+
+/** How many strands the document places, and how many it does not. */
+function placed(map: { strandPlacements: ({ x: number, y: number } | null)[] }): number {
+    return map.strandPlacements.filter(placement => null !== placement).length
+}
+
+function unplaced(map: { strandPlacements: ({ x: number, y: number } | null)[] }): number {
+    return map.strandPlacements.filter(placement => null === placement).length
+}
 
 /** What the node survey recorded for the committed document. */
 const SURVEYED = { bands: 10270, strands: 369, width: 35562.42857142856 }
@@ -157,5 +195,160 @@ describe('parseBands', () => {
 
     it('holds THICKNESS at the surveyed constant', () => {
         expect(THICKNESS).toBe(15)
+    })
+
+    /**
+     * The names are what makes a strand a haplotype rather than an integer, and they are
+     * the one field here that can be wrong without the picture changing at all: a name
+     * table off by one row names the neighbouring haplotype, and every map drawn from it
+     * looks exactly like a working one.
+     */
+    describe('strand names', () => {
+
+        it('carries one name per strand, for every strand the document draws', () => {
+            for (const text of [readFixture(), readTallFixture()]) {
+                const map = parseBands(text)
+
+                expect(map.strandNames).toHaveLength(map.strandCount)
+                expect(map.strandNames.every(name => name.length > 0)).toBe(true)
+            }
+        })
+
+        it('maps every strand id to the name it carries in the source text', () => {
+            for (const text of [readFixture(), readTallFixture()]) {
+                const map = parseBands(text)
+                const spelled = namesInSource(text)
+
+                expect(spelled.size).toBe(map.strandCount)
+
+                for (const [id, name] of spelled) {
+                    expect(map.strandNames[id]).toBe(name)
+                }
+            }
+        })
+
+        it('round-trips a four-part name verbatim, alongside a three-part one', () => {
+            // The chr8 document spells 463 of its 464 names with four `#`-separated parts
+            // and one with three, so any PanSN assumption is already false in this repo.
+            // Pinned by hand as well as derived, because the derived check above would pass
+            // just as happily against a parser that split and rejoined them.
+            const map = parseBands(readTallFixture())
+
+            expect(map.strandNames[0]).toBe('CHM13#0#chr8#0')
+            expect(map.strandNames[1]).toBe('GRCh38#0#chr8')
+            expect(map.strandNames[10]).toBe('HG00133#1#CM090052.1#0')
+        })
+
+        it('refuses a document that draws a band with no name on it', () => {
+            // Same treatment as a band with no fill: the whole document, rather than a map
+            // whose feeler answers "" for one haplotype and a name for the rest.
+            const text = readFixture()
+
+            expect(() => parseBands(text.replace(/ trackName="[^"]*"/, '')))
+                .toThrow(NonConformingDocument)
+        })
+    })
+
+    /**
+     * The placement is the other field that can be wrong without the map changing at all:
+     * an off-by-one placement table plots the neighbouring haplotype's ancestry, and the
+     * cloud looks exactly as plausible either way. The unplaced count is the one number
+     * here nothing may hard-code — it is 6 in the strip, 12 in the tall document and 99 in
+     * `5520+`, so any constant is wrong for two of the three.
+     */
+    describe('pclai placements', () => {
+
+        it('carries a placement slot and a score slot for every strand the document draws', () => {
+            for (const text of [readFixture(), readTallFixture()]) {
+                const map = parseBands(text)
+
+                expect(map.strandPlacements).toHaveLength(map.strandCount)
+                expect(map.strandScores).toHaveLength(map.strandCount)
+            }
+        })
+
+        it('reads the unplaced count from the document rather than from a constant', () => {
+            // 6 and 12. `5520+`, which the unit tests do not read, has 99 of them — which is
+            // why this is a property of the document and not of the cohort.
+            const strip = parseBands(readFixture())
+            const tall = parseBands(readTallFixture())
+
+            expect(unplaced(strip)).toBe(6)
+            expect(unplaced(tall)).toBe(12)
+            expect(placed(strip)).toBe(363)
+            expect(placed(tall)).toBe(452)
+        })
+
+        it('gives every strand the placement its own bands spell out', () => {
+            for (const text of [readFixture(), readTallFixture()]) {
+                const map = parseBands(text)
+                const spelled = placementsInSource(text)
+
+                expect(spelled.size).toBe(map.strandCount)
+
+                for (const [id, placement] of spelled) {
+                    expect(map.strandPlacements[id]).toEqual(placement)
+                }
+            }
+        })
+
+        it('parses a placement to the three decimals the document publishes', () => {
+            // Exactly, not approximately: the published quantum is 0.001 against a median
+            // neighbour distance of 0.0028, so a placement rounded on the way in moves a dot
+            // past its neighbours.
+            const map = parseBands(readFixture())
+
+            expect(map.strandPlacements[368]).toEqual({ x: -1.585, y: 0.12 })
+            expect(map.strandScores[368]).toBe('995')
+        })
+
+        it('reads an unplaced strand as absent rather than as the origin', () => {
+            // `pclaiX="None"`. Zero would be a position — and a plausible one, near the
+            // middle of the cloud — where absence is the finding.
+            const map = parseBands(readFixture())
+
+            expect(map.strandPlacements[315]).toBeNull()
+            expect(map.strandScores[315]).toBeNull()
+        })
+
+        it('draws a document that says nothing about ancestry as a document that places nobody', () => {
+            // Not a refusal. The survey behind ADR 0002 covered geometry and fill, not these
+            // three attributes, and every document committed here is HPRC — so a tube map
+            // without them is a map this renderer has no evidence it cannot draw. It draws,
+            // and its cloud is empty.
+            const text = readFixture().replace(/ pclai[XY]="[^"]*"/g, '').replace(/ pclaiScore="[^"]*"/g, '')
+            const map = parseBands(text)
+
+            expect(map.bandCount).toBe(SURVEYED.bands)
+            expect(map.strandPlacements.every(placement => null === placement)).toBe(true)
+            expect(map.strandScores.every(score => null === score)).toBe(true)
+        })
+
+        it('refuses a band placed on one axis and not the other', () => {
+            // Half a coordinate is not a position, and the two absences this parser accepts
+            // — no attributes at all, and `None` on both — are both whole answers.
+            const text = readFixture()
+
+            expect(() => parseBands(text.replace(/pclaiY="0.12"/g, 'pclaiY="None"')))
+                .toThrow(NonConformingDocument)
+        })
+
+        it('carries the score the document spells, including the ones that are not numbers', () => {
+            // Every fixture places two strands and scores them `impainted` rather than with
+            // an integer. Read as a number those two become NaN, and a confidence of NaN is
+            // indistinguishable from a confidence of nothing.
+            for (const text of [readFixture(), readTallFixture()]) {
+                const map = parseBands(text)
+
+                expect(map.strandScores.filter(score => 'impainted' === score)).toHaveLength(2)
+            }
+        })
+
+        it('refuses a placement that is neither a number nor None', () => {
+            const text = readFixture()
+
+            expect(() => parseBands(text.replace(/pclaiX="-1.585"/g, 'pclaiX="left"')))
+                .toThrow(NonConformingDocument)
+        })
     })
 })

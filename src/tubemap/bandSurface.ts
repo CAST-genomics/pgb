@@ -8,13 +8,13 @@
  * side of.
  *
  * Rewritten from `spike/bandSurface.ts` after the verdict in
- * `notes/2026-08-14-three-js-renderer-verdict.md`. Two things changed in the rewrite and
+ * `notes/sequence-tube-map/measurements/2026-08-14-three-js-renderer-verdict.md`. Two things changed in the rewrite and
  * nothing else did:
  *
  * - **Only analytic coverage is built.** The spike carried both arms on a live toggle so
  *   they could be judged against each other on the same frame; that comparison is over
  *   and technique C won, so the `#ifdef` ladder, the second WebGL context and the camera
- *   hand-off between them are all gone. `docs/RENDERING.md` keeps the comparison.
+ *   hand-off between them are all gone. `notes/sequence-tube-map/rendering.md` keeps the comparison.
  * - **The camera is framed in pixels**, not in the content's own width — see
  *   `bandCamera.ts` for why, which is entirely about what a resize should do.
  *
@@ -66,16 +66,17 @@
  *
  * ## Feeler mode
  *
- * Holding `Shift` turns the cursor into a feeler: the strand it touches is drawn in full,
- * everything else recedes, and releasing brings the whole map back. The emphasis *follows*
+ * Holding `Shift` turns the cursor into a feeler: the strand it touches is drawn in full and
+ * at no less than a floor of screen-space thickness (#112), everything else recedes, and
+ * releasing brings the whole map back. The emphasis *follows*
  * the cursor rather than accumulating — that reversal is the user's, and `strandAppearance.ts`
  * carries the reasoning. Hover alone does nothing, and the controls are switched off for the
  * duration — `Shift` arbitrates pointer ownership (`CONTEXT.md` #13, #14).
  *
  * The same interaction was built on the SVG surface and shipped switched off, because
  * invoking it invalidated style across ~10,000 elements at ~28 ms a swap. Here the
- * appearance of every strand is one texel in a 2 KB table (`strandAppearance.ts`), so a touch
- * writes one byte and the frame that follows uploads the table. Nothing per band, nothing
+ * appearance of every strand is two texels in a 4 KB table (`strandAppearance.ts`), so a touch
+ * writes two bytes and the frame that follows uploads the table. Nothing per band, nothing
  * per lit strand — which is what makes lighting one strand and lighting two hundred cost the
  * same, and why this ships on rather than behind a flag. Measured in
  * `scripts/verify_highlight.mjs`. It is the only feeler now, and the flag that switched
@@ -89,6 +90,17 @@
  * can refuse the same document, they are mounted and emptied in the same calls the scene is,
  * and they are placed from the camera in the same `requestAnimationFrame` that renders it.
  *
+ * ## The PCLAI inset is not in the scene either
+ *
+ * `pclaiInset.ts` plots one dot per placed strand over the ancestry ramp, as divs, and the
+ * wiring is the same as the boxes': built from the parsed document in `show`, emptied in
+ * `clear`, destroyed with the surface. It is not placed from the camera — the cloud is a
+ * position report in coordinate space and has nothing to do with where the view is.
+ *
+ * The feeler drives it through `touch`, on the same transition that writes the appearance
+ * table and names the strand: one question, one answer, three places it shows up. Listeners
+ * outside the surface get the same transition through `onFocusStrand`.
+ *
  * ## Drawing happens on demand
  *
  * The spike ran an unconditional animation loop because it was also reading a frame
@@ -100,7 +112,6 @@
 
 import {
     BufferAttribute,
-    type DataTexture,
     GLSL3,
     InstancedBufferAttribute,
     InstancedBufferGeometry,
@@ -124,18 +135,30 @@ import {
     zoomRange,
     type Viewport
 } from './bandCamera.ts'
-import { createBandPicker, type BandPicker } from './bandPicker.ts'
+import { createBandPicker, PICK_SAMPLES, type BandPicker, type StrandColumn } from './bandPicker.ts'
 import { watchFeelerKey, type FeelerKey } from './feelerKey.ts'
 import type { Point, Size } from './geometry.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
-import { THICKNESS, parseBands, type ParsedMap } from './parseBands.ts'
+import { THICKNESS, parseBands, strandCss, type ParsedMap } from './parseBands.ts'
 import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
+import { createPclaiInset, type PclaiInset } from './pclaiInset.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
 import { canvasPoint, overChrome } from './surfacePointer.ts'
-import { APPEARANCE_ROW, createStrandAppearance, type StrandAppearance } from './strandAppearance.ts'
+import {
+    APPEARANCE_ROW,
+    FLOOR_STEPS_PER_PX,
+    createStrandAppearance,
+    type StrandAppearance
+} from './strandAppearance.ts'
+import { createStrandLabel, type StrandLabel } from './strandLabel.ts'
 
 /** Quads per band along its span. See the note on tessellation error above. */
 export const RUNGS = 64
+
+/** What the feeler is handed over empty space, and on the key alone before the first pick.
+ *  A real state rather than the absence of one: a sweep crosses gaps between bands
+ *  constantly, and springing back to full colour in each of them would strobe. */
+const NOTHING: StrandColumn = { strandIds: [], nearest: -1 }
 
 const VERTEX = /* glsl */`
 precision highp float;
@@ -145,10 +168,17 @@ uniform mat4 modelViewMatrix;
 uniform float uThickness;
 uniform float uPad;
 
-// One texel per strand: RGB is the document's colour, alpha is emphasis. See
-// strandAppearance.ts — this is why highlighting costs the same however many are lit.
+// Two texels per strand, a plane apart: RGB and emphasis, then the strand's modifiers, of
+// which red is the thickness floor. See strandAppearance.ts — this is why highlighting costs
+// the same however many strands are lit.
 uniform sampler2D uAppearance;
 uniform float uAppearanceRow;
+uniform float uAppearancePlane;
+
+// One css pixel in world units, which is what the floor is quoted in, and the steps-per-pixel
+// the table encodes it with. The pick pass sets the pixel to zero: see PICK_FRAGMENT.
+uniform float uFloorPixel;
+uniform float uFloorSteps;
 
 in vec2 aParam;     // x: curve parameter 0..1, y: 0 = upper edge, 1 = lower edge
 in vec4 iSpan;      // x0, y0, width, y1  — y0/y1 are the upper edge, world space
@@ -157,6 +187,7 @@ in float iStrandId; // the haplotype this band belongs to: its appearance, and t
 
 flat out vec3 vColor;
 flat out float vEmphasis;
+flat out float vGrow;
 
 flat out vec4 vSpan;
 flat out vec2 vControl;
@@ -180,19 +211,30 @@ void main() {
     // smoothstep. No bezier evaluation in y at all.
     float y = mix(iSpan.y, iSpan.w, t * t * (3.0 - 2.0 * t)) - side * uThickness;
 
-    // Grow the band by a pixel on each side so a band thinner than one pixel still
-    // covers a fragment to compute coverage in. Without this a 0.19 px band would
-    // simply miss every sample point and vanish.
-    y += (1.0 - 2.0 * side) * uPad;
-
     // Exact texels by integer id — no filtering, so no chance of two haplotypes'
     // appearance being blended into a third that belongs to neither.
     int id = int(iStrandId + 0.5);
     int row = int(uAppearanceRow);
-    vec4 appearance = texelFetch(uAppearance, ivec2(id - (id / row) * row, id / row), 0);
+    ivec2 at = ivec2(id - (id / row) * row, id / row);
+    vec4 appearance = texelFetch(uAppearance, at, 0);
+    vec4 modifier = texelFetch(uAppearance, at + ivec2(0, int(uAppearancePlane)), 0);
 
     vColor = appearance.rgb;
     vEmphasis = appearance.a;
+
+    // The thickness floor, in world units, and how far the band has to grow to reach it.
+    // Zero for every strand but the one under the feeler, and zero for that one too at any
+    // zoom where the band is already thicker than the floor — so above the floor every line
+    // below this is the arithmetic that was here before it existed.
+    float floorWorld = modifier.r * 255.0 / uFloorSteps * uFloorPixel;
+
+    vGrow = max(0.0, floorWorld - uThickness);
+
+    // Grow the band by a pixel on each side so a band thinner than one pixel still
+    // covers a fragment to compute coverage in. Without this a 0.19 px band would
+    // simply miss every sample point and vanish. Half the floor's growth rides along, which
+    // is what makes the dilation symmetric about the band's own centreline.
+    y += (1.0 - 2.0 * side) * (uPad + 0.5 * vGrow);
 
     vSpan = iSpan;
     vControl = iControl;
@@ -219,6 +261,7 @@ uniform float uHalfPixel;
 
 flat in vec4 vSpan;
 flat in vec2 vControl;
+flat in float vGrow;
 in float vT;
 in vec2 vWorld;
 
@@ -256,8 +299,12 @@ float bandCoverage() {
     float tTop = parameterAt(p, vControl.x, vT);
     float tBot = parameterAt(p, vControl.y, vT);
 
-    float yTop = mix(vSpan.y, vSpan.w, tTop * tTop * (3.0 - 2.0 * tTop));
-    float yBot = mix(vSpan.y, vSpan.w, tBot * tBot * (3.0 - 2.0 * tBot)) - uThickness;
+    // The two edges of the band, moved apart by the floor and by nothing else. vGrow is zero
+    // unless this strand is floored and under-thick at this zoom, and half of it goes to each
+    // edge, so the centreline between them does not move: the band says exactly where the
+    // haplotype is, and only lies about how thick it is.
+    float yTop = mix(vSpan.y, vSpan.w, tTop * tTop * (3.0 - 2.0 * tTop)) + 0.5 * vGrow;
+    float yBot = mix(vSpan.y, vSpan.w, tBot * tBot * (3.0 - 2.0 * tBot)) - uThickness - 0.5 * vGrow;
 
     float lo = max(yBot, vWorld.y - uHalfPixel);
     float hi = min(yTop, vWorld.y + uHalfPixel);
@@ -309,14 +356,28 @@ void main() {
  * which is a real haplotype (`CHM13#0#chr1` on every document we have) and would
  * otherwise be indistinguishable from empty space.
  *
- * There is no blending and no depth buffer, so the last fragment written wins. Instances
- * are drawn in document order, so that is the topmost band — the same answer SVG's own
- * hit-testing gave, and the one the researcher is looking at where strands cross.
+ * There is no blending and no depth buffer, so within one texel the last fragment written
+ * wins. Instances are drawn in document order, so that is the topmost band — the same answer
+ * SVG's own hit-testing gave, and the one the researcher is looking at where strands cross.
+ *
+ * **That rule used to decide the whole answer, and no longer does.** The pick target is a
+ * column of texels across the cursor's one css pixel rather than a single texel (#120), so
+ * last-write-wins now settles only which band owns each `1/N` css px sample, and the strands
+ * at the other samples survive into the answer instead of being overwritten by it. Where two
+ * bands genuinely overlap inside one sample, the topmost still wins — which is what a
+ * researcher pointing at a crossing is looking at.
  *
  * **Emphasis is deliberately not applied here.** The visible pass multiplies coverage by
  * the strand's emphasis; this one does not, because a receded strand is exactly what the
  * feeler is reaching for next. A pick pass that dimmed with the picture would make the
  * strands a sweep has not yet touched progressively harder to touch.
+ *
+ * **Nor is the thickness floor**, which `bandPicker.ts` switches off by setting `uFloorPixel`
+ * to zero. This is the one place the two passes are allowed to disagree about where a band
+ * is, and the reason is a loop: the floor is applied to the strand the pick *answered with*,
+ * so honouring it here would let that answer widen its own target. At fit the floored strand
+ * would cover ten of its neighbours' rows and a sweep could never reach past it. The floor is
+ * a way of showing the researcher the strand they have got, not a way of getting it.
  */
 const PICK_FRAGMENT = /* glsl */`
 precision highp float;
@@ -397,6 +458,37 @@ export interface BandSurfaceOptions {
      * the highlight cost rather than asserting it (#39).
      */
     pickReadout?: boolean
+    /**
+     * Override how thick the feeler draws the strand it is on, in css pixels. Defaults to
+     * `FLOOR_CSS_PX`; zero switches the floor off.
+     *
+     * Harness instrumentation, `?floor=`: the value is a judgement made by looking at a
+     * sweep of candidates (#112), and this is what puts a candidate on screen. Nothing in
+     * the product passes it.
+     */
+    strandFloorCssPx?: number
+    /**
+     * Override how finely the pick pass samples the cursor's css pixel. Defaults to
+     * `PICK_SAMPLES`; `1` is the single-texel target the pass used before #120.
+     *
+     * Harness instrumentation, `?samples=`: the shipped value is a measurement, and this is
+     * what makes it one — `scripts/verify_pick_set.mjs` drives the sweep through it. Nothing
+     * in the product passes it. It changes the pick's *resolution* only; the window it
+     * samples is one css pixel of map at every value.
+     */
+    pickSamples?: number
+    /**
+     * Called with the strand under the feeler, or `null`, on the same transition that writes
+     * the appearance table — so what is lit, what is named and whatever else reports on the
+     * gesture can never be given different answers.
+     *
+     * Push, not poll: a listener never reaches into the renderer or a frame loop, and this
+     * surface never learns what a listener does with the answer. The PCLAI inset is driven
+     * through the same transition, and this is the seam a cross-panel link into PGB's 3D
+     * graph or annotation track would attach to — ADR 0001's deferred obligation. Nothing
+     * here builds one, and nothing here publishes: the panel stays bus-silent.
+     */
+    onFocusStrand?(strandId: number | null): void
 }
 
 export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions = {}): BandSurface {
@@ -411,6 +503,10 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     // mount layers on top — the navigator, the badge, and the status layer that has to be
     // able to cover a refused document's error message with nothing showing through it.
     const segments: SegmentOverlay = createSegmentOverlay(host)
+
+    // What the feeler is touching, by name (#111). Mounted over the segments so a name is
+    // never covered by a box, and inert, so the map underneath keeps answering the cursor.
+    const strandLabel: StrandLabel = createStrandLabel(host)
 
     const readout = true === options.pickReadout ? doc.createElement('div') : null
 
@@ -457,6 +553,19 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             controls.update()
         }
     })
+
+    // Where every haplotype in this document sits in the ancestry cloud (#113). Mounted and
+    // emptied in the same calls the scene is, like the segment boxes, and inert to the
+    // pointer: it reports on the map and takes nothing from it. It reads the parsed document
+    // and nothing else — no camera, no frame loop, and no event bus.
+    //
+    // **After the navigator, and that is load-bearing.** The two widgets share z-index 2, so
+    // the later mount wins where they overlap. Grown large in a short panel the cloud reaches
+    // the navigator, and mounted first it was the navigator that answered the pointer at the
+    // cloud's own resize grip — leaving a widget that could no longer be resized. The
+    // navigator is a picture; the grip is a control, and a control that cannot be reached is
+    // worse than a thumbnail partly covered. The cloud can also be dragged off it, or hidden.
+    const pclaiInset: PclaiInset = createPclaiInset(host)
 
     function viewport(): Viewport {
         return { width: canvas.clientWidth, height: canvas.clientHeight }
@@ -560,7 +669,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             controls,
             material,
             pickMaterial,
-            picker: createBandPicker(renderer, scene, pickMaterial)
+            picker: createBandPicker(renderer, scene, pickMaterial, options.pickSamples ?? PICK_SAMPLES)
         }
 
         return context
@@ -705,14 +814,16 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         // crosses gaps between bands constantly, and springing back to full colour in each
         // of them would strobe.
         if (feeler.active()) {
-            focus(result.strandId)
+            touch(result)
         }
 
         if (null === readout) {
             return
         }
 
-        const picked = null === result.strandId ? '—' : String(result.strandId)
+        // The whole set, not the strand that happens to be lit: the readout's job is to say
+        // what the pass answered, and the count is the number #120 is about.
+        const picked = 0 === result.strandIds.length ? '—' : result.strandIds.join(' ')
         const shown = drawing.appearance.focused()
 
         readout.textContent = `strand ${picked} · ${result.milliseconds.toFixed(2)} ms`
@@ -724,8 +835,9 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     /**
      * Move the emphasis to one strand, or to none.
      *
-     * This is the whole cost of highlighting: one byte per strand in the appearance table,
-     * nothing per band, then a 2 KB upload on the frame that draws it. It is timed rather
+     * This is the whole cost of highlighting: two bytes per strand in the appearance table —
+     * emphasis and thickness floor — nothing per band, then a 4 KB upload on the frame that
+     * draws it. It is timed rather
      * than asserted — but only while the readout is mounted, so the clock stays out of the
      * path when nobody is reading it.
      */
@@ -751,6 +863,60 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     }
 
     /**
+     * Say what the strands under the feeler are called, beside the cursor, or say nothing.
+     *
+     * Read from the parsed document rather than asked of the GPU: the pick pass answers
+     * with strand ids, and `strandNames` is what turns those integers into the things a
+     * researcher can write down. `strandCss` gives each one the colour it already has in the
+     * cloud, so the label's swatches and the cloud's dots are the same marks. Over empty space there are no names — the same state the
+     * emphasis takes, and for the same reason.
+     *
+     * The list arrives in screen order and is passed on in it, alongside which of them the
+     * map has lit, so the label can never disagree with the appearance table about the
+     * strand the feeler has.
+     *
+     * Placed from `cursor` and `framed` rather than from the event, because this runs on
+     * the pick frame: both are already the surface's own numbers and neither costs a
+     * layout read.
+     */
+    function nameStrands(column: StrandColumn): void {
+        if (null === drawing || null === cursor || 0 === column.strandIds.length) {
+            strandLabel.hide()
+            return
+        }
+
+        const { strandNames, strandColors } = drawing.map
+
+        strandLabel.show(
+            column.strandIds.map(id => ({
+                name: strandNames[id],
+                color: strandCss(strandColors, id)
+            })),
+            column.nearest,
+            cursor,
+            framed
+        )
+    }
+
+    /**
+     * Hand the feeler the strands under it, and say which one it has: what is lit and what is
+     * named are one answer to one question, and the two must never be given different ones.
+     *
+     * **The set is named and one strand is lit** — `CONTEXT.md` §feeler states the policy and
+     * why it is one rather than all of them. The column arrives as a single answer with the
+     * lit strand's *position* in it, so nothing here has to pair the two up and nothing here
+     * can pair them up wrongly.
+     */
+    function touch(column: StrandColumn): void {
+        const lit = column.strandIds[column.nearest] ?? null
+
+        focus(lit)
+        nameStrands(column)
+        pclaiInset.focus(column.strandIds, column.nearest)
+        options.onFocusStrand?.(lit)
+    }
+
+    /**
      * `Shift` down: the cursor becomes a feeler.
      *
      * The controls are switched off for the duration, which is `CONTEXT.md` #13 — `Shift`
@@ -767,15 +933,22 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
         // The map recedes on the key alone, before any movement: the mode is legible
         // immediately, and holding `Shift` over a strand emphasizes it without a nudge.
-        focus(null)
+        // Nothing is named until the pick answers — a name is an answer about one strand,
+        // and at this instant the mode has not asked yet.
+        touch(NOTHING)
         schedulePick()
     }
 
-    /** `Shift` up: the emphasis goes with it. Highlighting is the mode, not a state. */
+    /** `Shift` up: the emphasis goes with it, and so does the name. Both are the mode, not
+     *  a state — a name left on screen would refer to a strand that is no longer lit. */
     function leaveFeelerMode(): void {
         if (null !== context) {
             context.controls.enabled = true
         }
+
+        strandLabel.hide()
+        pclaiInset.focus(NOTHING.strandIds, NOTHING.nearest)
+        options.onFocusStrand?.(null)
 
         if (true === drawing?.appearance.release()) {
             scheduleDraw()
@@ -830,7 +1003,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         cursor = null
 
         if (feeler.active()) {
-            focus(null)
+            touch(NOTHING)
         }
 
         if (null !== readout) {
@@ -942,9 +1115,9 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             // Colour is not an instance attribute. It is a texel the vertex shader fetches
             // by strand id, which is what makes highlighting a table write — see
             // `strandAppearance.ts`.
-            const appearance = createStrandAppearance(map)
+            const appearance = createStrandAppearance(map, { floorCssPx: options.strandFloorCssPx })
 
-            bindAppearance(built, appearance.texture)
+            bindAppearance(built, appearance)
 
             // The parser's own array, uploaded without a copy. Declared `in float` in the
             // shader, so GL widens the two bytes on the way in and nothing here has to
@@ -963,6 +1136,10 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
             segments.show(boxes)
 
+            // This document's cloud, replacing the previous one's. Opening another node
+            // rebuilds it here, which is the only place it is ever built.
+            pclaiInset.show(map)
+
             reframe()
             fit()
 
@@ -975,11 +1152,13 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             // Before the drawing goes: the mode owns the controls and the cursor, and
             // leaving it held over an empty surface would leave both switched off.
             feeler.release()
+            strandLabel.hide()
             releaseDrawing()
 
             // In the same call that empties the scene, so a refused document cannot leave
             // the previous map's boxes floating over an error message.
             segments.clear()
+            pclaiInset.clear()
             mapNavigator.clear()
 
             if (null !== context) {
@@ -1000,6 +1179,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             const refit = untouched
 
             mapNavigator.relayout()
+            pclaiInset.relayout()
             reframe()
 
             if (refit) {
@@ -1024,6 +1204,8 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             doc.removeEventListener('pointerup', onPointerUp)
             doc.removeEventListener('pointercancel', onPointerUp)
             feeler.destroy()
+            strandLabel.destroy()
+            pclaiInset.destroy()
             segments.destroy()
             readout?.remove()
 
@@ -1081,9 +1263,14 @@ function renderThumbnail(context: Context, content: Size, size: Size, pixelRatio
     camera.zoom = fitZoom(content, size)
     frameCamera(camera, size)
 
+    // Including the floor's css pixel, which at this camera is ~150 world units. Nothing is
+    // floored while this runs — the thumbnail is painted once, on the frame the document
+    // arrives, when no strand is under a feeler — but the uniform is borrowed and handed back
+    // with the other two rather than left to be true by luck.
     const surfaceCoverage = {
         halfPixel: material.uniforms.uHalfPixel.value,
-        pad: material.uniforms.uPad.value
+        pad: material.uniforms.uPad.value,
+        floorPixel: material.uniforms.uFloorPixel.value
     }
 
     setCoverage(material, camera.zoom, pixelRatio)
@@ -1101,6 +1288,7 @@ function renderThumbnail(context: Context, content: Size, size: Size, pixelRatio
         renderer.setRenderTarget(null)
         material.uniforms.uHalfPixel.value = surfaceCoverage.halfPixel
         material.uniforms.uPad.value = surfaceCoverage.pad
+        material.uniforms.uFloorPixel.value = surfaceCoverage.floorPixel
         target.dispose()
     }
 
@@ -1131,14 +1319,28 @@ function bandUniforms(): Record<string, { value: unknown }> {
         uHalfPixel: { value: 0 },
         uPad: { value: 0 },
         uAppearance: { value: null },
-        uAppearanceRow: { value: APPEARANCE_ROW }
+        uAppearanceRow: { value: APPEARANCE_ROW },
+        uAppearancePlane: { value: 0 },
+        uFloorPixel: { value: 0 },
+        uFloorSteps: { value: FLOOR_STEPS_PER_PX }
     }
 }
 
-/** Point both materials at one document's appearance table, or at none. */
-function bindAppearance(context: Context, texture: DataTexture | null): void {
+/**
+ * Point both materials at one document's appearance table, or at none.
+ *
+ * The plane offset travels with the texture because it is a property of that table: it is
+ * the document's own row count, so binding one without the other is how a strand's floor
+ * gets read out of another strand's colour.
+ */
+function bindAppearance(context: Context, appearance: StrandAppearance | null): void {
+    const texture = null === appearance ? null : appearance.texture
+    const plane = null === appearance ? 0 : appearance.planeRows
+
     context.material.uniforms.uAppearance.value = texture
+    context.material.uniforms.uAppearancePlane.value = plane
     context.pickMaterial.uniforms.uAppearance.value = texture
+    context.pickMaterial.uniforms.uAppearancePlane.value = plane
 }
 
 /** Point an orthographic camera at a viewport-sized frustum, in CSS pixels. */
@@ -1152,13 +1354,20 @@ function frameCamera(camera: OrthographicCamera, size: Viewport): void {
     camera.updateProjectionMatrix()
 }
 
-/** How much world one device pixel covers, which is what the fragment shader measures
- *  coverage against and what keeps a sub-pixel band from missing every sample. */
+/**
+ * How much world one device pixel covers, which is what the fragment shader measures
+ * coverage against and what keeps a sub-pixel band from missing every sample.
+ *
+ * And how much one *css* pixel covers, which is the unit the thickness floor is quoted in —
+ * a floor measured in device pixels would be half as tall on a retina display as on the
+ * screen beside it, and the number was chosen by looking.
+ */
 function setCoverage(material: RawShaderMaterial, zoom: number, pixelRatio: number): void {
     const pixel = devicePixel(zoom, pixelRatio)
 
     material.uniforms.uHalfPixel.value = pixel * 0.5
     material.uniforms.uPad.value = pixel
+    material.uniforms.uFloorPixel.value = pixel * pixelRatio
 }
 
 /**

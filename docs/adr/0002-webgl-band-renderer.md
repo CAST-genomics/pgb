@@ -33,7 +33,7 @@ migrated: 2026-08-17
 > **Measured 2026-08-14.** The decision below is confirmed by a working renderer rather
 > than by argument: 40,442 bands in one instanced draw call, 8.3–8.4 ms per frame from
 > fit to 200× zoom, worst frame 10.5 ms, on an M1 Pro through ANGLE Metal. Full result in
-> [`notes/2026-08-14-three-js-renderer-verdict.md`](https://github.com/CAST-genomics/sequence-tube-map-spike/blob/main/notes/2026-08-14-three-js-renderer-verdict.md).
+> [`notes/…/2026-08-14-three-js-renderer-verdict.md`](../../notes/sequence-tube-map/measurements/2026-08-14-three-js-renderer-verdict.md).
 >
 > **Several consequences below are wrong and are corrected in place**, each marked. In
 > summary: the camera is driven by `MapControls`, not by an `{x, y, scale}` object; the
@@ -251,6 +251,12 @@ Two further consequences, both measured:
   `trackID`; a `DataTexture` holds one texel of appearance per strand. Highlighting is
   a ~2 KB upload whose cost is independent of how many strands are lit — retiring the
   ~28 ms wall that `CONTEXT.md` #15 ran into, and reviving feeler mode.
+
+    **Two texels per strand since 2026-08-20**, and so a ~4 KB upload. The table gained a
+    second plane of per-strand *modifiers* to carry the feeler's **thickness floor**
+    (pgb #112), the emphasis texel having no byte left in it. The claim this consequence
+    was making is untouched: the cost is still one write per strand and nothing per band,
+    and still independent of how many strands are lit.
 - **The canvas is viewport-sized.** The 2026-08-13 rendering failure is not fixed but
   made structurally impossible: there is no oversized composited layer to tile.
 - ~~**`viewportTransform.ts` survives untouched** and drives an `OrthographicCamera`. No
@@ -278,6 +284,6 @@ Two further consequences, both measured:
   PGB's 3D stack" was a virtue; the overlap is now the point, and the version is
   pinned to PGB's `^0.176.0`.
 - **This does not address transport.** The largest catalogued nodes cannot be fetched
-  at all — see [`notes/2026-08-13-api-fetch-ceiling.md`](https://github.com/CAST-genomics/sequence-tube-map-spike/blob/main/notes/2026-08-13-api-fetch-ceiling.md).
+  at all — see [`notes/…/2026-08-13-api-fetch-ceiling.md`](../../notes/sequence-tube-map/measurements/2026-08-13-api-fetch-ceiling.md).
   A compact geometry format from UCSD is the natural follow-on, and this decision is
   what makes that request specific enough to be worth making.

@@ -25,6 +25,13 @@
  * `?pick` did come across, because it is not a way of deciding which URL — it reads the
  * pick pass out loud, and is the only thing that makes a pick happen on a plain hover
  * rather than under the feeler. See `BandSurfaceOptions.pickReadout`.
+ *
+ * `?floor=` is here on the same terms: it does not decide a URL, it sets how thick the feeler
+ * draws the strand it is on so the value can be judged by looking (#112). See
+ * `notes/sequence-tube-map/dev-affordances.md` §3.1.
+ *
+ * `?samples=` likewise: it sets how finely the pick pass photographs the cursor's css pixel,
+ * so the shipped value can be a measurement rather than a guess (#120). §3.2.
  */
 
 import { mountTubeMapSurface } from './tubemap/tubeMapSurface.ts'
@@ -53,7 +60,32 @@ if (pickReadout) {
     hint.textContent += ' · picking the strand under the cursor'
 }
 
-const viewer = mountTubeMapSurface(container, { pickReadout })
+// `?floor=` overrides how thick the feeler draws the strand it is on, in css pixels, and
+// `?floor=0` switches the floor off. The value shipped was chosen by looking at a sweep of
+// candidates through this parameter (#112); it stays so the judgement can be re-run.
+const requestedFloor = Number(parameters.get('floor'))
+const strandFloorCssPx = parameters.has('floor') && Number.isFinite(requestedFloor)
+    ? requestedFloor
+    : undefined
+
+if (undefined !== strandFloorCssPx) {
+    hint.textContent += ` · thickness floor ${strandFloorCssPx} css px`
+}
+
+// `?samples=` overrides how many texels the pick pass photographs the cursor's css pixel
+// into, and `?samples=1` is the single-texel target the pass used before #120 — the control
+// arm of the sweep the shipped value was chosen from. The window is one css pixel at every
+// value; only its resolution moves.
+const requestedSamples = Number(parameters.get('samples'))
+const pickSamples = parameters.has('samples') && Number.isInteger(requestedSamples) && requestedSamples > 0
+    ? requestedSamples
+    : undefined
+
+if (undefined !== pickSamples) {
+    hint.textContent += ` · pick sampled ${pickSamples}×`
+}
+
+const viewer = mountTubeMapSurface(container, { pickReadout, strandFloorCssPx, pickSamples })
 
 // The field is filled in rather than left blank, so what is on screen is always something
 // the reader can see, edit and paste elsewhere.

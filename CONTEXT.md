@@ -102,6 +102,16 @@ ancestry it traces back to. Classical LAI produces discrete labels (a
 finite set like AFR/EUR/EAS); PCLAI replaces these with **continuous
 coordinates** in a learned embedding space.
 
+### lobe
+
+One of the five clusters the PCLAI coordinates fall into. k-means finds
+k=5 in all six surveyed datasets at silhouette 0.89–0.93, and **99.5–99.8%**
+of the coordinate's variance lies *between* lobes against 0.2–0.5% within
+them. So the lobe is the thing a PCLAI coordinate individuates: it answers
+*which ancestry group*, and cannot answer *which haplotype* — the
+information is not in the coordinate. See
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
+
 ### locus
 
 A specific region of the genome. Each PGB dataset is one locus,
@@ -362,15 +372,126 @@ itself.
 ### strand
 
 One haplotype's path through a **sequence tube map**, drawn as a coloured ribbon
-running left→right. Named `sample#haplotype#contig` (e.g.
-`NA21309#2#CM092097.1`), and coloured by the same shipped PCLAI RGB the 3D graph
-and the PCLAI chart use.
+running left→right, and coloured by the same shipped PCLAI RGB the 3D graph and
+the PCLAI chart use.
+
+A strand's **name** is `#`-separated and starts `sample#haplotype`, but the
+number of components is **not fixed** and the name is parsed as an opaque
+string. `stm-chr1-25331046-25331646.svg` spells all 369 of its names with three
+(`NA21309#2#CM092097.1`); `stm-chr8-78771162-78771252.svg` spells 463 of its 464
+with four (`NA21309#2#CM092102.1#0`) and one with three. Anything wanting to
+address a strand from PGB's side — which speaks
+**assembly-haplotype** — has to bridge that, and the bridge is harder than
+[ADR 0001](docs/adr/0001-sequence-tube-map-panel.md) records; see
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md) §4.
 
 The deliberate alias, recorded because the collision is the reason for the
 rename: upstream sequence-tube-map and the SVG itself call this a *track*
 (`g.track`, `trackID`, `class="track<N>"`), which is unrelated to PGB's
 **annotation track**. *Strand* is the term to use; *track* survives only in code
 quoting the server's document.
+
+### feeler
+
+The held-`Shift` mode over a **sequence tube map**: while the key is down, one
+**strand** under the cursor is drawn in the document's own colour and at no
+less than the **thickness floor**, every other strand recedes to a ghost of
+itself, and a label following the cursor names the whole **pick set**. A mode
+that is *held* rather than toggled, and one that does not accumulate — moving
+on hands the emphasis to the next strand, and the floor goes with it. Entered
+only while the pointer is over the surface, since `Shift` is a key the rest of
+PGB and the OS also use. Plain hover does none of it.
+
+**The label names the set; the emphasis and the floor stay on exactly one.**
+Flooring six strands at 2 css px each is a blob that follows nothing, which is
+the opposite of what the floor is for — so one strand carries them and the label
+shows the others, so nothing found is hidden. Which one: see **thickness
+floor**. The label marks that strand's row at full strength and recedes the
+rest, matching the map, so a name at full strength always refers to the strand
+currently emphasized.
+
+### pick set
+
+Every **strand** inside the cursor's one css pixel, in the vertical order they
+appear on screen. About six at fit on `5520+`, where a **band** is 0.19 css px
+tall; **exactly one** at any zoom where every band exceeds a pixel, which is
+what makes reporting the set need no mode and no threshold.
+
+The pick pass frames that same one css pixel and photographs it into a `1 × 32`
+column rather than a single texel, so it answers with the set instead of with
+whichever band was drawn last. The window is a css pixel at every sample count;
+only the resolution inside it moves, and `uPad` is quoted against the sample
+cell so that a strand outside the cursor's pixel is never reported. 32 is a
+measurement, not a guess:
+[`measurements/2026-08-21-how-finely-to-sample-a-pick.md`](notes/sequence-tube-map/measurements/2026-08-21-how-finely-to-sample-a-pick.md).
+
+**All three panels report the same set**, in the idiom each of them already
+has. The map lights one **strand**; the label lists the set, one name per row,
+each with a filled swatch in that strand's own colour and a ring on the lit
+one; the **PCLAI inset** marks every **placed** member of the set at one size
+and rings the same lit one. Nowhere may two of them state different counts of
+what is under the cursor — that is the whole of #120, and the reason the inset
+was changed with the label rather than after it.
+
+The cloud's third tier is **greyed as well as faded**, and this is the one
+place desaturation is allowed: a dot sits on the ramp's own rendering of its
+coordinate, so fading a colour over the colour it matches subtracts almost
+nothing, and an unplaced haplotype is never drawn in that plot at all — so
+grey collides with nothing there, where in the map it means `pclaiX="None"`.
+
+The **label's colour is on the swatch and never on the text.** Every one of the
+464 strand colours on `5520+` is a pastel: against the label's white card the
+best reaches 2.74:1 and the median is 1.88:1, so none clears even the 3:1 that
+large text asks for. Legibility is the hard constraint; the swatch is where the
+colour goes. Both judgements, and the spread measurement that says marking the
+set is worth anything at all:
+[`measurements/2026-08-21-the-pick-set-in-the-cloud.md`](notes/sequence-tube-map/measurements/2026-08-21-the-pick-set-in-the-cloud.md).
+
+### thickness floor
+
+The minimum screen-space thickness the **feeler** draws its **strand** at — 2
+css px, grown symmetrically about the band's own centreline, so the strand's
+*position* stays exactly truthful while its extent does not. Carried as a
+per-strand byte in the appearance table beside the emphasis byte, so a set of
+strands could be floored later without another upload path.
+
+It exists because at fit a band is 0.19 css px tall and 2.6 strands share every
+device pixel row: receding the crowd does not change how much of a row the
+focused band owns. **Self-annulling** — above the floor the clamp does nothing
+and the map is byte-identical to what it was, and below it is exactly the
+regime where the overdrawn neighbours were never resolvable anyway. Not applied
+to picking, which answers off the document's own geometry.
+
+Carried by exactly one strand at a time, out of the **pick set**: the one
+holding the sample nearest the cursor's own y. Not quite *nearest centreline* —
+a centreline is not something the pick pass has, and recovering one would mean
+per-band geometry on the CPU, which is what the pass exists to avoid. The two
+differ only inside a thirty-second of a css pixel, and both strands are named
+either way.
+
+### placement
+
+A **strand**'s PCLAI coordinate within one **sequence tube map** document,
+carried on every **band** as `pclaiX` / `pclaiY`, or **absent** — spelled
+`pclaiX="None"`, which the renderer already draws grey.
+
+How many strands are unplaced is a property of the document and never a
+constant: 6 in `stm-chr1-25331046-25331646`, 12 in
+`stm-chr8-78771162-78771252`, 99 in `5520+`. A strand has one placement per
+document because each document covers one **node** — that is a property of
+the window, not of the haplotype, since PCLAI is per (haplotype, node).
+
+### PCLAI inset
+
+The passive chart over a **sequence tube map**, plotting one dot per placed
+**strand** in the open document over the ancestry colour ramp. Holding the
+feeler over a strand recedes the crowd and rings that haplotype's dot.
+
+Distinct from the [PCLAI chart](notes/data-format/stories/pclai.md), the
+**widget** card that indexes **node**s in the 3D graph: the two share a
+coordinate space and a ramp and nothing else. The inset takes no pointer input
+at all — why, and what that costs, is
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
 
 ### tube map panel
 

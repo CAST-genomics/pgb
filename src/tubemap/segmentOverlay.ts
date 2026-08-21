@@ -35,7 +35,7 @@
  * ## What is not corrected
  *
  * The 2-unit stroke and the radius-9 corners scale with the camera like everything else.
- * `docs/RENDERING.md` has the numbers under *What the renderer corrects, and what it leaves
+ * `notes/sequence-tube-map/rendering.md` has the numbers under *What the renderer corrects, and what it leaves
  * alone*: a scaling stroke spans 0.016 css px at fit and 3.1 px at 200×, and there was never
  * anything to fix. Nor is the arrival animated — a box reaching the threshold already has a
  * 0.17 px stroke the browser antialiases to a faint line, which thickens on its own.
@@ -54,7 +54,7 @@
  */
 
 import { overlayTranslation, type CameraView, type Viewport } from './bandCamera.ts'
-import type { Point, Size } from './geometry.ts'
+import { beside, type Point, type Size } from './geometry.ts'
 import type { SegmentBox } from './parseSegmentBoxes.ts'
 
 /**
@@ -274,15 +274,12 @@ export function createSegmentOverlay(root: HTMLElement): SegmentOverlay {
         const x = event.clientX - corner.x
         const y = event.clientY - corner.y
 
-        // Flipped to the other side of the cursor rather than merely clamped: pinned against
-        // the right edge it would sit under the pointer and hide the box being read.
-        const left = x + TOOLTIP_OFFSET.x + size.width > surface.width
-            ? Math.max(0, x - TOOLTIP_OFFSET.x - size.width)
-            : x + TOOLTIP_OFFSET.x
-
-        const top = y + TOOLTIP_OFFSET.y + size.height > surface.height
-            ? Math.max(0, y - TOOLTIP_OFFSET.y - size.height)
-            : y + TOOLTIP_OFFSET.y
+        // Flipped to the other side of the cursor rather than merely clamped, on both axes:
+        // pinned against the right edge it would sit under the pointer and hide the box
+        // being read. `beside` is where that arithmetic is stated, and the strand label
+        // follows the same cursor by the same rule.
+        const left = beside(x, size.width, surface.width, TOOLTIP_OFFSET.x)
+        const top = beside(y, size.height, surface.height, TOOLTIP_OFFSET.y)
 
         tooltip.style.transform = `translate(${left}px, ${top}px)`
     }
