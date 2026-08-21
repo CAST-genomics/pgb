@@ -109,21 +109,26 @@ export const FOCUS_SIZE = DOT_SIZE * 2.5
 export const RING_WIDTH = 1.5
 
 /**
- * ## There is no mat, and what that costs
+ * How far the ramp's domain sits inside the plot, in css pixels.
  *
- * The plot used to sit on a white margin sized from the ringed dot, so that a haplotype at
- * the very edge of the cloud could be drawn — and ringed — whole. It was removed on
- * 2026-08-21 at the user's call: on screen the margin read as a frame around a picture
- * rather than as part of it, and the picture is the point.
+ * The breathing room around the cloud, and it is **inside the coordinate frame rather than
+ * around the picture**. Two earlier attempts got this wrong in opposite directions: a white
+ * mat outside the plot read as a frame around a photograph, and a plot flush to its border
+ * clipped the haplotypes at the domain's extremes — of which the chr1 strip has 27 within a
+ * pixel of the bottom-right corner — into half dots and half rings, under the resize grip.
  *
- * So the ramp now runs to a thin grey border on three sides, and the plot clips. The
- * extremes of the ramp's domain are real positions rather than headroom — the chr1 strip
- * places 27 haplotypes within a pixel of the bottom-right corner — so those haplotypes are
- * drawn as half dots against the frame, and ringed as half rings. That is the accepted cost
- * of the framing, and it is not a bug to be fixed by quietly insetting the projection: the
- * dots and the ramp are mapped onto the same box, and moving one without the other is what
- * makes the legend lie about the cloud on top of it.
+ * The fix is the user's: give the chart more room than the coordinates need. The domain is
+ * mapped onto a box inset by this much on every side, and **the ramp is drawn on exactly
+ * that inset box**, so a dot still sits on its own colour — the legend is untouched, which
+ * is the thing that must never be traded for room. What fills the margin is the ramp's own
+ * edge, extended outward; see `surfaceStyles.ts`.
+ *
+ * Pixels, not a percentage of the plot. What has to fit here is pixel-sized — half a ringed
+ * dot and its ring is 11.5, the grip is 16 — so a fraction would overshoot on a large chart
+ * and still clip on a small one. 16 clears both, which is about 15% of extra span at the
+ * default size and proportionally less as the chart grows.
  */
+export const PLOT_PAD = 16
 
 /** One haplotype's dot: which strand it is, where it goes, and what colour it is. */
 export interface PlottedDot {
@@ -346,13 +351,14 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
         place()
     }
 
-    /** The widget's extent that is not the plot: the mat on both axes, and the header on
-     *  one. Measured rather than computed from `MAT`, so the stylesheet stays the one place
-     *  the header's height is decided. */
+    /** The widget's extent that is not the coordinate frame: its border, the pad on both
+     *  axes, and the header on one. Measured against `size` — the frame itself — rather than
+     *  against the plot element, whose box includes the pad, so the stylesheet stays the one
+     *  place the header's height and the border's weight are decided. */
     function chromeSize(): Size {
         return {
-            width: Math.max(0, element.offsetWidth - plot.offsetWidth),
-            height: Math.max(0, element.offsetHeight - plot.offsetHeight)
+            width: Math.max(0, element.offsetWidth - size),
+            height: Math.max(0, element.offsetHeight - size)
         }
     }
 
@@ -360,9 +366,11 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
     function resizePlot(next: number): void {
         size = fitPlotSize(next, chromeSize(), hostSize())
 
+        // The element's *content* box, which is the coordinate frame: the pad is a border on
+        // it, so the dots — positioned against the padding box — need no offset, and the
+        // stylesheet paints the ramp on the same box this sizes.
         plot.style.width = `${size}px`
         plot.style.height = `${size}px`
-        plot.style.backgroundSize = `${size}px ${size}px`
 
         if (null !== current) {
             paint(current)

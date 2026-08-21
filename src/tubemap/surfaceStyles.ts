@@ -6,12 +6,13 @@
  * The map is the data: no chrome inside the viewing surface. Every affordance here
  * is layered over the picture rather than arranged around it.
  *
- * The one interpolation is the PCLAI inset's ring, imported rather than written twice: the
- * inset sizes the ringed dot's geometry around it, and a stylesheet that disagreed would
- * draw a ring of one weight around a dot spaced for another.
+ * The interpolations are the PCLAI inset's pad and ring, imported rather than written twice.
+ * The pad is where the coordinate frame ends and the breathing room begins, and the inset
+ * sizes that frame; a stylesheet that disagreed about it would paint the ramp somewhere
+ * other than where the dots are plotted, which is the one error this plot cannot survive.
  */
 
-import { RING_WIDTH } from './pclaiInset.ts'
+import { PLOT_PAD, RING_WIDTH } from './pclaiInset.ts'
 
 export const SURFACE_STYLES = `
 .stm-root {
@@ -457,20 +458,37 @@ export const SURFACE_STYLES = `
    the two scatters read as one legend or they read as two different claims about ancestry.
 
    It runs to the widget's border on the left, right and bottom, with no margin between: a
-   white surround read as a frame around the picture rather than as part of it. The border is
-   the frame now, and it is one grey line.
+   white surround read as a frame around the picture rather than as part of it.
 
-   The plot therefore **clips**, and the widget's \`overflow: hidden\` is what does it. A dot
-   is centred on its coordinate and the ramp's domain extremes are real positions, so a
-   haplotype at the edge of the cloud is drawn as half a dot against the border — see the
-   note in \`pclaiInset.ts\`. Insetting the dots to avoid that while the ramp still filled the
-   box would put every dot on a colour that is not its own, which is the one thing this plot
-   may not do. */
+   **The breathing room is inside the coordinate frame instead**, as a transparent border of
+   \`PLOT_PAD\`. That border is what the element's content box is inset by, so the content box
+   *is* the domain — which is why \`background-origin\` and \`background-clip\` are
+   \`content-box\`: the ramp is painted on exactly the box \`strandCoordinates.ts\` maps the
+   domain onto, at any size, and a dot still sits on its own colour. Dots are positioned
+   against the padding box, which with no padding is the same box, so nothing offsets them.
+
+   \`border-image\` fills the margin with the ramp's own outermost pixels, stretched outward:
+   a 1 px slice on each side, with no \`fill\`, so the interior is left to the background above
+   and only the four bands and corners are drawn. The result is a picture with no seam and no
+   frame, where the outer band is a **clamp rather than a legend** — it continues the edge
+   colour outward, and no document in this repo places a haplotype outside the domain for it
+   to mislabel. What it buys is that a haplotype at the very edge of the cloud is drawn whole,
+   ringed whole, and clear of the resize grip. */
 .stm-pclai-plot {
     position: relative;
-    background-color: #ffffff;
-    background-image: url('/images/pca-chart-background.png');
-    background-repeat: no-repeat;
+    border: ${PLOT_PAD}px solid transparent;
+    /* Two layers, and the second is why. The ramp is a translucent PNG, so what it is
+       composited over decides its colour: painted on the content box alone, the interior sat
+       on pure white while the clamped band sat on the widget's 92% white, and the pad's inner
+       edge showed as a seam all the way round. The white underlay is clipped to the border
+       box instead, so both halves of the picture stand on the same ground. */
+    background-image: url('/images/pca-chart-background.png'), linear-gradient(#ffffff, #ffffff);
+    background-repeat: no-repeat, no-repeat;
+    background-size: 100% 100%, 100% 100%;
+    background-origin: content-box, border-box;
+    background-clip: content-box, border-box;
+    border-image-source: url('/images/pca-chart-background.png');
+    border-image-slice: 1;
     pointer-events: none;
 }
 
