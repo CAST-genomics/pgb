@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { plotCloud } from '../pclaiInset.ts'
+import { cloudState, plotCloud, withinHost } from '../pclaiInset.ts'
 import { parseBands, type ParsedMap } from '../parseBands.ts'
 import { RAMP_DOMAIN, projectPlacement } from '../strandCoordinates.ts'
 import { readFixture, readTallFixture } from './fixture.ts'
@@ -105,5 +105,67 @@ describe('plotCloud', () => {
         const [top, bottom] = plotCloud(map, SURFACE)
 
         expect(top.at.y).toBeLessThan(bottom.at.y)
+    })
+})
+
+/**
+ * What the feeler does to the cloud, as a decision rather than as a picture. The ring is
+ * judged by looking; *which* haplotype is ringed cannot be, because every dot in a lobe is
+ * nearly the same colour as its neighbours and a ring one dot off would look exactly as
+ * convincing as a correct one.
+ */
+describe('cloudState', () => {
+
+    it('rings the focused haplotype and recedes the rest', () => {
+        const map = parseBands(readFixture())
+
+        expect(cloudState(map, 368)).toEqual({ receded: true, ringed: 368 })
+    })
+
+    it('recedes the crowd and rings nothing for a strand the document does not place', () => {
+        // Absence is not a position. Strand 315 is `pclaiX="None"` — ringing the origin, or
+        // the nearest dot, would report a placement the inference declined to make.
+        const map = parseBands(readFixture())
+
+        expect(map.strandPlacements[315]).toBeNull()
+        expect(cloudState(map, 315)).toEqual({ receded: true, ringed: null })
+    })
+
+    it('leaves the cloud at rest when the feeler is on nothing', () => {
+        const map = parseBands(readFixture())
+
+        expect(cloudState(map, null)).toEqual({ receded: false, ringed: null })
+    })
+})
+
+/**
+ * Where a dragged widget is allowed to end up. It stays inside the panel — a readout that
+ * can be pushed off the edge is a readout that can be lost, and one that could be dragged
+ * onto PGB's 3D graph would invite clicks it does not answer (ADR 0003).
+ */
+describe('withinHost', () => {
+
+    const WIDGET = { width: 220, height: 250 }
+    const HOST = { width: 1000, height: 600 }
+
+    it('leaves a position that already fits alone', () => {
+        expect(withinHost({ x: 40, y: 30 }, WIDGET, HOST)).toEqual({ x: 40, y: 30 })
+    })
+
+    it('pulls the widget back inside both far edges', () => {
+        expect(withinHost({ x: 5000, y: 5000 }, WIDGET, HOST))
+            .toEqual({ x: HOST.width - WIDGET.width, y: HOST.height - WIDGET.height })
+    })
+
+    it('pins to the near corner rather than going negative', () => {
+        expect(withinHost({ x: -80, y: -80 }, WIDGET, HOST)).toEqual({ x: 0, y: 0 })
+    })
+
+    it('prefers the near corner when the widget is larger than the panel', () => {
+        // A panel shrunk below the widget has no position that fits; showing the readout's
+        // own top-left corner is the one that keeps its header — and so its hide button —
+        // reachable.
+        expect(withinHost({ x: 10, y: 10 }, WIDGET, { width: 100, height: 100 }))
+            .toEqual({ x: 0, y: 0 })
     })
 })

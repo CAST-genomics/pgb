@@ -97,6 +97,10 @@
  * `clear`, destroyed with the surface. It is not placed from the camera — the cloud is a
  * position report in coordinate space and has nothing to do with where the view is.
  *
+ * The feeler drives it through `touch`, on the same transition that writes the appearance
+ * table and names the strand: one question, one answer, three places it shows up. Listeners
+ * outside the surface get the same transition through `onFocusStrand`.
+ *
  * ## Drawing happens on demand
  *
  * The spike ran an unconditional animation loop because it was also reading a frame
@@ -451,6 +455,18 @@ export interface BandSurfaceOptions {
      * the product passes it.
      */
     strandFloorCssPx?: number
+    /**
+     * Called with the strand under the feeler, or `null`, on the same transition that writes
+     * the appearance table — so what is lit, what is named and whatever else reports on the
+     * gesture can never be given different answers.
+     *
+     * Push, not poll: a listener never reaches into the renderer or a frame loop, and this
+     * surface never learns what a listener does with the answer. The PCLAI inset is driven
+     * through the same transition, and this is the seam a cross-panel link into PGB's 3D
+     * graph or annotation track would attach to — ADR 0001's deferred obligation. Nothing
+     * here builds one, and nothing here publishes: the panel stays bus-silent.
+     */
+    onFocusStrand?(strandId: number | null): void
 }
 
 export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions = {}): BandSurface {
@@ -843,6 +859,8 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     function touch(strandId: number | null): void {
         focus(strandId)
         nameStrand(strandId)
+        pclaiInset.focus(strandId)
+        options.onFocusStrand?.(strandId)
     }
 
     /**
@@ -876,6 +894,8 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         }
 
         strandLabel.hide()
+        pclaiInset.focus(null)
+        options.onFocusStrand?.(null)
 
         if (true === drawing?.appearance.release()) {
             scheduleDraw()
@@ -1106,6 +1126,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             const refit = untouched
 
             mapNavigator.relayout()
+            pclaiInset.relayout()
             reframe()
 
             if (refit) {
