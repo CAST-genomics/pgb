@@ -135,11 +135,11 @@ import {
     zoomRange,
     type Viewport
 } from './bandCamera.ts'
-import { createBandPicker, type BandPicker } from './bandPicker.ts'
+import { createBandPicker, PICK_SAMPLES, type BandPicker, type StrandColumn } from './bandPicker.ts'
 import { watchFeelerKey, type FeelerKey } from './feelerKey.ts'
 import type { Point, Size } from './geometry.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
-import { THICKNESS, parseBands, type ParsedMap } from './parseBands.ts'
+import { THICKNESS, parseBands, strandCss, type ParsedMap } from './parseBands.ts'
 import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
 import { createPclaiInset, type PclaiInset } from './pclaiInset.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
@@ -154,6 +154,11 @@ import { createStrandLabel, type StrandLabel } from './strandLabel.ts'
 
 /** Quads per band along its span. See the note on tessellation error above. */
 export const RUNGS = 64
+
+/** What the feeler is handed over empty space, and on the key alone before the first pick.
+ *  A real state rather than the absence of one: a sweep crosses gaps between bands
+ *  constantly, and springing back to full colour in each of them would strobe. */
+const NOTHING: StrandColumn = { strandIds: [], nearest: -1 }
 
 const VERTEX = /* glsl */`
 precision highp float;
@@ -351,9 +356,16 @@ void main() {
  * which is a real haplotype (`CHM13#0#chr1` on every document we have) and would
  * otherwise be indistinguishable from empty space.
  *
- * There is no blending and no depth buffer, so the last fragment written wins. Instances
- * are drawn in document order, so that is the topmost band — the same answer SVG's own
- * hit-testing gave, and the one the researcher is looking at where strands cross.
+ * There is no blending and no depth buffer, so within one texel the last fragment written
+ * wins. Instances are drawn in document order, so that is the topmost band — the same answer
+ * SVG's own hit-testing gave, and the one the researcher is looking at where strands cross.
+ *
+ * **That rule used to decide the whole answer, and no longer does.** The pick target is a
+ * column of texels across the cursor's one css pixel rather than a single texel (#120), so
+ * last-write-wins now settles only which band owns each `1/N` css px sample, and the strands
+ * at the other samples survive into the answer instead of being overwritten by it. Where two
+ * bands genuinely overlap inside one sample, the topmost still wins — which is what a
+ * researcher pointing at a crossing is looking at.
  *
  * **Emphasis is deliberately not applied here.** The visible pass multiplies coverage by
  * the strand's emphasis; this one does not, because a receded strand is exactly what the
@@ -455,6 +467,16 @@ export interface BandSurfaceOptions {
      * the product passes it.
      */
     strandFloorCssPx?: number
+    /**
+     * Override how finely the pick pass samples the cursor's css pixel. Defaults to
+     * `PICK_SAMPLES`; `1` is the single-texel target the pass used before #120.
+     *
+     * Harness instrumentation, `?samples=`: the shipped value is a measurement, and this is
+     * what makes it one — `scripts/verify_pick_set.mjs` drives the sweep through it. Nothing
+     * in the product passes it. It changes the pick's *resolution* only; the window it
+     * samples is one css pixel of map at every value.
+     */
+    pickSamples?: number
     /**
      * Called with the strand under the feeler, or `null`, on the same transition that writes
      * the appearance table — so what is lit, what is named and whatever else reports on the
@@ -647,7 +669,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             controls,
             material,
             pickMaterial,
-            picker: createBandPicker(renderer, scene, pickMaterial)
+            picker: createBandPicker(renderer, scene, pickMaterial, options.pickSamples ?? PICK_SAMPLES)
         }
 
         return context
@@ -792,14 +814,16 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         // crosses gaps between bands constantly, and springing back to full colour in each
         // of them would strobe.
         if (feeler.active()) {
-            touch(result.strandId)
+            touch(result)
         }
 
         if (null === readout) {
             return
         }
 
-        const picked = null === result.strandId ? '—' : String(result.strandId)
+        // The whole set, not the strand that happens to be lit: the readout's job is to say
+        // what the pass answered, and the count is the number #120 is about.
+        const picked = 0 === result.strandIds.length ? '—' : result.strandIds.join(' ')
         const shown = drawing.appearance.focused()
 
         readout.textContent = `strand ${picked} · ${result.milliseconds.toFixed(2)} ms`
@@ -839,35 +863,57 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     }
 
     /**
-     * Say what the emphasized strand is called, beside the cursor, or say nothing.
+     * Say what the strands under the feeler are called, beside the cursor, or say nothing.
      *
      * Read from the parsed document rather than asked of the GPU: the pick pass answers
-     * with a strand id, and `strandNames` is what turns that integer into the thing a
-     * researcher can write down. Over empty space there is no name — the same state the
+     * with strand ids, and `strandNames` is what turns those integers into the things a
+     * researcher can write down. `strandCss` gives each one the colour it already has in the
+     * cloud, so the label's swatches and the cloud's dots are the same marks. Over empty space there are no names — the same state the
      * emphasis takes, and for the same reason.
+     *
+     * The list arrives in screen order and is passed on in it, alongside which of them the
+     * map has lit, so the label can never disagree with the appearance table about the
+     * strand the feeler has.
      *
      * Placed from `cursor` and `framed` rather than from the event, because this runs on
      * the pick frame: both are already the surface's own numbers and neither costs a
      * layout read.
      */
-    function nameStrand(strandId: number | null): void {
-        if (null === drawing || null === cursor || null === strandId) {
+    function nameStrands(column: StrandColumn): void {
+        if (null === drawing || null === cursor || 0 === column.strandIds.length) {
             strandLabel.hide()
             return
         }
 
-        strandLabel.show(drawing.map.strandNames[strandId], cursor, framed)
+        const { strandNames, strandColors } = drawing.map
+
+        strandLabel.show(
+            column.strandIds.map(id => ({
+                name: strandNames[id],
+                color: strandCss(strandColors, id)
+            })),
+            column.nearest,
+            cursor,
+            framed
+        )
     }
 
     /**
-     * Hand the feeler one strand, or none: what is lit and what is named are one answer to
-     * one question, and the two must never be given different ones.
+     * Hand the feeler the strands under it, and say which one it has: what is lit and what is
+     * named are one answer to one question, and the two must never be given different ones.
+     *
+     * **The set is named and one strand is lit** — `CONTEXT.md` §feeler states the policy and
+     * why it is one rather than all of them. The column arrives as a single answer with the
+     * lit strand's *position* in it, so nothing here has to pair the two up and nothing here
+     * can pair them up wrongly.
      */
-    function touch(strandId: number | null): void {
-        focus(strandId)
-        nameStrand(strandId)
-        pclaiInset.focus(strandId)
-        options.onFocusStrand?.(strandId)
+    function touch(column: StrandColumn): void {
+        const lit = column.strandIds[column.nearest] ?? null
+
+        focus(lit)
+        nameStrands(column)
+        pclaiInset.focus(column.strandIds, column.nearest)
+        options.onFocusStrand?.(lit)
     }
 
     /**
@@ -889,7 +935,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         // immediately, and holding `Shift` over a strand emphasizes it without a nudge.
         // Nothing is named until the pick answers — a name is an answer about one strand,
         // and at this instant the mode has not asked yet.
-        touch(null)
+        touch(NOTHING)
         schedulePick()
     }
 
@@ -901,7 +947,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         }
 
         strandLabel.hide()
-        pclaiInset.focus(null)
+        pclaiInset.focus(NOTHING.strandIds, NOTHING.nearest)
         options.onFocusStrand?.(null)
 
         if (true === drawing?.appearance.release()) {
@@ -957,7 +1003,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         cursor = null
 
         if (feeler.active()) {
-            touch(null)
+            touch(NOTHING)
         }
 
         if (null !== readout) {

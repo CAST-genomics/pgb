@@ -53,7 +53,7 @@
  */
 
 import { clamp, type Point, type Size } from './geometry.ts'
-import type { ParsedMap } from './parseBands.ts'
+import { strandCss, type ParsedMap } from './parseBands.ts'
 import { createPointerDrag, type PointerDragHandle } from './pointerDrag.ts'
 import { projectPlacement } from './strandCoordinates.ts'
 import { shieldFromMap } from './surfacePointer.ts'
@@ -97,15 +97,23 @@ export const MAX_PLOT_SIZE = 900
 export const DOT_SIZE = 8
 
 /**
- * How wide the ringed dot is, and how thick its ring, in css pixels.
+ * How wide a **marked** dot is, and how thick the ring on one of them, in css pixels.
  *
  * Two and a half times the crowd, which is the ratio the mark was judged at when the crowd
- * was 4: a ring that is merely a little larger than its neighbours has to be hunted for,
- * and hunting is what the ring exists to end. It moves with `DOT_SIZE` for that reason —
+ * was 4: a mark that is merely a little larger than its neighbours has to be hunted for,
+ * and hunting is what the mark exists to end. It moves with `DOT_SIZE` for that reason —
  * fixing it while the crowd grew would leave the feeler's answer the same size as the
  * things it is being told apart from.
+ *
+ * **Every marked dot, at one size** (#120). The whole pick set is marked — at fit six strands
+ * share the cursor's css pixel and the map cannot separate them, so the label names all six
+ * and the cloud shows where all six came from. Only the *ring* says which one the map has
+ * lit. Sizing the set below the ringed dot was tried and dropped: it makes size carry the
+ * same distinction the ring already carries, so the picture states it twice, and the reader
+ * has to compare diameters to work out which of two nearby marks is the answer. One size,
+ * one ring, one meaning each.
  */
-export const FOCUS_SIZE = DOT_SIZE * 2.5
+export const MARKED_SIZE = DOT_SIZE * 2.5
 export const RING_WIDTH = 1.5
 
 /**
@@ -159,41 +167,60 @@ export function plotCloud(map: ParsedMap, surface: Size): PlottedDot[] {
             continue
         }
 
-        const red = strandId * 3
-
         dots.push({
             strandId,
             at: projectPlacement(placement, surface),
-            color: `rgb(${map.strandColors[red]}, ${map.strandColors[red + 1]}, ${map.strandColors[red + 2]})`
+            color: strandCss(map.strandColors, strandId)
         })
     }
 
     return dots
 }
 
-/** What the cloud looks like for one feeler answer: whether the crowd recedes, and which
- *  haplotype — if any — is ringed. */
+/** What the cloud looks like for one feeler answer: whether the crowd recedes, which
+ *  haplotype — if any — is ringed, and which others are lifted out of the crowd with it. */
 export interface CloudState {
     receded: boolean
     ringed: number | null
+    /**
+     * The rest of the **pick set**, placed strands only, in the order the map stacks them.
+     * Never contains `ringed`.
+     */
+    inSet: number[]
 }
 
 /**
  * What the feeler's answer does to the cloud.
  *
- * Three states, and the third is the one worth stating: a **placed** strand recedes the
- * crowd and is ringed; an **unplaced** strand recedes the crowd and rings nothing, because
- * absence must not be drawn as a position; **nothing** under the feeler leaves the cloud at
- * rest, since a receded crowd with no ring in it reports on a haplotype that is not there.
+ * **The set, not the one strand** (#120). The pick answers with every haplotype inside the
+ * cursor's css pixel — six at fit — and lights the one nearest the cursor. The cloud says the
+ * same: that one is ringed, the rest of the set are enlarged at full opacity, and the crowd
+ * behind them recedes. Before this the cloud marked one dot out of six and gave the
+ * researcher no sign the other five were under their cursor, which is the complaint #120 is
+ * about, surviving in the last panel that had not heard it.
+ *
+ * The states worth stating are the ones about absence. An **unplaced** strand is never
+ * marked, wherever it sits in the set, because absence must not be drawn as a position — so
+ * an unplaced *lit* strand rings nothing while its neighbours are still enlarged, and a set
+ * of six can legitimately put four dots on the plot. **Nothing** under the feeler leaves the
+ * cloud at rest, since a receded crowd with no mark in it reports on a haplotype that is not
+ * there.
+ *
+ * `nearest` indexes `strandIds`, as `bandPicker`'s `StrandColumn` gives it; out of range —
+ * which is how an empty set spells itself — rings nothing.
  */
-export function cloudState(map: ParsedMap, focused: number | null): CloudState {
-    if (null === focused) {
-        return { receded: false, ringed: null }
+export function cloudState(map: ParsedMap, strandIds: number[], nearest: number): CloudState {
+    if (0 === strandIds.length) {
+        return { receded: false, ringed: null, inSet: [] }
     }
+
+    const placed = (id: number): boolean => null !== map.strandPlacements[id]
+    const lit = strandIds[nearest]
 
     return {
         receded: true,
-        ringed: null === map.strandPlacements[focused] ? null : focused
+        ringed: undefined !== lit && placed(lit) ? lit : null,
+        inSet: strandIds.filter(id => id !== lit && placed(id))
     }
 }
 
@@ -253,9 +280,12 @@ let hiddenForSession = false
 export interface PclaiInset {
     /** Plot this document's cloud, replacing whatever was there. */
     show(map: ParsedMap): void
-    /** Ring the haplotype under the feeler, or take the ring off. Idempotent: a sweep
-     *  re-reports the same strand for many frames running. */
-    focus(strandId: number | null): void
+    /**
+     * Mark what the feeler is on: `strandIds` is the pick set in the order the map stacks
+     * them and `nearest` indexes the one that is lit. An empty set puts the cloud back at
+     * rest. Idempotent — a sweep re-reports the same set for many frames running.
+     */
+    focus(strandIds: number[], nearest: number): void
     /** Take the cloud off screen, in the same call that empties the map. */
     clear(): void
     /** The panel changed size; keep the widget inside it. */
@@ -321,8 +351,15 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
      *  dot it leaves can be put back to its own geometry without recomputing the cloud. */
     let dots: PlottedDot[] = []
     let elements: HTMLElement[] = []
-    /** Index into `dots` of the ringed haplotype, or -1. */
-    let ringed = -1
+    /** Where each plotted strand sits in `dots`. Built once with the cloud, so marking a set
+     *  of six is six lookups rather than six scans of 464. */
+    let plotted = new Map<number, number>()
+    /** Indices into `dots` of every dot currently lifted out of the crowd, ringed one first.
+     *  Kept so the marks a move leaves behind can be put back without recomputing the cloud —
+     *  the trail behind the cursor a sweep would otherwise draw. */
+    let marked: number[] = []
+    /** What `marked` was asked for, so a sweep re-reporting the same set does no DOM work. */
+    let asked = ''
 
     /** Where a drag or a resize started, in client pixels, and what it started from. */
     let grabbed: Point = { x: 0, y: 0 }
@@ -383,12 +420,13 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
 
         dots = plotCloud(map, { width: size, height: size })
         elements = []
-        ringed = -1
+        plotted = new Map(dots.map((dot, index) => [dot.strandId, index]))
+        marked = []
+        asked = ''
 
         for (const dot of dots) {
             const point = doc.createElement('div')
 
-            point.className = 'stm-pclai-dot'
             point.style.background = dot.color
             settle(point, dot)
 
@@ -400,24 +438,38 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
         plot.classList.remove('is-feeling')
     }
 
-    /** A dot at rest: its own size, centred on its coordinate. */
-    function settle(point: HTMLElement, dot: PlottedDot): void {
-        point.style.left = `${dot.at.x - DOT_SIZE * 0.5}px`
-        point.style.top = `${dot.at.y - DOT_SIZE * 0.5}px`
-        point.style.width = `${DOT_SIZE}px`
-        point.style.height = `${DOT_SIZE}px`
-        point.classList.remove('is-ringed')
+    /**
+     * Size one dot about its own centre, so it still marks the coordinate it marked at rest.
+     *
+     * Written as geometry rather than as a `scale()` transform, because a transform would
+     * scale the ring's stroke with it and the ring is a fixed weight. `mark` is the tier —
+     * `''` for the crowd — and is what the stylesheet reads to decide opacity and the ring.
+     */
+    function draw(point: HTMLElement, dot: PlottedDot, width: number, mark: string): void {
+        point.style.left = `${dot.at.x - width * 0.5}px`
+        point.style.top = `${dot.at.y - width * 0.5}px`
+        point.style.width = `${width}px`
+        point.style.height = `${width}px`
+        point.className = `stm-pclai-dot${'' === mark ? '' : ` ${mark}`}`
     }
 
-    /** The ringed dot: grown about its own centre, so it still marks the coordinate it
-     *  marked at rest. Written as geometry rather than as a `scale()` transform, because a
-     *  transform would scale the ring's stroke with it and the ring is a fixed weight. */
-    function ring(point: HTMLElement, dot: PlottedDot): void {
-        point.style.left = `${dot.at.x - FOCUS_SIZE * 0.5}px`
-        point.style.top = `${dot.at.y - FOCUS_SIZE * 0.5}px`
-        point.style.width = `${FOCUS_SIZE}px`
-        point.style.height = `${FOCUS_SIZE}px`
-        point.classList.add('is-ringed')
+    /** A dot at rest: its own size, in the crowd. */
+    function settle(point: HTMLElement, dot: PlottedDot): void {
+        draw(point, dot, DOT_SIZE, '')
+    }
+
+    /** Lift one placed strand out of the crowd, and remember that it is out. Every mark is the
+     *  same size; `tier` is only what the stylesheet reads to decide the ring. Unplaced strands
+     *  never reach here — `cloudState` has already dropped them. */
+    function mark(strandId: number, tier: string): void {
+        const index = plotted.get(strandId)
+
+        if (undefined === index) {
+            return
+        }
+
+        draw(elements[index], dots[index], MARKED_SIZE, tier)
+        marked.push(index)
     }
 
     /**
@@ -510,41 +562,49 @@ export function createPclaiInset(parent: HTMLElement): PclaiInset {
             keepInside()
         },
 
-        focus(strandId: number | null): void {
+        focus(strandIds: number[], nearest: number): void {
             if (null === current) {
                 return
             }
 
-            const state = cloudState(current, strandId)
-            const wanted = null === state.ringed
-                ? -1
-                : dots.findIndex(dot => dot.strandId === state.ringed)
+            const state = cloudState(current, strandIds, nearest)
+            const wanted = `${state.ringed}:${state.inSet.join(' ')}`
 
             plot.classList.toggle('is-feeling', state.receded)
 
-            if (wanted === ringed) {
+            if (wanted === asked) {
                 return
             }
 
-            // The dot the ring is leaving is put back before the next is marked. That is the
-            // trail behind the cursor a sweep would otherwise leave, and it is the same bug
-            // `strandAppearance` exists to keep dead on the map's side of one gesture.
-            if (-1 !== ringed) {
-                settle(elements[ringed], dots[ringed])
+            // Every dot the marks are leaving is put back before the next ones are made. That
+            // is the trail behind the cursor a sweep would otherwise leave, and it is the same
+            // bug `strandAppearance` exists to keep dead on the map's side of one gesture.
+            for (const index of marked) {
+                settle(elements[index], dots[index])
             }
 
-            if (-1 !== wanted) {
-                ring(elements[wanted], dots[wanted])
+            marked = []
+            asked = wanted
+
+            // The ring first, so it is `marked[0]` — nothing reads that today, but a ring put
+            // back after the dot it shares a coordinate with is the one ordering that could
+            // ever matter here.
+            if (null !== state.ringed) {
+                mark(state.ringed, 'is-ringed')
             }
 
-            ringed = wanted
+            for (const strandId of state.inSet) {
+                mark(strandId, 'is-in-set')
+            }
         },
 
         clear(): void {
             current = null
             dots = []
             elements = []
-            ringed = -1
+            plotted = new Map()
+            marked = []
+            asked = ''
 
             plot.replaceChildren()
             plot.classList.remove('is-feeling')

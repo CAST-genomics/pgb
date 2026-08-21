@@ -291,7 +291,7 @@ export const SURFACE_STYLES = `
    label constantly, and a readout that changed medium — dark pill here, light card there —
    would read as a different *kind* of object rather than as one more thing the viewer is
    telling them. So it takes PGB's ground, border, radius and sans-serif face, and its own
-   type is \`.node-title\`'s: this is one identifier, which is exactly what a title row is.
+   type is \`.node-title\`'s: each row is one identifier, which is exactly what a title row is.
 
    It is still its own element and not \`.graph-tooltip\` — sharing an appearance is not the
    same as sharing an owner, and #111 keeps the two separate (see \`strandLabel.ts\`). What
@@ -326,6 +326,72 @@ export const SURFACE_STYLES = `
     white-space: nowrap;
     pointer-events: none;
     display: none;
+}
+
+/* One haplotype name, one row (#120).
+
+   The label names every strand inside the cursor's css pixel — six at fit — and the
+   map lights exactly one of them, the one nearest the cursor. \`.is-emphasized\` is that one,
+   and the receded rows say the same thing about the same strands that the map is saying
+   underneath: a name at full strength refers to the strand currently emphasized, and a faded
+   one is a neighbour the researcher would have to move to reach.
+
+   0.55 rather than the map's 0.08: text has to stay readable to be worth drawing at all,
+   where a receded band only has to stay present. The two are the same statement, not the same
+   number. */
+.stm-strand-name {
+    opacity: 0.55;
+    font-weight: 400;
+}
+
+.stm-strand-name.is-emphasized {
+    opacity: 1;
+    font-weight: 600;
+}
+
+/* The colour a name has everywhere else in the viewer, beside the name (#120).
+
+   The point is one gesture answering in two panels at once: the dot beside a name here is the
+   dot that haplotype has in the ancestry cloud — same colour, same shape — so finding a named
+   strand in the cloud is matching one mark against another rather than remembering a position.
+
+   **The colour is on a filled shape and not on the text**, and that is measured rather than
+   preferred. The strand palette is pastel throughout: against this card's white the best of
+   the 464 colours on \`5520+\` reaches 2.74:1 and the median is 1.88:1, so not one of them
+   clears even the 3:1 that large text asks for, and the unplaced grey lands at 1.5:1. Names
+   set in their own colour would be a label nobody could read. A swatch spends the colour where
+   contrast is not the question and leaves the name at the card's near-black.
+
+   The lit row's swatch takes the cloud's own ring — same grey, same hairline — so the two
+   panels mark the answer identically. It is 1 px rather than the cloud's 1.5: the ring is
+   drawn around a 9 px swatch here against a 20 px dot there, and at full weight it closed up
+   the little colour it is meant to be a ring around. */
+.stm-strand-swatch {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 0.45em;
+    border-radius: 50%;
+    /* The name is what a researcher reads along; the swatch sits on that line rather than on
+       the baseline, where a round mark reads as a dropped character. */
+    vertical-align: baseline;
+}
+
+.stm-strand-name.is-emphasized .stm-strand-swatch {
+    box-shadow: 0 0 0 1px rgba(90, 94, 102, 0.95);
+}
+
+/* What the cap left out, above the list and below it (#120).
+
+   Two counts rather than one total, because direction is the only part of this a researcher
+   can act on — it is which way to move the cursor. Set smaller and lighter than a name and in
+   the numeric face: this is the viewer talking about the list, not another entry in it. */
+.stm-strand-count {
+    opacity: 0.45;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0;
 }
 
 /* Instrumentation, not chrome: only ?pick puts this on the surface.
@@ -511,9 +577,46 @@ export const SURFACE_STYLES = `
    Not the map's own 8%, and the difference is the substrate. A receded band is drawn over
    white and 8% is what left the bundle's envelope legible; a receded dot sits on a saturated
    colour ramp, where 8% is gone entirely and the cloud stops being context for the ring.
-   Chosen by looking at both fixtures. */
+   Chosen by looking at both fixtures.
+
+   **Greyed as well as faded**, and the fade alone is what was wrong with it. A dot sits on the
+   ramp's own rendering of its coordinate — that is the whole design, so the legend reads — so
+   a *coloured* dot faded to 28% over the colour it already matches subtracts almost nothing.
+   In the dense arms the crowd stayed a saturated mass and the marked dots had to be hunted for
+   inside it. Draining the colour is what actually clears the ground: the arm goes grey, the
+   ramp behind it keeps its hue, and the two or three dots still in colour are the only
+   coloured things left in that part of the plot.
+
+   **Grey does not collide with anything here**, which is what makes this available in the
+   cloud and not in the map. \`strandAppearance.ts\` chose translucency over desaturation for the
+   bands precisely because grey already means \`pclaiX="None"\` there. In this plot an unplaced
+   haplotype is never drawn at all — see \`plotCloud\` — so there is no grey dot for a
+   desaturated one to be confused with. The same reasoning the ring below is built on.
+
+   One class on the plot drives all 464 dots; nothing per-element is written when the feeler
+   moves, which is what keeps a sweep to the handful of dots that actually change tier. */
 .stm-pclai-plot.is-feeling .stm-pclai-dot {
     opacity: 0.28;
+    filter: grayscale(1);
+}
+
+/* The rest of the pick set (#120): every other haplotype inside the cursor's css pixel.
+
+   At fit six strands share that pixel and the map cannot separate them. The label names all
+   six; this is the cloud saying the same thing, so the two readouts cannot be read as two
+   different counts of what is under the cursor.
+
+   **Drawn exactly as the ringed dot is drawn, minus the ring** — same \`MARKED_SIZE\`, same
+   full colour. The set is one answer and looks like one. Size does not also encode which of
+   them is lit, because the ring already does; two marks for one distinction only makes the
+   reader compare diameters to find out what a hairline already says.
+
+   Sits above the crowd and below the ring, so a mark can never be hidden by the crowd and the
+   ring is never hidden by a mark. */
+.stm-pclai-plot.is-feeling .stm-pclai-dot.is-in-set {
+    opacity: 1;
+    filter: none;
+    z-index: 1;
 }
 
 /* The one haplotype under the feeler. The ring is the mark and the growth is what makes it
@@ -534,7 +637,8 @@ export const SURFACE_STYLES = `
 .stm-pclai-plot.is-feeling .stm-pclai-dot.is-ringed {
     opacity: 1;
     box-shadow: 0 0 0 ${RING_WIDTH}px rgba(90, 94, 102, 0.95);
-    z-index: 1;
+    filter: none;
+    z-index: 2;
 }
 
 /* The resize grip: two rules of the corner it is in, drawn as a diagonal. It takes its own
