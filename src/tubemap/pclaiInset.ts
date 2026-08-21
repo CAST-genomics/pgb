@@ -84,14 +84,28 @@ export const MAX_PLOT_SIZE = 900
  * How wide a dot is, in css pixels.
  *
  * The cloud is dense by nature — the median haplotype's nearest neighbour is well under a
- * pixel here — so this sets how the *lobes* read rather than how an individual haplotype
- * does. Four keeps a sparse arm of the cloud visible as dots instead of dissolving it,
- * without filling the dense lobes into flat blocks.
+ * pixel here — so this sets how the **lobes** read rather than how an individual haplotype
+ * does. No size makes a haplotype pointable; that is ADR 0003's whole subject.
+ *
+ * Doubled from 4 on 2026-08-21, off a sweep of 4, 6 and 8 on the chr1 strip. At 4 the
+ * sparse arm running down the right of the cloud is a line of specks and the orange lobe in
+ * the corner is a smudge; at 8 both are dots a reader can count, and the teal lobe is a
+ * shape rather than a mark. The cost is that the densest stretches merge into a solid
+ * ribbon, which is honest — they *are* solid, at 0.39 px median separation on a plot twice
+ * this one's size — and the grip is what buys the texture back when someone wants it.
  */
-export const DOT_SIZE = 4
+export const DOT_SIZE = 8
 
-/** How wide the ringed dot is, and how thick its ring, in css pixels. */
-export const FOCUS_SIZE = 10
+/**
+ * How wide the ringed dot is, and how thick its ring, in css pixels.
+ *
+ * Two and a half times the crowd, which is the ratio the mark was judged at when the crowd
+ * was 4: a ring that is merely a little larger than its neighbours has to be hunted for,
+ * and hunting is what the ring exists to end. It moves with `DOT_SIZE` for that reason —
+ * fixing it while the crowd grew would leave the feeler's answer the same size as the
+ * things it is being told apart from.
+ */
+export const FOCUS_SIZE = DOT_SIZE * 2.5
 export const RING_WIDTH = 2
 
 /**
@@ -103,8 +117,13 @@ export const RING_WIDTH = 2
  * lands on. It is sized from the **ringed** dot, the largest thing the plot ever draws, so a
  * haplotype at the edge of the cloud can be ringed without the ring being clipped by the
  * widget it sits in.
+ *
+ * Half the ringed dot, its ring, and 2 px of air. The air is not slack: at exactly the ring's
+ * outer bound, a haplotype in the corner lobe — which the chr1 strip has 27 of — is ringed
+ * flush against the widget's border, and a ring touching a border reads as a ring that has
+ * been cut off.
  */
-export const MAT = Math.ceil(FOCUS_SIZE * 0.5 + RING_WIDTH)
+export const MAT = Math.ceil(FOCUS_SIZE * 0.5 + RING_WIDTH + 2)
 
 /** One haplotype's dot: which strand it is, where it goes, and what colour it is. */
 export interface PlottedDot {
