@@ -109,21 +109,21 @@ export const FOCUS_SIZE = DOT_SIZE * 2.5
 export const RING_WIDTH = 1.5
 
 /**
- * White space between the plot and the widget's edge, in css pixels.
+ * ## There is no mat, and what that costs
  *
- * The extremes of the ramp's domain are real positions rather than headroom — the chr1
- * strip puts 27 haplotypes within a pixel of the bottom-right corner — and a dot is centred
- * on its coordinate, so half of one always lies outside the plot. The mat is what that half
- * lands on. It is sized from the **ringed** dot, the largest thing the plot ever draws, so a
- * haplotype at the edge of the cloud can be ringed without the ring being clipped by the
- * widget it sits in.
+ * The plot used to sit on a white margin sized from the ringed dot, so that a haplotype at
+ * the very edge of the cloud could be drawn — and ringed — whole. It was removed on
+ * 2026-08-21 at the user's call: on screen the margin read as a frame around a picture
+ * rather than as part of it, and the picture is the point.
  *
- * Half the ringed dot, its ring, and 2 px of air. The air is not slack: at exactly the ring's
- * outer bound, a haplotype in the corner lobe — which the chr1 strip has 27 of — is ringed
- * flush against the widget's border, and a ring touching a border reads as a ring that has
- * been cut off.
+ * So the ramp now runs to a thin grey border on three sides, and the plot clips. The
+ * extremes of the ramp's domain are real positions rather than headroom — the chr1 strip
+ * places 27 haplotypes within a pixel of the bottom-right corner — so those haplotypes are
+ * drawn as half dots against the frame, and ringed as half rings. That is the accepted cost
+ * of the framing, and it is not a bug to be fixed by quietly insetting the projection: the
+ * dots and the ramp are mapped onto the same box, and moving one without the other is what
+ * makes the legend lie about the cloud on top of it.
  */
-export const MAT = Math.ceil(FOCUS_SIZE * 0.5 + RING_WIDTH + 2)
 
 /** One haplotype's dot: which strand it is, where it goes, and what colour it is. */
 export interface PlottedDot {

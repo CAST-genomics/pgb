@@ -6,12 +6,12 @@
  * The map is the data: no chrome inside the viewing surface. Every affordance here
  * is layered over the picture rather than arranged around it.
  *
- * The interpolations are the PCLAI inset's mat and ring, imported rather than written
- * twice: the inset sizes its own mat from the ringed dot it has to leave room for, and a
- * stylesheet that disagreed about either would clip the ring against the widget's edge.
+ * The one interpolation is the PCLAI inset's ring, imported rather than written twice: the
+ * inset sizes the ringed dot's geometry around it, and a stylesheet that disagreed would
+ * draw a ring of one weight around a dot spaced for another.
  */
 
-import { MAT, RING_WIDTH } from './pclaiInset.ts'
+import { RING_WIDTH } from './pclaiInset.ts'
 
 export const SURFACE_STYLES = `
 .stm-root {
@@ -376,11 +376,11 @@ export const SURFACE_STYLES = `
     top: 0;
     display: flex;
     flex-direction: column;
-    padding: ${MAT}px;
-    padding-top: 0;
+    overflow: hidden;
+    border: 1px solid rgba(70, 74, 82, 0.55);
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
     pointer-events: none;
     z-index: 2;
 }
@@ -398,7 +398,7 @@ export const SURFACE_STYLES = `
     justify-content: space-between;
     gap: 8px;
     height: 22px;
-    padding: 0 2px;
+    padding: 0 8px;
     color: rgb(70, 74, 82);
     cursor: grab;
     pointer-events: auto;
@@ -456,17 +456,21 @@ export const SURFACE_STYLES = `
    PNG, so it is composited over white here exactly as PGB's own PCLAI chart composites it —
    the two scatters read as one legend or they read as two different claims about ancestry.
 
-   \`overflow: visible\`, which is the point of the mat around it: the extremes of the ramp's
-   domain are real positions, a dot is centred on its coordinate, and half of an edge dot
-   therefore lies outside the plot. It lands on the mat rather than being cut off against the
-   widget's border. */
+   It runs to the widget's border on the left, right and bottom, with no margin between: a
+   white surround read as a frame around the picture rather than as part of it. The border is
+   the frame now, and it is one grey line.
+
+   The plot therefore **clips**, and the widget's \`overflow: hidden\` is what does it. A dot
+   is centred on its coordinate and the ramp's domain extremes are real positions, so a
+   haplotype at the edge of the cloud is drawn as half a dot against the border — see the
+   note in \`pclaiInset.ts\`. Insetting the dots to avoid that while the ramp still filled the
+   box would put every dot on a colour that is not its own, which is the one thing this plot
+   may not do. */
 .stm-pclai-plot {
     position: relative;
-    overflow: visible;
     background-color: #ffffff;
     background-image: url('/images/pca-chart-background.png');
     background-repeat: no-repeat;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.10);
     pointer-events: none;
 }
 
