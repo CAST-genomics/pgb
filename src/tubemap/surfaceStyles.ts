@@ -498,13 +498,20 @@ export const SURFACE_STYLES = `
    findable at a glance; neither would do on its own, because a bigger dot inside a cluster
    is still the same hue as the cluster.
 
-   The ink is the viewer's own — the colour of the navigator's viewport rect and the mode
-   badge's ground — and it is deliberately **not in the ancestry palette**, which is pastel
-   throughout. A ring in any ancestry colour would read as a haplotype rather than as a mark
-   on one. */
+   **Grey, and thin.** It was 2 px of near-black, which read as a heavy object sitting on the
+   cloud rather than as a mark on one dot of it — the crowd around it is receded and pastel,
+   so the ring never needed that much weight to win. A hairline of mid grey is still
+   unmistakable against every part of the ramp, checked in the dense pink arm where a ring
+   has the least contrast to work with.
+
+   It is deliberately **not in the ancestry palette**, which is pastel hues throughout, so a
+   ring can never be mistaken for a haplotype. Grey does carry a meaning in this data — the
+   document fills unplaced strands with a light \`rgb(211, 211, 211)\` — but nothing that
+   collides here: this is a dark stroke rather than a pale fill, and an unplaced haplotype is
+   never drawn in this plot at all. */
 .stm-pclai-plot.is-feeling .stm-pclai-dot.is-ringed {
     opacity: 1;
-    box-shadow: 0 0 0 ${RING_WIDTH}px rgba(20, 22, 26, 0.92);
+    box-shadow: 0 0 0 ${RING_WIDTH}px rgba(90, 94, 102, 0.95);
     z-index: 1;
 }
 

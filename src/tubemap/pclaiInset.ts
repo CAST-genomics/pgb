@@ -106,7 +106,7 @@ export const DOT_SIZE = 8
  * things it is being told apart from.
  */
 export const FOCUS_SIZE = DOT_SIZE * 2.5
-export const RING_WIDTH = 2
+export const RING_WIDTH = 1.5
 
 /**
  * White space between the plot and the widget's edge, in css pixels.
