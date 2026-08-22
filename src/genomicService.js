@@ -197,6 +197,18 @@ class GenomicService {
         return `${a.assemblyName}#${a.haplotype}#${a.sequenceId}`
     }
 
+    /**
+     * Drop the sequence id from a triple key: 'HG00097#1#CM090112.1' -> 'HG00097#1'.
+     * This is the form the pangenome API's `assembly` parameter expects, and
+     * what resolveAssemblyKey prefix-matches back to a full key.
+     *
+     * This may not be necessary based on how parsing is handled in the backend,
+     * but included regardless.
+     */
+    static looseKey(assemblyKey) {
+        return assemblyKey.split('#').slice(0, 2).join('#')
+    }
+
     resolveAssemblyKey(loose) {
         if (this.assemblySet.has(loose)) return loose;
         const prefix = `${loose}#`;

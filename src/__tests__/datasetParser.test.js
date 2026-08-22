@@ -285,6 +285,109 @@ describe('v3 normalization', () => {
     })
 })
 
+// ── Layout snapshot ─────────────────────────────────────────────────
+
+describe('layout', () => {
+
+    it('defaults to force layout when no request layout is supplied', () => {
+        const result = parseDataset(makeV3())
+        expect(result.layout).toEqual({
+            mode: 'force',
+            spineAssembly: null,
+            refetchable: false,
+        })
+    })
+
+    it('passes a linear request layout through verbatim', () => {
+        const requestLayout = {
+            mode: 'linear',
+            spineAssembly: 'HG00097#1',
+            refetchable: true,
+        }
+        const result = parseDataset(makeV3(), requestLayout)
+        expect(result.layout).toEqual(requestLayout)
+    })
+
+    it('fills unspecified fields from the default', () => {
+        const result = parseDataset(makeV3(), { refetchable: true })
+        expect(result.layout).toEqual({
+            mode: 'force',
+            spineAssembly: null,
+            refetchable: true,
+        })
+    })
+
+    it('ignores stray layout-ish keys in the payload', () => {
+        // Only the `spine` block is read; nothing else in the JSON describes layout.
+        const v3 = makeV3()
+        v3.linear = true
+        v3.assembly_spine = 'HG00099#2'
+        const result = parseDataset(v3)
+        expect(result.layout.mode).toBe('force')
+        expect(result.layout.spineAssembly).toBeNull()
+    })
+})
+
+// ── Spine block ─────────────────────────────────────────────────────
+
+/**
+ * The backend emits `spine` only when an assembly was linearized. That makes its
+ * presence the one signal by which a dropped file or a pasted link — neither of
+ * which carries a request snapshot — can be recognized as a linear layout.
+ */
+describe('spine block', () => {
+
+    const spineBlock = (overrides = {}) => ({
+        assembly: 'HG00097',
+        haplotype: '1',
+        bp_scaled: true,
+        bp_scale: 0.00174,
+        total_bp: 1724000,
+        total_width: 3000,
+        node_count: 28,
+        ...overrides,
+    })
+
+    it('recognizes a linearized dataset with no request snapshot', () => {
+        // The dropped-file / pasted-link case.
+        const v3 = makeV3()
+        v3.spine = spineBlock()
+        const { layout } = parseDataset(v3)
+        expect(layout.mode).toBe('linear')
+        expect(layout.spineAssembly).toBe('HG00097#1')
+    })
+
+    it('leaves a response without a spine block as force', () => {
+        expect(parseDataset(makeV3()).layout.mode).toBe('force')
+    })
+
+    it('lets the response override a stale request snapshot', () => {
+        // The response describes what the backend actually laid out; the request
+        // snapshot only says what was asked for.
+        const v3 = makeV3()
+        v3.spine = spineBlock({ assembly: 'HG00099', haplotype: '2' })
+        const { layout } = parseDataset(v3, { mode: 'linear', spineAssembly: 'HG00097#1' })
+        expect(layout.spineAssembly).toBe('HG00099#2')
+    })
+
+    it('keeps the request snapshot when the block omits the assembly', () => {
+        const v3 = makeV3()
+        v3.spine = spineBlock({ assembly: undefined, haplotype: undefined })
+        const { layout } = parseDataset(v3, { mode: 'linear', spineAssembly: 'HG00097#1' })
+        expect(layout.spineAssembly).toBe('HG00097#1')
+    })
+
+    it('tolerates a malformed block without failing the parse', () => {
+        // A bad dataset must never crash the app. The block is still proof the
+        // layout is linear; only the assembly name is unrecoverable.
+        const v3 = makeV3()
+        v3.spine = { assembly: 42 }
+        const { layout } = parseDataset(v3)
+        expect(layout.mode).toBe('linear')
+        expect(layout.spineAssembly).toBeNull()
+    })
+})
+
 // ── Validation ──────────────────────────────────────────────────────
 
 describe('validation', () => {

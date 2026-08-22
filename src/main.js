@@ -112,6 +112,23 @@ document.addEventListener("DOMContentLoaded", async (event) => {
         currentPclaiKey = null
     })
 
+    // AssemblyWidget publishes the desired layout; the fetch happens here so
+    // that no widget carries a network dependency.
+    eventBus.subscribe('layout:rebuild', async (layout) => {
+        try {
+            await globals.locusInput.rebuildWithLayout(layout)
+            // widgetService.reset() hid every card during the load; reopen the
+            // one the user pressed Rebuild in.
+            globals.widgetService.showAssemblyWidget()
+            eventBus.publish('layout:rebuildSettled', { ok: true })
+        } catch (e) {
+            // app.showError has already surfaced this and left the previous
+            // scene intact; just release the widget's in-flight lock.
+            console.error('layout rebuild failed:', e)
+            eventBus.publish('layout:rebuildSettled', { ok: false })
+        }
+    })
+
     const filenamePrefix = () => {
         if (currentLocusToken && currentPclaiKey) return `${currentLocusToken}-${currentPclaiKey}`
         return currentLocusToken

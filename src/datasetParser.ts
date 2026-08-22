@@ -9,8 +9,10 @@
 
 import {
     DatasetParseError,
+    DEFAULT_DATASET_LAYOUT,
     PCLAI_COORD_SYSTEMS,
     type PclaiCoordSystem,
+    type DatasetLayout,
     type DatasetModel,
     type DatasetIndex,
     type PclaiBoundingBox,
@@ -26,7 +28,12 @@ const UNSUPPORTED_FORMAT_MESSAGE =
 
 // ── Public API ───────────────────────────────────────────────────────
 
-export function parseDataset(json: unknown): DatasetModel {
+/**
+ * @param requestLayout  Layout the dataset was requested with.  The API does
+ *   not echo it back, so callers that issued the request snapshot it here.
+ *   Omitted fields fall back to DEFAULT_DATASET_LAYOUT.
+ */
+export function parseDataset(json: unknown, requestLayout?: Partial<DatasetLayout>): DatasetModel {
     if (!json || typeof json !== 'object') {
         throw new DatasetParseError('Input is not a JSON object');
     }
@@ -35,7 +42,7 @@ export function parseDataset(json: unknown): DatasetModel {
     assertV3Format(raw);
     validateRawDataset(raw);
 
-    return normalizeV3(raw);
+    return normalizeV3(raw, requestLayout);
 }
 
 // ── Format check ─────────────────────────────────────────────────────
@@ -186,7 +193,7 @@ function normalizeV3Assemblies(
 
 // ── V3 normalizer ────────────────────────────────────────────────────
 
-function normalizeV3(json: Record<string, unknown>): DatasetModel {
+function normalizeV3(json: Record<string, unknown>, requestLayout?: Partial<DatasetLayout>): DatasetModel {
 
     // -- Sequences --
     const sequences = new Map<string, string>();
@@ -270,8 +277,23 @@ function normalizeV3(json: Record<string, unknown>): DatasetModel {
         actualLocus:  stripGenomePrefix(json.actual_locus as string | null),
     };
 
+    // -- Layout --
+    // Two sources, in increasing order of authority:
+    //   1. the caller's snapshot of what it requested (mode, spineAssembly),
+    //   2. the API's `spine` block, which the response carries only for linear
+    //      layouts and which describes what the backend actually produced.
+    // Reading (2) is what lets a linearized dataset dropped in as a file, or
+    // fetched from a pasted link, still be recognized as linear — those paths have
+    // no request snapshot to fall back on.
+    const layout: DatasetLayout = {
+        ...DEFAULT_DATASET_LAYOUT,
+        ...requestLayout,
+        ...normalizeSpineBlock(json.spine),
+    };
+
     return {
         formatVersion: 'v3',
+        layout,
         locus,
         assemblyIndex: assemblyIndex.size > 0 ? assemblyIndex : null,
         sequences,
@@ -279,6 +301,35 @@ function normalizeV3(json: Record<string, unknown>): DatasetModel {
         edges,
         index: buildDatasetIndex(nodes),
     };
+}
+
+/**
+ * Recognize a linearized dataset from the API's optional `spine` block.
+ *
+ * The backend emits `spine` only when an assembly was linearized, so its mere
+ * presence identifies the layout — which is the whole point: a saved file dropped
+ * in, or a pasted link, arrives with no record of what was requested.
+ *
+ * Absence is meaningful, not a parse failure: no `spine` means force layout and
+ * the defaults stand. Every existing fixture and force-mode response is untouched.
+ */
+function normalizeSpineBlock(raw: unknown): Partial<DatasetLayout> {
+
+    if (!raw || typeof raw !== 'object') return {};
+
+    const spine = raw as Record<string, unknown>;
+
+    const normalized: Partial<DatasetLayout> = { mode: 'linear' };
+
+    // Assigned only when present. A spread of `{ spineAssembly: undefined }` would
+    // overwrite the caller's snapshot with undefined rather than falling through.
+    if (typeof spine.assembly === 'string') {
+        normalized.spineAssembly = [spine.assembly, spine.haplotype]
+            .filter(part => typeof part === 'string' && part.length > 0)
+            .join('#');
+    }
+
+    return normalized;
 }
 
 // ── Dataset index ────────────────────────────────────────────────────

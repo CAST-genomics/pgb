@@ -12,7 +12,7 @@ import { assemblyMetadataService } from "./assemblyMetadataService.ts"
 import { pclaiCoordinateService } from "./widgets/pclaiCoordinateService.js"
 import { mountPclaiChart } from "./widgets/mountPclaiChart.js"
 import { parseDataset } from './datasetParser.ts'
-import { DatasetParseError } from './datasetModel.ts'
+import { DatasetParseError, type DatasetLayout } from './datasetModel.ts'
 
 let xxPre: number | undefined = undefined
 let yyPre: number | undefined = undefined
@@ -201,7 +201,11 @@ class App {
         this.renderer.setAnimationLoop(null)
     }
 
-    async handleSearch(url: string): Promise<void> {
+    /**
+     * @param requestLayout  Layout this request asked the API for.  The
+     *   response does not echo it, so it is carried forward to the parser.
+     */
+    async handleSearch(url: string, requestLayout?: Partial<DatasetLayout>): Promise<void> {
 
         this.stopAnimation()
 
@@ -218,13 +222,13 @@ class App {
             throw error
         }
 
-        await this.processData(json)
+        await this.processData(json, requestLayout)
     }
 
-    async processData(json: any): Promise<void> {
+    async processData(json: any, requestLayout?: Partial<DatasetLayout>): Promise<void> {
         let dataset
         try {
-            dataset = parseDataset(json)
+            dataset = parseDataset(json, requestLayout)
         } catch (error: any) {
             console.error('Failed to parse dataset:', error)
             const detail = error instanceof DatasetParseError
