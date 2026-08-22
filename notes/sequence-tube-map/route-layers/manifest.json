@@ -1,0 +1,1481 @@
+{
+  "generatedBy": "scripts/split_routes_svg.py",
+  "document": "src/tubemap/__tests__/fixtures/stm-node-5520-chr1-25331646-25335796.svg",
+  "viewBox": "0 -60 108982.57142857135 7785",
+  "strands": 464,
+  "segments": 274,
+  "routes": [
+    {
+      "route": 0,
+      "file": "routes/route-000.svg",
+      "strands": 124,
+      "segments": 179,
+      "jaccardToConsensus": 1.0,
+      "members": [
+        "0",
+        "2",
+        "3",
+        "9",
+        "13",
+        "21",
+        "25",
+        "26",
+        "28",
+        "29",
+        "35",
+        "37",
+        "38",
+        "43",
+        "44",
+        "46",
+        "47",
+        "48",
+        "49",
+        "53",
+        "54",
+        "55",
+        "58",
+        "62",
+        "63",
+        "65",
+        "66",
+        "68",
+        "72",
+        "74",
+        "90",
+        "91",
+        "95",
+        "97",
+        "99",
+        "102",
+        "103",
+        "104",
+        "110",
+        "111",
+        "113",
+        "114",
+        "115",
+        "116",
+        "117",
+        "119",
+        "150",
+        "152",
+        "160",
+        "161",
+        "164",
+        "167",
+        "168",
+        "172",
+        "173",
+        "174",
+        "181",
+        "182",
+        "183",
+        "192",
+        "193",
+        "197",
+        "198",
+        "202",
+        "208",
+        "209",
+        "210",
+        "221",
+        "222",
+        "227",
+        "231",
+        "236",
+        "238",
+        "255",
+        "300",
+        "301",
+        "308",
+        "310",
+        "314",
+        "315",
+        "318",
+        "319",
+        "326",
+        "328",
+        "332",
+        "333",
+        "335",
+        "337",
+        "341",
+        "350",
+        "351",
+        "353",
+        "354",
+        "357",
+        "370",
+        "371",
+        "372",
+        "373",
+        "376",
+        "377",
+        "380",
+        "382",
+        "385",
+        "386",
+        "390",
+        "391",
+        "392",
+        "393",
+        "403",
+        "411",
+        "420",
+        "426",
+        "427",
+        "436",
+        "441",
+        "443",
+        "446",
+        "447",
+        "449",
+        "450",
+        "452",
+        "453",
+        "456",
+        "461"
+      ]
+    },
+    {
+      "route": 1,
+      "file": "routes/route-001.svg",
+      "strands": 70,
+      "segments": 12,
+      "jaccardToConsensus": 0.0552,
+      "members": [
+        "4",
+        "6",
+        "7",
+        "10",
+        "11",
+        "12",
+        "14",
+        "15",
+        "22",
+        "23",
+        "27",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "36",
+        "39",
+        "40",
+        "69",
+        "73",
+        "75",
+        "78",
+        "79",
+        "80",
+        "81",
+        "86",
+        "88",
+        "94",
+        "98",
+        "105",
+        "106",
+        "108",
+        "109",
+        "121",
+        "123",
+        "138",
+        "141",
+        "163",
+        "237",
+        "239",
+        "257",
+        "275",
+        "278",
+        "280",
+        "291",
+        "303",
+        "305",
+        "307",
+        "327",
+        "334",
+        "336",
+        "339",
+        "356",
+        "364",
+        "379",
+        "417",
+        "418",
+        "419",
+        "431",
+        "432",
+        "434",
+        "435",
+        "442",
+        "448",
+        "451",
+        "454",
+        "458",
+        "459",
+        "460"
+      ]
+    },
+    {
+      "route": 2,
+      "file": "routes/route-002.svg",
+      "strands": 44,
+      "segments": 181,
+      "jaccardToConsensus": 0.9355,
+      "members": [
+        "19",
+        "24",
+        "41",
+        "42",
+        "56",
+        "67",
+        "89",
+        "128",
+        "129",
+        "132",
+        "133",
+        "134",
+        "135",
+        "140",
+        "143",
+        "148",
+        "149",
+        "153",
+        "162",
+        "165",
+        "177",
+        "180",
+        "186",
+        "196",
+        "218",
+        "219",
+        "223",
+        "234",
+        "277",
+        "292",
+        "299",
+        "309",
+        "320",
+        "366",
+        "383",
+        "384",
+        "398",
+        "399",
+        "415",
+        "416",
+        "422",
+        "433",
+        "437",
+        "440"
+      ]
+    },
+    {
+      "route": 3,
+      "file": "routes/route-003.svg",
+      "strands": 11,
+      "segments": 180,
+      "jaccardToConsensus": 0.9511,
+      "members": [
+        "126",
+        "195",
+        "226",
+        "232",
+        "240",
+        "245",
+        "250",
+        "269",
+        "281",
+        "295",
+        "401"
+      ]
+    },
+    {
+      "route": 4,
+      "file": "routes/route-004.svg",
+      "strands": 9,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "5",
+        "93",
+        "118",
+        "120",
+        "122",
+        "136",
+        "151",
+        "199",
+        "321"
+      ]
+    },
+    {
+      "route": 5,
+      "file": "routes/route-005.svg",
+      "strands": 9,
+      "segments": 9,
+      "jaccardToConsensus": 0.0444,
+      "members": [
+        "188",
+        "207",
+        "213",
+        "249",
+        "252",
+        "259",
+        "293",
+        "294",
+        "361"
+      ]
+    },
+    {
+      "route": 6,
+      "file": "routes/route-006.svg",
+      "strands": 9,
+      "segments": 5,
+      "jaccardToConsensus": 0.0279,
+      "members": [
+        "124",
+        "155",
+        "200",
+        "203",
+        "204",
+        "289",
+        "302",
+        "311",
+        "325"
+      ]
+    },
+    {
+      "route": 7,
+      "file": "routes/route-007.svg",
+      "strands": 7,
+      "segments": 173,
+      "jaccardToConsensus": 0.9665,
+      "members": [
+        "17",
+        "176",
+        "352",
+        "358",
+        "367",
+        "387",
+        "388"
+      ]
+    },
+    {
+      "route": 8,
+      "file": "routes/route-008.svg",
+      "strands": 6,
+      "segments": 180,
+      "jaccardToConsensus": 0.9834,
+      "members": [
+        "256",
+        "274",
+        "298",
+        "304",
+        "330",
+        "438"
+      ]
+    },
+    {
+      "route": 9,
+      "file": "routes/route-009.svg",
+      "strands": 6,
+      "segments": 179,
+      "jaccardToConsensus": 0.8842,
+      "members": [
+        "77",
+        "264",
+        "288",
+        "348",
+        "397",
+        "412"
+      ]
+    },
+    {
+      "route": 10,
+      "file": "routes/route-010.svg",
+      "strands": 6,
+      "segments": 172,
+      "jaccardToConsensus": 0.8571,
+      "members": [
+        "92",
+        "125",
+        "205",
+        "285",
+        "346",
+        "402"
+      ]
+    },
+    {
+      "route": 11,
+      "file": "routes/route-011.svg",
+      "strands": 5,
+      "segments": 180,
+      "jaccardToConsensus": 0.9725,
+      "members": [
+        "76",
+        "276",
+        "395",
+        "404",
+        "405"
+      ]
+    },
+    {
+      "route": 12,
+      "file": "routes/route-012.svg",
+      "strands": 5,
+      "segments": 180,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "101",
+        "107",
+        "112",
+        "146",
+        "185"
+      ]
+    },
+    {
+      "route": 13,
+      "file": "routes/route-013.svg",
+      "strands": 5,
+      "segments": 179,
+      "jaccardToConsensus": 0.9563,
+      "members": [
+        "127",
+        "266",
+        "290",
+        "406",
+        "429"
+      ]
+    },
+    {
+      "route": 14,
+      "file": "routes/route-014.svg",
+      "strands": 5,
+      "segments": 178,
+      "jaccardToConsensus": 0.9194,
+      "members": [
+        "59",
+        "170",
+        "189",
+        "344",
+        "425"
+      ]
+    },
+    {
+      "route": 15,
+      "file": "routes/route-015.svg",
+      "strands": 5,
+      "segments": 178,
+      "jaccardToConsensus": 0.7163,
+      "members": [
+        "171",
+        "206",
+        "215",
+        "241",
+        "246"
+      ]
+    },
+    {
+      "route": 16,
+      "file": "routes/route-016.svg",
+      "strands": 4,
+      "segments": 182,
+      "jaccardToConsensus": 0.9305,
+      "members": [
+        "82",
+        "137",
+        "142",
+        "368"
+      ]
+    },
+    {
+      "route": 17,
+      "file": "routes/route-017.svg",
+      "strands": 4,
+      "segments": 180,
+      "jaccardToConsensus": 0.8895,
+      "members": [
+        "228",
+        "267",
+        "423",
+        "462"
+      ]
+    },
+    {
+      "route": 18,
+      "file": "routes/route-018.svg",
+      "strands": 4,
+      "segments": 180,
+      "jaccardToConsensus": 0.8796,
+      "members": [
+        "191",
+        "220",
+        "258",
+        "271"
+      ]
+    },
+    {
+      "route": 19,
+      "file": "routes/route-019.svg",
+      "strands": 4,
+      "segments": 178,
+      "jaccardToConsensus": 0.8889,
+      "members": [
+        "235",
+        "242",
+        "342",
+        "424"
+      ]
+    },
+    {
+      "route": 20,
+      "file": "routes/route-020.svg",
+      "strands": 4,
+      "segments": 10,
+      "jaccardToConsensus": 0.0559,
+      "members": [
+        "100",
+        "145",
+        "194",
+        "282"
+      ]
+    },
+    {
+      "route": 21,
+      "file": "routes/route-021.svg",
+      "strands": 3,
+      "segments": 182,
+      "jaccardToConsensus": 0.9409,
+      "members": [
+        "251",
+        "296",
+        "297"
+      ]
+    },
+    {
+      "route": 22,
+      "file": "routes/route-022.svg",
+      "strands": 3,
+      "segments": 181,
+      "jaccardToConsensus": 0.9672,
+      "members": [
+        "394",
+        "428",
+        "463"
+      ]
+    },
+    {
+      "route": 23,
+      "file": "routes/route-023.svg",
+      "strands": 3,
+      "segments": 180,
+      "jaccardToConsensus": 0.9617,
+      "members": [
+        "85",
+        "262",
+        "263"
+      ]
+    },
+    {
+      "route": 24,
+      "file": "routes/route-024.svg",
+      "strands": 3,
+      "segments": 180,
+      "jaccardToConsensus": 0.9405,
+      "members": [
+        "243",
+        "247",
+        "270"
+      ]
+    },
+    {
+      "route": 25,
+      "file": "routes/route-025.svg",
+      "strands": 3,
+      "segments": 179,
+      "jaccardToConsensus": 0.9779,
+      "members": [
+        "45",
+        "50",
+        "211"
+      ]
+    },
+    {
+      "route": 26,
+      "file": "routes/route-026.svg",
+      "strands": 3,
+      "segments": 9,
+      "jaccardToConsensus": 0.0503,
+      "members": [
+        "225",
+        "343",
+        "362"
+      ]
+    },
+    {
+      "route": 27,
+      "file": "routes/route-027.svg",
+      "strands": 2,
+      "segments": 182,
+      "jaccardToConsensus": 0.8513,
+      "members": [
+        "179",
+        "347"
+      ]
+    },
+    {
+      "route": 28,
+      "file": "routes/route-028.svg",
+      "strands": 2,
+      "segments": 181,
+      "jaccardToConsensus": 0.9565,
+      "members": [
+        "87",
+        "159"
+      ]
+    },
+    {
+      "route": 29,
+      "file": "routes/route-029.svg",
+      "strands": 2,
+      "segments": 181,
+      "jaccardToConsensus": 0.9251,
+      "members": [
+        "18",
+        "230"
+      ]
+    },
+    {
+      "route": 30,
+      "file": "routes/route-030.svg",
+      "strands": 2,
+      "segments": 180,
+      "jaccardToConsensus": 0.9617,
+      "members": [
+        "178",
+        "273"
+      ]
+    },
+    {
+      "route": 31,
+      "file": "routes/route-031.svg",
+      "strands": 2,
+      "segments": 180,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "306",
+        "316"
+      ]
+    },
+    {
+      "route": 32,
+      "file": "routes/route-032.svg",
+      "strands": 2,
+      "segments": 180,
+      "jaccardToConsensus": 0.9405,
+      "members": [
+        "139",
+        "400"
+      ]
+    },
+    {
+      "route": 33,
+      "file": "routes/route-033.svg",
+      "strands": 2,
+      "segments": 180,
+      "jaccardToConsensus": 0.9301,
+      "members": [
+        "248",
+        "283"
+      ]
+    },
+    {
+      "route": 34,
+      "file": "routes/route-034.svg",
+      "strands": 2,
+      "segments": 180,
+      "jaccardToConsensus": 0.9725,
+      "members": [
+        "156",
+        "169"
+      ]
+    },
+    {
+      "route": 35,
+      "file": "routes/route-035.svg",
+      "strands": 2,
+      "segments": 180,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "61",
+        "70"
+      ]
+    },
+    {
+      "route": 36,
+      "file": "routes/route-036.svg",
+      "strands": 2,
+      "segments": 180,
+      "jaccardToConsensus": 0.9617,
+      "members": [
+        "253",
+        "272"
+      ]
+    },
+    {
+      "route": 37,
+      "file": "routes/route-037.svg",
+      "strands": 2,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "317",
+        "340"
+      ]
+    },
+    {
+      "route": 38,
+      "file": "routes/route-038.svg",
+      "strands": 2,
+      "segments": 178,
+      "jaccardToConsensus": 0.9194,
+      "members": [
+        "212",
+        "410"
+      ]
+    },
+    {
+      "route": 39,
+      "file": "routes/route-039.svg",
+      "strands": 2,
+      "segments": 178,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "378",
+        "396"
+      ]
+    },
+    {
+      "route": 40,
+      "file": "routes/route-040.svg",
+      "strands": 2,
+      "segments": 178,
+      "jaccardToConsensus": 0.9833,
+      "members": [
+        "324",
+        "457"
+      ]
+    },
+    {
+      "route": 41,
+      "file": "routes/route-041.svg",
+      "strands": 2,
+      "segments": 167,
+      "jaccardToConsensus": 0.933,
+      "members": [
+        "201",
+        "389"
+      ]
+    },
+    {
+      "route": 42,
+      "file": "routes/route-042.svg",
+      "strands": 1,
+      "segments": 185,
+      "jaccardToConsensus": 0.9259,
+      "members": [
+        "184"
+      ]
+    },
+    {
+      "route": 43,
+      "file": "routes/route-043.svg",
+      "strands": 1,
+      "segments": 185,
+      "jaccardToConsensus": 0.9158,
+      "members": [
+        "374"
+      ]
+    },
+    {
+      "route": 44,
+      "file": "routes/route-044.svg",
+      "strands": 1,
+      "segments": 184,
+      "jaccardToConsensus": 0.9309,
+      "members": [
+        "130"
+      ]
+    },
+    {
+      "route": 45,
+      "file": "routes/route-045.svg",
+      "strands": 1,
+      "segments": 184,
+      "jaccardToConsensus": 0.9412,
+      "members": [
+        "360"
+      ]
+    },
+    {
+      "route": 46,
+      "file": "routes/route-046.svg",
+      "strands": 1,
+      "segments": 184,
+      "jaccardToConsensus": 0.9206,
+      "members": [
+        "157"
+      ]
+    },
+    {
+      "route": 47,
+      "file": "routes/route-047.svg",
+      "strands": 1,
+      "segments": 184,
+      "jaccardToConsensus": 0.9206,
+      "members": [
+        "233"
+      ]
+    },
+    {
+      "route": 48,
+      "file": "routes/route-048.svg",
+      "strands": 1,
+      "segments": 183,
+      "jaccardToConsensus": 0.9255,
+      "members": [
+        "144"
+      ]
+    },
+    {
+      "route": 49,
+      "file": "routes/route-049.svg",
+      "strands": 1,
+      "segments": 183,
+      "jaccardToConsensus": 0.9255,
+      "members": [
+        "60"
+      ]
+    },
+    {
+      "route": 50,
+      "file": "routes/route-050.svg",
+      "strands": 1,
+      "segments": 183,
+      "jaccardToConsensus": 0.9153,
+      "members": [
+        "375"
+      ]
+    },
+    {
+      "route": 51,
+      "file": "routes/route-051.svg",
+      "strands": 1,
+      "segments": 182,
+      "jaccardToConsensus": 0.9305,
+      "members": [
+        "52"
+      ]
+    },
+    {
+      "route": 52,
+      "file": "routes/route-052.svg",
+      "strands": 1,
+      "segments": 182,
+      "jaccardToConsensus": 0.8901,
+      "members": [
+        "287"
+      ]
+    },
+    {
+      "route": 53,
+      "file": "routes/route-053.svg",
+      "strands": 1,
+      "segments": 182,
+      "jaccardToConsensus": 0.9101,
+      "members": [
+        "363"
+      ]
+    },
+    {
+      "route": 54,
+      "file": "routes/route-054.svg",
+      "strands": 1,
+      "segments": 182,
+      "jaccardToConsensus": 0.9202,
+      "members": [
+        "64"
+      ]
+    },
+    {
+      "route": 55,
+      "file": "routes/route-055.svg",
+      "strands": 1,
+      "segments": 182,
+      "jaccardToConsensus": 0.9305,
+      "members": [
+        "224"
+      ]
+    },
+    {
+      "route": 56,
+      "file": "routes/route-056.svg",
+      "strands": 1,
+      "segments": 182,
+      "jaccardToConsensus": 0.9305,
+      "members": [
+        "154"
+      ]
+    },
+    {
+      "route": 57,
+      "file": "routes/route-057.svg",
+      "strands": 1,
+      "segments": 182,
+      "jaccardToConsensus": 0.9305,
+      "members": [
+        "57"
+      ]
+    },
+    {
+      "route": 58,
+      "file": "routes/route-058.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.8557,
+      "members": [
+        "409"
+      ]
+    },
+    {
+      "route": 59,
+      "file": "routes/route-059.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.9459,
+      "members": [
+        "83"
+      ]
+    },
+    {
+      "route": 60,
+      "file": "routes/route-060.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.9565,
+      "members": [
+        "268"
+      ]
+    },
+    {
+      "route": 61,
+      "file": "routes/route-061.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.989,
+      "members": [
+        "345"
+      ]
+    },
+    {
+      "route": 62,
+      "file": "routes/route-062.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.989,
+      "members": [
+        "20"
+      ]
+    },
+    {
+      "route": 63,
+      "file": "routes/route-063.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.8848,
+      "members": [
+        "408"
+      ]
+    },
+    {
+      "route": 64,
+      "file": "routes/route-064.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.9565,
+      "members": [
+        "214"
+      ]
+    },
+    {
+      "route": 65,
+      "file": "routes/route-065.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.9251,
+      "members": [
+        "359"
+      ]
+    },
+    {
+      "route": 66,
+      "file": "routes/route-066.svg",
+      "strands": 1,
+      "segments": 181,
+      "jaccardToConsensus": 0.989,
+      "members": [
+        "131"
+      ]
+    },
+    {
+      "route": 67,
+      "file": "routes/route-067.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9834,
+      "members": [
+        "313"
+      ]
+    },
+    {
+      "route": 68,
+      "file": "routes/route-068.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9725,
+      "members": [
+        "331"
+      ]
+    },
+    {
+      "route": 69,
+      "file": "routes/route-069.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "338"
+      ]
+    },
+    {
+      "route": 70,
+      "file": "routes/route-070.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.8601,
+      "members": [
+        "279"
+      ]
+    },
+    {
+      "route": 71,
+      "file": "routes/route-071.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "355"
+      ]
+    },
+    {
+      "route": 72,
+      "file": "routes/route-072.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9834,
+      "members": [
+        "455"
+      ]
+    },
+    {
+      "route": 73,
+      "file": "routes/route-073.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9198,
+      "members": [
+        "445"
+      ]
+    },
+    {
+      "route": 74,
+      "file": "routes/route-074.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.8796,
+      "members": [
+        "284"
+      ]
+    },
+    {
+      "route": 75,
+      "file": "routes/route-075.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9511,
+      "members": [
+        "1"
+      ]
+    },
+    {
+      "route": 76,
+      "file": "routes/route-076.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9405,
+      "members": [
+        "349"
+      ]
+    },
+    {
+      "route": 77,
+      "file": "routes/route-077.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "414"
+      ]
+    },
+    {
+      "route": 78,
+      "file": "routes/route-078.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.8895,
+      "members": [
+        "84"
+      ]
+    },
+    {
+      "route": 79,
+      "file": "routes/route-079.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9834,
+      "members": [
+        "147"
+      ]
+    },
+    {
+      "route": 80,
+      "file": "routes/route-080.svg",
+      "strands": 1,
+      "segments": 180,
+      "jaccardToConsensus": 0.9617,
+      "members": [
+        "96"
+      ]
+    },
+    {
+      "route": 81,
+      "file": "routes/route-081.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "175"
+      ]
+    },
+    {
+      "route": 82,
+      "file": "routes/route-082.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "329"
+      ]
+    },
+    {
+      "route": 83,
+      "file": "routes/route-083.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "166"
+      ]
+    },
+    {
+      "route": 84,
+      "file": "routes/route-084.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "187"
+      ]
+    },
+    {
+      "route": 85,
+      "file": "routes/route-085.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "16"
+      ]
+    },
+    {
+      "route": 86,
+      "file": "routes/route-086.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.8743,
+      "members": [
+        "407"
+      ]
+    },
+    {
+      "route": 87,
+      "file": "routes/route-087.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "312"
+      ]
+    },
+    {
+      "route": 88,
+      "file": "routes/route-088.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9144,
+      "members": [
+        "158"
+      ]
+    },
+    {
+      "route": 89,
+      "file": "routes/route-089.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "365"
+      ]
+    },
+    {
+      "route": 90,
+      "file": "routes/route-090.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "369"
+      ]
+    },
+    {
+      "route": 91,
+      "file": "routes/route-091.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9144,
+      "members": [
+        "217"
+      ]
+    },
+    {
+      "route": 92,
+      "file": "routes/route-092.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "439"
+      ]
+    },
+    {
+      "route": 93,
+      "file": "routes/route-093.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9457,
+      "members": [
+        "286"
+      ]
+    },
+    {
+      "route": 94,
+      "file": "routes/route-094.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9563,
+      "members": [
+        "260"
+      ]
+    },
+    {
+      "route": 95,
+      "file": "routes/route-095.svg",
+      "strands": 1,
+      "segments": 179,
+      "jaccardToConsensus": 0.9889,
+      "members": [
+        "71"
+      ]
+    },
+    {
+      "route": 96,
+      "file": "routes/route-096.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.9833,
+      "members": [
+        "323"
+      ]
+    },
+    {
+      "route": 97,
+      "file": "routes/route-097.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.9194,
+      "members": [
+        "190"
+      ]
+    },
+    {
+      "route": 98,
+      "file": "routes/route-098.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.9091,
+      "members": [
+        "229"
+      ]
+    },
+    {
+      "route": 99,
+      "file": "routes/route-099.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.7163,
+      "members": [
+        "261"
+      ]
+    },
+    {
+      "route": 100,
+      "file": "routes/route-100.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.8789,
+      "members": [
+        "254"
+      ]
+    },
+    {
+      "route": 101,
+      "file": "routes/route-101.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "444"
+      ]
+    },
+    {
+      "route": 102,
+      "file": "routes/route-102.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.9724,
+      "members": [
+        "381"
+      ]
+    },
+    {
+      "route": 103,
+      "file": "routes/route-103.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.9402,
+      "members": [
+        "8"
+      ]
+    },
+    {
+      "route": 104,
+      "file": "routes/route-104.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.8789,
+      "members": [
+        "244"
+      ]
+    },
+    {
+      "route": 105,
+      "file": "routes/route-105.svg",
+      "strands": 1,
+      "segments": 178,
+      "jaccardToConsensus": 0.9944,
+      "members": [
+        "216"
+      ]
+    },
+    {
+      "route": 106,
+      "file": "routes/route-106.svg",
+      "strands": 1,
+      "segments": 177,
+      "jaccardToConsensus": 0.9348,
+      "members": [
+        "413"
+      ]
+    },
+    {
+      "route": 107,
+      "file": "routes/route-107.svg",
+      "strands": 1,
+      "segments": 177,
+      "jaccardToConsensus": 0.9888,
+      "members": [
+        "430"
+      ]
+    },
+    {
+      "route": 108,
+      "file": "routes/route-108.svg",
+      "strands": 1,
+      "segments": 177,
+      "jaccardToConsensus": 0.9778,
+      "members": [
+        "322"
+      ]
+    },
+    {
+      "route": 109,
+      "file": "routes/route-109.svg",
+      "strands": 1,
+      "segments": 175,
+      "jaccardToConsensus": 0.8438,
+      "members": [
+        "265"
+      ]
+    },
+    {
+      "route": 110,
+      "file": "routes/route-110.svg",
+      "strands": 1,
+      "segments": 174,
+      "jaccardToConsensus": 0.9721,
+      "members": [
+        "51"
+      ]
+    },
+    {
+      "route": 111,
+      "file": "routes/route-111.svg",
+      "strands": 1,
+      "segments": 171,
+      "jaccardToConsensus": 0.8519,
+      "members": [
+        "421"
+      ]
+    }
+  ]
+}
