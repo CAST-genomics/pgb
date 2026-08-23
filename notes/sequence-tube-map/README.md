@@ -66,6 +66,9 @@ Long-form arguments, each self-contained HTML:
   they traverse.
 - **[`tracing-strand-463.html`](tracing-strand-463.html)** — following one haplotype.
 - **[`a-band-is-arithmetic.html`](a-band-is-arithmetic.html)** — the band as a drawable.
+- **[`route-layers.html`](route-layers.html)** — companion to the `route-layers/` test app:
+  one SVG per route, and what taking `5520+` apart along route boundaries turned up. Two
+  findings qualify `depth-cue-for-route-disambiguation.html` §01.
 
 ### `measurements/`
 

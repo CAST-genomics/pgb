@@ -1,0 +1,504 @@
+<meta charset="utf-8">
+<title>Depth Cueing for Route Disambiguation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#ffffff;
+  --panel:#f6f4ef;
+  --panel-2:#efece5;
+  --ink:#16191b;
+  --ink-2:#41474b;
+  --ink-3:#6d7479;
+  --rule:#ddd9d1;
+  --rule-soft:#ebe7e0;
+  --accent:#1d5c60;
+  --accent-soft:#e2ecec;
+  --c0:#1d5c60;
+  --c1:#7b3f5e;
+  --c2:#3b5378;
+  --c3:#8a6a1f;
+  --c4:#96482c;
+  --grid:#e6e2da;
+  --shadow:0 1px 0 rgba(22,25,27,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0f1214;
+    --panel:#171b1d;
+    --panel-2:#1d2225;
+    --ink:#e9e6e0;
+    --ink-2:#b9bec1;
+    --ink-3:#878d91;
+    --rule:#2b3134;
+    --rule-soft:#22282a;
+    --accent:#63b3b3;
+    --accent-soft:#16292a;
+    --c0:#5fb0b0;
+    --c1:#c88bab;
+    --c2:#8aa5cd;
+    --c3:#ceac5c;
+    --c4:#dd8e6d;
+    --grid:#262c2f;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0f1214;
+  --panel:#171b1d;
+  --panel-2:#1d2225;
+  --ink:#e9e6e0;
+  --ink-2:#b9bec1;
+  --ink-3:#878d91;
+  --rule:#2b3134;
+  --rule-soft:#22282a;
+  --accent:#63b3b3;
+  --accent-soft:#16292a;
+  --c0:#5fb0b0;
+  --c1:#c88bab;
+  --c2:#8aa5cd;
+  --c3:#ceac5c;
+  --c4:#dd8e6d;
+  --grid:#262c2f;
+  --shadow:none;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:Spectral,Georgia,"Times New Roman",serif;
+  font-weight:400;
+  font-size:17.5px;
+  line-height:1.62;
+  margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px 120px}
+
+/* ---- typographic scale ---- */
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:clamp(2.6rem,6vw,4.1rem);font-weight:700;line-height:1.02;letter-spacing:-.022em}
+h2{font-size:1.62rem;font-weight:600;line-height:1.2;letter-spacing:-.012em}
+h3{font-size:1.06rem;font-weight:600;line-height:1.3}
+p{margin:0}
+.mono,code,th,.label,.num{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+.label{
+  font-size:.685rem;font-weight:500;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+em{font-style:italic}
+strong{font-weight:600}
+code{
+  font-size:.86em;background:var(--panel);border:1px solid var(--rule-soft);
+  border-radius:2px;padding:.06em .34em;color:var(--ink-2);
+}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+a:hover{border-bottom-color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+/* ---- masthead ---- */
+header.mast{padding:88px 0 0;border-bottom:1px solid var(--rule);margin-bottom:56px}
+.mast .label{display:block;margin-bottom:26px}
+.mast .deck{
+  font-size:1.3rem;line-height:1.45;color:var(--ink-2);max-width:34em;margin-top:26px;
+  font-weight:300;
+}
+.mast .deck b{font-weight:600;color:var(--ink)}
+.colophon{
+  display:flex;flex-wrap:wrap;gap:0 40px;margin:44px 0 26px;
+  font-family:"IBM Plex Mono",monospace;font-size:.76rem;color:var(--ink-3);line-height:1.9;
+}
+.colophon div span{color:var(--ink-2)}
+
+/* ---- article grid: main measure + sidenote rail ---- */
+section{
+  display:grid;grid-template-columns:minmax(0,64ch) 1fr;gap:0 52px;align-items:start;
+}
+section > *{grid-column:1}
+figure,.tablewrap,.glossary,.callout,.builds{grid-column:1 / -1}
+.side{
+  grid-column:2;font-size:.83rem;line-height:1.5;color:var(--ink-3);
+  border-top:1px solid var(--rule);padding-top:10px;max-width:27ch;margin-top:.35em;
+}
+.side b{color:var(--ink-2);font-weight:600}
+@media (max-width:1000px){
+  section{grid-template-columns:minmax(0,1fr)}
+  section > *,.side{grid-column:1}
+  .side{max-width:none;border-top:0;border-left:2px solid var(--rule);padding:0 0 0 16px;margin:1.6em 0 0}
+}
+
+/* ---- section rhythm ---- */
+section{margin-top:64px}
+.sechead{display:flex;gap:16px;align-items:baseline;margin-bottom:22px}
+.sechead .n{
+  font-family:"IBM Plex Mono",monospace;font-size:.8rem;font-weight:600;color:var(--accent);
+  padding-top:.25em;letter-spacing:.02em;
+}
+p + p{margin-top:1.05em}
+h2 + p, h3 + p{margin-top:.7em}
+p + h3{margin-top:2em}
+.lede{font-size:1.12rem;color:var(--ink-2)}
+
+/* ---- figures ---- */
+figure{margin:38px 0 0;grid-column:1 / -1}
+figure svg{display:block;width:100%;height:auto;overflow:visible}
+figcaption{
+  font-family:"IBM Plex Mono",monospace;font-size:.755rem;line-height:1.6;color:var(--ink-3);
+  margin-top:14px;max-width:72ch;
+}
+figcaption b{color:var(--ink-2);font-weight:500}
+.figframe{border-top:1px solid var(--rule);padding-top:22px}
+
+/* ---- tables ---- */
+.tablewrap{overflow-x:auto;grid-column:1 / -1;margin:34px 0 0}
+table{border-collapse:collapse;width:100%;font-size:.845rem;font-variant-numeric:tabular-nums}
+th{
+  font-size:.68rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  text-align:right;padding:0 0 9px 22px;border-bottom:1px solid var(--rule);white-space:nowrap;
+}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+td{
+  padding:9px 0 9px 22px;text-align:right;border-bottom:1px solid var(--rule-soft);
+  font-family:"IBM Plex Mono",monospace;white-space:nowrap;color:var(--ink-2);
+}
+td:first-child{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--ink)}
+td.hi{color:var(--ink);font-weight:600}
+tr.flag td{background:var(--accent-soft)}
+tbody tr:last-child td{border-bottom:1px solid var(--rule)}
+
+/* ---- glossary ---- */
+.glossary{
+  grid-column:1 / -1;background:var(--panel);border:1px solid var(--rule-soft);
+  border-radius:3px;padding:34px 36px;margin-top:26px;
+}
+.gterms{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:22px 40px;margin-top:24px;
+}
+.gterm dt{
+  font-family:"IBM Plex Mono",monospace;font-size:.79rem;font-weight:600;color:var(--ink);
+  margin-bottom:3px;
+}
+.gterm dd{margin:0;font-size:.905rem;line-height:1.5;color:var(--ink-2)}
+.gterm dd em{color:var(--ink-3)}
+
+/* ---- callout ---- */
+.callout{
+  grid-column:1 / -1;border-left:3px solid var(--accent);background:var(--panel);
+  padding:22px 26px;margin-top:34px;border-radius:0 3px 3px 0;
+}
+.callout p{font-size:1rem}
+.callout .label{margin-bottom:8px;color:var(--accent)}
+
+/* ---- ranked build list ---- */
+.builds{grid-column:1 / -1;margin-top:14px;border-top:1px solid var(--rule)}
+.build{
+  display:grid;grid-template-columns:2.4rem minmax(0,1fr) 11rem;gap:0 24px;
+  padding:22px 0;border-bottom:1px solid var(--rule-soft);align-items:start;
+}
+.build .r{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--accent);font-weight:600;padding-top:.2em}
+.build h3{margin-bottom:5px}
+.build p{font-size:.95rem;color:var(--ink-2)}
+.build .cost{
+  font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-3);line-height:1.55;
+  text-align:right;
+}
+@media (max-width:720px){
+  .build{grid-template-columns:2.2rem minmax(0,1fr)}
+  .build .cost{grid-column:2;text-align:left;margin-top:8px}
+}
+
+/* ---- key ---- */
+.key{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:16px;font-family:"IBM Plex Mono",monospace;font-size:.73rem;color:var(--ink-3)}
+.key span{display:inline-flex;align-items:center;gap:7px}
+.key i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+footer{
+  grid-column:1 / -1;margin-top:80px;padding-top:26px;border-top:1px solid var(--rule);
+  font-family:"IBM Plex Mono",monospace;font-size:.75rem;color:var(--ink-3);line-height:1.8;
+}
+@media (prefers-reduced-motion:no-preference){
+  .fig-anim rect,.fig-anim circle{animation:in .5s ease-out both}
+}
+@keyframes in{from{opacity:0}to{opacity:1}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <span class="label">Sequence tube map · design response · 22 August 2026</span>
+  <h1>Depth Cueing for<br>Route Disambiguation</h1>
+  <p class="deck">A response to the proposal that <b>routes be ordered in depth</b> so that
+  drop shadowing or depth cueing can tease them apart. The proposal is sound, and for a
+  sharper reason than it first appears: routes are the <b>only</b> level in this data at
+  which a stable depth order exists at all.</p>
+  <div class="colophon">
+    <div>Responds to<br><span>notes/sequence-tube-map/routes-not-ribbons.html</span></div>
+    <div>Status<br><span>Proposed. Nothing built; no route computation in the viewer yet.</span></div>
+    <div>Related<br><span>docs/DISAMBIGUATING-STRANDS.md § C · docs/adr/0001</span></div>
+  </div>
+</header>
+
+<div class="body">
+
+<section style="margin-top:0">
+  <div class="sechead"><span class="n">§</span><h2>The claim</h2></div>
+  <p class="lede">Yes — routes can be ordered in depth, and depth is a better fit for routes
+  than for anything else in the picture. But the argument that makes it work is a structural
+  one, not an aesthetic one, and it is worth stating precisely because it is not obvious.</p>
+
+  <p>A depth cue only reads as depth if the ordering is <strong>globally consistent across
+  the whole width of the picture</strong>. If strand A sits above B at one node and below B
+  at the next, drop shadows do not disambiguate anything — they produce a Necker cube, and
+  the reader's depth perception fights the data instead of serving it.</p>
+
+  <p>Ask which objects in the tube map can carry a consistent order:</p>
+
+  <ul style="margin-top:1em;padding-left:1.2em;color:var(--ink-2)">
+    <li style="margin-bottom:.55em"><b>Individual ribbons cannot.</b> Their vertical
+    positions come from the tube map's crossing-minimisation layout, which reorders them at
+    every branch <em>by design</em>. There is no persistent "ribbon 12 is behind ribbon 7".</li>
+    <li style="margin-bottom:.55em"><b>Nodes cannot.</b> A node is not an object that
+    persists across the window; it is a station, not a line.</li>
+    <li><b>A route can.</b> A route is a set of nodes, invariant over the window. It is an
+    atom. One scalar <code>z</code> per route is therefore well-defined and cannot
+    self-contradict, and every ribbon on that route inherits it.</li>
+  </ul>
+
+  <p style="margin-top:1.05em">That is the load-bearing property. Depth ordering is not a
+  rendering trick bolted onto the picture — it is a direct consequence of the survey's §01
+  finding that the picture's atoms are currently the wrong objects. Adopt routes as atoms and
+  a depth channel falls out; keep ribbons as atoms and no depth channel is available at all.</p>
+
+  <p class="side"><b>Corollary.</b> If a future change makes route identity unstable across
+  the visible window, it does not merely degrade the depth cue — it invalidates it. See
+  §04 caveat 3.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="n">01</span><h2>What to order by</h2></div>
+  <p>Four candidate orderings, ranked. The first two are worth building; the second two look
+  attractive and should be refused, for reasons that matter more than the ordering itself.</p>
+
+  <div class="builds">
+    <div class="build">
+      <span class="r">1</span>
+      <div>
+        <h3>Divergence from the consensus route</h3>
+        <p>Jaccard distance of each route's node set to the dominant route. Depth then means
+        <em>how unusual is this path</em> — monotone, legible, and independent of how many
+        haplotypes happen to carry it. The consensus route sits at the back as ground;
+        deviants come forward as figure. This is the one to build.</p>
+      </div>
+      <span class="cost">semantic<br>needs node sets</span>
+    </div>
+
+    <div class="build">
+      <span class="r">2</span>
+      <div>
+        <h3>Route cardinality</h3>
+        <p>Haplotype count per route — simpler, already counted in the survey, and per §01
+        broadly correlated with divergence. Back-to-front is common-to-rare: the 84% route
+        becomes backdrop, the singletons become foreground. Same figure/ground polarity, and
+        it matches the survey's own conclusion that the signal lives in the tail.</p>
+      </div>
+      <span class="cost">free<br>already computed</span>
+    </div>
+
+    <div class="build">
+      <span class="r">✕</span>
+      <div>
+        <h3>Ancestry cluster — refuse</h3>
+        <p>AMI of 0.02–0.19 says route and PCLAI cluster are close to independent. Ordering
+        depth by cluster would place unrelated paths in a shared plane and assert a
+        relationship the data does not support. Ancestry already owns hue; keep the channels
+        orthogonal rather than encoding one variable twice and a second variable never.</p>
+      </div>
+      <span class="cost">double-encodes<br>an absent signal</span>
+    </div>
+
+    <div class="build">
+      <span class="r">✕</span>
+      <div>
+        <h3>Placement quality — refuse</h3>
+        <p>The confidence field is a warning channel with a duty attached (§05 of the
+        survey). Burying <code>impainted</code>, low-confidence and unplaced strands at the
+        back of the stack is exactly backwards: those are the strands a reader most needs
+        brought forward.</p>
+      </div>
+      <span class="cost">inverts<br>an honesty duty</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="n">02</span><h2>Which cue, and why most are already spent</h2></div>
+  <p>This matters more than it sounds. The tube map's perceptual channels are largely
+  committed already, and a depth cue that borrows a committed channel destroys the thing it
+  was borrowed from.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Channel</th><th>Status</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>opacity</td><td>spent — grey / absent placement</td><td>unavailable</td></tr>
+      <tr><td>saturation</td><td>spent — hue <em>is</em> the PCLAI payload</td><td>unavailable</td></tr>
+      <tr><td>thickness</td><td>reserved — would become a new claim</td><td>do not spend here</td></tr>
+      <tr><td>blur</td><td>free, but costs edge legibility at 1–2 px strands</td><td>weak</td></tr>
+      <tr class="flag"><td>casing + drop shadow</td><td>free</td><td class="hi">recommended</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p style="margin-top:2em"><strong>Casing</strong> — drawing each ribbon with a thin
+  background-coloured stroke behind it — reads unambiguously as over/under and consumes no
+  colour, alpha, or width channel. It is what makes the London Underground map legible where
+  lines bundle, and it is the cheap 80% of this proposal: pure paint order plus one extra
+  stroke. A soft offset shadow on top of casing adds the stratum reading.</p>
+
+  <figure class="figframe">
+    <svg viewBox="0 0 720 150" role="img" aria-label="Two crossing ribbons drawn without casing and with casing">
+      <defs>
+        <filter id="dshadow" x="-30%" y="-30%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-opacity="0.32"/>
+        </filter>
+      </defs>
+      <g fill="none" stroke-linecap="round">
+        <text x="8" y="20" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-3)">WITHOUT CASING — crossing is ambiguous</text>
+        <path d="M8 70 C 90 70, 110 124, 200 124 S 300 70, 330 70" stroke="var(--c2)" stroke-width="9"/>
+        <path d="M8 124 C 90 124, 110 70, 200 70 S 300 124, 330 124" stroke="var(--c4)" stroke-width="9"/>
+
+        <text x="390" y="20" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-3)">WITH CASING — over / under is read instantly</text>
+        <path d="M390 124 C 472 124, 492 70, 582 70 S 682 124, 712 124" stroke="var(--ground)" stroke-width="17"/>
+        <path d="M390 124 C 472 124, 492 70, 582 70 S 682 124, 712 124" stroke="var(--c4)" stroke-width="9"/>
+        <path d="M390 70 C 472 70, 492 124, 582 124 S 682 70, 712 70" stroke="var(--ground)" stroke-width="17"/>
+        <path d="M390 70 C 472 70, 492 124, 582 124 S 682 70, 712 70" stroke="var(--c2)" stroke-width="9" filter="url(#dshadow)"/>
+      </g>
+    </svg>
+    <figcaption><b>Figure 1.</b> The casing trick. The right-hand pair differs from the left
+    only by a background-coloured stroke drawn beneath each ribbon, plus one drop shadow on
+    the nearer route. No hue, alpha or width has changed — so nothing the map already
+    asserts has been disturbed.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="sechead"><span class="n">03</span><h2>Strata, not a ramp</h2></div>
+  <p>Twenty-one routes must not become twenty-one depth planes. Readers resolve perhaps five
+  to seven shadow layers; beyond that a continuous depth ramp is read as continuous
+  <em>quantity</em>, which is a precision claim the ordering does not support. Quantise.</p>
+
+  <figure class="figframe">
+    <svg viewBox="0 0 720 250" role="img" aria-label="Five depth strata for the cici locus">
+      <defs>
+        <filter id="s1" x="-25%" y="-40%" width="160%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.16"/></filter>
+        <filter id="s2" x="-25%" y="-40%" width="160%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.22"/></filter>
+        <filter id="s3" x="-25%" y="-40%" width="160%" height="200%"><feDropShadow dx="0" dy="3.5" stdDeviation="3" flood-opacity="0.28"/></filter>
+        <filter id="s4" x="-25%" y="-40%" width="160%" height="200%"><feDropShadow dx="0" dy="5" stdDeviation="4.5" flood-opacity="0.34"/></filter>
+      </defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="10.5">
+        <g>
+          <rect x="150" y="14" width="340" height="26" rx="3" fill="var(--panel-2)" stroke="var(--rule)"/>
+          <text x="140" y="31" text-anchor="end" fill="var(--ink-2)">consensus</text>
+          <text x="502" y="31" fill="var(--ink-3)">1 route · 182 hap · no shadow</text>
+        </g>
+        <g filter="url(#s1)">
+          <rect x="164" y="58" width="340" height="26" rx="3" fill="var(--panel)" stroke="var(--rule)"/>
+          <text x="154" y="75" text-anchor="end" fill="var(--ink-2)">common</text>
+          <text x="516" y="75" fill="var(--ink-3)">1 route · 169 hap</text>
+        </g>
+        <g filter="url(#s2)">
+          <rect x="178" y="102" width="340" height="26" rx="3" fill="var(--panel)" stroke="var(--rule)"/>
+          <text x="168" y="119" text-anchor="end" fill="var(--ink-2)">shared</text>
+          <text x="530" y="119" fill="var(--ink-3)">1 route · 73 hap</text>
+        </g>
+        <g filter="url(#s3)">
+          <rect x="192" y="146" width="340" height="26" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="182" y="163" text-anchor="end" fill="var(--ink-2)">uncommon</text>
+          <text x="544" y="163" fill="var(--ink-3)">5 routes · 25 hap</text>
+        </g>
+        <g filter="url(#s4)">
+          <rect x="206" y="190" width="340" height="26" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="196" y="207" text-anchor="end" fill="var(--ink-2)">rare / singleton</text>
+          <text x="558" y="207" fill="var(--ink-3)">13 routes · 17 hap</text>
+        </g>
+        <text x="150" y="240" fill="var(--ink-3)">back — ground · figure — front</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 2.</b> The <code>cici</code> locus binned into five strata by
+    cardinality: <b>182 / 169 / 73 / (9,5,4,4,3) / (2,2,2,2 plus nine singletons)</b> —
+    21 routes, 466 haplotypes. Each stratum gets one shadow depth. The two strata carrying
+    the fewest haplotypes are the two carrying the most information, and they sit nearest the
+    reader.</figcaption>
+  </figure>
+
+  <div class="callout">
+    <span class="label">Why depth is the safest new channel</span>
+    <p>Depth is <strong>ordinal only</strong>. Unlike thickness, it asserts no quantity, so
+    adding it does not change what the map claims — it changes only what is easy to see. That
+    makes it the cheapest of the survey's proposals to get wrong and recover from, and a
+    reasonable thing to try before spending the thickness channel.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="n">04</span><h2>Three caveats that will bite</h2></div>
+
+  <h3>1 · <code>chr6</code> degenerates, and should be allowed to</h3>
+  <p>198 routes, none above 3%, 98 of them singletons. Every route falls into the rare
+  stratum, so depth encodes nothing — the stack flattens. Do not paper over this with a
+  finer-grained ramp. Fall back to a three-band <em>singleton / rare / shared</em> split and
+  let the locus character badge say so out loud. This is consistent with the survey's own
+  line that a locus where grouping buys nothing is itself a finding to hand the researcher.</p>
+
+  <h3>2 · Quantisation boundaries are a claim</h3>
+  <p>Where the bins fall decides what looks rare. Bin edges should be derived from the
+  locus's own distribution and stated in the UI, not hard-coded — otherwise the picture
+  changes character between loci for reasons that live in the code rather than in the data.</p>
+
+  <h3>3 · Depth must survive panning</h3>
+  <p>Route identity is scale- and window-dependent — the survey's method section warns that
+  any affordance built on routes has to state at what scale it means "the same". If
+  <code>z</code> is recomputed per viewport, ribbons will pop between strata as the reader
+  scrolls, which is strictly worse than no depth at all, because a moving depth cue reads as
+  motion. Either route IDs are stable across the pan range, or depth is locked to the window
+  the reader is examining and annotated as such.</p>
+
+  <p class="side"><b>The order of operations.</b> All three caveats are about route
+  computation, not about rendering. Depth cueing cannot be prototyped ahead of a stable route
+  identity — which the survey already names as the first question, not the last.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="n">05</span><h2>Where this touches PGB proper</h2></div>
+  <p>The tube map panel owns its own scene graph and is deliberately not a Look
+  (<code>docs/adr/0001-sequence-tube-map-panel.md</code>), so casing and shadows there are a
+  panel-local rendering concern and nothing in the Look system needs to move.</p>
+
+  <p>But the route stratum is a <em>datum</em>, not a rendering detail. Computed once, the
+  same ordinal is usable on both sides of the 1D ↔ 3D correspondence: as shadow depth in the
+  tube map panel, and in the 3D graph as an emphasis parameter on
+  <code>NodeEmphasisLook</code> — a new parameter on an existing Look, which is the shape the
+  project's conventions ask for, not a new mechanism.</p>
+
+  <div class="callout">
+    <span class="label">Open question, flagged rather than assumed</span>
+    <p>Routes are a <strong>haplotype-level</strong> grouping; the 3D graph's emphasis targets
+    are <strong>nodes</strong>. A node carrying five routes across three strata has no single
+    depth. Reconciling that — pick the nearest stratum, split the node, or scope the cue to
+    the panel only — has to be answered before any of this reaches a Look. It is a genuine
+    design question, not a detail.</p>
+  </div>
+</section>
+
+<footer>
+  Design response to <em>Routes, Not Ribbons</em> (18 August 2026) · advisory note, not
+  normative — see CLAUDE.md § Where documentation goes ·
+  no figure here is rendered from live data; Figure 2's bin counts are read from that
+  survey's <code>cici</code> route distribution
+</footer>
+
+</div>
+</div>

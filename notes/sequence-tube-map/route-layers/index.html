@@ -1,0 +1,172 @@
+<meta charset="utf-8">
+<title>Route Layers — node 5520</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{--ground:#fff;--panel:#f6f4ef;--ink:#16191b;--ink-2:#41474b;--ink-3:#6d7479;
+      --rule:#ddd9d1;--accent:#1d5c60;--accent-soft:#e2ecec}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+     font:13px/1.5 "IBM Plex Mono",ui-monospace,Menlo,monospace}
+#panel{position:fixed;top:0;left:0;width:290px;height:100vh;display:flex;flex-direction:column;
+       background:var(--panel);border-right:1px solid var(--rule);z-index:10}
+#fixed{padding:16px 18px 10px}
+#list{flex:1;overflow-y:auto;padding:0 18px 20px}
+#stage{margin-left:290px;padding:20px;overflow:auto;height:100vh;cursor:grab}
+#stage.grabbing{cursor:grabbing}
+h1{font-size:14px;font-weight:600;margin:0 0 2px}
+.sub{color:var(--ink-3);font-size:11px;margin:0 0 12px}
+h2{font-size:10px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+   margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+button{font:inherit;font-size:11px;background:var(--ground);color:var(--ink-2);
+       border:1px solid var(--rule);border-radius:3px;padding:4px 9px;cursor:pointer}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.row{display:flex;justify-content:space-between;color:var(--ink-3);font-size:10.5px;margin-top:4px}
+
+/* one row per route */
+.r{display:grid;grid-template-columns:14px 3.2rem 1fr auto;gap:0 8px;align-items:center;
+   padding:2px 0;font-size:11px;cursor:pointer;border-bottom:1px solid transparent}
+.r:hover{color:var(--accent)}
+.r.solo{background:var(--accent-soft);border-bottom-color:var(--accent)}
+.r input{accent-color:var(--accent);margin:0}
+.r .n{color:var(--ink-3)}
+.r .bar-i{height:7px;background:var(--accent);opacity:.55;border-radius:1px;min-width:1px}
+.r .c{color:var(--ink-3);font-size:10px}
+
+#stack{position:relative;width:100%;background:var(--ground)}
+.layer{position:absolute;inset:0;width:100%}
+.layer:first-child{position:relative}
+.layer svg{display:block;width:100%;height:auto}
+.layer[hidden]{display:none}
+#stack.cased .layer :is(rect,path){stroke:var(--ground);stroke-width:var(--casing,2px);
+                                   paint-order:stroke fill}
+#stack.shadow .layer{filter:drop-shadow(0 1.5px 1.5px rgba(22,25,27,.30))}
+.dim{opacity:var(--dim,.10)}
+#status{color:var(--ink-3);font-size:10.5px;margin-top:10px;line-height:1.6}
+</style>
+
+<div id="panel">
+  <div id="fixed">
+    <h1>Route layers</h1>
+    <p class="sub" id="src"></p>
+    <div class="bar">
+      <button id="all">all</button><button id="none">none</button>
+      <button id="clear">clear solo</button>
+    </div>
+    <div class="bar">
+      <button id="shadow" aria-pressed="false">shadow</button>
+      <button id="casing" aria-pressed="false">casing</button>
+      <button id="segments" aria-pressed="true">segments</button>
+      <button id="dark" aria-pressed="false">dark</button>
+    </div>
+    <h2>Zoom</h2>
+    <input type="range" id="zoom" min="0" max="60" value="24">
+    <div class="row"><span id="zoomVal"></span><span>drag to pan</span></div>
+    <div id="status"></div>
+    <h2>Routes — click to solo</h2>
+  </div>
+  <div id="list"></div>
+</div>
+
+<div id="stage"><div id="stack"></div></div>
+
+<script>
+const stack = document.getElementById('stack')
+const stage = document.getElementById('stage')
+
+const load = async file => {
+  const svg = new DOMParser()
+    .parseFromString(await (await fetch(file)).text(), 'image/svg+xml').documentElement
+  svg.removeAttribute('width'); svg.removeAttribute('height')
+  const layer = document.createElement('div')
+  layer.className = 'layer'; layer.append(svg)
+  return layer
+}
+
+;(async () => {
+  const m = await (await fetch('manifest.json')).json()
+  document.getElementById('src').textContent =
+    `${m.strands} strands · ${m.segments} segments · ${m.routes.length} routes · ${m.routes.length} layers`
+
+  const segments = await load('segments.svg')
+  stack.append(segments)
+
+  // one layer per route, route 0 (commonest) at the back
+  const layers = []
+  const widest = m.routes[0].strands
+  for (const r of m.routes) {
+    const layer = await load(r.file)
+    stack.append(layer); layers.push(layer)
+
+    const row = document.createElement('div')
+    row.className = 'r'
+    row.innerHTML = `<input type="checkbox" checked><span class="n">${r.route}</span>` +
+      `<span class="bar-i" style="width:${Math.max(1, r.strands / widest * 100)}%"></span>` +
+      `<span class="c">${r.strands}</span>`
+    row.title = `route ${r.route} — ${r.strands} strands, ${r.segments} segments, J=${r.jaccardToConsensus}`
+    row.querySelector('input').onclick = e => { e.stopPropagation(); layer.hidden = !e.target.checked }
+    row.onclick = () => solo(solo.at === r.route ? null : r.route)
+    layer.dataset.row = r.route
+    row.dataset.route = r.route
+    document.getElementById('list').append(row)
+  }
+
+  const rows = [...document.querySelectorAll('.r')]
+  function solo(which) {
+    solo.at = which
+    layers.forEach((l, i) => l.classList.toggle('dim', which !== null && i !== which))
+    rows.forEach((r, i) => r.classList.toggle('solo', i === which))
+    if (which !== null) rows[which].scrollIntoView({ block: 'nearest' })
+  }
+  solo.at = null
+
+  const [, , vw, vh] = m.viewBox.split(/\s+/).map(Number)
+  stack.style.aspectRatio = `${vw} / ${vh}`
+  const zoom = document.getElementById('zoom')
+  const applyZoom = () => {
+    const f = Math.pow(1.1, Number(zoom.value))
+    stack.style.width = `${f * 100}%`
+    const px = (stage.clientWidth * f - 40) / vw * 15
+    document.getElementById('zoomVal').textContent = `${f.toFixed(1)}x · band ${px.toFixed(2)} px`
+    stack.style.setProperty('--casing', `${Math.max(0.5, px * 0.35).toFixed(2)}px`)
+  }
+  zoom.oninput = applyZoom; applyZoom()
+
+  let drag = null
+  stage.onpointerdown = e => {
+    drag = { x: e.clientX, y: e.clientY, l: stage.scrollLeft, t: stage.scrollTop }
+    stage.classList.add('grabbing'); stage.setPointerCapture(e.pointerId)
+  }
+  stage.onpointermove = e => {
+    if (!drag) return
+    stage.scrollLeft = drag.l - (e.clientX - drag.x); stage.scrollTop = drag.t - (e.clientY - drag.y)
+  }
+  stage.onpointerup = () => { drag = null; stage.classList.remove('grabbing') }
+
+  const setAll = on => rows.forEach((r, i) => {
+    r.querySelector('input').checked = on; layers[i].hidden = !on
+  })
+  document.getElementById('all').onclick = () => setAll(true)
+  document.getElementById('none').onclick = () => setAll(false)
+  document.getElementById('clear').onclick = () => solo(null)
+
+  const toggle = (id, fn) => {
+    const b = document.getElementById(id)
+    b.onclick = () => { const on = b.getAttribute('aria-pressed') !== 'true'
+                        b.setAttribute('aria-pressed', String(on)); fn(on) }
+  }
+  toggle('shadow', on => stack.classList.toggle('shadow', on))
+  toggle('casing', on => stack.classList.toggle('cased', on))
+  toggle('segments', on => { segments.hidden = !on })
+  toggle('dark', on => {
+    document.documentElement.style.setProperty('--ground', on ? '#0f1214' : '#ffffff')
+    document.documentElement.style.setProperty('--ink', on ? '#e9e6e0' : '#16191b')
+  })
+  document.getElementById('segments').setAttribute('aria-pressed', 'true')
+
+  document.getElementById('status').textContent =
+    `${stack.querySelectorAll('rect,path').length} elements. One route, one layer.`
+})().catch(e => { document.getElementById('status').textContent = 'failed: ' + e.message })
+</script>

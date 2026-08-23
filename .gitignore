@@ -33,3 +33,8 @@ data/genomes/
 
 .wrangler
 .playwright-mcp
+
+# derived: regenerate with scripts/split_routes_svg.py
+notes/sequence-tube-map/route-layers/routes/
+
+__pycache__/
