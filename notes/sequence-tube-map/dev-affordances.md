@@ -81,6 +81,46 @@ open 'http://localhost:5173/dev/tubemap-app.html?pick'    # the same, under Boot
 A live API URL works in either field. `buildSeqTubeMapURL()` in `src/pangenomeURL.ts` is what
 composes one; the origin is `https://pangenome-api.ucsd.edu:8000`.
 
+#### An API URL must be percent-encoded to survive `?url=`
+
+An API URL carries its own `?` and `&`, and `?url=` is itself a query parameter, so pasting one
+in raw puts two `?` in one address. The browser treats the first as the start of *this page's*
+query string and every `&` after it as a separator, so `URLSearchParams` takes the inner URL's
+parameters as the dev page's own and the viewer is handed a truncated document:
+
+```
+http://localhost:5173/dev/tubemap.html?url=https://pangenome-api.ucsd.edu:8000/seqtubemap?chrom=chr7&start=55067258&end=55068164&version=v2&minigraphnode=119565
+
+  url             = https://pangenome-api.ucsd.edu:8000/seqtubemap?chrom=chr7   ← all the viewer gets
+  start           = 55067258      ← parsed as the dev page's, and ignored
+  end             = 55068164
+  version         = v2
+  minigraphnode   = 119565
+```
+
+**Nothing reports this.** The request that goes out is `/seqtubemap?chrom=chr7` — chromosome
+only, no range and no node — and the API answers it with **200 and 1.7 MB of valid tube map**
+for a different region, in its default ColorBrewer *Blues* ramp with `pclaiX="None"` on every
+track. It is §8's silent-fallback trap reached by a dropped parameter rather than a wrong one,
+and it looks like a rendering bug rather than a malformed address.
+
+**A blue map is the tell.** The viewer never picks colours — `strandAppearance.ts` takes each
+strand's RGB from the document and never writes it again — so the palette on screen is the one
+the API sent. A PCLAI document is pastel teal, orange and magenta; blues with an empty PCLAI
+inset is the API's fallback, which means the request did not carry what you thought it did.
+
+Encode the inner URL:
+
+```bash
+python3 -c "import urllib.parse,sys; print('http://localhost:5173/dev/tubemap.html?url=' + urllib.parse.quote(sys.argv[1], safe=''))" \
+  'https://pangenome-api.ucsd.edu:8000/seqtubemap?chrom=chr7&start=55067258&end=55068164&version=v2&pathnumoption=normal&nodewidthoption=compressed&minigraphnode=119565'
+```
+
+Or avoid the collision entirely — open the page bare and paste the raw URL into its **text
+field**, which takes the whole string verbatim because there is no query string for it to
+collide with. That is the better habit for testing by hand; `?url=` earns its keep when a run
+has to be reproducible or scripted.
+
 The panel page additionally parses `chrom/start/end/minigraphnode` out of whatever URL you
 give it to build the card *header*, falling back to the fixture target for a bare fixture
 path. The header is always written from the target, never from the URL.

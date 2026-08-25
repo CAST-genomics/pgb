@@ -48,6 +48,31 @@ export const FIXTURE_PATH = 'src/tubemap/__tests__/fixtures/stm-chr1-25331046-25
  */
 export const TALL_FIXTURE_PATH = 'src/tubemap/__tests__/fixtures/stm-chr8-78771162-78771252.svg'
 
+/**
+ * The third document, and it is here for the same reason as the second: the corpus could
+ * not exhibit the case.
+ *
+ * Every band in the two documents above runs left to right, as does every band in the two
+ * large survey documents — 0 of 49,682 connectors run the other way. The parser took that
+ * regularity for a rule and asserted it, and on 2026-08-25 a document from **chr8p23.1**
+ * was refused whole because it does not hold.
+ *
+ * This is that document. Minigraph node `136685`, `chr8:10,079,054-10,080,461`, fetched
+ * from the API on 2026-08-25: 65024 × 7220, 463 strands, 5948 connectors of which **3771
+ * run right-to-left**. 297 haplotypes traverse the window one way and 166 the other, and
+ * **no haplotype mixes the two** — the signature of an inversion polymorphism rather than
+ * a malformed document.
+ *
+ * The second thing it is the only cover for: **`GRCh38#0#chr8` runs leftward here**, with
+ * the 297, while `CHM13#0#chr8#0` runs rightward with the 166. The x-axis is the server's
+ * layout order and is oriented along neither. Any test that assumes the reference runs
+ * with the axis is wrong, and this is the document that says so.
+ *
+ * At 4.2 MB it is the second largest committed, which is the price of the only inversion
+ * in the corpus. ADR `0004` records what was decided about it.
+ */
+export const INVERTED_FIXTURE_PATH = 'src/tubemap/__tests__/fixtures/stm-chr8-10079054-10080461.svg'
+
 /** The strip's text. Every parser test starts here. */
 export function readFixture(): string {
     return readFileSync(FIXTURE_PATH, 'utf8')
@@ -56,4 +81,9 @@ export function readFixture(): string {
 /** The tall document's text — the shape the strip cannot catch. */
 export function readTallFixture(): string {
     return readFileSync(TALL_FIXTURE_PATH, 'utf8')
+}
+
+/** The inverted document's text — the direction the other three cannot catch. */
+export function readInvertedFixture(): string {
+    return readFileSync(INVERTED_FIXTURE_PATH, 'utf8')
 }

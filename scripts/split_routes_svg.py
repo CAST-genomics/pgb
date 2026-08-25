@@ -7,6 +7,14 @@ position is reordered at every branch by the layout, but a route is a set of seg
 invariant over the window, so one scalar `z` per route is well-defined. That argument
 has never been looked at. This script makes it lookable.
 
+**Route identity is `(segments, direction)` as of 2026-08-25** — ADR `0004`. A route is
+still a *set* of segments rather than an ordered traversal, for exactly the invariance
+reason above, but the band direction those segments were walked in is part of the key: a
+route and its inverted twin cross the same segments and are not the same assertion. This
+script still keys on the set alone. It produces identical output on every document
+committed here — all four have zero right-to-left bands — and must be given the second
+half of the key before it is run on a document containing an inversion.
+
 **One route, one file.** The server's document is taken apart along route boundaries and
 each route written as its own SVG — same viewBox, transparent everywhere it is not
 drawing — so the family stacks back up in any order, with any per-layer treatment, and

@@ -350,6 +350,18 @@ x-interval — a single `<path>` or `<rect>` in the server's `g.track`. A strand
 is made of many bands, so a band count is a count of shapes, not of haplotypes.
 *Avoid "ribbon" for a band* — a ribbon reads as the whole strand.
 
+### band direction
+
+Which way a **band** runs along the **sequence tube map**'s x-axis: *rightward* or
+*leftward*. It is read per band and is document-relative — a fact about the picture,
+carrying no biological claim, and defined whether or not the document contains a
+reference. Band geometry is stored normalized (always a positive width), so direction
+travels beside the geometry rather than as the sign of a coordinate.
+
+*Avoid "orientation"* — that is the **node**'s `+`/`-` in an oriented id like `5519+`.
+*Avoid "strand"* for this sense — that is the ± DNA strand, and it already means a
+haplotype's ribbon here.
+
 ### segment
 
 One of the sequence boxes *inside* a **sequence tube map** — a vertex of the
@@ -363,17 +375,22 @@ keep the two scales distinct: **node** is the graph vertex PGB draws in 3D,
 
 A base-level picture of what is *inside* one **node** — the minigraph-cactus
 subgraph it collapses: **segments** of sequence, with every haplotype's
-**strand** threaded through them left→right. Where the 3D graph draws a node as
+**strand** threaded through them. Where the 3D graph draws a node as
 one collapsed summary, this is the magnifying glass on it, and the SNVs, indels,
 duplications and inversions are what it shows. Laid out server-side by the UCSD
 API, which returns an SVG whose drawing primitives PGB parses and rasterizes
 itself.
 
+The x-axis is a **layout order**, not a genomic coordinate: it is the server's
+arrangement of the subgraph and need not agree with any reference. A strand may
+run either way along it (see **band direction**), and in a document containing an
+inversion GRCh38 itself may be the one running right-to-left.
+
 ### strand
 
-One haplotype's path through a **sequence tube map**, drawn as a coloured ribbon
-running left→right, and coloured by the same shipped PCLAI RGB the 3D graph and
-the PCLAI chart use.
+One haplotype's path through a **sequence tube map**, drawn as a coloured ribbon,
+and coloured by the same shipped PCLAI RGB the 3D graph and the PCLAI chart use.
+Which way the ribbon runs is its **band direction**.
 
 A strand's **name** is `#`-separated and starts `sample#haplotype`, but the
 number of components is **not fixed** and the name is parsed as an opaque
@@ -391,13 +408,34 @@ rename: upstream sequence-tube-map and the SVG itself call this a *track*
 **annotation track**. *Strand* is the term to use; *track* survives only in code
 quoting the server's document.
 
+**In the interface, say *haplotype*.** `strand` is the word for code and for these
+docs, where the drawn ribbon has to stay distinct from the thing it draws. The
+interface needs no such distinction — on screen one ribbon *is* one haplotype — and it
+has the opposite problem: *strand* already means the ± DNA strand to a reader of this
+app, including inside PGB itself (`nodeStrand` in `annotationCoordinateIndex.ts`,
+`feature.strand` in the annotation renderer, and the **node** entry's own strand
+orientation). A label reading *464 strands* asks a researcher to suppress that reading,
+against a picture where nothing is oriented. So: identifiers, types and prose here say
+`strand`; anything a researcher reads says *haplotype*. Where a count of them appears
+beside **routes**, prefer the route entry's allele vocabulary — *464 haplotypes, 112
+routes, the commonest carrying 44* — because population genetics spends *haplotype* on
+the type, and the route column is what disambiguates it back to the token.
+
 ### route
 
-The **segments** one **strand** passes through in a **sequence tube map** — a
-strand's complete traversal, with the identity of the haplotype walking it
-stripped off. Two strands with the same route took the same path through the
-subgraph, so over that window there is nothing to tell them apart and no picture
-could. Routes are therefore the distinct assertions a document makes, and there
+The **segments** one **strand** passes through in a **sequence tube map**, taken
+as a *set* together with the **band direction** they were walked in, and with the
+identity of the haplotype walking it stripped off. Two strands with the same route
+crossed the same segments the same way round, so over that window there is nothing
+to tell them apart and no picture could.
+
+The set is deliberate: a route is *not* an ordered traversal, because the layout
+reorders position at every branch and an order-sensitive identity would make every
+reshuffle a new route. Direction is the one ordering fact that survives, and it is
+part of the identity because an inversion is an allele — a route and its **inverted**
+twin cross the same segments and are not the same assertion.
+
+Routes are therefore the distinct assertions a document makes, and there
 are far fewer of them than there are strands: `5520+` draws 464 strands over 274
 segments and holds 112 routes, three of which carry 238 of the strands and
 seventy of which carry one each.
@@ -429,6 +467,24 @@ Long form: [`notes/sequence-tube-map/routes-not-ribbons.html`](notes/sequence-tu
 (the six-locus survey) and
 [`notes/sequence-tube-map/route-layers.html`](notes/sequence-tube-map/route-layers.html)
 (one document taken apart along route boundaries).
+
+### reference direction
+
+The **band direction** GRCh38 takes in a given **sequence tube map**. Derived per
+document rather than stored, and a document with no GRCh38 strand has none — which
+costs only the ability to say which side is **inverted**.
+
+### inverted
+
+A **route** whose **band direction** opposes the **reference direction** — the
+haplotypes carrying it traverse the window the other way round from GRCh38. This is
+the biological reading, and the only one of these terms a researcher is shown. An
+inverted route and its non-inverted twin cross the same **segments** and are two
+distinct routes, so the count of haplotypes on one is an **allele count** like any
+other.
+
+**In the interface, say *inverted haplotype***, following the **strand** entry's rule
+that `strand` is a word for code.
 
 ### feeler
 

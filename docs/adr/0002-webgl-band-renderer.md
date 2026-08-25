@@ -176,6 +176,20 @@ Two further consequences, both measured:
     would have seen the map, drawn slowly and correctly, while we caught up. That is what
     is being given up, stated plainly, and nothing below softens it.
 
+    **One rule leaves the gate, 2026-08-25 — see ADR
+    [`0004`](0004-band-direction-and-inverted-routes.md).** The gate required every band to
+    run left to right, and a document from chr8p23.1 containing an inversion was refused by
+    it: 3771 of 5948 connectors run right-to-left, 297 of 463 haplotypes traverse the window
+    the other way round, and GRCh38 is among them. Those bands satisfy every other rule —
+    thickness, shared control abscissas, the offset return edge — so the refusal was not
+    about the drawing grammar at all. **`x1 > x0` is withdrawn; every other assertion
+    stands.** The policy is unchanged: a document off the grammar is still refused whole and
+    partial rendering is still never offered. What this records is that direction was never
+    grammar, and the cost above was paid once for a case that turned out to be biology.
+
+    This is also the first time the gate produced the bug report it was designed to produce,
+    which is the arm this ADR chose over a fallback surface.
+
     Three reasons it is still the right trade, in the order they carry weight:
 
     1. **A fallback nobody exercises is a fallback that does not work.** It was never
