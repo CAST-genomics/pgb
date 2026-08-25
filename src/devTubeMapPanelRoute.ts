@@ -35,9 +35,9 @@ const FIXTURE_TARGET: SeqTubeMapTarget = {
  *
  * It is here because one named script needs it. `scripts/verify_segment_boxes.mjs` is the one
  * `verify_*.mjs` whose subject is genuinely DOM layout, so it is the one that belongs on
- * `dev/tubemap-app.html` under the cascade the app ships (#126) — and its last section drives
- * `?pick` to reach the strand under a segment box. Without this, moving it would mean changing
- * the harness rather than the URL.
+ * `dev/tubemap-app.html` under the cascade the app ships (#126) — and its §5 drives `?pick` to
+ * reach the strand under a segment box. It moved here in #128, and because this was already
+ * threaded through, moving it was a change of URL rather than of harness.
  *
  * `?floor=` and `?samples=` are deliberately **not** here. They belong to two scripts that
  * photograph the canvas, which is not a thing a stylesheet reaches, and whose headers now say

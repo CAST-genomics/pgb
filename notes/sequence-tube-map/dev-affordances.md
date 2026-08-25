@@ -190,9 +190,9 @@ mountTubeMapPanel({ mountSurface: c => mountTubeMapSurface(c, { pickReadout: tru
 ```
 
 `?floor=` and `?samples=` are **not** passed down that seam, and the asymmetry is the point:
-`?pick` is there because `verify_segment_boxes.mjs` needs it on the day it moves to
-`/dev/tubemap-app.html` (§6). The other two belong to scripts that photograph the canvas and
-have no reason to move.
+`?pick` is there because `verify_segment_boxes.mjs` drives it on `/dev/tubemap-app.html`
+(§6) to reach the strand under a segment box. The other two belong to scripts that photograph
+the canvas and have no reason to move.
 
 Implementation: `BandSurfaceOptions.pickReadout` in `src/tubemap/bandSurface.ts`.
 
@@ -327,11 +327,29 @@ headless, unlike the rest of `scripts/verify_*.mjs` — layout is the same in so
 GPU — and it refuses to report anything unless an unstyled `div` on the page really is
 `border-box`, so the harness cannot quietly stop being the thing it exists to be.
 
-Every other `verify_*.mjs` still drives `/dev/tubemap.html`, and each now says in its own
+`verify_segment_boxes.mjs` drives this page too (#128), and for the reason the page exists:
+its subject genuinely *is* DOM layout — 767 segment boxes' widths, a visibility threshold in
+css pixels, computed `cursor` and `background-color` — so it is the one script whose answers
+Bootstrap's reset can move, and it now asks them where the reset is in force. It opens with
+the same refusal `verify_pclai_pad.mjs` does, so it cannot report `ok` from a page that has
+stopped carrying the cascade, and with a check that the card left the map a strip to be
+measured in.
+
+```bash
+node scripts/verify_segment_boxes.mjs   # headed, with `npm run dev` already up
+```
+
+What had kept it on the bare page was geometry, not subject: `innerWidth` and a cursor parked
+at 700, 450 are the map's own middle only while the canvas fills the viewport, and inside the
+card they are the host's middle. Every coordinate is now taken from `canvas.stm-canvas`'s own
+box, the way `verify_pclai_pad.mjs` and `verify_pick_set_cloud.mjs` already took theirs, and
+the viewport is widened to 1800 × 1000 rather than the card fullscreened — the card is
+`HOST_AREA_FRACTION` of the host by area, the 200× clamp checks want a real strip, and the
+screenshots are worth more with the chrome in them.
+
+The other seven `verify_*.mjs` still drive `/dev/tubemap.html`, and each says in its own
 header why. The short version: they measure the canvas — a readback, a raster, a cost — and a
-stylesheet does not reach inside one. The exception is `verify_segment_boxes.mjs`, whose
-subject genuinely *is* DOM layout; it stays on the bare page only because its geometry is
-written against a viewport-filling canvas, and it is the first script to move.
+stylesheet does not reach inside one.
 
 ### The three latent cases, looked at
 
