@@ -113,76 +113,69 @@ footer{grid-column:1 / -1;margin-top:80px;padding-top:26px;border-top:1px solid 
 <header class="mast">
   <span class="label">Sequence tube map · test app · 22 August 2026</span>
   <h1>Route Layers</h1>
-  <p class="deck">A tube map document taken apart along route boundaries and written back
-  out as <b>one SVG per route</b> — 112 files, 112 layers, stackable in any order. Built to
-  answer one question before any renderer is written: <b>are routes separable objects at
-  all?</b></p>
+  <p class="deck">One tube map document, split into <b>one SVG per route</b>: 112 files,
+  112 layers, stackable in any order. Built to test one thing — whether routes can be
+  separated.</p>
   <div class="colophon">
     <div>The app<br><span>notes/sequence-tube-map/route-layers/index.html</span></div>
     <div>The generator<br><span>scripts/split_routes_svg.py</span></div>
     <div>Responds to<br><span>depth-cue-for-route-disambiguation.html</span></div>
-    <div>Status<br><span>Experiment. Nothing shipped; src/tubemap untouched.</span></div>
+    <div>Status<br><span>Experiment. Nothing shipped; src/tubemap unchanged.</span></div>
   </div>
 </header>
 
+<div class="body">
+
 <section style="margin-top:0">
-  <div class="sechead"><span class="n">§</span><h2>Why it exists</h2></div>
-  <p class="lede">A tube map of 464 strands is a mat. You cannot follow one strand across
-  it, and the reason is structural: at every branch the layout re-orders the strands to
-  minimise crossings, so a strand's neighbours change constantly and position carries no
-  identity.</p>
+  <div class="sechead"><span class="n">§</span><h2>What this is</h2></div>
+  <p class="lede">A tube map draws 464 strands and they cannot be told apart. At every
+  branch the layout reorders them, so a strand's neighbours keep changing and where it sits
+  tells you nothing about which strand it is.</p>
 
   <p><a href="depth-cue-for-route-disambiguation.html">Depth Cueing for Route
-  Disambiguation</a> proposed a way out — order <em>routes</em> in depth, because a route
-  is the only object in the picture that can hold a consistent order across the whole
-  width. The argument is good. It also rests on an assumption nobody had checked: that
-  routes exist as separable objects in a real document, in useful numbers, and that pulling
-  one out leaves something legible behind.</p>
+  Disambiguation</a> — <b>the proposal</b> throughout this document — suggests ordering
+  routes in depth. That only works if routes are separable. This app tests whether they
+  are, and tests nothing else. It computes the routes in one document and writes each one
+  as its own SVG.</p>
 
-  <p>This app checks that assumption and nothing else. It computes routes offline and
-  writes each one as its own drawable, so they can be stacked, hidden, and lifted out by
-  hand. No depth cue is implemented. No renderer is touched.</p>
-
-  <p class="side"><b>Deliberately upstream.</b> Every question about how depth should
-  <em>look</em> is downstream of whether the objects separate. That is the only question
-  answered here.</p>
+  <p>No depth cue is built. No PGB code is changed.</p>
 </section>
 
 <section>
-  <div class="sechead"><span class="n">01</span><h2>Four words, used strictly</h2></div>
-  <p>The vocabulary is <a href="../../CONTEXT.md">CONTEXT.md</a>'s and the terms are not
-  interchangeable. Two of them collide with the server's own spelling, which is the whole
-  reason the aliases exist.</p>
+  <div class="sechead"><span class="n">01</span><h2>Vocabulary</h2></div>
+  <p>Seven words. The first four are <a href="../../CONTEXT.md">CONTEXT.md</a>'s; the last
+  three name the parts of the document read as a table. They are fixed for the rest of this
+  document, and no other word is used for any of them.</p>
 
   <div class="tablewrap">
   <table>
-    <thead><tr><th>Term</th><th>Is</th><th>Here</th><th>Server calls it</th></tr></thead>
+    <thead><tr><th>Word</th><th>Meaning</th><th>Count here</th></tr></thead>
     <tbody>
-      <tr><td>node</td><td>graph vertex PGB draws in 3D</td><td class="hi">exactly one — <code>5520+</code></td><td>—</td></tr>
-      <tr><td>segment</td><td>a sequence box inside a node</td><td class="hi">274</td><td><em>node</em></td></tr>
-      <tr><td>strand</td><td>one haplotype's path</td><td class="hi">464</td><td><em>track</em></td></tr>
-      <tr><td>route</td><td>the set of segments a strand traverses</td><td class="hi">112</td><td>—</td></tr>
+      <tr><td>node</td><td>a vertex of PGB's 3D graph</td><td class="hi">1 — <code>5520+</code></td></tr>
+      <tr><td>segment</td><td>what the tube map document calls a node</td><td class="hi">274</td></tr>
+      <tr><td>strand</td><td>one haplotype; the document calls it a track</td><td class="hi">464</td></tr>
+      <tr><td>route</td><td>the segments one strand passes through</td><td class="hi">112</td></tr>
+      <tr><td>column</td><td>a collection of segments</td><td class="hi">198</td></tr>
+      <tr><td>row</td><td>one strand</td><td class="hi">464</td></tr>
+      <tr><td>cell</td><td>a row and a column</td><td></td></tr>
     </tbody>
   </table>
   </div>
 
-  <p style="margin-top:2em">The whole document is the inside of <strong>one node</strong>.
-  There is no second node anywhere in it. The boxes that look like nodes are segments — the
-  server spells them <code>&lt;g class="node"&gt;</code>, and PGB renames them precisely so
-  the two scales cannot be confused.</p>
+  <p style="margin-top:2em">The whole document is the inside of one node. What the document
+  calls a node is called a <strong>segment</strong> here, so that it is never confused with
+  PGB's node.</p>
 
-  <h3>A route is the same data, read the other way</h3>
-  <p>Picture the incidence matrix: segments across, strands down. The drawing is built by
-  reading <em>columns</em> — which strands does this segment gather? A route is a
-  <em>row</em> — which segments held this strand? Nothing is added and nothing discarded.
-  The matrix is transposed.</p>
+  <h3>Reading the document as a table</h3>
+  <p>A strand passes through at most one segment in a column. A cell shows which segment of
+  that column the strand passes through, or that it passes through none.</p>
 
-  <p>That transposition is the whole idea. A segment organises powerfully but only locally,
-  at one x. A route organises along a strand across every x, which is what following
-  anything requires.</p>
+  <p>A route is one strand's complete traversal — every segment it passes through, from one
+  end of the document to the other. Strands that pass through the same segments have the
+  same route.</p>
 
   <figure class="figframe">
-    <svg viewBox="-78 -46 510 314" role="img" aria-label="Incidence submatrix of segment columns by strand patterns">
+    <svg viewBox="-78 -46 510 314" role="img" aria-label="Fourteen columns by fourteen rows of the document">
       <rect x="1" y="1" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="29" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="43" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="57" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="71" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="85" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="99" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="113" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="127" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="141" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="155" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="169" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="1" y="183" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="21" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="21" y="43" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="57" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="71" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="85" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="99" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="21" y="127" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="141" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="21" y="169" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="21" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="41" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="85" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="41" y="99" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="41" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="141" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="41" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="41" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="61" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="85" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="61" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="61" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="81" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="85" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="81" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="81" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="101" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="101" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="121" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="121" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="141" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="43" width="18" height="12" fill="var(--c4)" opacity=".85"/><rect x="141" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="155" width="18" height="12" fill="var(--c4)" opacity=".85"/><rect x="141" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="141" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="161" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="161" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="181" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="113" width="18" height="12" fill="var(--c4)" opacity=".85"/><rect x="181" y="127" width="18" height="12" fill="var(--c4)" opacity=".85"/><rect x="181" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="181" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="201" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="99" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="113" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="201" y="183" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="1" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="221" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="99" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="221" y="113" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="221" y="127" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="141" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="169" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="221" y="183" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="1" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="29" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="241" y="43" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="241" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="241" y="71" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="241" y="85" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="241" y="99" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="113" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="127" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="141" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="155" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="241" y="169" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="241" y="183" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="1" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="15" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="29" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="43" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="57" width="18" height="12" fill="var(--c0)" opacity=".85"/><rect x="261" y="71" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="85" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="99" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="113" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="127" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="141" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="155" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="169" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/><rect x="261" y="183" width="18" height="12" fill="none" stroke="var(--rule)" stroke-dasharray="2 2"/>
       <text x="294" y="11" font-size="8.5" fill="var(--ink-3)">179</text><text x="294" y="25" font-size="8.5" fill="var(--ink-3)">95</text><text x="294" y="39" font-size="8.5" fill="var(--ink-3)">85</text><text x="294" y="53" font-size="8.5" fill="var(--ink-3)">25</text><text x="294" y="67" font-size="8.5" fill="var(--ink-3)">24</text><text x="294" y="81" font-size="8.5" fill="var(--ink-3)">9</text><text x="294" y="95" font-size="8.5" fill="var(--ink-3)">6</text><text x="294" y="109" font-size="8.5" fill="var(--ink-3)">6</text><text x="294" y="123" font-size="8.5" fill="var(--ink-3)">6</text><text x="294" y="137" font-size="8.5" fill="var(--ink-3)">5</text><text x="294" y="151" font-size="8.5" fill="var(--ink-3)">4</text><text x="294" y="165" font-size="8.5" fill="var(--ink-3)">4</text><text x="294" y="179" font-size="8.5" fill="var(--ink-3)">3</text><text x="294" y="193" font-size="8.5" fill="var(--ink-3)">2</text>
       <g fill="none" stroke="var(--accent)" stroke-width="1.4">
@@ -191,245 +184,232 @@ footer{grid-column:1 / -1;margin-top:80px;padding-top:26px;border-top:1px solid 
       </g>
       <g font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent)">
         <text x="190" y="-30" text-anchor="middle">one column</text>
-        <text x="190" y="-18" text-anchor="middle" fill="var(--ink-3)">what the drawing gathers</text>
-        <text x="322" y="53">one row = a route</text>
+        <text x="190" y="-18" text-anchor="middle" fill="var(--ink-3)">a collection of segments</text>
+        <text x="322" y="53">one row — one strand</text>
       </g>
       <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-3)">
         <text x="-12" y="98" text-anchor="end">14 distinct</text>
-        <text x="-12" y="110" text-anchor="end">patterns</text>
+        <text x="-12" y="110" text-anchor="end">rows</text>
         <text x="294" y="-8" font-size="8.5">strands</text>
-        <line x1="150" y1="202" x2="150" y2="208" stroke="var(--ink-3)"/><line x1="190" y1="202" x2="190" y2="208" stroke="var(--ink-3)"/>
-        <text x="170" y="222" text-anchor="middle">branch points</text>
+        <line x1="150" y1="202" x2="150" y2="208" stroke="var(--ink-3)"/>
+        <line x1="190" y1="202" x2="190" y2="208" stroke="var(--ink-3)"/>
+        <text x="170" y="222" text-anchor="middle">columns with two segments</text>
         <text x="322" y="204">14 of 198 columns</text>
+      </g>
+      <g fill="none" stroke="var(--accent)">
+        <circle cx="190" cy="49" r="5" stroke-width="1.6"/>
+        <line x1="74" y1="-26" x2="184.1" y2="45.2" stroke-width=".8"/>
+      </g>
+      <g font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="end">
+        <text x="70" y="-30" fill="var(--accent)">one cell</text>
+        <text x="70" y="-18" fill="var(--ink-3)">one row, one column</text>
       </g>
     </svg>
     <div class="key">
-      <span><i style="background:var(--c0)"></i>took the commonest segment</span>
-      <span><i style="background:var(--c4)"></i>took a rarer alternative</span>
-      <span><i style="border:1px dashed var(--rule)"></i>skipped the column entirely</span>
+      <span style="color:var(--ink-2)">each cell —</span>
+      <span><i style="background:var(--c0)"></i>passes through a segment</span>
+      <span><i style="background:var(--c4)"></i>passes through the less-used segment of a two-segment column</span>
+      <span><i style="border:1px dashed var(--rule)"></i>passes through no segment</span>
     </div>
-    <figcaption><b>Figure 1.</b> A real 14 &times; 14 corner of the document, not a
-    schematic. 2 of these 14 columns hold more than
-    one segment — those are the branch points, where a strand chooses. Reading down a column
-    is how the picture is laid out; reading across a row is a route. Rows are the 14
-    commonest distinct patterns over this window, of 22 in all, with the number of
-    strands carrying each at the right — so the variety is real but the proportions are not:
-    179 of the 464 strands take the top row alone. Colour is majority against
-    minority within each column, the only ordering of alternatives the data supports.
-    The second row is empty across all fourteen columns: those 95 strands are the ones
-    &sect;05 finds are absent from the window rather than divergent within it.</figcaption>
+    <figcaption><b>Figure 1.</b> Fourteen columns of the document and fourteen rows. Twelve
+    of these columns hold one segment; two hold two. Where a column holds two segments the
+    strands divide between them, and orange marks the one that fewer strands pass through.
+    The fourteen rows shown are the most common of the 22 distinct rows in these columns,
+    and the number at the right of each is how many strands have it. The top row has 179.
+    The second row is dashed throughout: its 95 strands pass through no segment here.</figcaption>
   </figure>
 </section>
 
 <section>
-  <div class="sechead"><span class="n">02</span><h2>Membership is read, then checked</h2></div>
-  <p>Routes are only as good as the claim about which strands traverse which segments, and
-  that claim could not be taken from PGB's data. This document <em>is</em> one PGB node,
-  resolved by the server into 274 segments PGB has no names for. Membership had to come out
-  of the drawing.</p>
+  <div class="sechead"><span class="n">02</span><h2>Finding the routes</h2></div>
+  <p>A route is built from one fact repeated 274 times: which strands pass through this
+  segment. That fact cannot come from PGB's data. The document is one PGB node, and PGB has
+  no names for the 274 segments inside it. It has to come from the drawing.</p>
 
-  <p>So it comes out of the drawing and is then checked against the drawing — the same
-  redundancy doctrine <code>parseSegmentBoxes.ts</code> uses on a box's corners. Every
-  quantity is read twice, by routes that share nothing, and the two readings must agree.</p>
+  <p>So it is taken from the drawing and then checked against the drawing. Two independent
+  readings:</p>
+
+  <div class="steps">
+    <div class="step"><span class="k">the box</span>
+      <p>A segment is drawn as a box whose height is <code>15 × strands + 18</code>: 15
+      units for every strand that passes through it, plus 9 units of corner at each end. The
+      box states its own count.</p></div>
+    <div class="step"><span class="k">the strands</span>
+      <p>Each strand's upper edge is rebuilt from the drawing — rectangles as they are,
+      curves flattened — and sampled at the box's midpoint. A strand that falls inside the
+      box passes through the segment.</p></div>
+  </div>
 
   <figure class="figframe">
-    <svg viewBox="0 0 720 176" role="img" aria-label="A segment box states its own carrier count in its height">
+    <svg viewBox="0 0 720 168" role="img" aria-label="A segment box states how many strands pass through it">
       <g font-family="IBM Plex Mono, monospace" font-size="10.5">
-        <g>
-          <rect x="20" y="20" width="52" height="132" rx="9" fill="none" stroke="var(--ink-2)" stroke-width="1.6"/>
-          <g fill="var(--c0)" opacity=".8">
-            <rect x="26" y="29" width="40" height="8"/><rect x="26" y="41" width="40" height="8"/>
-            <rect x="26" y="53" width="40" height="8"/><rect x="26" y="65" width="40" height="8"/>
-            <rect x="26" y="77" width="40" height="8"/><rect x="26" y="89" width="40" height="8"/>
-            <rect x="26" y="101" width="40" height="8"/><rect x="26" y="113" width="40" height="8"/>
-            <rect x="26" y="125" width="40" height="8"/><rect x="26" y="137" width="40" height="8"/>
-          </g>
-          <line x1="86" y1="20" x2="86" y2="152" stroke="var(--ink-3)" stroke-width="1"/>
-          <line x1="82" y1="20" x2="90" y2="20" stroke="var(--ink-3)"/><line x1="82" y1="152" x2="90" y2="152" stroke="var(--ink-3)"/>
-          <text x="98" y="80" fill="var(--ink-2)">height</text>
-          <text x="98" y="96" fill="var(--ink-3)">= 15 &middot; carriers + 18</text>
+        <rect x="20" y="18" width="52" height="132" rx="9" fill="none" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <g fill="var(--c0)" opacity=".8">
+          <rect x="26" y="27" width="40" height="8"/><rect x="26" y="39" width="40" height="8"/>
+          <rect x="26" y="51" width="40" height="8"/><rect x="26" y="63" width="40" height="8"/>
+          <rect x="26" y="75" width="40" height="8"/><rect x="26" y="87" width="40" height="8"/>
+          <rect x="26" y="99" width="40" height="8"/><rect x="26" y="111" width="40" height="8"/>
+          <rect x="26" y="123" width="40" height="8"/><rect x="26" y="135" width="40" height="8"/>
         </g>
-        <text x="250" y="42" fill="var(--ink-2)">Reading A &mdash; the box states its own count.</text>
-        <text x="250" y="58" fill="var(--ink-3)">One 15-unit lane per strand, plus a 9-unit corner at each end.</text>
-        <text x="250" y="74" fill="var(--ink-3)">Nothing else in the script touches this number.</text>
-        <text x="250" y="106" fill="var(--ink-2)">Reading B &mdash; trace the strands.</text>
-        <text x="250" y="122" fill="var(--ink-3)">Each strand's top edge rebuilt (rects verbatim, beziers flattened),</text>
-        <text x="250" y="138" fill="var(--ink-3)">sampled at the box midpoint, tested against the box's lane range.</text>
-        <rect x="244" y="24" width="452" height="130" fill="none" stroke="var(--rule)"/>
+        <line x1="86" y1="18" x2="86" y2="150" stroke="var(--ink-3)"/>
+        <line x1="82" y1="18" x2="90" y2="18" stroke="var(--ink-3)"/>
+        <line x1="82" y1="150" x2="90" y2="150" stroke="var(--ink-3)"/>
+        <text x="98" y="80" fill="var(--ink-2)">height</text>
+        <text x="98" y="96" fill="var(--ink-3)">= 15 × strands + 18</text>
+        <rect x="244" y="22" width="452" height="124" fill="none" stroke="var(--rule)"/>
+        <text x="262" y="52" fill="var(--ink-2)">One segment, ten strands.</text>
+        <text x="262" y="76" fill="var(--ink-3)">The box gives ten. Counting the strands drawn inside it</text>
+        <text x="262" y="92" fill="var(--ink-3)">gives ten. The two numbers are read separately and</text>
+        <text x="262" y="108" fill="var(--ink-3)">must agree, for all 274 boxes, or the document is refused.</text>
       </g>
     </svg>
-    <figcaption><b>Figure 2.</b> The two readings agree on <b>274 of 274</b> boxes. Any
-    disagreement refuses the document rather than emitting routes &mdash; a silently
-    dropped band is a strand filed under the wrong route, and the rare routes are where one
-    dropped band does the most damage.</figcaption>
+    <figcaption><b>Figure 2.</b> The two readings agree on 274 of 274 boxes. A disagreement
+    refuses the document.</figcaption>
   </figure>
 
-  <p style="margin-top:1.05em">The check earned its place immediately. A first version read
-  only the rectangles and matched 176 of 274. Every miss was an 18-unit box &mdash; the 1 bp
-  variants &mdash; where the band is drawn as a bezier and never as a rect. Without the
-  arithmetic that failure is invisible: the routes still look plausible, and every
-  single-base variant is quietly absent from all of them.</p>
+  <p style="margin-top:1.05em">A first version read only the rectangles and agreed on 176
+  of 274. Every miss was a 1 bp segment, which is drawn as a curve and never as a rectangle.
+  Without the count, every single-base difference would have been missing from every
+  route.</p>
 
-  <p class="side"><b>Conservation.</b> 40,442 band elements in the source, 40,442 across the
-  112 route files, 464 distinct strands, none duplicated.</p>
+  <p class="side"><b>Nothing lost in the split.</b> 40,442 drawn elements in the document,
+  40,442 across the 112 route files, 464 strands, none repeated.</p>
 </section>
 
 <section>
-  <div class="sechead"><span class="n">03</span><h2>What the document turned out to contain</h2></div>
+  <div class="sechead"><span class="n">03</span><h2>What the document contains</h2></div>
 
   <figure>
-    <svg viewBox="-6 -18 706 128" role="img" aria-label="Strand count for each of the 112 routes">
+    <svg viewBox="-6 -18 706 128" role="img" aria-label="Strands per route, for all 112 routes">
       <rect x="0.0" y="0.0" width="5.6" height="96.0" fill="var(--c0)"/><rect x="6.2" y="41.8" width="5.6" height="54.2" fill="var(--c0)"/><rect x="12.4" y="61.9" width="5.6" height="34.1" fill="var(--c0)"/><rect x="18.6" y="87.5" width="5.6" height="8.5" fill="var(--c2)"/><rect x="24.8" y="89.0" width="5.6" height="7.0" fill="var(--c2)"/><rect x="31.0" y="89.0" width="5.6" height="7.0" fill="var(--c2)"/><rect x="37.2" y="89.0" width="5.6" height="7.0" fill="var(--c2)"/><rect x="43.4" y="90.6" width="5.6" height="5.4" fill="var(--c2)"/><rect x="49.6" y="91.4" width="5.6" height="4.6" fill="var(--c2)"/><rect x="55.8" y="91.4" width="5.6" height="4.6" fill="var(--c2)"/><rect x="62.0" y="91.4" width="5.6" height="4.6" fill="var(--c2)"/><rect x="68.2" y="92.1" width="5.6" height="3.9" fill="var(--c2)"/><rect x="74.4" y="92.1" width="5.6" height="3.9" fill="var(--c2)"/><rect x="80.6" y="92.1" width="5.6" height="3.9" fill="var(--c2)"/><rect x="86.8" y="92.1" width="5.6" height="3.9" fill="var(--c2)"/><rect x="93.0" y="92.1" width="5.6" height="3.9" fill="var(--c2)"/><rect x="99.2" y="92.9" width="5.6" height="3.1" fill="var(--ink-3)"/><rect x="105.4" y="92.9" width="5.6" height="3.1" fill="var(--ink-3)"/><rect x="111.6" y="92.9" width="5.6" height="3.1" fill="var(--ink-3)"/><rect x="117.8" y="92.9" width="5.6" height="3.1" fill="var(--ink-3)"/><rect x="124.0" y="92.9" width="5.6" height="3.1" fill="var(--ink-3)"/><rect x="130.2" y="93.7" width="5.6" height="2.3" fill="var(--ink-3)"/><rect x="136.4" y="93.7" width="5.6" height="2.3" fill="var(--ink-3)"/><rect x="142.6" y="93.7" width="5.6" height="2.3" fill="var(--ink-3)"/><rect x="148.8" y="93.7" width="5.6" height="2.3" fill="var(--ink-3)"/><rect x="155.0" y="93.7" width="5.6" height="2.3" fill="var(--ink-3)"/><rect x="161.2" y="93.7" width="5.6" height="2.3" fill="var(--ink-3)"/><rect x="167.4" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="173.6" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="179.8" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="186.0" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="192.2" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="198.4" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="204.6" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="210.8" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="217.0" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="223.2" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="229.4" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="235.6" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="241.8" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="248.0" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="254.2" y="94.5" width="5.6" height="1.5" fill="var(--ink-3)"/><rect x="260.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="266.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="272.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="279.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="285.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="291.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="297.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="303.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="310.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="316.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="322.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="328.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="334.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="341.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="347.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="353.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="359.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="365.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="372.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="378.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="384.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="390.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="396.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="403.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="409.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="415.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="421.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="427.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="434.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="440.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="446.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="452.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="458.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="465.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="471.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="477.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="483.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="489.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="496.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="502.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="508.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="514.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="520.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="527.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="533.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="539.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="545.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="551.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="558.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="564.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="570.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="576.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="582.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="589.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="595.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="601.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="607.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="613.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="620.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="626.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="632.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="638.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="644.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="651.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="657.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="663.4" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="669.6" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="675.8" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="682.0" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/><rect x="688.2" y="95.2" width="5.6" height="0.8" fill="var(--ink-3)"/>
       <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-3)">
         <text x="0" y="-6" fill="var(--ink-2)">124</text>
         <text x="20" y="36">70</text><text x="34" y="56">44</text>
         <text x="120" y="88">the other 108 routes</text>
-        <text x="418" y="107">70 routes carried by a single strand</text>
+        <text x="418" y="107">70 routes have one strand</text>
         <line x1="414" y1="103" x2="404" y2="97" stroke="var(--rule)"/>
       </g>
       <line x1="0" y1="96" x2="694" y2="96" stroke="var(--rule)"/>
     </svg>
-    <figcaption><b>Figure 3.</b> Every one of the 112 routes, ordered by how many strands
-    take it. Linear scale, undistorted &mdash; the flatness of the tail is the finding. Three
-    routes carry 238 of the 464 strands; seventy routes carry one each.</figcaption>
+    <figcaption><b>Figure 3.</b> All 112 routes, ordered by how many strands have them.
+    Linear scale. Three routes have 238 of the 464 strands; seventy routes have one
+    each.</figcaption>
   </figure>
 
   <div class="tablewrap">
   <table>
     <thead><tr><th>Measure</th><th>Value</th><th>Note</th></tr></thead>
     <tbody>
-      <tr><td>strands</td><td class="hi">464</td><td>haplotypes in the window</td></tr>
+      <tr><td>strands</td><td class="hi">464</td><td>haplotypes</td></tr>
       <tr><td>segments</td><td class="hi">274</td><td>inside the one node</td></tr>
-      <tr><td>routes</td><td class="hi">112</td><td>distinct segment sets</td></tr>
-      <tr><td>columns</td><td>198</td><td>distinct x positions</td></tr>
-      <tr><td>branch points</td><td class="hi">73</td><td>columns holding 2 or 3 alternatives</td></tr>
-      <tr><td>consensus route</td><td>124 strands / 179 segments</td><td>the commonest itinerary</td></tr>
-      <tr><td>singleton routes</td><td class="hi">70</td><td>carried by one strand each</td></tr>
-      <tr><td>segments per strand</td><td>5 / 179 / 185</td><td>min / median / max</td></tr>
+      <tr><td>routes</td><td class="hi">112</td><td>distinct sets of segments</td></tr>
+      <tr><td>columns</td><td>198</td><td>collections of segments</td></tr>
+      <tr><td>columns holding more than one segment</td><td class="hi">73</td><td>two segments, or three</td></tr>
+      <tr><td>most common route</td><td>124 strands · 179 segments</td><td></td></tr>
+      <tr><td>routes with one strand</td><td class="hi">70</td><td></td></tr>
+      <tr><td>segments per strand</td><td>5 · 179 · 185</td><td>least · middle · most</td></tr>
     </tbody>
   </table>
   </div>
 
-  <p style="margin-top:2em">At the 73 branch points, across all 464 strands, a strand took
-  exactly one alternative 27,103 times and skipped the column entirely 6,769 times.
-  <strong>It took two alternatives zero times.</strong> So a route is precisely the record
-  of the choices a strand made: at each branch, this one, that one, or neither.</p>
+  <p style="margin-top:2em">Across all 464 strands and the 73 columns holding more than one segment, a strand passed through one segment 27,103 times and through none
+  6,769 times. It passed through two <strong>zero</strong> times.</p>
 
-  <p>Route identity is correspondingly brittle. Route 4 is the consensus with <em>one</em>
-  segment swapped for one other &mdash; nine strands do that, and it makes them a separate
-  route. Two singleton routes can differ from each other by 2 segments out of 185. That
-  brittleness is why seventy routes are singletons, and it is a property of the definition,
-  not a defect in it.</p>
+  <p>Routes differ from each other by very little. Route 4 is the most common route with one
+  segment exchanged for another, and nine strands have it. Two routes with one strand
+  each can differ by two segments out of 185. Seventy routes have a single strand
+  because one differing segment makes a different route.</p>
 </section>
 
 <section>
   <div class="sechead"><span class="n">04</span><h2>The app</h2></div>
-  <p>112 layers, one per route, stacked in register. The controls are the smallest set that
-  makes the layers examinable.</p>
+  <p>112 layers, one per route, drawn on top of each other. Five controls.</p>
 
   <div class="steps">
     <div class="step"><span class="k">route list</span>
-      <p>Every route as a row: index, a bar for how many strands take it, the count. The
-      list is the distribution of Figure 3, sorted and clickable.</p></div>
+      <p>One line per route, with a bar for how many strands have it.</p></div>
     <div class="step"><span class="k">click to solo</span>
-      <p>Draws one route at full strength and recedes the other 111. Recede the others
-      rather than brighten the one &mdash; spike story 30, applied to a route instead of a
-      strand.</p></div>
+      <p>Draws one route at full strength and fades the other 111.</p></div>
     <div class="step"><span class="k">checkbox</span>
-      <p>Shows or hides any single layer independently, so arbitrary subsets can be
-      composed by hand.</p></div>
+      <p>Shows or hides any layer, so any set of routes can be drawn together.</p></div>
     <div class="step"><span class="k">zoom</span>
-      <p>The document is 108,982 &times; 7,785. At fit a 15-unit band is under a pixel, so
-      zoom is not a convenience &mdash; without it there is nothing to see. The readout gives
-      band thickness in device pixels.</p></div>
+      <p>The document is 108,982 by 7,785 units. Drawn to fit, a strand is thinner than one
+      pixel, so zoom is needed to see anything.</p></div>
     <div class="step"><span class="k">casing · shadow</span>
-      <p>The two depth treatments the essay recommends, wired to the whole stack so they
-      can be looked at. Neither has been evaluated.</p></div>
+      <p>The two treatments the proposal suggests, wired up so they can be looked at.</p></div>
   </div>
 
   <div class="callout">
     <span class="label">The result</span>
-    <p>The layers separate. Soloing a route leaves something legible where the composite is
-    a solid mat, and arbitrary subsets stack back up in register with no transform. That is
-    the assumption the depth proposal rests on, and it holds &mdash; for this document.</p>
+    <p>The layers separate. One route drawn alone is legible where all 112 together are not,
+    and any set of them can be drawn together without moving anything.</p>
   </div>
 </section>
 
 <section>
-  <div class="sechead"><span class="n">05</span><h2>Two things the proposal assumes that this document does not support</h2></div>
+  <div class="sechead"><span class="n">05</span><h2>Two problems with ordering routes</h2></div>
+  <p>The proposal offers two ways to order routes in depth: by how many strands have a
+  route, and by how far a route differs from the most common one. It ranks the second
+  first, and says the two are close enough to substitute. On this document they are not.</p>
 
-  <h3>1 &middot; Cardinality is not a proxy for divergence here</h3>
-  <p>The essay ranks <em>divergence from consensus</em> first and <em>route cardinality</em>
-  second, justifying the second as broadly correlated with the first &mdash; cheap, and close
-  enough. Over these 112 routes:</p>
-  <p class="mono" style="margin-top:1em;color:var(--ink-2);font-size:.9rem">
-  spearman(cardinality, divergence) = +0.104 &nbsp; p = 0.27</p>
-  <p style="margin-top:1.05em">No relationship. The two orderings produce materially
-  different stacks, so the choice between them is not the cheap one it appears to be.</p>
+  <h3>1 · The two orders are unrelated</h3>
+  <p class="mono" style="margin-top:.8em;color:var(--ink-2);font-size:.9rem">
+  spearman(strands, difference) = +0.104 &nbsp; p = 0.27</p>
+  <p style="margin-top:1.05em">That is no relationship. The two orders put the routes in
+  different depths, so the choice between them changes the result.</p>
 
-  <h3>2 &middot; Jaccard conflates <em>different</em> with <em>absent</em></h3>
-  <p>Five routes carrying 95 strands &mdash; a fifth of the window &mdash; sit below
-  <code>J = 0.3</code>. None is a divergent path. All five traverse between 5 and 12 of the
-  274 segments against the consensus route's 179: these are strands that barely cross the
-  window. The largest carries <strong>70 strands</strong>, more than any route but the
-  consensus.</p>
+  <h3>2 · A missing strand looks like a different one</h3>
+  <p>Difference is measured by how much two routes overlap. Five routes, with 95 strands
+  between them, share almost nothing with the most common route. None of them is a different
+  path through the document. Each passes through 5 to 12 segments, against the most common
+  route's 179, and the two ends of the document are where those segments are.</p>
 
-  <p>Ordering depth by divergence brings that route to the very front and reads it as the
-  most unusual path in the picture. It is not unusual; it is absent. And opacity is already
-  spent on exactly that distinction, so depth would assert <em>unusual</em> over strands the
-  map is simultaneously greying as <em>not placed</em>.</p>
+  <p>These strands are not different from the most common route; they are absent from this
+  part of the document. Ordering by difference brings them to the front as the most unusual thing in the picture. Whichever order is chosen, difference has to be measured
+  over the segments a strand could have passed through.</p>
 
-  <p>This is a gap in the ranking, not a defect in it: whichever ordering is chosen,
-  divergence has to be measured over the segments a strand could have traversed, not over
-  the window's full segment set.</p>
-
-  <p class="side"><b>One window.</b> Every number here describes <code>5520+</code>. Whether
-  either finding generalises is unmeasured.</p>
+  <p class="side"><b>One document.</b> Every number here is from <code>5520+</code>. Whether
+  either problem appears elsewhere is not measured.</p>
 </section>
 
 <section>
-  <div class="sechead"><span class="n">06</span><h2>The wrong turn, kept on the record</h2></div>
-  <p>The first version bundled the 112 routes into five depth <strong>strata</strong> by
-  carrier count, following the essay's argument that readers resolve five to seven shadow
-  layers and 112 planes is not a thing anyone can see.</p>
+  <div class="sechead"><span class="n">06</span><h2>Strata, removed</h2></div>
+  <p>The first version of this app put the 112 routes into five groups by how many strands
+  they have, because the proposal notes that a reader can only see about five depths.</p>
 
-  <p>That reasoning is sound for a depth cue and wrong here. This app exists to look at
-  routes as separable objects; bundling ninety-six of them onto one shelf delivered them
-  pre-glued, back into the undifferentiated mat the split was made to break up.</p>
+  <p>That is true of a depth cue, but wrong for this app. The app exists to separate routes, and
+  grouping ninety-six of them together joined back up most of what the split had taken
+  apart.</p>
 
-  <p>The binning could not have worked at this locus under any rule. <strong>Seventy of the
-  112 routes are carried by a single strand</strong>, so any grouping by popularity must put
-  all seventy on one shelf. The bottom stratum could never have held fewer than seventy
-  routes. Tuning the edges moved it from 108 to 96 &mdash; noise, on a thing that was
-  structurally stuck.</p>
+  <p>It could not have worked at this document in any case. Seventy of the 112 routes have
+  one strand each, so any grouping by count has to put all seventy in one group.
+  Moving the boundaries changed that group from 108 routes to 96.</p>
 
-  <p>Strata are gone. Quantising is the renderer's problem, to be solved against a rendered
-  picture, not baked into the file layout upstream of it. A route is the object; the layer
-  is the object; they are one to one.</p>
+  <p>One route, one layer. Grouping belongs to whatever draws the depth cue.</p>
 </section>
 
 <section>
-  <div class="sechead"><span class="n">07</span><h2>What it does not do</h2></div>
+  <div class="sechead"><span class="n">07</span><h2>Limits</h2></div>
   <ul>
-    <li><b>No depth cue is evaluated.</b> Casing and shadow are wired up and both do
-    something. Whether either reads as depth at these band widths is a perceptual question
-    this app does not answer.</li>
-    <li><b>Nothing renders in the viewer.</b> These are offline SVGs.
-    <code>src/tubemap/</code> is untouched, and no route computation exists in PGB.</li>
-    <li><b>Depth surviving a pan is untested.</b> The essay's third caveat is a property of
-    live route computation, which does not exist.</li>
-    <li><b>One document, one node.</b> Routes here are structure <em>inside</em>
-    <code>5520+</code>. Nothing about this says anything about routes across nodes, which is
-    the scale the panning caveat is actually about.</li>
+    <li><b>No depth cue was judged.</b> Casing and shadow are wired up and both do
+    something. Whether either reads as depth at this thickness is not answered here.</li>
+    <li><b>Nothing renders in PGB.</b> These are SVGs written to disk.
+    <code>src/tubemap/</code> is unchanged and PGB computes no routes.</li>
+    <li><b>Depth surviving a pan is untested.</b> That needs routes computed live, which
+    do not exist.</li>
+    <li><b>One document, one node.</b> These routes are inside <code>5520+</code>. They say
+    nothing about routes across nodes, which is the scale the proposal's third caveat is
+    about.</li>
   </ul>
 </section>
 
 <footer>
-  Companion to <code>notes/sequence-tube-map/route-layers/</code> &middot; advisory note, not
-  normative &mdash; see CLAUDE.md &sect; Where documentation goes &middot;
-  Figures 1 and 3 are drawn from the generated manifest; Figure 2 is a diagram of the check,
-  not a measurement &middot; regenerate with
+  Companion to <code>notes/sequence-tube-map/route-layers/</code> · advisory note, not
+  normative — see CLAUDE.md § Where documentation goes ·
+  Figures 1 and 3 are drawn from the generated manifest; Figure 2 is a diagram of the check ·
+  regenerate with
   <code>python3 scripts/split_routes_svg.py &lt;document&gt; --output notes/sequence-tube-map/route-layers</code>
 </footer>
 
+</div>
 </div>
