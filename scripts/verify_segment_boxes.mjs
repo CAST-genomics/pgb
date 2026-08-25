@@ -13,28 +13,45 @@
  * Headed, for the same reason `verify_pick.mjs` is: headless chromium rasterizes the pick
  * pass in software, and the feeler check reads what that pass answered.
  *
- * **Host: `dev/tubemap.html`**, the bare page — and the one place in `scripts/verify_*.mjs`
- * where that is a debt rather than a reason (#126). The subject really is DOM layout: 767
- * elements' widths, a visibility threshold in css pixels, and computed `cursor` and
- * `background-color`. `.stm-segment` states its own `box-sizing`, which is why nothing is
- * known to be wrong; what keeps the script here is that its geometry is written against a
- * viewport-filling canvas — `innerWidth`, and a cursor parked at 700, 450 — and the panel's
- * body is not that. **This is the first script to move to `dev/tubemap-app.html`**, and
- * moving it means re-anchoring those coordinates to the canvas's own box.
+ * **Host: `dev/tubemap-app.html`**, the panel under the cascade the app ships (#126) — and
+ * the one `scripts/verify_*.mjs` for which that is the point rather than a convenience. The
+ * other seven measure the canvas: a readback, a raster, a cost, none of which a stylesheet
+ * reaches inside. This one's subject really is DOM layout — 767 elements' widths, a
+ * visibility threshold in css pixels, and computed `cursor` and `background-color` — so it is
+ * the one whose answers Bootstrap's reset can move, and it now asks them where the reset is
+ * in force. `.stm-segment` states its own `box-sizing`, which is why nothing was ever known
+ * to be wrong; the rule this guards is that a class combining a JS-written width with a
+ * border has to state its own, and a script that never runs under the reset cannot say when
+ * one starts to.
+ *
+ * The geometry is what used to keep it on the bare page: `innerWidth`, and a cursor parked at
+ * 700, 450, are the map's own middle only while the canvas fills the viewport. Inside the
+ * card they are the host's middle, which is over the chrome as often as over the strip, so
+ * every coordinate below is taken from `canvas.stm-canvas`'s own box — the same way
+ * `verify_pclai_pad.mjs` and `verify_pick_set_cloud.mjs` take theirs. The viewport is wide
+ * rather than the card fullscreen: the card is 75% of the host by area, the 200× clamp checks
+ * want a real strip to be clamped in, and the screenshots are still worth more with the
+ * chrome in them.
  *
  *     node scripts/verify_segment_boxes.mjs   # with `npm run dev` already up
  */
 
 import { chromium } from 'playwright'
 
-const ORIGIN = 'http://localhost:5173/dev/tubemap.html'
+const ORIGIN = 'http://localhost:5173/dev/tubemap-app.html'
 const DOCUMENT = '/src/tubemap/__tests__/fixtures/stm-node-5514-chr1-25301271-25309238.svg'
 
 /** What the fixture holds, counted out of the file by `parseSegmentBoxes.test.ts`. */
 const BOXES = 767
 
+/**
+ * Wide enough that the card — `HOST_AREA_FRACTION` of the host by area, so ~87% of each side
+ * — still gives the map a strip to be clamped in, with the chrome left in the shot.
+ */
+const VIEWPORT = { width: 1800, height: 1000 }
+
 const browser = await chromium.launch({ headless: false })
-const page = await browser.newPage({ viewport: { width: 1400, height: 900 } })
+const page = await browser.newPage({ viewport: VIEWPORT })
 
 const results = []
 const check = (name, passed, detail) => {
@@ -47,9 +64,35 @@ async function open(query = '') {
     await page.bringToFront()
     await page.waitForFunction(() => document.querySelector('.stm-status')?.hidden === true)
     // The opening framing settles over a frame or two — the resize observer re-fits a view
-    // nobody has moved yet.
+    // nobody has moved yet. Inside the card there is a step before that: the panel sizes
+    // itself to its host, and the canvas the coordinates below are read off is whatever
+    // survives it.
     await page.waitForTimeout(600)
+    await readSurface()
 }
+
+/**
+ * Where the map is, in page coordinates, and the middle of it.
+ *
+ * Every gesture in this script points at the map rather than at the page. Re-read after each
+ * `open()`: the card is laid out against its host, so the strip is not at the same place —
+ * or the same size — as the viewport it sits in.
+ */
+let surface = null
+
+async function readSurface() {
+    surface = await page.locator('canvas.stm-canvas').boundingBox()
+
+    return surface
+}
+
+const middle = () => ({ x: surface.x + surface.width / 2, y: surface.y + surface.height / 2 })
+
+/** A point held inside the map, so a drag that starts or ends near an edge still starts on it. */
+const onSurface = point => ({
+    x: Math.min(Math.max(point.x, surface.x + 4), surface.x + surface.width - 4),
+    y: Math.min(Math.max(point.y, surface.y + 4), surface.y + surface.height - 4)
+})
 
 /** What the overlay looks like right now, read out of the DOM rather than off a screenshot. */
 const overlay = () => page.evaluate(() => {
@@ -109,10 +152,12 @@ async function hover(where) {
     await page.waitForTimeout(250)
 }
 
-/** Zoom in on the middle of the viewport until the camera stops moving. */
+/** Zoom in on the middle of the map until the camera stops moving. */
 async function zoomToClamp() {
+    const at = middle()
+
     for (let step = 0; step < 30; step += 1) {
-        await page.mouse.move(700, 450)
+        await page.mouse.move(at.x, at.y)
         await page.mouse.wheel(0, -600)
         await page.waitForTimeout(60)
     }
@@ -120,8 +165,14 @@ async function zoomToClamp() {
     await page.waitForTimeout(300)
 }
 
-/** The visible box nearest the middle of the viewport, and where to point at it. */
-const nearestBox = () => page.evaluate(() => {
+/**
+ * The visible box nearest the middle of the map, and where to point at it.
+ *
+ * The map's own edges, not the viewport's: a box hanging off the side of the strip is not
+ * reachable however much page there is beside it.
+ */
+const nearestBox = () => page.evaluate(({ left, right, y }) => {
+    const centre = (left + right) / 2
     let best = null
 
     for (const box of document.querySelectorAll('.stm-segment')) {
@@ -131,23 +182,48 @@ const nearestBox = () => page.evaluate(() => {
 
         const bounds = box.getBoundingClientRect()
 
-        if (bounds.right < 40 || bounds.left > innerWidth - 40) {
+        if (bounds.right < left + 40 || bounds.left > right - 40) {
             continue
         }
 
         const middle = bounds.left + bounds.width / 2
-        const distance = Math.abs(middle - 700)
+        const distance = Math.abs(middle - centre)
 
         if (null === best || distance < best.distance) {
-            best = { distance, x: middle, y: 450, id: box.dataset.stmSegment }
+            best = { distance, x: middle, y, id: box.dataset.stmSegment }
         }
     }
 
     return best
+}, { left: surface.x, right: surface.x + surface.width, y: middle().y })
+
+// ── 0. The page is the app's cascade ───────────────────────────────────────────────────
+//
+// Everything below is a measurement of DOM layout, and the reason it is taken here rather
+// than on `dev/tubemap.html` is Bootstrap's reset. `verify_pclai_pad.mjs` refuses to report
+// anything unless the reset is really in force; this script has the same standing to, and
+// the same reason — a host that quietly stopped carrying the cascade would turn every check
+// below back into the check it used to be, while still printing `ok`.
+await open()
+
+const bare = await page.evaluate(() => {
+    const probe = document.createElement('div')
+    document.body.append(probe)
+    const sizing = getComputedStyle(probe).boxSizing
+    probe.remove()
+
+    return sizing
 })
 
+check('the page carries the app\'s reset', 'border-box' === bare, `an unstyled div is ${bare}`)
+
+if ('border-box' !== bare) {
+    console.log('\n  the host page is not the app cascade — nothing below is a test of anything')
+    await browser.close()
+    process.exit(1)
+}
+
 // ── 1. The document decides how many boxes there are, and how wide ─────────────────────
-await open()
 
 const atFit = await overlay()
 
@@ -167,7 +243,7 @@ await shot('fit')
 const arrivals = []
 
 for (let step = 0; step < 12; step += 1) {
-    await page.mouse.move(700, 450)
+    await page.mouse.move(middle().x, middle().y)
     await page.mouse.wheel(0, -500)
     await page.waitForTimeout(100)
     arrivals.push(await overlay())
@@ -316,9 +392,12 @@ if (null === box) {
 
     const tip = await page.locator('.graph-tooltip').boundingBox()
 
-    await page.mouse.move(tip.x - 40, tip.y + tip.height / 2)
+    const from = onSurface({ x: tip.x - 40, y: tip.y + tip.height / 2 })
+    const to = onSurface({ x: tip.x + tip.width + 60, y: tip.y + tip.height / 2 })
+
+    await page.mouse.move(from.x, from.y)
     await page.mouse.down()
-    await page.mouse.move(tip.x + tip.width + 60, tip.y + tip.height / 2, { steps: 25 })
+    await page.mouse.move(to.x, to.y, { steps: 25 })
     await page.mouse.up()
     await page.waitForTimeout(200)
 
@@ -350,12 +429,14 @@ const idle = await cursors()
 check('the map offers a grip when idle', 'grab' === idle.canvas && 'grab' === idle.segment,
     `canvas ${idle.canvas}, segment ${idle.segment}`)
 
-await page.mouse.move(700, 450)
+const grip = middle()
+
+await page.mouse.move(grip.x, grip.y)
 await page.mouse.down()
 
 const pressed = await cursors()
 
-await page.mouse.move(560, 450, { steps: 12 })
+await page.mouse.move(grip.x - 140, grip.y, { steps: 12 })
 
 const dragging = await cursors()
 
@@ -369,10 +450,11 @@ check('and moving keeps hold of it', 'grabbing' === dragging.root && 'grabbing' 
     `root ${dragging.root}, canvas ${dragging.canvas}`)
 check('letting go lets go', 'grab' === dropped.canvas, dropped.canvas)
 
-// Released off the surface, which is how most drags of a map end.
-await page.mouse.move(700, 450)
+// Released off the surface, which is how most drags of a map end — off the top of the map
+// and onto the card's own chrome, rather than off the top of the page.
+await page.mouse.move(grip.x, grip.y)
 await page.mouse.down()
-await page.mouse.move(700, 40, { steps: 8 })
+await page.mouse.move(grip.x, surface.y - 20, { steps: 8 })
 await page.mouse.up()
 await page.waitForTimeout(100)
 
@@ -380,7 +462,7 @@ check('a drag released off the surface lets go too', 'grab' === (await cursors()
 
 // A wheel is not a grip. The controls announce `start`/`end` around one, which is why this
 // is bound to the pointer instead.
-await page.mouse.move(700, 450)
+await page.mouse.move(grip.x, grip.y)
 await page.mouse.wheel(0, -400)
 await page.waitForTimeout(100)
 
@@ -389,7 +471,7 @@ check('a wheel notch does not flash the hand', 'grab' === (await cursors()).canv
 // Feeling switches the controls off, so a grabbing hand would promise a pan that cannot
 // happen.
 await page.keyboard.down('Shift')
-await page.mouse.move(700, 450)
+await page.mouse.move(grip.x, grip.y)
 await page.mouse.down()
 
 const feelingPress = await cursors()
