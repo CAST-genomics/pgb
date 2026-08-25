@@ -391,6 +391,45 @@ rename: upstream sequence-tube-map and the SVG itself call this a *track*
 **annotation track**. *Strand* is the term to use; *track* survives only in code
 quoting the server's document.
 
+### route
+
+The **segments** one **strand** passes through in a **sequence tube map** — a
+strand's complete traversal, with the identity of the haplotype walking it
+stripped off. Two strands with the same route took the same path through the
+subgraph, so over that window there is nothing to tell them apart and no picture
+could. Routes are therefore the distinct assertions a document makes, and there
+are far fewer of them than there are strands: `5520+` draws 464 strands over 274
+segments and holds 112 routes, three of which carry 238 of the strands and
+seventy of which carry one each.
+
+How many routes a locus has is itself a finding, not a constant — six loci
+surveyed run from 6 routes over 466 strands to 198. A locus where grouping buys
+nothing is a hypervariable one, and that is worth handing to the researcher
+rather than making them squint at a wall of ribbons.
+
+The word is PGB's, kept because genomics has no unambiguous one. The
+translations, for reading the literature or talking to a collaborator:
+
+- Population genetics says **haplotype**, in the *type* rather than the token
+  sense — "12 haplotypes among 466 chromosomes" counts routes, not strands. PGB
+  spends **haplotype** on the token (see the domain entry), so it cannot also
+  carry the type.
+- Graph genomics says **snarl traversal**; `vg deconstruct` turns the distinct
+  traversals of a snarl into the ALT column of a VCF.
+- Biologically a route is an **allele** of the whole window — the joint choice
+  of allele at every variable site in it, rather than at one. PGB's domain
+  **allele** entry is the single-site sense, which is why *route* is not spelled
+  *allele* here.
+
+A route's strand count is its **allele count**, its share its **allele
+frequency**, and a one-strand route a **singleton** — a term that carries a
+reading with it, since a singleton is a recent mutation or an assembly error.
+
+Long form: [`notes/sequence-tube-map/routes-not-ribbons.html`](notes/sequence-tube-map/routes-not-ribbons.html)
+(the six-locus survey) and
+[`notes/sequence-tube-map/route-layers.html`](notes/sequence-tube-map/route-layers.html)
+(one document taken apart along route boundaries).
+
 ### feeler
 
 The held-`Shift` mode over a **sequence tube map**: while the key is down, one
