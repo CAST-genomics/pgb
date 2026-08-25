@@ -332,7 +332,8 @@ its subject genuinely *is* DOM layout — 767 segment boxes' widths, a visibilit
 css pixels, computed `cursor` and `background-color` — so it is the one script whose answers
 Bootstrap's reset can move, and it now asks them where the reset is in force. It opens with
 the same refusal `verify_pclai_pad.mjs` does, so it cannot report `ok` from a page that has
-stopped carrying the cascade.
+stopped carrying the cascade, and with a check that the card left the map a strip to be
+measured in.
 
 ```bash
 node scripts/verify_segment_boxes.mjs   # headed, with `npm run dev` already up

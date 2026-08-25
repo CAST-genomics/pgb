@@ -29,9 +29,9 @@
  * card they are the host's middle, which is over the chrome as often as over the strip, so
  * every coordinate below is taken from `canvas.stm-canvas`'s own box — the same way
  * `verify_pclai_pad.mjs` and `verify_pick_set_cloud.mjs` take theirs. The viewport is wide
- * rather than the card fullscreen: the card is 75% of the host by area, the 200× clamp checks
- * want a real strip to be clamped in, and the screenshots are still worth more with the
- * chrome in them.
+ * rather than the card fullscreen: the card is `HOST_AREA_FRACTION` of the host by area, the
+ * 200× clamp checks want a real strip to be clamped in, and the screenshots are still worth
+ * more with the chrome in them.
  *
  *     node scripts/verify_segment_boxes.mjs   # with `npm run dev` already up
  */
@@ -82,8 +82,6 @@ let surface = null
 
 async function readSurface() {
     surface = await page.locator('canvas.stm-canvas').boundingBox()
-
-    return surface
 }
 
 const middle = () => ({ x: surface.x + surface.width / 2, y: surface.y + surface.height / 2 })
@@ -217,6 +215,13 @@ const bare = await page.evaluate(() => {
 
 check('the page carries the app\'s reset', 'border-box' === bare, `an unstyled div is ${bare}`)
 
+// And that the card left the map room to be a map. Said as its own check rather than left to
+// the viewport constant: if the card ever comes up small, `every box is drawn at the 200×
+// clamp` is the check that fails, and it would report a threshold rather than the reason.
+check('the panel leaves the map a strip to work in',
+    surface.width >= 900 && surface.height >= 500,
+    `canvas ${Math.round(surface.width)} × ${Math.round(surface.height)} in a ${VIEWPORT.width} × ${VIEWPORT.height} viewport`)
+
 if ('border-box' !== bare) {
     console.log('\n  the host page is not the app cascade — nothing below is a test of anything')
     await browser.close()
@@ -273,7 +278,7 @@ await shot('200x')
 const box = await nearestBox()
 
 if (null === box) {
-    check('a box is reachable at 200×', false, 'nothing visible near the middle of the viewport')
+    check('a box is reachable at 200×', false, 'nothing visible near the middle of the map')
 } else {
     await hover(box)
 
