@@ -82,9 +82,9 @@ const TOOLTIP_OFFSET = { x: 14, y: 16 }
  * The haplotype the feeler is holding, as the tooltip says it (#132).
  *
  * Both fields are already words: the name is the document's own spelling, and the direction
- * is `inversion.ts`'s reading of it — *inverted*, *not inverted*, *mixed*. Nothing here
- * decides either, which is what keeps a details table about a segment out of the business of
- * interpreting band directions.
+ * is `inversion.ts`'s reading of it — *inverted*, or *mixed* for a haplotype that turns
+ * around mid-traversal. Nothing here decides either, which is what keeps a details table
+ * about a segment out of the business of interpreting band directions.
  */
 export interface HeldHaplotype {
     name: string
@@ -101,10 +101,11 @@ export interface SegmentOverlay {
      * something else: a researcher reading a box while `Shift` is down is reading it through
      * one haplotype, and #132 says the surfaces that name a haplotype say which way it runs.
      *
-     * `null` for no feeler, and `null` too when the document has nothing to say about
-     * direction — the caller decides which silence it is, since the reference direction is
-     * known there. The rows are then absent rather than blank, so the tooltip in the four
-     * corpus documents with no inversion is the one #92 shipped.
+     * `null` for no feeler, and `null` too for a haplotype running the ordinary way — the
+     * caller decides, since the reference direction is known there. The rows are then absent
+     * rather than blank: a tooltip is a details table, and *not inverted* in it is two rows
+     * saying nothing happened. So the tooltip is the one #92 shipped everywhere except over
+     * an inverted haplotype.
      *
      * Called on the pick frame, so it is idempotent: a sweep re-reports the same haplotype
      * for many frames running and only a change touches the DOM.

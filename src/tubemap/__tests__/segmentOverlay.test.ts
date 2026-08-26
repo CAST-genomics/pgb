@@ -199,13 +199,13 @@ describe('the haplotype under the feeler, in the tooltip', () => {
 
         map.segments.feel({ name: 'HG002#1#chr8', direction: 'inverted' })
         map.enter()
-        map.segments.feel({ name: 'GRCh38#0#chr8', direction: 'not inverted' })
+        map.segments.feel({ name: 'GRCh38#0#chr8', direction: 'mixed' })
 
         expect(map.rows()).toEqual([
             ['Length', '4 bp'],
             ['Sequence', 'ACGT'],
             ['Haplotype', 'GRCh38#0#chr8'],
-            ['Direction', 'not inverted']
+            ['Direction', 'mixed']
         ])
 
         map.segments.feel(null)

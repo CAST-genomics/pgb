@@ -32,13 +32,13 @@
  * be a label nobody can read. A swatch spends the colour where contrast does not matter —
  * against a filled shape — and leaves the name at the card's own near-black.
  *
- * **Each name carries its direction, where the document has one to give** (#132). The caption
- * over the map says how many haplotypes are inverted; this is the only surface that says
- * *which*, and a researcher holding one of 463 haplotypes cannot otherwise tell whether it is
- * one of the 166. A word rather than a mark because colour and alpha are both already spoken
- * for and a band is 0.19 css px tall at fit — ADR `0004` §Consequences argues it. Which word,
- * and when there is none, are `inversion.ts`'s decisions; this file writes down what it is
- * handed.
+ * **An inverted name says so** (#132). The caption over the map says how many haplotypes are
+ * inverted; this is the only surface that says *which*, and a researcher holding one of 463
+ * haplotypes cannot otherwise tell whether it is one of the 166. A word rather than a mark
+ * because colour and alpha are both already spoken for and a band is 0.19 css px tall at fit
+ * — ADR `0004` §Consequences argues it. Only the exceptions are named, so most rows carry no
+ * word at all; which ones do, and why the ordinary case is left silent, are `inversion.ts`'s
+ * decisions, and this file writes down what it is handed.
  *
  * **One of them is lit, and the list says which.** The map emphasizes exactly one strand out
  * of the set — `CONTEXT.md` §feeler states why — so that row is drawn at full strength and
@@ -105,12 +105,12 @@ export interface LabelledStrand {
     /** CSS, from `strandCss` — the same string the cloud paints that strand's dot with. */
     color: string
     /**
-     * What this haplotype's direction is called, or `null` where the document has nothing to
-     * say about direction — which is every document in the corpus but one (#132).
+     * What this haplotype's direction is called — *inverted*, *mixed* — or `null`, which is
+     * the ordinary case and most rows (#132).
      *
      * Required rather than optional, so naming a haplotype is a decision about its direction
-     * even when the decision is silence. Which word, and which of the several silences this
-     * is, are `inversion.ts`'s — see `haplotypeReadings`.
+     * even when the decision is silence. Which word, and what the silence covers, are
+     * `inversion.ts`'s — see `haplotypeReadings`.
      */
     direction: HaplotypeReading | null
 }

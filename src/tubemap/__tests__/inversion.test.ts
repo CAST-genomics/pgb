@@ -11,7 +11,6 @@ import { describe, expect, it } from 'vitest'
 import {
     INVERTED,
     MIXED,
-    NOT_INVERTED,
     censusInversion,
     describeInversion,
     haplotypeDirections,
@@ -240,17 +239,16 @@ describe('haplotypeReadings', () => {
             readings.filter(said => reading === said).length
 
         // The same 166 the caption names, and the same 297 it does not: GRCh38 runs
-        // leftward here, so leftward is *not inverted* and the majority is the forward one.
+        // leftward here, so the majority runs *with* the reference and is left unnamed.
         expect(count(INVERTED)).toBe(166)
-        expect(count(NOT_INVERTED)).toBe(297)
         expect(count(MIXED)).toBe(0)
-        expect(count(null)).toBe(0)
+        expect(count(null)).toBe(297)
     })
 
     it('says nothing at all about a document whose bands all run one way', () => {
         // Criterion 3 of #132 at the level it bites hardest: not "0 inverted" per row, and
-        // not a *not inverted* tag on every name in four of the five documents. A document
-        // with no inversion in it is a document with nothing to say about inversion.
+        // no tag on any name in four of the five documents. A document with no inversion in
+        // it is a document with nothing to say about inversion.
         for (const fixture of [readFixture(), readTallFixture()]) {
             expect(haplotypeReadings(parseBands(fixture)).every(said => null === said)).toBe(true)
         }
@@ -263,15 +261,15 @@ describe('haplotypeReadings', () => {
         ]))).toEqual([null, null])
     })
 
-    it('names both sides once the document has an inverted haplotype', () => {
-        // *Whether* a haplotype is inverted, which is what the ticket asks for — so the
-        // haplotypes running with the reference are told apart from the ones the viewer
-        // simply cannot read, rather than sharing their silence.
+    it('names the inverted haplotype and leaves the rest unmarked', () => {
+        // Only the exceptions are named. A haplotype running with the reference and one the
+        // document never observed running either way share the same silence, and neither is
+        // a finding.
         expect(haplotypeReadings(document([
             { name: 'GRCh38#0#chr8', bands: '=>=' },
             { name: 'HG002#1#chr8', bands: '=<=' },
             { name: 'HG005#1#chr8', bands: '===' }
-        ]))).toEqual([NOT_INVERTED, INVERTED, null])
+        ]))).toEqual([null, INVERTED, null])
     })
 
     it('reads a mixed haplotype as mixed, with a reference or without one', () => {
@@ -281,7 +279,7 @@ describe('haplotypeReadings', () => {
             { name: 'GRCh38#0#chr8', bands: '=>=' },
             { name: 'HG002#1#chr8', bands: '=<=' },
             { name: 'HG005#1#chr8', bands: '=<=>=' }
-        ]))).toEqual([NOT_INVERTED, INVERTED, MIXED])
+        ]))).toEqual([null, INVERTED, MIXED])
 
         expect(haplotypeReadings(document([
             { name: 'CHM13#0#chr8#0', bands: '=>=' },
@@ -290,8 +288,8 @@ describe('haplotypeReadings', () => {
     })
 
     it('stays silent about the others where the only oddity is a mixed haplotype', () => {
-        // One turned-around haplotype is worth surfacing on its own row; it is not a reason
-        // to tag 462 others *not inverted* in a document where nothing is inverted.
+        // One turned-around haplotype is worth surfacing on its own row, and is not a reason
+        // to put a word on any other row.
         expect(haplotypeReadings(document([
             { name: 'GRCh38#0#chr8', bands: '=>=' },
             { name: 'HG002#1#chr8', bands: '=>=' },

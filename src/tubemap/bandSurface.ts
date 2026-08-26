@@ -954,10 +954,11 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
      * Hand the segment tooltip the haplotype the feeler has, so a researcher reading a box
      * can see which haplotype they are reading it through and which way it runs (#132).
      *
-     * Only where there is a direction to state — `inversion.ts` decides when that is. A
-     * haplotype's name in that table without one would be a third place the viewer says what
-     * the label and the readout already say, bought at the price of two rows in every tooltip
-     * of every document in the corpus but one: the row is the direction's, not the name's.
+     * Only where there is a direction to state, which is an inverted or a mixed haplotype and
+     * nothing else — `inversion.ts` decides. A haplotype's name in that table otherwise would
+     * be a third place the viewer says what the label and the readout already say, bought at
+     * the price of two rows in almost every tooltip: the row is the direction's, not the
+     * name's.
      */
     function tellSegments(lit: number | null): void {
         if (null === drawing || null === lit) {

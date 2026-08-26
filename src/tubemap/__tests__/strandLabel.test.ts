@@ -244,14 +244,14 @@ describe('the direction beside a name', () => {
 
     it('says it on the row it is about, and only on those rows', () => {
         const element = label([
-            { name: 'GRCh38#0#chr8', color: 'rgb(0, 0, 0)', direction: 'not inverted' },
+            { name: 'GRCh38#0#chr8', color: 'rgb(0, 0, 0)', direction: null },
             { name: 'HG002#1#chr8', color: 'rgb(1, 0, 0)', direction: 'inverted' },
-            { name: 'HG005#1#chr8', color: 'rgb(2, 0, 0)', direction: null }
+            { name: 'HG005#1#chr8', color: 'rgb(2, 0, 0)', direction: 'mixed' }
         ])
 
         expect([...element.querySelectorAll('.stm-strand-name')]
             .map(row => row.querySelector('.stm-strand-direction')?.textContent ?? null))
-            .toEqual(['not inverted', 'inverted', null])
+            .toEqual([null, 'inverted', 'mixed'])
     })
 
     it('leaves the name the document\'s own, with the tag beside it', () => {
@@ -285,8 +285,8 @@ describe('the direction beside a name', () => {
 
         document.body.append(root)
         strandLabel.show([{ name: 'a', color: 'rgb(0, 0, 0)', direction: 'inverted' }], 0, AT, WITHIN)
-        strandLabel.show([{ name: 'a', color: 'rgb(0, 0, 0)', direction: 'not inverted' }], 0, AT, WITHIN)
+        strandLabel.show([{ name: 'a', color: 'rgb(0, 0, 0)', direction: 'mixed' }], 0, AT, WITHIN)
 
-        expect(root.querySelector('.stm-strand-direction')?.textContent).toBe('not inverted')
+        expect(root.querySelector('.stm-strand-direction')?.textContent).toBe('mixed')
     })
 })
