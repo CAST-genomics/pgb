@@ -160,6 +160,11 @@ strand 224 251 253 87 159 360 · 3.50 ms · worst 37.90 ms · focus 159 · table
 fit on `5520+` it is six or seven ids, and it collapses to one as you magnify. `focus` is the
 single strand the feeler has lit out of that set, which is the one nearest the cursor.
 
+In a document containing an inversion the lit strand's direction follows it in parentheses —
+`focus 158 (inverted)` (pgb #132) — which is how the reading beside a name in the label can be
+checked against a strand id by hand. There is no parenthesis in the other four documents:
+they have no inversion, so nothing is said about direction anywhere.
+
 Hold `Shift` and all three panels answer with that set at once: the map lights the one strand,
 the label lists the names with a colour swatch each, and the PCLAI inset marks every placed
 member of the set while the rest of the cloud greys out.

@@ -11,19 +11,24 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { censusInversion } from '../inversion.ts'
 import { createInversionNote } from '../inversionNote.ts'
 import { directedDocument as document } from './directedDocument.ts'
 
-const INVERTED = document([
+/** The caption is handed a census rather than a document (#132): the surface takes it once
+ *  and reads the same fold for the direction beside each haplotype's name. */
+const census = censusInversion
+
+const INVERTED = census(document([
     { name: 'GRCh38#0#chr8[10078919-10080674]', bands: '=<=<=' },
     { name: 'CHM13#0#chr8#0', bands: '=>=' },
     { name: 'HG002#1#chr8', bands: '=<=' }
-])
+]))
 
-const UNIFORM = document([
+const UNIFORM = census(document([
     { name: 'GRCh38#0#chr1', bands: '=>=' },
     { name: 'HG002#1#chr1', bands: '=>=' }
-])
+]))
 
 function note(): { root: HTMLElement, said: () => string | null } {
     const root = window.document.createElement('div')

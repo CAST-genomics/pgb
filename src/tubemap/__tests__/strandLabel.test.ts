@@ -63,7 +63,7 @@ describe('spell', () => {
 /** A set as the label takes it. The colours are the part `windowOnto` never looks at, so they
  *  are distinct here only to prove the window carries each name's own one along with it. */
 function set(...names: string[]): LabelledStrand[] {
-    return names.map((name, at) => ({ name, color: `rgb(${at}, 0, 0)` }))
+    return names.map((name, at) => ({ name, color: `rgb(${at}, 0, 0)`, direction: null }))
 }
 
 /** The names a listing would draw, which is what every expectation below is about. */
@@ -95,9 +95,9 @@ describe('windowOnto', () => {
         // The swatch is the whole point of the colour being here, and a window that shifted
         // the colours by one would paint every name with its neighbour's mark.
         expect(windowOnto(names, 5, 3).names).toEqual([
-            { name: 'e', color: 'rgb(4, 0, 0)' },
-            { name: 'f', color: 'rgb(5, 0, 0)' },
-            { name: 'g', color: 'rgb(6, 0, 0)' }
+            { name: 'e', color: 'rgb(4, 0, 0)', direction: null },
+            { name: 'f', color: 'rgb(5, 0, 0)', direction: null },
+            { name: 'g', color: 'rgb(6, 0, 0)', direction: null }
         ])
     })
 
@@ -215,5 +215,78 @@ describe('a set of one', () => {
 
         expect([...element.querySelectorAll('.stm-strand-count')].map(row => row.textContent))
             .toEqual(['+1 below'])
+    })
+})
+
+/**
+ * The direction beside a name (#132).
+ *
+ * Two things can be silently wrong here and neither is visible in a screenshot. The first is
+ * the name: the tag shares the row with it, and a researcher reads this label in order to
+ * type the name somewhere else — so the element holding the name has to stay the document's
+ * own characters, tag or no tag. The second is the silence: a document with nothing to say
+ * about direction must draw the label #120 shipped, byte for byte, rather than a row with an
+ * empty span on the end of it.
+ */
+describe('the direction beside a name', () => {
+
+    const AT = { x: 200, y: 200 }
+    const WITHIN = { width: 800, height: 600 }
+
+    function label(strands: LabelledStrand[], emphasized = 0): HTMLElement {
+        const root = document.createElement('div')
+
+        document.body.append(root)
+        createStrandLabel(root).show(strands, emphasized, AT, WITHIN)
+
+        return root.querySelector('.stm-strand-label') as HTMLElement
+    }
+
+    it('says it on the row it is about, and only on those rows', () => {
+        const element = label([
+            { name: 'GRCh38#0#chr8', color: 'rgb(0, 0, 0)', direction: 'not inverted' },
+            { name: 'HG002#1#chr8', color: 'rgb(1, 0, 0)', direction: 'inverted' },
+            { name: 'HG005#1#chr8', color: 'rgb(2, 0, 0)', direction: null }
+        ])
+
+        expect([...element.querySelectorAll('.stm-strand-name')]
+            .map(row => row.querySelector('.stm-strand-direction')?.textContent ?? null))
+            .toEqual(['not inverted', 'inverted', null])
+    })
+
+    it('leaves the name the document\'s own, with the tag beside it', () => {
+        // The claim `spell` exists to protect, now that a word shares the row: the name is
+        // in its own element and that element holds nothing else.
+        const element = label([
+            { name: 'NA21309#2#CM092102.1#0', color: 'rgb(0, 0, 0)', direction: 'inverted' }
+        ])
+
+        expect(element.querySelector('.stm-strand-name-text')?.textContent)
+            .toBe('NA21309#2#CM092102.1#0')
+    })
+
+    it('draws no tag at all where there is nothing to say', () => {
+        // Four of the five documents in the corpus. An empty span would still take its
+        // margin, and the label would be a shape nobody chose.
+        const element = label([
+            { name: 'NA21309#2#CM092097.1', color: 'rgb(0, 0, 0)', direction: null }
+        ])
+
+        expect(element.querySelectorAll('.stm-strand-direction')).toHaveLength(0)
+        expect(element.textContent).toBe('NA21309#2#CM092097.1')
+    })
+
+    it('redraws when only the direction changed', () => {
+        // The label keys on what is written on it, so a sweep does not rewrite the DOM 60
+        // times a second. The same names with a different reading is a different label, and
+        // a key that missed it would leave the previous haplotype's word beside this one.
+        const root = document.createElement('div')
+        const strandLabel = createStrandLabel(root)
+
+        document.body.append(root)
+        strandLabel.show([{ name: 'a', color: 'rgb(0, 0, 0)', direction: 'inverted' }], 0, AT, WITHIN)
+        strandLabel.show([{ name: 'a', color: 'rgb(0, 0, 0)', direction: 'not inverted' }], 0, AT, WITHIN)
+
+        expect(root.querySelector('.stm-strand-direction')?.textContent).toBe('not inverted')
     })
 })

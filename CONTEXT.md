@@ -496,6 +496,17 @@ total — *166 of 463 haplotypes inverted* — read against GRCh38's own directi
 against the x-axis, which in that document would say 297 and mean nothing biological.
 A document with no **reference direction** says nothing about inversion at all.
 
+Beside a *single* haplotype's name the reading is *inverted* or ***not inverted*** — the
+negative spelled as the negative rather than as *forward*, which is the word the census
+counts with and would be a second term for the ordinary case. Every surface that names a
+haplotype says it: the feeler's label, the **segment** tooltip while the feeler holds one,
+and the `?pick` readout. Both words appear only where the document actually contains an
+inverted haplotype. A document with no **reference direction** tags nothing, and neither
+does one where nothing is inverted — *not inverted* on every name is a statement about
+inversion in a document that has none. A haplotype whose bands are all flat is untagged
+too: the document did not say. **mixed** is the exception and follows the caption's rule,
+being stated wherever such a haplotype is named, reference or no reference.
+
 ### mixed
 
 A **strand** whose own **bands** disagree about **band direction** — one that turns

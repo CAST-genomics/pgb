@@ -32,6 +32,14 @@
  * be a label nobody can read. A swatch spends the colour where contrast does not matter —
  * against a filled shape — and leaves the name at the card's own near-black.
  *
+ * **Each name carries its direction, where the document has one to give** (#132). The caption
+ * over the map says how many haplotypes are inverted; this is the only surface that says
+ * *which*, and a researcher holding one of 463 haplotypes cannot otherwise tell whether it is
+ * one of the 166. A word rather than a mark because colour and alpha are both already spoken
+ * for and a band is 0.19 css px tall at fit — ADR `0004` §Consequences argues it. Which word,
+ * and when there is none, are `inversion.ts`'s decisions; this file writes down what it is
+ * handed.
+ *
  * **One of them is lit, and the list says which.** The map emphasizes exactly one strand out
  * of the set — `CONTEXT.md` §feeler states why — so that row is drawn at full strength and
  * the rest recede, the same statement the map is making underneath. A name at full strength
@@ -68,6 +76,7 @@
  */
 
 import { beside, type Point, type Size } from './geometry.ts'
+import type { HaplotypeReading } from './inversion.ts'
 
 /**
  * How many names the label will draw at once.
@@ -89,12 +98,21 @@ export const NAME_CAP = 5
  *  way to keep two things that follow the same cursor from stacking. */
 const OFFSET = { x: 14, y: 12 }
 
-/** One haplotype as the label draws it: what it is called, and the colour it has everywhere
- *  else in the viewer. */
+/** One haplotype as the label draws it: what it is called, the colour it has everywhere
+ *  else in the viewer, and which way it runs. */
 export interface LabelledStrand {
     name: string
     /** CSS, from `strandCss` — the same string the cloud paints that strand's dot with. */
     color: string
+    /**
+     * What this haplotype's direction is called, or `null` where the document has nothing to
+     * say about direction — which is every document in the corpus but one (#132).
+     *
+     * Required rather than optional, so naming a haplotype is a decision about its direction
+     * even when the decision is silence. Which word, and which of the several silences this
+     * is, are `inversion.ts`'s — see `haplotypeReadings`.
+     */
+    direction: HaplotypeReading | null
 }
 
 /** What the label will actually draw: a window onto the set, and what it left out. */
@@ -140,9 +158,13 @@ export function createStrandLabel(root: HTMLElement): StrandLabel {
     return {
 
         show(strands: LabelledStrand[], emphasized: number, at: Point, within: Size): void {
-            // The name alone keys this: a strand's colour is a property of the strand, so two
-            // listings that name the same haplotypes cannot differ in their swatches.
-            const key = `${emphasized}\u0000${strands.map(strand => strand.name).join('\u0000')}`
+            // The name and its direction key this: a strand's colour is a property of the
+            // strand, so two listings that name the same haplotypes cannot differ in their
+            // swatches — but the *document* decides the direction, and opening another one
+            // can leave the same name in the set reading the other way.
+            const key = `${emphasized}\u0000${strands
+                .map(strand => `${strand.name}\u0001${strand.direction ?? ''}`)
+                .join('\u0000')}`
 
             if (key !== shown) {
                 element.replaceChildren(
@@ -246,7 +268,23 @@ function rows(doc: Document, listing: Listing): Node[] {
         row.className = at === listing.emphasized
             ? 'stm-strand-name is-emphasized'
             : 'stm-strand-name'
-        row.append(swatch, ...spell(doc, strand.name))
+
+        // The name in an element of its own, so that what is on screen as *the name* is the
+        // document's characters and nothing else — the claim `spell` exists to make, kept
+        // true now that a word can share the row (#132).
+        const spelled = doc.createElement('span')
+
+        spelled.className = 'stm-strand-name-text'
+        spelled.append(...spell(doc, strand.name))
+        row.append(swatch, spelled)
+
+        // Absent rather than empty where the document says nothing about direction: an empty
+        // span still takes its margin, and every row of four of the five corpus documents
+        // would carry one.
+        if (null !== strand.direction) {
+            row.append(tag(doc, strand.direction))
+        }
+
         drawn.push(row)
     })
 
@@ -255,6 +293,17 @@ function rows(doc: Document, listing: Listing): Node[] {
     }
 
     return drawn
+}
+
+/** The direction, set beside the name it is about — the viewer's word for this haplotype,
+ *  not another identifier, so it is set smaller and lighter than the name. */
+function tag(doc: Document, direction: string): HTMLElement {
+    const said = doc.createElement('span')
+
+    said.className = 'stm-strand-direction'
+    said.textContent = direction
+
+    return said
 }
 
 function count(doc: Document, text: string): HTMLElement {

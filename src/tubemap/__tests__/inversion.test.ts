@@ -9,9 +9,13 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+    INVERTED,
+    MIXED,
+    NOT_INVERTED,
     censusInversion,
     describeInversion,
     haplotypeDirections,
+    haplotypeReadings,
     referenceDirection
 } from '../inversion.ts'
 import { parseBands } from '../parseBands.ts'
@@ -219,5 +223,79 @@ describe('describeInversion', () => {
             { name: 'GRCh38#0#chr8', bands: '=>=' },
             { name: 'HG005#1#chr8', bands: '=<=>=' }
         ])))).toBe('1 of 2 haplotypes mixed')
+    })
+})
+
+/**
+ * The document-level sentence says *how many*; this says *which*, and it is the whole of
+ * #132. The reading a single haplotype gets is the one thing here that has to stay in step
+ * with the caption: a map captioned "166 of 463 haplotypes inverted" whose rows say nothing,
+ * or whose rows say *inverted* about 297 of them, is a viewer disagreeing with itself.
+ */
+describe('haplotypeReadings', () => {
+
+    it('reads each haplotype against GRCh38, not against the axis', () => {
+        const readings = haplotypeReadings(parseBands(readInvertedFixture()))
+        const count = (reading: unknown): number =>
+            readings.filter(said => reading === said).length
+
+        // The same 166 the caption names, and the same 297 it does not: GRCh38 runs
+        // leftward here, so leftward is *not inverted* and the majority is the forward one.
+        expect(count(INVERTED)).toBe(166)
+        expect(count(NOT_INVERTED)).toBe(297)
+        expect(count(MIXED)).toBe(0)
+        expect(count(null)).toBe(0)
+    })
+
+    it('says nothing at all about a document whose bands all run one way', () => {
+        // Criterion 3 of #132 at the level it bites hardest: not "0 inverted" per row, and
+        // not a *not inverted* tag on every name in four of the five documents. A document
+        // with no inversion in it is a document with nothing to say about inversion.
+        for (const fixture of [readFixture(), readTallFixture()]) {
+            expect(haplotypeReadings(parseBands(fixture)).every(said => null === said)).toBe(true)
+        }
+    })
+
+    it('says nothing where there is no reference to read against', () => {
+        expect(haplotypeReadings(document([
+            { name: 'CHM13#0#chr8#0', bands: '=>=' },
+            { name: 'HG002#1#chr8', bands: '=<=' }
+        ]))).toEqual([null, null])
+    })
+
+    it('names both sides once the document has an inverted haplotype', () => {
+        // *Whether* a haplotype is inverted, which is what the ticket asks for — so the
+        // haplotypes running with the reference are told apart from the ones the viewer
+        // simply cannot read, rather than sharing their silence.
+        expect(haplotypeReadings(document([
+            { name: 'GRCh38#0#chr8', bands: '=>=' },
+            { name: 'HG002#1#chr8', bands: '=<=' },
+            { name: 'HG005#1#chr8', bands: '===' }
+        ]))).toEqual([NOT_INVERTED, INVERTED, null])
+    })
+
+    it('reads a mixed haplotype as mixed, with a reference or without one', () => {
+        // A mixed haplotype needs no reference to be read — `CONTEXT.md` §mixed — so it is
+        // the one reading that survives a document the census can say nothing else about.
+        expect(haplotypeReadings(document([
+            { name: 'GRCh38#0#chr8', bands: '=>=' },
+            { name: 'HG002#1#chr8', bands: '=<=' },
+            { name: 'HG005#1#chr8', bands: '=<=>=' }
+        ]))).toEqual([NOT_INVERTED, INVERTED, MIXED])
+
+        expect(haplotypeReadings(document([
+            { name: 'CHM13#0#chr8#0', bands: '=>=' },
+            { name: 'HG005#1#chr8', bands: '=<=>=' }
+        ]))).toEqual([null, MIXED])
+    })
+
+    it('stays silent about the others where the only oddity is a mixed haplotype', () => {
+        // One turned-around haplotype is worth surfacing on its own row; it is not a reason
+        // to tag 462 others *not inverted* in a document where nothing is inverted.
+        expect(haplotypeReadings(document([
+            { name: 'GRCh38#0#chr8', bands: '=>=' },
+            { name: 'HG002#1#chr8', bands: '=>=' },
+            { name: 'HG005#1#chr8', bands: '=<=>=' }
+        ]))).toEqual([null, null, MIXED])
     })
 })

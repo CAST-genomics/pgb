@@ -196,7 +196,14 @@ function referenceOf(
 
 /** How many haplotypes run which way in this document, read against GRCh38's own direction. */
 export function censusInversion(document: DirectedDocument): InversionCensus {
-    const directions = haplotypeDirections(document)
+    return censusOf(haplotypeDirections(document), document)
+}
+
+/** The census, over directions already folded. */
+function censusOf(
+    directions: HaplotypeDirection[],
+    document: DirectedDocument
+): InversionCensus {
     const reference = referenceOf(document, directions)
 
     if (null === reference) {
@@ -276,4 +283,101 @@ function foldDirection(sawRightward: number, sawLeftward: number): HaplotypeDire
     }
 
     return sawRightward ? 'rightward' : null
+}
+
+/**
+ * What one haplotype's direction is called on screen.
+ *
+ * `inverted` is the glossary's word and the only one of the three that carries a biological
+ * claim. `not inverted` is its negative rather than *forward*, which is the word the census
+ * counts with and would ask a researcher to hold a second term for the ordinary case. `mixed`
+ * matches the caption, so a row and the sentence above it name the same thing the same way.
+ */
+export const INVERTED = 'inverted'
+export const NOT_INVERTED = 'not inverted'
+export const MIXED = 'mixed'
+
+/** One of the three words, and nothing else — so a surface cannot be handed *forward*, which
+ *  is the census's word for a count and not a word a researcher is shown. */
+export type HaplotypeReading = typeof INVERTED | typeof NOT_INVERTED | typeof MIXED
+
+/**
+ * What to say about each haplotype's direction beside its name, indexed by strand id, and
+ * `null` for the ones there is nothing to say about.
+ *
+ * The caption says *how many*; this is *which*, which is the whole of #132: a researcher who
+ * can see that 166 haplotypes are inverted still cannot see whether the one under the feeler
+ * is one of them. It is a string rather than a token because every one of its readers is a
+ * text surface — the strand label, the segment tooltip, the `?pick` readout — and the
+ * vocabulary rule ADR `0004` and `CONTEXT.md` §inverted state is about the words, so the
+ * words are decided once, here, beside the reading that produces them.
+ *
+ * ## Three silences, and they are not the same silence
+ *
+ * - **No reference direction.** Nothing is said about any haplotype, which is the ticket's
+ *   third criterion: a document with no GRCh38 cannot say which side is inverted, and a
+ *   direction guessed from the x-axis would name haplotypes at random.
+ * - **Nothing inverted.** Also nothing said — the same discipline `describeInversion`
+ *   follows. Tagging every name *not inverted* in a document containing no inversion is a
+ *   statement about inversion in a document that has none, and it would put a word on every
+ *   row of four of the corpus's five documents to say that nothing is happening.
+ * - **Never observed running either way.** Every band that haplotype draws is flat, so the
+ *   document did not say. Distinct from the two above in cause and identical in effect, and
+ *   deliberately not called *not inverted*.
+ *
+ * Where the document *does* have an inversion, both sides are named — `inverted` and
+ * `not inverted` — because the ticket asks whether the haplotype under the feeler is
+ * inverted, and an answer only the inverted ones receive makes silence carry the negative.
+ * A silence already carrying three other meanings cannot also carry that one.
+ *
+ * **A mixed haplotype is reported either way**, reference or none, exactly as the caption
+ * reports it: it is a fact about the picture rather than a reading against GRCh38. It is not,
+ * however, a reason to tag anything else — a document whose only oddity is one haplotype
+ * turning around has one row worth a word on it.
+ */
+export function haplotypeReadings(document: DirectedDocument): Array<HaplotypeReading | null> {
+    return readingsOf(haplotypeDirections(document), document)
+}
+
+/**
+ * Everything this document says about direction, folded once.
+ *
+ * The census and the readings are the same scan asked two questions — how many, and which —
+ * and they are read together, at load, by the surface that draws both. Folding 11,586 bands
+ * twice to answer them separately is the scan `referenceOf` already declines to make.
+ */
+export function readInversion(document: DirectedDocument): {
+    census: InversionCensus,
+    readings: Array<HaplotypeReading | null>
+} {
+    const directions = haplotypeDirections(document)
+
+    return {
+        census: censusOf(directions, document),
+        readings: readingsOf(directions, document)
+    }
+}
+
+/** The readings, over directions already folded. */
+function readingsOf(
+    directions: HaplotypeDirection[],
+    document: DirectedDocument
+): Array<HaplotypeReading | null> {
+    const reference = referenceOf(document, directions)
+
+    // Whether this document has an inversion to talk about at all.
+    const inverted = null !== reference && directions.some(direction =>
+        null !== direction && 'mixed' !== direction && reference !== direction)
+
+    return directions.map(direction => {
+        if ('mixed' === direction) {
+            return MIXED
+        }
+
+        if (false === inverted || null === direction) {
+            return null
+        }
+
+        return reference === direction ? NOT_INVERTED : INVERTED
+    })
 }

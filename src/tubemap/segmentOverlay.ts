@@ -2,6 +2,10 @@
  * The segment boxes, as HTML `<div>`s over the canvas, and the tooltip that names the one
  * under the cursor.
  *
+ * The tooltip is a details table about one **segment** — its id, its length, its sequence —
+ * with one row that is about something else: while the feeler holds a haplotype, the table
+ * says which one and which way it runs (#132). See `feel`.
+ *
  * They are divs because that is what they are: every child of `<g class="node">` is a
  * rectangle with quadratic corners of radius 9, `fill-opacity: 0.4` and a 2 px black stroke,
  * which `border-radius`, `background` and `border` reproduce exactly. Geometry would have
@@ -55,6 +59,7 @@
 
 import { overlayTranslation, type CameraView, type Viewport } from './bandCamera.ts'
 import { beside, type Point, type Size } from './geometry.ts'
+import type { HaplotypeReading } from './inversion.ts'
 import type { SegmentBox } from './parseSegmentBoxes.ts'
 
 /**
@@ -73,9 +78,38 @@ export const SEQUENCE_PREVIEW = 32
 /** Where the tooltip sits relative to the cursor, in css pixels, when there is room. */
 const TOOLTIP_OFFSET = { x: 14, y: 16 }
 
+/**
+ * The haplotype the feeler is holding, as the tooltip says it (#132).
+ *
+ * Both fields are already words: the name is the document's own spelling, and the direction
+ * is `inversion.ts`'s reading of it — *inverted*, *not inverted*, *mixed*. Nothing here
+ * decides either, which is what keeps a details table about a segment out of the business of
+ * interpreting band directions.
+ */
+export interface HeldHaplotype {
+    name: string
+    direction: HaplotypeReading
+}
+
 export interface SegmentOverlay {
     /** Mount one document's boxes, replacing whatever was there. */
     show(boxes: SegmentBox[]): void
+    /**
+     * Say which haplotype the feeler is holding, or that it is holding none.
+     *
+     * The tooltip is a details table about a **segment**, and this is the one row in it about
+     * something else: a researcher reading a box while `Shift` is down is reading it through
+     * one haplotype, and #132 says the surfaces that name a haplotype say which way it runs.
+     *
+     * `null` for no feeler, and `null` too when the document has nothing to say about
+     * direction — the caller decides which silence it is, since the reference direction is
+     * known there. The rows are then absent rather than blank, so the tooltip in the four
+     * corpus documents with no inversion is the one #92 shipped.
+     *
+     * Called on the pick frame, so it is idempotent: a sweep re-reports the same haplotype
+     * for many frames running and only a change touches the DOM.
+     */
+    feel(held: HeldHaplotype | null): void
     /** Place the boxes for the camera. Called from the surface's render frame. */
     update(view: CameraView, viewport: Viewport): void
     /** Empty the overlay, in the same call that empties the scene. */
@@ -153,6 +187,11 @@ export function createSegmentOverlay(root: HTMLElement): SegmentOverlay {
 
     /** Which box the cursor is over, as an index into the sorted arrays, or -1. */
     let hovered = -1
+    /** The haplotype the feeler is holding, or none. Kept rather than read, because the
+     *  tooltip is filled when the cursor enters a box and the feeler moves independently of
+     *  that — a tooltip filled once on entry would name whichever haplotype happened to be
+     *  lit as the cursor crossed the edge. */
+    let held: HeldHaplotype | null = null
     /** True from `pointerdown` to `pointerup`: a drag is a grip on the map, and a tooltip
      *  following the cursor through it is reading out boxes nobody asked about. */
     let dragging = false
@@ -232,6 +271,18 @@ export function createSegmentOverlay(root: HTMLElement): SegmentOverlay {
             detailRow('Length', formatBases(box.sequence.length)),
             detailRow('Sequence', previewSequence(box.sequence))
         )
+
+        // Last, under the segment's own two rows: the box is what the tooltip is about, and
+        // the haplotype is the thing the researcher is reading it through. Two rows rather
+        // than one, because a name and a word joined by a separator is a value that reads as
+        // one identifier — and because `.graph-tooltip` says `nowrap`, so a four-part name
+        // with a word after it is a card wider than the box it annotates.
+        if (null !== held) {
+            table.append(
+                detailRow('Haplotype', held.name),
+                detailRow('Direction', held.direction)
+            )
+        }
 
         section.append(title, table)
 
@@ -320,6 +371,22 @@ export function createSegmentOverlay(root: HTMLElement): SegmentOverlay {
 
     return {
 
+        feel(holding: HeldHaplotype | null): void {
+            if (holding?.name === held?.name && holding?.direction === held?.direction) {
+                return
+            }
+
+            held = holding
+
+            // Only while a box is actually being read. Otherwise the next `pointerover`
+            // fills the tooltip from `held` anyway, and nothing is written to the DOM for a
+            // feeler sweeping over open map. `dragging` is part of that: `fill` shows the
+            // tooltip, and a drag is a grip on the map with the tooltip deliberately down.
+            if (-1 !== hovered && false === dragging) {
+                fill(boxes[hovered])
+            }
+        },
+
         show(mounted: SegmentBox[]): void {
             // Widest first, so the visibility threshold is a prefix rather than a scan.
             // Document order carries no z-order here: the boxes do not overlap.
@@ -389,6 +456,9 @@ export function createSegmentOverlay(root: HTMLElement): SegmentOverlay {
             widths = []
             shown = 0
             hovered = -1
+            // The haplotype belonged to the document that just went away, and its name would
+            // otherwise appear in the next document's first tooltip.
+            held = null
 
             wrapper.replaceChildren()
             tooltip.classList.remove('is-shown')
