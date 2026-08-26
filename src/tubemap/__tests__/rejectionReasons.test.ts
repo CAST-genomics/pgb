@@ -70,6 +70,15 @@ const CORRUPTIONS: Array<{ what: string, corrupt: (text: string) => string }> = 
         corrupt: text => text.replace(RECT, '<rect x="0" y="5540" width="68" height="15" rx="4"')
     },
     {
+        what: 'a curved band has no width',
+        // Grammatical in every other way — the ordinates repeat, the return edge is offset
+        // by THICKNESS — and it begins and ends at the same abscissa.
+        corrupt: text => text.replace(
+            /<path d="[^"]*"/,
+            '<path d="M 100 200 C 150 200 150 260 100 260 V 275 C 150 275 150 215 100 215 Z"'
+        )
+    },
+    {
         what: 'a curved band contradicts itself',
         corrupt: text => text.replace(/C (-?[\d.]+) /, 'C $1.5 ')
     },

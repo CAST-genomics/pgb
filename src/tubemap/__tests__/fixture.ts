@@ -8,7 +8,9 @@
  * strips — 177,994 units and 40,442 bands — and they are what the fit-to-screen regime can
  * be exercised against, which nothing else in this corpus can do. They are *not* read by
  * the unit tests, which stay on the two small documents so the suite stays fast; they exist
- * for the Playwright harnesses in `scripts/` and for looking at.
+ * for the Playwright harnesses in `scripts/` and for looking at — with one exception,
+ * `readEveryFixture`, which parses all five and checks nothing about the picture but that
+ * it has not moved.
  *
  * It sits here rather than in `public/` — where the spike kept it — because it is test data
  * and nothing the app ships ever asks for it. Vite copies `public/` into `dist/` verbatim,
@@ -73,6 +75,21 @@ export const TALL_FIXTURE_PATH = 'src/tubemap/__tests__/fixtures/stm-chr8-787711
  */
 export const INVERTED_FIXTURE_PATH = 'src/tubemap/__tests__/fixtures/stm-chr8-10079054-10080461.svg'
 
+/** Every document in the corpus, oldest first, and the order is the corpus's history:
+ *  the two the unit tests read, the two large survey documents, then the inversion.
+ *
+ *  For the one test that has to read all of them — the geometry regression in
+ *  `parseBands.test.ts`, which pins what each document already parsed to. Reading the two
+ *  14 MB documents costs about a tenth of a second, which is worth paying once to know that
+ *  a change to the parser left the four documents that already drew exactly where they were. */
+export const EVERY_FIXTURE_PATH = [
+    FIXTURE_PATH,
+    TALL_FIXTURE_PATH,
+    'src/tubemap/__tests__/fixtures/stm-node-5514-chr1-25301271-25309238.svg',
+    'src/tubemap/__tests__/fixtures/stm-node-5520-chr1-25331646-25335796.svg',
+    INVERTED_FIXTURE_PATH
+]
+
 /** The strip's text. Every parser test starts here. */
 export function readFixture(): string {
     return readFileSync(FIXTURE_PATH, 'utf8')
@@ -86,4 +103,9 @@ export function readTallFixture(): string {
 /** The inverted document's text — the direction the other three cannot catch. */
 export function readInvertedFixture(): string {
     return readFileSync(INVERTED_FIXTURE_PATH, 'utf8')
+}
+
+/** Each document's path with its text, for the regression that reads the whole corpus. */
+export function readEveryFixture(): Array<{ path: string, text: string }> {
+    return EVERY_FIXTURE_PATH.map(path => ({ path, text: readFileSync(path, 'utf8') }))
 }

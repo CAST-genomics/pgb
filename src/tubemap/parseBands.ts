@@ -50,12 +50,49 @@ export const MAX_STRAND_ID = 65535
 /** How the document spells "the inference placed this haplotype nowhere". */
 const ABSENT = 'None'
 
+/**
+ * Which way a band runs along the document's x-axis. Document-relative and always defined:
+ * a fact about the picture, carrying no biological claim — the reading that does, *inverted*,
+ * needs the reference's own direction and is made where the reference is known. ADR `0004`.
+ */
+export type BandDirection = 'rightward' | 'leftward'
+
+/** The two directions as they are stored, one byte per band beside the geometry. */
+export const RIGHTWARD = 0
+export const LEFTWARD = 1
+
+/** What direction band `band` runs, in the vocabulary `CONTEXT.md` fixes. */
+export function bandDirection(directions: Uint8Array, band: number): BandDirection {
+    return LEFTWARD === directions[band] ? 'leftward' : 'rightward'
+}
+
 export interface ParsedMap {
     /** Six floats per band, document order: x0, y0, width, y1, uTop, uBottom. World
-     *  coordinates, y up, centred on the origin. `y0`/`y1` are the upper edge. */
+     *  coordinates, y up, centred on the origin. `y0`/`y1` are the upper edge.
+     *
+     *  **`width` is always positive and `x0` is always the left end**, whichever end the
+     *  document drew first — which end that was is `bandDirections`. */
     geometry: Float32Array
     /** One strand id per band, parallel to `geometry`. */
     strandIds: Uint16Array
+    /** Which way each band was drawn, parallel to `geometry`: `RIGHTWARD` or `LEFTWARD`.
+     *
+     *  **Per band, because that is where it is observed.** A whole strand running one way is
+     *  the case in every document seen — 463 strands in the chr8p23.1 document, none of them
+     *  mixing — but that is a regularity of one document, and taking a surveyed regularity
+     *  for a rule is what produced the refusal ADR `0004` withdrew. Whatever wants a
+     *  strand's direction, or a route's, aggregates these at read time and is free to find
+     *  that a strand carries both.
+     *
+     *  **A flat band reads `RIGHTWARD`**, because a `<rect>` has a positive width by
+     *  construction — it is the degenerate case of direction just as it is of the curve, and
+     *  it carries no observation of which way its haplotype was walking. So an inverted
+     *  strand's *bands* are not all leftward: its **connectors** are, and its passages
+     *  through the segment boxes are flat. Anything aggregating over a strand has to read
+     *  that as the absence of an observation rather than as a rightward one.
+     *
+     *  Read with `bandDirection`, which spells the two words. */
+    bandDirections: Uint8Array
     bandCount: number
     /** RGB triples, one per strand, indexed by strand id. */
     strandColors: Uint8Array
@@ -178,6 +215,7 @@ export function parseBands(text: string): ParsedMap {
 
     const geometry = new Float32Array(expected * 6)
     const strandIds = new Uint16Array(expected)
+    const bandDirections = new Uint8Array(expected)
     /** How the document draws each strand and what it calls it, taken from the first band
      *  carrying the id. One map rather than two, so a strand's colour and its name cannot
      *  be populated from different bands or drained in different orders. */
@@ -271,6 +309,22 @@ export function parseBands(text: string): ParsedMap {
             )
         }
 
+        // Which way the band was drawn, kept beside the geometry rather than in it. The
+        // geometry below is then always stored left-to-right, so a leftward band's endpoints
+        // — abscissa *and* ordinate together, or the band would slope the wrong way — swap.
+        //
+        // The curve is unchanged by the swap, exactly. A cubic whose two control points share
+        // an abscissa is its own reverse with the control points in the other order, and the
+        // shader's y is a smoothstep, which is symmetric about its midpoint. So a leftward
+        // band stored this way rasterizes to the same pixels the document draws, and nothing
+        // downstream — pick pass, overlay, navigator — learns that direction exists.
+        const isLeftward = x1 < x0
+
+        if (isLeftward) {
+            const swapX = x0; x0 = x1; x1 = swapX
+            const swapY = y0; y0 = y1; y1 = swapY
+        }
+
         // Normalize the control abscissae in double before the cast to float. `5514+` is
         // 177,994 units wide, where a float32 ulp is 0.0156 — enough to move a control
         // point measurably within a span of a few hundred units. Storing them as
@@ -285,6 +339,7 @@ export function parseBands(text: string): ParsedMap {
         geometry[at + 4] = (controlTop - x0) / width
         geometry[at + 5] = (controlBottom - x0) / width
         strandIds[bands] = id
+        bandDirections[bands] = isLeftward ? LEFTWARD : RIGHTWARD
 
         if (false === strands.has(id)) {
             strands.set(id, {
@@ -340,6 +395,7 @@ export function parseBands(text: string): ParsedMap {
     return {
         geometry,
         strandIds,
+        bandDirections,
         bandCount: bands,
         strandColors,
         strandNames,
@@ -356,6 +412,12 @@ export function parseBands(text: string): ParsedMap {
  * an abscissa, the cubics' ordinates repeat the endpoints, and the return edge is the
  * forward edge shifted by exactly THICKNESS. Verifying it costs nothing and turns "the
  * survey said 100%" into something this run re-establishes per document.
+ *
+ * What is *not* checked here is which way the band runs. It was, until ADR `0004`: `x1 > x0`
+ * held across every document surveyed and was written down as a rule, and a chr8p23.1
+ * document containing an inversion was refused whole for breaking it. Direction was never
+ * part of the drawing grammar — it is biology, and this gate is silent about biology. The
+ * gate's policy is untouched: a document off the grammar is still refused whole.
  */
 function assertGrammar(
     match: RegExpExecArray,
@@ -384,8 +446,14 @@ function assertGrammar(
     expect(+match[26], x0, 'return endpoint abscissa')
     expect(+match[27], y0 + THICKNESS, 'return endpoint ordinate')
 
-    if (false === (x1 > x0)) {
-        throw new NonConformingDocument(`A band spans ${x0} to ${x1}; every band must run left to right.`)
+    // The half of the withdrawn assertion that was never about direction. A band of no
+    // width has no span to normalize the control abscissae against, so it would be stored
+    // as NaN and drawn as nothing — the same refusal a `<rect>` of width 0 already gets,
+    // said for the curved case.
+    if (x0 === x1) {
+        throw new NonConformingDocument(
+            `A band spans ${x0} to ${x1}; a band must have a positive width.`
+        )
     }
 }
 

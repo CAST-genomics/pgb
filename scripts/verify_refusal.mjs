@@ -28,7 +28,15 @@ import { readFileSync } from 'node:fs'
 
 const ORIGIN = 'http://localhost:5173/dev/tubemap.html'
 const DOCUMENT = '/src/tubemap/__tests__/fixtures/stm-chr1-25331046-25331646.svg'
-const GOOD = readFileSync('public/stm-chr1-25331046-25331646.svg', 'utf8')
+/** The chr8p23.1 document, which this harness refused whole until #130: 3771 of its 5948
+ *  connectors run right to left. It is checked here rather than anywhere else because what
+ *  it is about is the *absence* of the error state above, on a document that earns one
+ *  nowhere else in the corpus. ADR `0004`. */
+const INVERTED = '/src/tubemap/__tests__/fixtures/stm-chr8-10079054-10080461.svg'
+// The same bytes the dev server hands the page, read off disk so a corrupted copy of them
+// can be served back. Derived from `DOCUMENT` rather than spelled again: this was a second
+// spelling under `public/`, and it had been dead since the corpus moved under `src/`.
+const GOOD = readFileSync(DOCUMENT.slice(1), 'utf8')
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } })
@@ -172,11 +180,29 @@ async function openWith(serve, screenshot) {
     check('  and the error state covers the surface', true === shown.isError && false === shown.hidden)
 }
 
+// A tube map that runs the other way. Every check above is about a refusal arriving; this
+// one is about a refusal that must not, and it is the acceptance of #130 read off the
+// surface rather than off the parser.
+{
+    await page.unrouteAll()
+    await page.goto(`${ORIGIN}?url=${INVERTED}`, { waitUntil: 'domcontentloaded' })
+
+    // 4.2 MB and 11,586 bands, so it is given longer to arrive than the 3.5 MB strip above.
+    await page.waitForTimeout(3000)
+    await page.screenshot({ path: '/tmp/stm-refusal-inverted.png' })
+
+    const shown = await status()
+
+    check('a document containing an inversion is drawn rather than refused',
+        true === shown.hidden, `heading=${shown.heading}`)
+    check('  and the map is on screen', true === await mapRemains())
+}
+
 await browser.close()
 
 const failed = results.filter(result => false === result.passed)
 
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`)
-console.log('screenshots: /tmp/stm-refusal-{conforming,unreachable,absent,undrawable,no-partial-map}.png')
+console.log('screenshots: /tmp/stm-refusal-{conforming,unreachable,absent,undrawable,no-partial-map,inverted}.png')
 
 process.exit(0 === failed.length ? 0 : 1)
