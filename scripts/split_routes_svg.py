@@ -255,7 +255,17 @@ def routes_of(carriers, edges):
     grouped = collections.defaultdict(list)
     for strand, segments in traversed.items():
         grouped[frozenset(segments)].append(strand)
-    ordered = sorted(grouped.items(), key=lambda kv: (-len(kv[1]), -len(kv[0])))
+    # Carrier count, then breadth, then the member ids. That third key is what makes
+    # the numbering reproducible: 87 of this document's 112 routes share both of the
+    # first two -- fifteen of them are one strand over 179 segments -- and a sort that
+    # stopped there would leave those ties to the insertion order of `grouped`, which
+    # traces back to iterating a set of id *strings* in `carriers_of`. Python randomizes
+    # string hashing per process, so the same document numbered its routes differently
+    # on every run, and a route number is the identity everything here cites: the file
+    # name, the viewer's list, this repo's prose. The member ids are a fixed property of
+    # the document, so ties now break the same way forever.
+    ordered = sorted(grouped.items(),
+                     key=lambda kv: (-len(kv[1]), -len(kv[0]), sorted(map(int, kv[1]))))
 
     consensus = ordered[0][0]
     out = []

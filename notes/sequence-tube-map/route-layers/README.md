@@ -39,6 +39,17 @@ and the viewer are committed; run the command above to regenerate the rest. To o
 viewer, serve the repo root (`python3 -m http.server`) and visit this directory — it
 fetches `manifest.json`, so `file://` will not do.
 
+**Route numbers are reproducible as of 2026-08-26, and were not before.** `routes_of`
+ordered by carrier count then breadth and stopped there, but 87 of the 112 routes share
+both — fifteen of them are one strand over 179 segments — so those ties fell to the
+insertion order of a dict built by iterating a set of id *strings*. Python randomizes
+string hashing per process, so the same document numbered its routes differently on every
+run: identical routes, identical members, reshuffled labels, and a 300-line diff in the
+file this note calls the result. Ties now break on the sorted member ids, which are a
+property of the document. Numbering that predates the fix does not survive it — routes
+0–10 are unaffected, since their carrier counts are unique, and everything above 10 was
+renumbered once. The three routes this file names are all inside that stable band.
+
 ## Why this document
 
 `stm-node-5520` is the document the thickness-floor and pick-set measurements were made
