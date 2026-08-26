@@ -496,6 +496,20 @@ total — *166 of 463 haplotypes inverted* — read against GRCh38's own directi
 against the x-axis, which in that document would say 297 and mean nothing biological.
 A document with no **reference direction** says nothing about inversion at all.
 
+Beside a *single* haplotype's name the word is *inverted*, and **there is no word for the
+other case**: the tag marks the exceptions and its absence is the ordinary reading. Every
+surface that names a haplotype carries it — the feeler's label and the `?pick` readout.
+Not the **segment** tooltip, which names a segment and no haplotype: the two cards stack
+under one cursor, so a haplotype row there is the label's own sentence said twice. So one
+silence covers three unrelated
+things, all of them ordinary: the haplotype runs with the reference; the document has no
+**reference direction** to read against; or every **band** it draws is flat, so the
+document did not say. *Not inverted* is deliberately not spelled out — it is 297 of the
+chr8 document's 463 rows and every row of the four documents with no inversion in them,
+and in a details table it is two rows saying nothing happened. **mixed** is the one other
+word, and it follows the caption's rule: stated wherever such a haplotype is named, with
+a reference or without one.
+
 ### mixed
 
 A **strand** whose own **bands** disagree about **band direction** — one that turns

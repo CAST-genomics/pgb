@@ -29,11 +29,17 @@
  * maps would be chrome the map has to be read around.
  */
 
-import { censusInversion, describeInversion, type DirectedDocument } from './inversion.ts'
+import { describeInversion, type InversionCensus } from './inversion.ts'
 
 export interface InversionNote {
-    /** Caption this document, or say nothing about it. Replaces whatever was said before. */
-    show(map: DirectedDocument): void
+    /**
+     * Caption this document, or say nothing about it. Replaces whatever was said before.
+     *
+     * The census arrives already taken, rather than being taken here from the document: the
+     * surface reads the same fold for the direction beside each haplotype's name (#132), and
+     * folding a document's 11,586 bands twice at load would buy nothing.
+     */
+    show(census: InversionCensus): void
     /** Take the caption off screen. Idempotent. */
     clear(): void
     destroy(): void
@@ -51,8 +57,8 @@ export function createInversionNote(root: HTMLElement): InversionNote {
 
     return {
 
-        show(map: DirectedDocument): void {
-            const said = describeInversion(censusInversion(map))
+        show(census: InversionCensus): void {
+            const said = describeInversion(census)
 
             element.textContent = said ?? ''
             element.hidden = null === said

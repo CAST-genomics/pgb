@@ -160,6 +160,12 @@ strand 224 251 253 87 159 360 · 3.50 ms · worst 37.90 ms · focus 159 · table
 fit on `5520+` it is six or seven ids, and it collapses to one as you magnify. `focus` is the
 single strand the feeler has lit out of that set, which is the one nearest the cursor.
 
+An **inverted** lit strand says so in parentheses — `focus 158 (inverted)` (pgb #132) — which
+is how the tag beside a name in the label can be checked against a strand id by hand. Nothing
+follows the id for a haplotype running the ordinary way, and nothing follows it anywhere in
+the other four documents, which contain no inversion. A haplotype whose own bands disagree
+about direction reads `(mixed)`; none of the committed five has one.
+
 Hold `Shift` and all three panels answer with that set at once: the map lights the one strand,
 the label lists the names with a colour swatch each, and the PCLAI inset marks every placed
 member of the set while the rest of the cloud greys out.

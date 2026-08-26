@@ -431,6 +431,34 @@ export const SURFACE_STYLES = `
     box-shadow: 0 0 0 1px rgba(90, 94, 102, 0.95);
 }
 
+/* Which way this haplotype runs, beside its name (#132).
+
+   The document-level caption says how many haplotypes are inverted; this says which, and it
+   is the only place a researcher can find out whether the haplotype they are holding is one
+   of them. Three constraints make it a word rather than a mark, and they are ADR \`0004\`'s:
+   a strand's colour is the document's own PCLAI value and is shared vocabulary with the 3D
+   graph and the cloud, its alpha is the feeler's, and at fit a band is 0.19 css px tall, so a
+   per-band glyph is invisible exactly where the map is densest.
+
+   Set smaller and lighter than the name and with the name's letter-spacing dropped: the name
+   is an identifier a researcher reads character by character, and this is the viewer talking
+   *about* it — the same relationship, and the same treatment, as the count rows below. Not
+   set in the numeric face, though, because it is a word.
+
+   It recedes with its row rather than against it: the row's own opacity is what says which
+   haplotype the map has lit, and a tag that stayed at full strength on a faded row would
+   make a neighbour's direction the loudest thing on the label.
+
+   The name is in \`.stm-strand-name-text\` and this is its sibling, so the element holding
+   the name still holds the document's characters and nothing else. */
+.stm-strand-direction {
+    margin-left: 0.5em;
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    opacity: 0.7;
+}
+
 /* What the cap left out, above the list and below it (#120).
 
    Two counts rather than one total, because direction is the only part of this a researcher

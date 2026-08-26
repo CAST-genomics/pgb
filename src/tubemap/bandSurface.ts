@@ -138,6 +138,7 @@ import {
 import { createBandPicker, PICK_SAMPLES, type BandPicker, type StrandColumn } from './bandPicker.ts'
 import { watchFeelerKey, type FeelerKey } from './feelerKey.ts'
 import type { Point, Size } from './geometry.ts'
+import { readInversion, type HaplotypeReading } from './inversion.ts'
 import { createInversionNote, type InversionNote } from './inversionNote.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
 import { THICKNESS, parseBands, strandCss, type ParsedMap } from './parseBands.ts'
@@ -418,6 +419,16 @@ interface Drawing {
     mesh: Mesh
     /** How each of this document's strands looks. Sized from its own strand count. */
     appearance: StrandAppearance
+    /**
+     * What each of its haplotypes' direction is called on screen, by strand id, and `null`
+     * for the ones there is nothing to say about (#132).
+     *
+     * Read once, when the document arrives, because it is a fold over every band the
+     * document draws — 11,586 of them on the inverted fixture — and the answer cannot change
+     * while that document is on screen. The three surfaces that name a haplotype then index
+     * it, so none of them can disagree with the caption or with each other.
+     */
+    readings: Array<HaplotypeReading | null>
 }
 
 /**
@@ -838,9 +849,17 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         const picked = 0 === result.strandIds.length ? '—' : result.strandIds.join(' ')
         const shown = drawing.appearance.focused()
 
+        // The focused strand's direction beside its id (#132) — the readout is where the
+        // pick answer is checked against the document by hand, and a haplotype's direction is
+        // now part of that answer. Absent, like everything else here, when there is nothing
+        // to say: an em dash for no focus, and no parenthesis at all for a document with no
+        // reference direction to read against.
+        const direction = null === shown ? null : drawing.readings[shown]
+
         readout.textContent = `strand ${picked} · ${result.milliseconds.toFixed(2)} ms`
             + ` · worst ${worstPick.toFixed(2)} ms`
             + ` · focus ${null === shown ? '—' : shown}`
+            + (null === direction ? '' : ` (${direction})`)
             + ` · table ${lastWrite.toFixed(3)} ms, worst ${worstWrite.toFixed(3)} ms`
     }
 
@@ -898,11 +917,13 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         }
 
         const { strandNames, strandColors } = drawing.map
+        const { readings } = drawing
 
         strandLabel.show(
             column.strandIds.map(id => ({
                 name: strandNames[id],
-                color: strandCss(strandColors, id)
+                color: strandCss(strandColors, id),
+                direction: readings[id]
             })),
             column.nearest,
             cursor,
@@ -1144,14 +1165,19 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             mesh.frustumCulled = false
             built.scene.add(mesh)
 
-            drawing = { map, geometry, mesh, appearance }
+            // Both of the document's direction answers, folded once: how many haplotypes are
+            // inverted, which the caption states, and which of them are, which the three
+            // surfaces that name a haplotype say.
+            const inversion = readInversion(map)
+
+            drawing = { map, geometry, mesh, appearance, readings: inversion.readings }
 
             segments.show(boxes)
 
             // What this document is a picture of, said in words: how many of its haplotypes
             // run against GRCh38's own direction, or nothing at all where none do and where
             // there is no GRCh38 to read against.
-            inversionNote.show(map)
+            inversionNote.show(inversion.census)
 
             // This document's cloud, replacing the previous one's. Opening another node
             // rebuilds it here, which is the only place it is ever built.
