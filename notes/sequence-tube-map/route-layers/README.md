@@ -55,9 +55,9 @@ PGB's dataset has no names for. Route identity at this scale can only come out o
 drawing.
 
 The two words are [`CONTEXT.md`](../../../CONTEXT.md)'s and are not interchangeable: a
-**node** is the graph vertex PGB draws in 3D, a **segment** is one of the sequence boxes
-inside it. The server's SVG spells a segment "node" too, which is the collision the rename
-exists to prevent — every set this file calls a route is a set of *segments*, and the one
+**node** is the graph vertex PGB draws in 3D, a **segment** is one stretch of genomic
+sequence inside it, carried by every strand that crosses it. The server's SVG spells a
+segment "node" too, which is the collision the rename exists to prevent — every set this file calls a route is a set of *segments*, and the one
 node involved is `5520+` itself. Likewise the SVG's `trackID` names what PGB calls a
 **strand**; *track* appears only where code quotes the server's document.
 

@@ -371,11 +371,25 @@ haplotype's ribbon here.
 
 ### segment
 
-One of the sequence boxes *inside* a **sequence tube map** — a vertex of the
-minigraph-cactus subgraph it collapses, carrying an id, a length and a sequence
-(typically tiny: median 1 bp, most being single-base variants). Called *node* by
-the SVG and by upstream sequence-tube-map. The alias is renamed on our side to
-keep the two scales distinct: **node** is the graph vertex PGB draws in 3D,
+A stretch of genomic sequence *inside* a **sequence tube map** — one vertex of the
+minigraph-cactus subgraph the **node** collapses, carrying an id, a length and that
+sequence. Typically tiny: median 1 bp, most being single-base variants.
+
+**Every strand passing through a segment carries that sequence.** That is what passing
+through *means*, and it is the whole content of the term: a segment is an assertion about
+DNA — these haplotypes have these bases here — and a **route**, being a set of
+segments, is therefore an assertion about a haplotype's sequence across the window, not
+about how the picture happened to be drawn. Two strands through the same segment agree
+over its extent; two strands through sibling segments at the same locus carry different
+**alleles**.
+
+The tube map draws a segment as a vertical box, and the parser reads it back out of that
+box (`parseSegmentBoxes.ts`), but the box is the depiction. Anything true of a segment is
+true of the sequence, not of the rectangle: *avoid defining it as a box*, which names the
+rendering and leaves the genomics unsaid.
+
+Called *node* by the SVG and by upstream sequence-tube-map. The alias is renamed on our
+side to keep the two scales distinct: **node** is the graph vertex PGB draws in 3D,
 **segment** is what is found inside one.
 
 ### sequence tube map
@@ -469,6 +483,10 @@ translations, for reading the literature or talking to a collaborator:
 A route's strand count is its **allele count**, its share its **allele
 frequency**, and a one-strand route a **singleton** — a term that carries a
 reading with it, since a singleton is a recent mutation or an assembly error.
+
+Where an interface says *allele frequency* it means this window-scale sense — the
+frequency of a whole route — and never the single-site sense of the domain **allele**
+entry. The two scales sit two entries apart and the label has to say which one it is.
 
 Long form: [`notes/sequence-tube-map/routes-not-ribbons.html`](notes/sequence-tube-map/routes-not-ribbons.html)
 (the six-locus survey) and
