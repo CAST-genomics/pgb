@@ -138,6 +138,7 @@ import {
 import { createBandPicker, PICK_SAMPLES, type BandPicker, type StrandColumn } from './bandPicker.ts'
 import { watchFeelerKey, type FeelerKey } from './feelerKey.ts'
 import type { Point, Size } from './geometry.ts'
+import { createInversionNote, type InversionNote } from './inversionNote.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
 import { THICKNESS, parseBands, strandCss, type ParsedMap } from './parseBands.ts'
 import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
@@ -503,6 +504,17 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
     // mount layers on top — the navigator, the badge, and the status layer that has to be
     // able to cover a refused document's error message with nothing showing through it.
     const segments: SegmentOverlay = createSegmentOverlay(host)
+
+    // What the whole document says about itself — how many of its haplotypes are inverted
+    // (#131). Shown and emptied in the same calls the scene is, like the segment boxes and
+    // the cloud, and inert to the pointer: it reports on the map and takes nothing from it.
+    //
+    // **Before the strand label, and that is load-bearing.** The two share z-index 3, so the
+    // later mount wins where they overlap, and the label is drawn above the cursor and
+    // clamped to the top edge — so a feeler gesture near the top of the map puts the two in
+    // the same place. The label is what the researcher is reading at that moment and the
+    // caption is a standing statement they have already read, so the label wins.
+    const inversionNote: InversionNote = createInversionNote(host)
 
     // What the feeler is touching, by name (#111). Mounted over the segments so a name is
     // never covered by a box, and inert, so the map underneath keeps answering the cursor.
@@ -1136,6 +1148,11 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
             segments.show(boxes)
 
+            // What this document is a picture of, said in words: how many of its haplotypes
+            // run against GRCh38's own direction, or nothing at all where none do and where
+            // there is no GRCh38 to read against.
+            inversionNote.show(map)
+
             // This document's cloud, replacing the previous one's. Opening another node
             // rebuilds it here, which is the only place it is ever built.
             pclaiInset.show(map)
@@ -1158,6 +1175,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             // In the same call that empties the scene, so a refused document cannot leave
             // the previous map's boxes floating over an error message.
             segments.clear()
+            inversionNote.clear()
             pclaiInset.clear()
             mapNavigator.clear()
 
@@ -1205,6 +1223,7 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
             doc.removeEventListener('pointercancel', onPointerUp)
             feeler.destroy()
             strandLabel.destroy()
+            inversionNote.destroy()
             pclaiInset.destroy()
             segments.destroy()
             readout?.remove()

@@ -57,12 +57,36 @@ const ABSENT = 'None'
  */
 export type BandDirection = 'rightward' | 'leftward'
 
-/** The two directions as they are stored, one byte per band beside the geometry. */
+/** The two directions as they are stored, one byte per band beside the geometry, plus the
+ *  byte for a band that was drawn flat and therefore ran neither way. */
 export const RIGHTWARD = 0
 export const LEFTWARD = 1
+/** A `<rect>`: drawn with a positive width by construction, so it *observes* no direction.
+ *  It reads `rightward` as a fact about the picture — that is which way it is stored, and
+ *  which way it rasterizes — and reads as nothing at all through `observedDirection`. */
+export const FLAT = 2
 
-/** What direction band `band` runs, in the vocabulary `CONTEXT.md` fixes. */
+/** What direction band `band` runs, in the vocabulary `CONTEXT.md` fixes. A flat band runs
+ *  rightward, because that is how a `<rect>` is drawn and how this parser stores it. */
 export function bandDirection(directions: Uint8Array, band: number): BandDirection {
+    return LEFTWARD === directions[band] ? 'leftward' : 'rightward'
+}
+
+/**
+ * What direction band `band` was *observed* to run, or `null` where it observed none.
+ *
+ * The reading anything aggregating over a strand wants, and the difference from
+ * `bandDirection` is the whole of why it exists: an inverted haplotype's passages through
+ * the segment boxes are flat, and counting those as rightward observations would make every
+ * inverted strand in the chr8 document read as mixing both directions. A flat band is the
+ * degenerate case of direction just as it is of the curve — it says nothing, and this is
+ * where nothing is spelled `null` rather than `'rightward'`.
+ */
+export function observedDirection(directions: Uint8Array, band: number): BandDirection | null {
+    if (FLAT === directions[band]) {
+        return null
+    }
+
     return LEFTWARD === directions[band] ? 'leftward' : 'rightward'
 }
 
@@ -75,7 +99,8 @@ export interface ParsedMap {
     geometry: Float32Array
     /** One strand id per band, parallel to `geometry`. */
     strandIds: Uint16Array
-    /** Which way each band was drawn, parallel to `geometry`: `RIGHTWARD` or `LEFTWARD`.
+    /** Which way each band was drawn, parallel to `geometry`: `RIGHTWARD`, `LEFTWARD`, or
+     *  `FLAT` for a band that ran neither way.
      *
      *  **Per band, because that is where it is observed.** A whole strand running one way is
      *  the case in every document seen — 463 strands in the chr8p23.1 document, none of them
@@ -84,14 +109,17 @@ export interface ParsedMap {
      *  strand's direction, or a route's, aggregates these at read time and is free to find
      *  that a strand carries both.
      *
-     *  **A flat band reads `RIGHTWARD`**, because a `<rect>` has a positive width by
+     *  **A flat band is stored `FLAT`**, because a `<rect>` has a positive width by
      *  construction — it is the degenerate case of direction just as it is of the curve, and
      *  it carries no observation of which way its haplotype was walking. So an inverted
      *  strand's *bands* are not all leftward: its **connectors** are, and its passages
      *  through the segment boxes are flat. Anything aggregating over a strand has to read
-     *  that as the absence of an observation rather than as a rightward one.
+     *  that as the absence of an observation rather than as a rightward one — which is
+     *  `observedDirection`, and which is why the third byte exists rather than the two the
+     *  vocabulary has words for.
      *
-     *  Read with `bandDirection`, which spells the two words. */
+     *  Read with `bandDirection`, which spells the two words and calls a flat band
+     *  rightward, or with `observedDirection`, which calls it nothing. */
     bandDirections: Uint8Array
     bandCount: number
     /** RGB triples, one per strand, indexed by strand id. */
@@ -339,7 +367,7 @@ export function parseBands(text: string): ParsedMap {
         geometry[at + 4] = (controlTop - x0) / width
         geometry[at + 5] = (controlBottom - x0) / width
         strandIds[bands] = id
-        bandDirections[bands] = isLeftward ? LEFTWARD : RIGHTWARD
+        bandDirections[bands] = isRect ? FLAT : (isLeftward ? LEFTWARD : RIGHTWARD)
 
         if (false === strands.has(id)) {
             strands.set(id, {

@@ -10,7 +10,16 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { NonConformingDocument } from '../documentGrammar.ts'
-import { LEFTWARD, MAX_STRAND_ID, RIGHTWARD, THICKNESS, bandDirection, parseBands } from '../parseBands.ts'
+import {
+    FLAT,
+    LEFTWARD,
+    MAX_STRAND_ID,
+    RIGHTWARD,
+    THICKNESS,
+    bandDirection,
+    observedDirection,
+    parseBands
+} from '../parseBands.ts'
 import {
     EVERY_FIXTURE_PATH,
     FIXTURE_PATH,
@@ -347,6 +356,24 @@ describe('parseBands', () => {
             for (let i = 0; i < INVERTED_FLAT_BANDS; i += 1) {
                 expect(bandDirection(map.bandDirections, i)).toBe('rightward')
             }
+        })
+
+        it('observes no direction at all in a flat band, which is not the same as rightward', () => {
+            // The distinction `bandDirection` cannot make and an aggregate cannot do
+            // without: 5638 of this document's bands are `<rect>` elements, and every one
+            // of the 297 leftward haplotypes draws some of them. Counted as rightward
+            // observations they would make all 297 read as mixing both directions —
+            // `inversion.ts` is what would get that wrong, and this is the byte that stops
+            // it.
+            const map = parseBands(readInvertedFixture())
+
+            for (let i = 0; i < INVERTED_FLAT_BANDS; i += 1) {
+                expect(map.bandDirections[i]).toBe(FLAT)
+                expect(observedDirection(map.bandDirections, i)).toBeNull()
+            }
+
+            expect(observedDirection(map.bandDirections, INVERTED_FLAT_BANDS)).toBe('leftward')
+            expect(observedDirection(Uint8Array.of(RIGHTWARD), 0)).toBe('rightward')
         })
 
         it('normalizes a leftward band onto the curve the document draws', () => {

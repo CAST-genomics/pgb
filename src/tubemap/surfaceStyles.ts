@@ -172,6 +172,56 @@ export const SURFACE_STYLES = `
     opacity: 1;
 }
 
+/* What the whole document says about itself — \`166 of 463 haplotypes inverted\` (#131).
+
+   **Top centre**, which is the one region no affordance claims: the ancestry cloud opens at
+   the top left, the navigator holds the bottom left, the badge and the \`?pick\` readout stack
+   in the bottom right, and the dev harness's URL picker fills the top right. It is also where
+   it belongs on its own merits — this is a caption on the whole picture rather than a control,
+   and a caption pinned to one end of a 14:1 strip reads as a statement about that end.
+
+   The badge's ground and radius, because it is the same kind of object: the viewer talking
+   about the map, not a mark on it. Not the badge's 10 px or its uppercase, though — it
+   inherits the surface's own 12 px monospace, since the badge names a mode in two syllables
+   and this is a sentence with numbers in it that has to be read at a glance. \`tabular-nums\`
+   for the two counts.
+
+   Inert, like the badge and the strand label. \`max-width\` is the card's own width less its
+   margins and nothing more: on a card narrow enough for the sentence to reach the cloud it
+   is drawn *over* the cloud, which the z-index below makes legible, because the alternative
+   is the headline fact of the document arriving with an ellipsis in it. The cloud can be
+   moved or dismissed; the sentence has one line to say what the map is.
+
+   z-index 3, with the tooltips: above the cloud and the navigator at 2, below the status
+   layer at 4 — a refused document's error card must cover it completely, since the sentence
+   belongs to a map that is no longer on screen. */
+.stm-inversion {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 24px);
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--stm-chrome);
+    color: var(--stm-ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* Absent rather than empty when the document has nothing to say about inversion, which is
+   every document in the corpus but one. \`display: none\` is stated here for the same reason
+   it is on the segment box: \`position: absolute\` is one cascade accident away from a
+   \`[hidden]\` element still taking its place. */
+.stm-inversion[hidden] {
+    display: none;
+}
+
 /* ── PGB's node tooltip, borrowed outright ────────────────────────────────────────────────
 
    Copied 2026-08-15 from pgb/src/styles/_toolTipContainer.scss and _lookToolTip.scss — the

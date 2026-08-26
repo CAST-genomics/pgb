@@ -358,6 +358,13 @@ carrying no biological claim, and defined whether or not the document contains a
 reference. Band geometry is stored normalized (always a positive width), so direction
 travels beside the geometry rather than as the sign of a coordinate.
 
+A band drawn **flat** — a `<rect>`, one **strand**'s passage through a **segment** —
+runs rightward by construction and therefore *observes* no direction. Aggregating a
+strand's or a **route**'s direction reads flat bands as the absence of an observation,
+never as a rightward one: an **inverted** haplotype's flat bands are rightward and its
+connectors are leftward, so counting the flat ones would make every inverted haplotype
+look **mixed**.
+
 *Avoid "orientation"* — that is the **node**'s `+`/`-` in an oriented id like `5519+`.
 *Avoid "strand"* for this sense — that is the ± DNA strand, and it already means a
 haplotype's ribbon here.
@@ -484,7 +491,19 @@ distinct routes, so the count of haplotypes on one is an **allele count** like a
 other.
 
 **In the interface, say *inverted haplotype***, following the **strand** entry's rule
-that `strand` is a word for code.
+that `strand` is a word for code. The document-level statement is a count out of the
+total — *166 of 463 haplotypes inverted* — read against GRCh38's own direction and not
+against the x-axis, which in that document would say 297 and mean nothing biological.
+A document with no **reference direction** says nothing about inversion at all.
+
+### mixed
+
+A **strand** whose own **bands** disagree about **band direction** — one that turns
+around mid-traversal. Zero of the chr8p23.1 document's 463 do it, and it is *reported*
+rather than refused for exactly that reason: a document breaking the pattern is worth
+surfacing, and nothing asserts against it. Neither *inverted* nor *forward*, and never
+folded into either. A mixed strand needs no **reference direction** to be read, so it is
+stated even in a document that has none.
 
 ### feeler
 
