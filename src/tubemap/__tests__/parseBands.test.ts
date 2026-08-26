@@ -7,10 +7,20 @@
  * recorded, plus the conversion this copy adds.
  */
 
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { NonConformingDocument } from '../documentGrammar.ts'
-import { MAX_STRAND_ID, THICKNESS, parseBands } from '../parseBands.ts'
-import { readFixture, readTallFixture } from './fixture.ts'
+import { LEFTWARD, MAX_STRAND_ID, RIGHTWARD, THICKNESS, bandDirection, parseBands } from '../parseBands.ts'
+import {
+    EVERY_FIXTURE_PATH,
+    FIXTURE_PATH,
+    INVERTED_FIXTURE_PATH,
+    TALL_FIXTURE_PATH,
+    readEveryFixture,
+    readFixture,
+    readInvertedFixture,
+    readTallFixture
+} from './fixture.ts'
 
 /** Every `trackID`/`trackName` pair the document spells out, read straight off the text.
  *  The parser's own answer is checked against this rather than against a hand-copied list,
@@ -49,6 +59,56 @@ function placed(map: { strandPlacements: ({ x: number, y: number } | null)[] }):
 function unplaced(map: { strandPlacements: ({ x: number, y: number } | null)[] }): number {
     return map.strandPlacements.filter(placement => null === placement).length
 }
+
+/** Which way each drawable in `g.track` runs, in document order, read straight off the text
+ *  rather than from the parser — a `<rect>` rightward by construction, a `<path>` by which
+ *  of its endpoints is further left. The parser's own answer is checked against all 11,586
+ *  of them rather than against the handful worth typing out. */
+function directionsInSource(text: string): string[] {
+    const trackGroupEnd = text.indexOf('<g class="node"')
+    const trackGroup = -1 === trackGroupEnd ? text : text.slice(0, trackGroupEnd)
+    const directions: string[] = []
+
+    for (const match of trackGroup.matchAll(/<rect |<path d="M ([^"]*?) V /g)) {
+        if (undefined === match[1]) {
+            directions.push('rightward')
+
+            continue
+        }
+
+        // `M x0 y0 C cx y0 cx y1 x1 y1` — the seventh number is where the forward edge ends.
+        const numbers = match[1].trim().split(/[\sC]+/).map(Number)
+
+        directions.push(numbers[6] < numbers[0] ? 'leftward' : 'rightward')
+    }
+
+    return directions
+}
+
+/** How many of a parsed map's bands run leftward, over the whole map or over one strand. */
+function leftward(
+    map: { bandDirections: Uint8Array, strandIds: Uint16Array, bandCount: number },
+    strandId?: number
+): number {
+    let total = 0
+
+    for (let i = 0; i < map.bandCount; i += 1) {
+        const counts = LEFTWARD === map.bandDirections[i]
+            && (undefined === strandId || strandId === map.strandIds[i])
+
+        total += counts ? 1 : 0
+    }
+
+    return total
+}
+
+/** The inverted document's geometry as it first parsed, 2026-08-26 — the only one of the
+ *  five with no earlier reading to be identical to. */
+const INVERTED_GEOMETRY = 'cb6937dd96fdc3d6a084410cef5d8557b4c9f8a63e7ae39276970a0caa18a261'
+
+/** How many flat bands the inverted document draws before the first of its connectors: it
+ *  draws all 5638 of its `<rect>` elements first, so band 5638 is the first `<path>`. */
+const INVERTED_FLAT_BANDS = 5638
 
 /** What the node survey recorded for the committed document. */
 const SURVEYED = { bands: 10270, strands: 369, width: 35562.42857142856 }
@@ -195,6 +255,182 @@ describe('parseBands', () => {
 
     it('holds THICKNESS at the surveyed constant', () => {
         expect(THICKNESS).toBe(15)
+    })
+
+    /**
+     * Direction is the regularity this parser mistook for a rule: every band in the four
+     * documents committed before 2026-08-25 runs left to right, and the assertion saying
+     * every band must was refusing an inversion polymorphism. ADR `0004` withdrew it.
+     *
+     * What replaces it is a datum rather than nothing — the direction is read per band,
+     * where it is observed, and the geometry is normalized so that no downstream consumer
+     * inherits a signed width.
+     */
+    describe('band direction', () => {
+
+        it('draws the inverted document rather than refusing it', () => {
+            const map = parseBands(readInvertedFixture())
+
+            // 5638 rects and 5948 connectors, 3771 of the connectors running right to left.
+            expect(map.bandCount).toBe(11586)
+            expect(map.strandCount).toBe(463)
+        })
+
+        it('stores a leftward band with a positive width, like every other band', () => {
+            const map = parseBands(readInvertedFixture())
+
+            for (let i = 0; i < map.bandCount; i += 1) {
+                const [, , width, , uTop, uBottom] = Array.from(map.geometry.subarray(i * 6, i * 6 + 6))
+
+                expect(width).toBeGreaterThan(0)
+
+                // Normalized against a positive width, the control fractions stay inside
+                // the same middle band they occupy in a rightward document. Against a
+                // signed width they would go negative, which is the shape of the bug the
+                // rejected alternative would have shipped.
+                for (const u of [uTop, uBottom]) {
+                    expect(u).toBeGreaterThanOrEqual(0.3 - 1e-6)
+                    expect(u).toBeLessThanOrEqual(0.7 + 1e-6)
+                }
+            }
+        })
+
+        it('carries a direction for every band, saying what the document draws', () => {
+            const text = readInvertedFixture()
+            const map = parseBands(text)
+            const spelled = directionsInSource(text)
+
+            expect(map.bandDirections).toHaveLength(map.bandCount)
+            expect(spelled).toHaveLength(map.bandCount)
+
+            for (let i = 0; i < map.bandCount; i += 1) {
+                expect(bandDirection(map.bandDirections, i)).toBe(spelled[i])
+            }
+        })
+
+        it('finds the surveyed count of leftward bands, and none where there are none', () => {
+            expect(leftward(parseBands(readInvertedFixture()))).toBe(3771)
+            expect(leftward(parseBands(readFixture()))).toBe(0)
+            expect(leftward(parseBands(readTallFixture()))).toBe(0)
+        })
+
+        it('has the reference running leftward, with a strand of the document running the other way', () => {
+            // GRCh38 runs with the 297 here and CHM13 with the 166, so the document's
+            // x-axis is oriented along neither and any test assuming the reference runs
+            // with the axis is wrong. Aggregated from the bands at read time, which is the
+            // only place direction may be aggregated — that no strand mixes the two is a
+            // regularity of one document, not a rule.
+            const map = parseBands(readInvertedFixture())
+            const leftwardBandsOf = (name: string): number => {
+                // This document suffixes its names with the interval each haplotype covers
+                // — `GRCh38#0#chr8[10078919-10080674]` — which is one more reason nothing
+                // parses a strand name. Matched by prefix here, and only here.
+                const id = map.strandNames.findIndex(spelled => spelled.startsWith(name))
+
+                expect(id, name).toBeGreaterThanOrEqual(0)
+
+                return leftward(map, id)
+            }
+
+            expect(leftwardBandsOf('GRCh38#0#chr8')).toBeGreaterThan(0)
+            expect(leftwardBandsOf('CHM13#0#chr8#0')).toBe(0)
+        })
+
+        it('reads a flat band as rightward, which is the only way a rect is drawn', () => {
+            // A `<rect>` has a positive width by construction, so it says nothing about the
+            // direction of the haplotype passing through it: this is the degenerate case of
+            // direction the same way it is the degenerate case of the curve. It means an
+            // inverted strand's bands are not all leftward — its connectors are — and
+            // whatever aggregates direction over a strand has to know that.
+            const map = parseBands(readInvertedFixture())
+
+            for (let i = 0; i < INVERTED_FLAT_BANDS; i += 1) {
+                expect(bandDirection(map.bandDirections, i)).toBe('rightward')
+            }
+        })
+
+        it('normalizes a leftward band onto the curve the document draws', () => {
+            // The reversal has to swap the ordinates with the abscissae: the edge that was
+            // drawn from (x0, y0) to (x1, y1) is stored from (x1, y1) to (x0, y0), and a
+            // band whose ordinates did not travel with its endpoints would slope the wrong
+            // way — a picture that still looks like a tube map.
+            const text = readInvertedFixture()
+            const map = parseBands(text)
+            const centre = map.centre
+            const first = /<path d="M ([^"]*?) V /.exec(
+                text.slice(0, text.indexOf('<g class="node"'))
+            )
+            const numbers = (first as RegExpExecArray)[1].trim().split(/[\sC]+/).map(Number)
+            const at = map.bandDirections.indexOf(LEFTWARD) * 6
+
+            // The first `<path>` in the document is band INVERTED_FLAT_BANDS, and it is one
+            // of the 3771 running leftward.
+            expect(numbers[6]).toBeLessThan(numbers[0])
+            expect(map.bandDirections.indexOf(LEFTWARD)).toBe(INVERTED_FLAT_BANDS)
+
+            expect(map.geometry[at]).toBeCloseTo(numbers[6] - centre.x, 3)
+            expect(map.geometry[at + 1]).toBeCloseTo(centre.y - numbers[7], 3)
+            expect(map.geometry[at + 2]).toBeCloseTo(numbers[0] - numbers[6], 3)
+            expect(map.geometry[at + 3]).toBeCloseTo(centre.y - numbers[1], 3)
+
+            // Both control abscissae are the same number in the document; read against the
+            // normalized span they are `1 - u`, the mirror of what a rightward band gets.
+            expect(map.geometry[at + 4]).toBeCloseTo(
+                (numbers[2] - numbers[6]) / (numbers[0] - numbers[6]), 5
+            )
+        })
+
+        it('still refuses a band of no width, which the withdrawn assertion also caught', () => {
+            // `x1 > x0` refused two things at once, and only one of them was direction. A
+            // band with no span has no width to normalize its control abscissae against.
+            const text = readFixture()
+            const flat = '<path d="M 100 200 C 150 200 150 260 100 260 V 275 C 150 275 150 215 100 215 Z"'
+
+            expect(() => parseBands(text.replace(/<path d="[^"]*"/, flat)))
+                .toThrow(NonConformingDocument)
+        })
+
+        it('spells the two directions in the vocabulary CONTEXT.md fixes', () => {
+            expect(bandDirection(Uint8Array.of(RIGHTWARD), 0)).toBe('rightward')
+            expect(bandDirection(Uint8Array.of(LEFTWARD), 0)).toBe('leftward')
+        })
+    })
+
+    /**
+     * The four documents committed before direction existed all drew, and this is what says
+     * that adding it moved none of them. A digest rather than a spot check, because the
+     * failure being guarded against — a normalization that fires on a band it should not —
+     * would move a handful of bands out of tens of thousands and every count would still
+     * agree.
+     *
+     * These were taken from the parser as it stood on 2026-08-25, before the `x1 > x0`
+     * assertion came out. The fifth is the inverted document, which had no geometry to be
+     * identical to and is pinned here from the first run that drew it.
+     */
+    describe('the geometry each document parses to', () => {
+
+        it('is unchanged for every document in the corpus', () => {
+            // Keyed by the same constants `readEveryFixture` walks, so a fixture added to
+            // the corpus without a digest fails as a missing key rather than as `undefined`.
+            const pinned = new Map([
+                [FIXTURE_PATH, 'f33d67d5d98b833a44d12702d6d4f4522404165d0bd8f9c264fb9e0d4fbe84f9'],
+                [TALL_FIXTURE_PATH, '18ccb2f47c9758dd2639c47a6fc93fbfa56ee99165cbf84dc4490edbb99c83d6'],
+                [EVERY_FIXTURE_PATH[2], '2b75574a22dc57d9496026bce90fe5b332d89123e686e63107686859a9c2a2a8'],
+                [EVERY_FIXTURE_PATH[3], '5c9f1adf855c7a46b827be4d62e5d954736634e51a916eb163405a045c195096'],
+                [INVERTED_FIXTURE_PATH, INVERTED_GEOMETRY]
+            ])
+
+            expect(pinned.size).toBe(EVERY_FIXTURE_PATH.length)
+
+            for (const { path, text } of readEveryFixture()) {
+                const geometry = parseBands(text).geometry
+                const digest = createHash('sha256')
+                    .update(new Uint8Array(geometry.buffer, 0, geometry.byteLength))
+                    .digest('hex')
+
+                expect(digest, path).toBe(pinned.get(path))
+            }
+        })
     })
 
     /**
