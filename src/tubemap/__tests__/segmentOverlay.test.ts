@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 /**
  * The overlay itself is judged by looking at it — that is the spike's rule, and a stroke
  * that tears or a wrapper that drops tiles is not a thing a unit test can see.
@@ -12,7 +11,6 @@
 import { describe, expect, it } from 'vitest'
 import {
     MIN_SEGMENT_WIDTH,
-    createSegmentOverlay,
     SEQUENCE_PREVIEW,
     drawnWidth,
     formatBases,
@@ -124,92 +122,5 @@ describe('the tooltip’s two rows', () => {
         expect(preview).toHaveLength(SEQUENCE_PREVIEW + 1)
         expect(preview.endsWith('…')).toBe(true)
         expect(preview.slice(0, SEQUENCE_PREVIEW)).toBe('ACGT'.repeat(441).slice(0, SEQUENCE_PREVIEW))
-    })
-})
-
-/**
- * The haplotype the feeler is holding, said in the tooltip (#132).
- *
- * The tooltip is a details table about a *segment*, and this is the one thing in it that is
- * about something else: while `Shift` is held the map has one haplotype lit, and a researcher
- * reading a segment box wants to know which haplotype they are reading it through and which
- * way that haplotype runs. What can be silently wrong is the staleness — the tooltip is
- * filled when the cursor enters a box and the feeler moves independently of that — and
- * whether the rows appear at all in the four documents that have no direction to report.
- */
-describe('the haplotype under the feeler, in the tooltip', () => {
-
-    const BOX = { id: '12', sequence: 'ACGT', x: 0, y: 0, width: 91, height: 5613, radius: 9, stroke: 2 }
-
-    /** A mounted overlay showing one box, and a cursor entering it on demand. */
-    function overlay() {
-        const root = document.createElement('div')
-
-        document.body.append(root)
-
-        const segments = createSegmentOverlay(root)
-
-        segments.show([BOX])
-
-        return {
-            segments,
-            enter(): void {
-                root.querySelector('.stm-segment')
-                    ?.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }))
-            },
-            /** Every row of the details table, as label and value. */
-            rows(): Array<[string, string]> {
-                return [...root.querySelectorAll('.node-detail-row')].map(row => [
-                    row.querySelector('.node-detail-label')?.textContent ?? '',
-                    row.querySelector('.node-detail-value')?.textContent ?? ''
-                ])
-            }
-        }
-    }
-
-    it('says the length and the sequence and nothing else when nothing is held', () => {
-        // Every document in the corpus but one, and the tooltip #92 shipped: no feeler, or
-        // a document with no direction to report, leaves the table exactly as it was.
-        const map = overlay()
-
-        map.enter()
-
-        expect(map.rows()).toEqual([['Length', '4 bp'], ['Sequence', 'ACGT']])
-    })
-
-    it('names the held haplotype and which way it runs', () => {
-        const map = overlay()
-
-        map.segments.feel({ name: 'HG002#1#chr8', direction: 'inverted' })
-        map.enter()
-
-        expect(map.rows()).toEqual([
-            ['Length', '4 bp'],
-            ['Sequence', 'ACGT'],
-            ['Haplotype', 'HG002#1#chr8'],
-            ['Direction', 'inverted']
-        ])
-    })
-
-    it('follows the feeler while the tooltip stands over the same box', () => {
-        // The cursor enters a box once and the feeler hands it a different haplotype every
-        // frame of a sweep. A tooltip filled on entry and never again would name whichever
-        // haplotype happened to be lit at the moment the cursor crossed the edge.
-        const map = overlay()
-
-        map.segments.feel({ name: 'HG002#1#chr8', direction: 'inverted' })
-        map.enter()
-        map.segments.feel({ name: 'GRCh38#0#chr8', direction: 'mixed' })
-
-        expect(map.rows()).toEqual([
-            ['Length', '4 bp'],
-            ['Sequence', 'ACGT'],
-            ['Haplotype', 'GRCh38#0#chr8'],
-            ['Direction', 'mixed']
-        ])
-
-        map.segments.feel(null)
-
-        expect(map.rows()).toEqual([['Length', '4 bp'], ['Sequence', 'ACGT']])
     })
 })

@@ -307,9 +307,9 @@ export type HaplotypeReading = typeof INVERTED | typeof MIXED
  * The caption says *how many*; this is *which*, which is the whole of #132: a researcher who
  * can see that 166 haplotypes are inverted still cannot see whether the one under the feeler
  * is one of them. It is a string rather than a token because every one of its readers is a
- * text surface — the strand label, the segment tooltip, the `?pick` readout — and the
- * vocabulary rule ADR `0004` and `CONTEXT.md` §inverted state is about the words, so the
- * words are decided once, here, beside the reading that produces them.
+ * text surface — the strand label, the `?pick` readout — and the vocabulary rule ADR `0004`
+ * and `CONTEXT.md` §inverted state is about the words, so the words are decided once, here,
+ * beside the reading that produces them.
  *
  * **Only the inverted haplotypes are named.** There is no *not inverted*: it is the ordinary
  * case, it would put a word on 297 of the inverted document's 463 rows and on every row of

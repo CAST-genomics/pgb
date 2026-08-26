@@ -945,30 +945,8 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
         focus(lit)
         nameStrands(column)
-        tellSegments(lit)
         pclaiInset.focus(column.strandIds, column.nearest)
         options.onFocusStrand?.(lit)
-    }
-
-    /**
-     * Hand the segment tooltip the haplotype the feeler has, so a researcher reading a box
-     * can see which haplotype they are reading it through and which way it runs (#132).
-     *
-     * Only where there is a direction to state, which is an inverted or a mixed haplotype and
-     * nothing else — `inversion.ts` decides. A haplotype's name in that table otherwise would
-     * be a third place the viewer says what the label and the readout already say, bought at
-     * the price of two rows in almost every tooltip: the row is the direction's, not the
-     * name's.
-     */
-    function tellSegments(lit: number | null): void {
-        if (null === drawing || null === lit) {
-            segments.feel(null)
-            return
-        }
-
-        const direction = drawing.readings[lit]
-
-        segments.feel(null === direction ? null : { name: drawing.map.strandNames[lit], direction })
     }
 
     /**
@@ -1002,7 +980,6 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
         }
 
         strandLabel.hide()
-        tellSegments(null)
         pclaiInset.focus(NOTHING.strandIds, NOTHING.nearest)
         options.onFocusStrand?.(null)
 

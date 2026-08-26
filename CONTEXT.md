@@ -498,8 +498,10 @@ A document with no **reference direction** says nothing about inversion at all.
 
 Beside a *single* haplotype's name the word is *inverted*, and **there is no word for the
 other case**: the tag marks the exceptions and its absence is the ordinary reading. Every
-surface that names a haplotype carries it — the feeler's label, the **segment** tooltip
-while the feeler holds one, and the `?pick` readout. So one silence covers three unrelated
+surface that names a haplotype carries it — the feeler's label and the `?pick` readout.
+Not the **segment** tooltip, which names a segment and no haplotype: the two cards stack
+under one cursor, so a haplotype row there is the label's own sentence said twice. So one
+silence covers three unrelated
 things, all of them ordinary: the haplotype runs with the reference; the document has no
 **reference direction** to read against; or every **band** it draws is flat, so the
 document did not say. *Not inverted* is deliberately not spelled out — it is 297 of the
