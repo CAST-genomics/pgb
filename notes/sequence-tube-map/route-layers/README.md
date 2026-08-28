@@ -29,8 +29,41 @@ the vocabulary, the check, and what the split found. This file is the operating 
 - `segments.svg` — the segment-box layer, as chrome to draw the routes against.
 - `manifest.json` — per route: strands, segments, Jaccard to consensus, member strand ids.
 - `index.html` — a stacking viewer: 112 layers, one per route, listed as a popularity
-  histogram. Click a route to solo it against the dimmed rest; toggle any layer; casing,
-  shadow, zoom and pan.
+  histogram. Click a route — the row or its checkbox — to show or hide that layer;
+  `all` / `none` for the whole set; casing, zoom and pan.
+
+**Two colourings, one drawing.** The `colour` control swaps between the server's shipped
+PCLAI colours and **allele frequency**, which discards the palette and paints each route
+one colour by its **allele count** — `CONTEXT.md` §route, where a route is an allele of
+the whole window and its strand count is that allele's count. ColorBrewer YlOrRd over
+log₂ of the count, because the counts run 124, 70, 44, 11, 9 … with seventy routes tied
+at 1, and a linear ramp puts 108 of the 112 in the bottom tenth of the scale. The ramp
+also starts at 0.30 rather than 0: its low stops are near-white, and seventy of the
+routes are singletons, so an unfloored scale would erase the singleton mat entirely.
+
+**Absent strands are isolated from the scheme, not from the picture.** A strand with no
+PCLAI placement (`pclaiX="None"`, and the document has no partial state — all of
+`pclaiX`, `pclaiY`, `pclaiScore` are present together or absent together, over all 40,442
+bands) keeps no allele colour and recedes to `#e8e8e8` instead — 1.23∶1 against the
+ground, present but not competing. `unplaced` hides them outright, and works in both
+colourings — it is the only control that removes data, so the two modes always draw the
+same thing.
+
+The tag is a **class applied at load**, not the `pclaiX="None"` attribute the document
+carries. An HTML document case-folds attribute names inside a stylesheet, so a rule
+written `[pclaiX="None"]` is stored as `[pclaix="None"]` and never matches the SVG's
+attribute — and it fails *silently*, parsing fine and simply never applying. That cost
+one wholly non-functional control and, worse, let the absent strands inside coloured
+routes take their route's allele colour, which is the isolation rule inverted. Class
+selectors are case-sensitive; attribute selectors in this position are not.
+
+The scale's domain is the routes that have carriers to colour. **Seven routes are
+entirely unplaced**, and they hold 97 of the 99 absent strands — so the grey set and the
+"absent, not divergent" routes of finding #2 below are very nearly the same set. Route 1,
+70 haplotypes, is one of them. Excluding them puts route 0's 124 at the top of the ramp
+and route 2's 44 at the second stop, rather than letting route 1's 70 calibrate a scale
+it can never appear on. A route's allele count stays its full strand count; excluding a
+route is not subtracting its strands.
 
 The 112 route files are ~14 MB and **derived**, so they are git-ignored;
 `manifest.json` and `segments.svg` are small and are kept, because the manifest *is* the
@@ -38,6 +71,17 @@ result. The script, this file
 and the viewer are committed; run the command above to regenerate the rest. To open the
 viewer, serve the repo root (`python3 -m http.server`) and visit this directory — it
 fetches `manifest.json`, so `file://` will not do.
+
+**Route numbers are reproducible as of 2026-08-26, and were not before.** `routes_of`
+ordered by carrier count then breadth and stopped there, but 87 of the 112 routes share
+both — fifteen of them are one strand over 179 segments — so those ties fell to the
+insertion order of a dict built by iterating a set of id *strings*. Python randomizes
+string hashing per process, so the same document numbered its routes differently on every
+run: identical routes, identical members, reshuffled labels, and a 300-line diff in the
+file this note calls the result. Ties now break on the sorted member ids, which are a
+property of the document. Numbering that predates the fix does not survive it — routes
+0–10 are unaffected, since their carrier counts are unique, and everything above 10 was
+renumbered once. The three routes this file names are all inside that stable band.
 
 ## Why this document
 
@@ -55,9 +99,9 @@ PGB's dataset has no names for. Route identity at this scale can only come out o
 drawing.
 
 The two words are [`CONTEXT.md`](../../../CONTEXT.md)'s and are not interchangeable: a
-**node** is the graph vertex PGB draws in 3D, a **segment** is one of the sequence boxes
-inside it. The server's SVG spells a segment "node" too, which is the collision the rename
-exists to prevent — every set this file calls a route is a set of *segments*, and the one
+**node** is the graph vertex PGB draws in 3D, a **segment** is one stretch of genomic
+sequence inside it, carried by every strand that crosses it. The server's SVG spells a
+segment "node" too, which is the collision the rename exists to prevent — every set this file calls a route is a set of *segments*, and the one
 node involved is `5520+` itself. Likewise the SVG's `trackID` names what PGB calls a
 **strand**; *track* appears only where code quotes the server's document.
 
@@ -83,12 +127,20 @@ is the failure the box-height check exists to catch, and it caught it.
 ## What the split shows
 
 **It layers.** 112 route files stack back into the original picture, and any subset lifts
-out cleanly — which is the whole result. Soloing a route recedes the other 111 rather than
-brightening the one, which is spike story 30 applied at route granularity rather than to a
-single strand.
+out cleanly — which is the whole result. Showing one layer and hiding the rest is the
+whole interaction, and it needs no mode.
 
 **A route is the layer.** `route-2-solo.png` is 44 strands lifted out of 464 — one
-itinerary, drawn at full strength while the other 111 routes recede.
+itinerary at full strength against a ghost of the other 111.
+
+The picture was made with a **soloing** control that has since been removed, so it can no
+longer be reproduced from this viewer. Solo dimmed the other layers to a tenth rather than
+hiding them, which put the route in the context of the pile it runs through; it was cut
+because two overlapping visibility mechanisms in one list read as redundant, and the
+audio-mixing word promised a muting it never did. The checkboxes are the one mechanism
+now. If the ghost turns out to be worth having, it comes back as a property of the
+*hidden* state — hidden layers drawn at a tenth rather than not at all — not as a second
+control beside the first.
 
 ## The wrong turn: strata
 
@@ -146,9 +198,10 @@ rather than over the window's full segment set, or absence masquerades as diverg
 ## What was not done
 
 - **Nothing rendered in the viewer.** These are offline SVGs; `src/tubemap/` is untouched.
-- **Depth was not evaluated as a cue.** The viewer can switch casing and a drop shadow on,
-  and both do something, but whether they read as depth at these band widths is a
-  perceptual question this experiment does not answer. §04 caveat 3 — depth surviving a
+- **Depth was not evaluated as a cue.** The viewer can switch casing on, and it does
+  something, but whether it reads as depth at these band widths is a perceptual question
+  this experiment does not answer. A drop-shadow toggle was tried and removed: at these
+  band widths it was visually weak and did no work. §04 caveat 3 — depth surviving a
   pan — is likewise untested, and is a property of live route computation, which does not
   exist.
 - **One document.** Every number above describes `stm-node-5520+`. The essay's Figure 2
