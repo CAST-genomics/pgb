@@ -131,6 +131,12 @@ Recorded here because it is what PGB is taking on rather than what the spike con
 the coupling is not the alternative to a pure viewer. The pure viewer does not work on
 this data, which is why ADR 0002 exists at all.
 
+**Amended 2026-08-27.** This cost is on its way out. UCSD is adding `?format=bands`, which
+publishes the geometry as numbers rather than as drawing commands, so the coupling stops
+being at the level of drawing primitives. [ADR 0002](0002-webgl-band-renderer.md)'s *The
+trade being made* carries the detail and the sequencing; nothing here changes until their
+increment C, and our parser is untouched before then.
+
 ### 4. The fetch ceiling cannot be gated, only waited out
 
 Roughly 43% of the catalogued nodes cannot be fetched at all: eleven HTTP 500s and two TLS
@@ -145,6 +151,15 @@ Consequently eligibility **cannot** be gated on span or size — any threshold e
 nodes that work or admits nodes that crash. What PGB does instead is give up at
 `PATIENCE_MS` (90 s, above the slowest measured success) and show a failure card naming the
 server as the fault. This is a guardrail, not a fix; it is UCSD's defect and stays theirs.
+
+**Amended 2026-08-27 — the defect now has a cause.** "It is UCSD's defect and stays theirs"
+holds, but it is no longer unexplained. Measured on their side: **93.7%** of the render's
+retained memory is the jsdom document built only to be serialized, against ~6% for the
+layout itself. The 500 is that document exhausting the heap, which is why no threshold in
+bytes or seconds separates success from failure — the failure tracks *element count*, which
+the client cannot see and which correlates only loosely with span. Their increment B removes
+the document entirely and should raise the ceiling by roughly an order of magnitude.
+`PATIENCE_MS` stays as the guardrail regardless; a ceiling that moves is still a ceiling.
 Do not reopen it as an investigation without a reason the viewer needs one.
 
 Two related transport facts that constrain the code: fetch **without** credentials (the

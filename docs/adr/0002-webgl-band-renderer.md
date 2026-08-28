@@ -74,6 +74,42 @@ does not work on this data. The choice was between interpreting the geometry and
 restructuring the DOM renderer to re-draw a viewport-sized window on every navigation,
 which is comparable work and leaves the ~28 ms interaction wall standing.
 
+> **Amended 2026-08-27 — the coupling is being retired at the source.** This section
+> records the largest cost this ADR accepted, and it is the one that is going away. UCSD's
+> `/seqtubemap` is gaining `?format=bands`, which publishes the geometry as numbers instead
+> of hiding it in drawing commands for us to infer back out. Their
+> `docs/adr/0001-additive-band-format.md` in that repo is the decision — under review as
+> [PangenomeAPI#12](https://github.com/CAST-genomics/PangenomeAPI/pull/12) at the time of
+> writing; the measurements that forced it are that **93.7%** of their render's
+> memory is the jsdom document they build only to serialize, and **41–47%** of every
+> response we receive carries no information — per-strand constants re-serialized on every
+> band, `color=` duplicating the rgb already in `style=`, `class=` duplicating `trackID`,
+> and 40,716 empty `<title>` elements in `5520+` alone.
+>
+> Three things follow, and none of them is urgent:
+>
+> - **The band data becomes canonical and the SVG becomes a rendering of it.** This ADR's
+>   framing inverts: we stop inferring their geometry and start receiving it. Where the two
+>   encodings disagree, the SVG is the wrong one.
+> - **`parseBands.ts` and `parseSegmentBoxes.ts` do not change yet.** Their increment **B**
+>   deletes jsdom server-side while holding the response byte-compatible with our existing
+>   parser *as a deliberate constraint* — the contiguous `style` / `trackID` / `trackName`
+>   run survives, and the `<rect>` + `<path>` count in `g.track` is unaffected by the
+>   `color=`, `class=` and empty-`<title>` attributes they drop. So the ceiling rises with
+>   **no change on our side**, and this viewer serves as their conformance test: a bad
+>   deploy reaches us as an error card, which is exactly what the whole-document refusal was
+>   built for.
+> - **The parser changes at their increment C**, when the JSON-header-plus-binary-body
+>   format lands. At that point the regex pass is deleted rather than shrunk — a
+>   `Float32 × 6 + Uint16` body copies straight into the instance buffer with no parse at
+>   all — and roughly 1.5 MB replaces 10.07 MB at the 10 kb region.
+>
+> What survives unchanged is everything under *What makes it tractable*: the grammar, the
+> smoothstep collapse, the lapped joins, six floats per band. Those were never facts about
+> SVG — they were facts about the layout, and the layout is what we will now be sent
+> directly. The **fetch ceiling** (cost 4 below) is the same story from the other end: it is
+> a DOM ceiling on their side, and their increment B is the fix for it.
+
 ## What makes it tractable
 
 The price is bounded by a fact measured, not assumed: **127,101 of 127,101 strand paths
