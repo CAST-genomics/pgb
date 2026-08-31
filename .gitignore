@@ -38,3 +38,6 @@ data/genomes/
 notes/sequence-tube-map/route-layers/routes/
 
 __pycache__/
+
+# local test renders from the PangenomeAPI increment-b refactor
+data/pangenomeapi-refactor-increment-b-test/
