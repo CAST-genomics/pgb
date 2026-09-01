@@ -26,6 +26,18 @@
  * two optional runs, rather than two grammars, so the arithmetic that checks the corners is
  * written once.
  *
+ * Which spelling a box arrived in is **read off the match**, never derived from its width.
+ * The two are not the same question. PangenomeAPI's #66 writes the outline from the five
+ * numbers the box travels as, so `(x + 9) - (x - 9)` comes out `18.000000000000455` and a
+ * box whose corners meet is written with two straight runs 4.5e-13 long; predicting the
+ * spelling from the width refused such a box for an inconsistency 4.5e-13 wide (#152).
+ * What is asked instead are two things the document is answerable for: that the two runs
+ * are present together or absent together, and that whichever spelling arrived, its
+ * coordinates close. Present, that is the runs' own endpoints. Absent, it is that the two
+ * corners meet — `left + radius === right - radius` — which is exactly what omitting the
+ * runs claims, and what stops a box 70 units wide from omitting them and being drawn as a
+ * rounded rectangle nobody described.
+ *
  * ## The arithmetic is checked to a tolerance, not exactly
  *
  * The server prints each number as a decimal, and it does not always print the same
@@ -121,7 +133,7 @@ const BOX = new RegExp(`<path id="(\\d+)" d="${OUTLINE}" sequence="([^"]*)" styl
 /**
  * Where each of the outline's 26 numbers sits in the match, counted from the first one.
  * Absent optional runs read as `undefined`, which is how `HORIZONTAL_TOP` doubles as the
- * test for which spelling this box used.
+ * observation of which spelling this box arrived in.
  */
 const MOVE = 0            // left, top + radius
 const CORNER_TOP_LEFT = 2 // left, top  →  left + radius, top
@@ -203,19 +215,13 @@ function readBox(match: RegExpExecArray, centre: Point): SegmentBox {
         )
     }
 
-    // Both runs are omitted together or not at all, and only for a box as wide as its
-    // corners are round. A box shorter than its corners are round would need the *vertical*
-    // runs omitted too; none exists — the shortest in any surveyed document is 33 against a
-    // radius of 9 — so that spelling is refused rather than guessed at.
-    // Compared the same way, and for the same reason: an exact test here would take the
-    // wrong branch on a one-ulp difference and then refuse the box for spelling its
-    // horizontal edges inconsistently, which would be a lie about what was wrong.
-    const square = sameCoordinate(right - left, 2 * radius)
+    // Which spelling this box arrived in is *read*, not predicted from its width. The two
+    // runs are omitted together or not at all, and that is the whole of what is asked here.
+    const hasHorizontalRuns = present(HORIZONTAL_TOP)
 
-    if (present(HORIZONTAL_TOP) === square || present(HORIZONTAL_LOW) === square) {
+    if (hasHorizontalRuns !== present(HORIZONTAL_LOW)) {
         throw new NonConformingTubeMap(
-            `Segment box ${match[1]} is ${right - left} wide with radius ${radius}, `
-            + 'and spells its horizontal edges inconsistently.'
+            `Segment box ${match[1]} spells one of its horizontal edges and not the other.`
         )
     }
 
@@ -223,11 +229,22 @@ function readBox(match: RegExpExecArray, centre: Point): SegmentBox {
     expect(CORNER_TOP_LEFT + 2, left + radius, 'top-left corner end abscissa')
     expect(CORNER_TOP_LEFT + 3, top, 'top-left corner end ordinate')
 
-    if (false === square) {
+    if (hasHorizontalRuns) {
         expect(HORIZONTAL_TOP, right - radius, 'top edge end abscissa')
         expect(HORIZONTAL_TOP + 1, top, 'top edge ordinate')
         expect(HORIZONTAL_LOW, left + radius, 'bottom edge end abscissa')
         expect(HORIZONTAL_LOW + 1, bottom, 'bottom edge ordinate')
+    } else if (false === sameCoordinate(left + radius, right - radius)) {
+        // Omitting the runs is itself an assertion: that the top-left corner ends where the
+        // top-right corner begins. That is a redundancy like every other in the outline —
+        // two spellings of one coordinate, compared the way the rest of them are — and it
+        // is what the absent runs would otherwise have carried. Without it a box 50 units
+        // wide could omit them and be drawn as a rounded rectangle the document never
+        // described.
+        throw new NonConformingTubeMap(
+            `Segment box ${match[1]} is ${right - left} wide with radius ${radius} and omits its `
+            + 'horizontal edges, which only meeting corners can do.'
+        )
     }
 
     expect(CORNER_TOP_RIGHT + 1, top, 'top-right control ordinate')

@@ -132,17 +132,32 @@ export function readEveryFixture(): Array<{ path: string, text: string }> {
  * and for the same reason.
  *
  * **Regenerated 2026-09-01 for their #66**, which replaced each segment's `outline` string
- * with the five numbers it encodes. Each payload is one command, from the API repo's root
- * on `main`, against the same subgraph the endpoint would render:
+ * with the five numbers it encodes. Each half is one command, from the API repo's root on
+ * `main`, against the same subgraph the endpoint would render:
  *
  *     node seqtubemap/generate-bands.mjs \
  *       tests/fixtures/seqtubemap/<subgraph>.json <stem>.bands <start> <end> compressed \
  *       "$(cat tests/fixtures/seqtubemap/<subgraph>.pclai.json)"
  *
+ *     node seqtubemap/generate-svg.mjs \
+ *       tests/fixtures/seqtubemap/<subgraph>.json <stem>.paired.svg <start> <end> compressed \
+ *       "$(cat tests/fixtures/seqtubemap/<subgraph>.pclai.json)"
+ *
  * `compressed` is the width mode the endpoint defaults to and the only one whose geometry
- * is portable — `normal` measures labels with the platform's fonts. The bodies came back
- * byte-identical and every header field but `segments` unchanged, which is what says the
- * documents beside them are still of the same render and did not have to move.
+ * is portable — `normal` measures labels with the platform's fonts. The gzip is level 9,
+ * which is what reproduces the committed bytes.
+ *
+ * The payload bodies came back byte-identical and every header field but `segments`
+ * unchanged; the documents came back identical up to `<g class="node">` and moved only
+ * inside it. So the two halves are still of one render, and the bands the pairing exists to
+ * compare did not shift under it.
+ *
+ * What did move is what makes these documents worth having. #66 changed how a segment's
+ * outline is spelled, and `parseSegmentBoxes.ts`'s header states what changed and why it
+ * matters; one box in the 90 bp region — `181810312` — arrived in the new spelling, and it
+ * is the whole corpus's only instance of it, since the five fetched documents follow
+ * `release` and cannot exhibit it. `parseSegmentBoxes.test.ts` reads that document by
+ * name, which is what keeps #152 from coming back.
  */
 export const PAIRED_FIXTURE_STEM = [
     'stm-chr8-78771162-78771252',
