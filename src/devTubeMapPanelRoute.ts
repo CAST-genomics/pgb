@@ -60,9 +60,8 @@ field.value = initialUrl
 // `format=bands` request or a `.bands` fixture is a payload; anything else is a document.
 // Per `open` rather than once at mount, so pasting a payload URL over a document one is a
 // click rather than a reload.
-opener.addEventListener('click', () => {
-    const url = field.value.trim()
-    panel.open(targetForUrl(url), url, tubeMapEncodingOf(url))
-})
+const openUrl = (url: string): void => panel.open(targetForUrl(url), url, tubeMapEncodingOf(url))
 
-panel.open(targetForUrl(initialUrl), initialUrl, tubeMapEncodingOf(initialUrl))
+opener.addEventListener('click', () => openUrl(field.value.trim()))
+
+openUrl(initialUrl)

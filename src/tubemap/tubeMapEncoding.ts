@@ -47,7 +47,9 @@ export const TUBE_MAP_ENCODING: TubeMapEncoding = 'document'
  * node. A `.bands` path is the committed fixture; `format=bands` is a live request.
  */
 export function tubeMapEncodingOf(url: string): TubeMapEncoding {
-    if (url.endsWith('.bands')) return 'bands'
+    if (url.endsWith('.bands')) {
+        return 'bands'
+    }
 
     const query = url.includes('?') ? new URLSearchParams(url.slice(url.indexOf('?') + 1)) : null
 

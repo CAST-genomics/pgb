@@ -678,10 +678,10 @@ at all — why, and what that costs, is
 
 The floating, draggable, resizable card that hosts a **sequence tube map**,
 opened from a node's context menu. Not a **Look**: it owns its own WebGL scene,
-camera and render loop, and its entire input surface is
-`open(url, encoding)` — the host says which URL and which **band payload** or
-document encoding to read back, and the viewer never builds one, inspects one
-or probes for what the server supports.
+camera and render loop, and the surface it wraps has an input surface of one
+call, `open(url, encoding)`: the host says which URL and whether to read the
+response as a **band payload** or as a document, and the viewer never builds a
+URL, inspects one, or probes for what the server supports.
 Why the Look rule does not reach it, and what that costs — including the panel
 adding a third representation of the locus with no **bidirectional mapping** to
 the other two — is
