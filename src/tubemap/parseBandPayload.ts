@@ -1,12 +1,20 @@
 /**
- * Band payload reader — the second way into the same `ParsedMap`.
+ * Band payload reader — the second way into the same `TubeMapReading`.
  *
  * `parseBands.ts` recovers the picture from an SVG document's drawing commands; this reads
  * `/seqtubemap?format=bands`, where the same picture arrives as the numbers themselves.
  * Both produce the identical structure, so `bandSurface`, `bandPicker`, `strandAppearance`,
- * `inversion`, `pclaiInset`, `strandLabel` and `navigator` never learn which one ran. ADR
- * `0005` records why there are two, why the format is chosen by a flag rather than by a
- * fallback, and why direction is derived here rather than carried on the wire.
+ * `inversion`, `pclaiInset`, `strandLabel`, `segmentOverlay` and `navigator` never learn
+ * which one ran. ADR `0005` records why there are two, why the format is chosen by a flag
+ * rather than by a fallback, and why direction is derived here rather than carried on the
+ * wire.
+ *
+ * **Both halves of the picture are read here**, as they are on the document route: the
+ * bands, out of the body's columns, and the segment boxes, out of the header's `segments`.
+ * The boxes' half is `readSegmentBoxes` below and is a frame change and nothing else —
+ * `parseSegmentBoxes.ts`'s grammar, tolerance and redundancy relations have no counterpart
+ * on this path, because a box arrives as the five numbers it is (their #66, this repo's
+ * #151).
  *
  * The format is specified in the API repo's `docs/band-format.md`, and this file is written
  * against that document rather than against their encoder. Reading it is four lines — a
@@ -42,6 +50,8 @@ import { documentFrame } from './documentFrame.ts'
 import { NonConformingTubeMap } from './nonConformingTubeMap.ts'
 import type { Point } from './geometry.ts'
 import type { ParsedMap } from './parseBands.ts'
+import type { SegmentBox } from './parseSegmentBoxes.ts'
+import type { TubeMapReading } from './tubeMapReading.ts'
 import { FLAT, LEFTWARD, MAX_STRAND_ID, RIGHTWARD, THICKNESS, storeBand } from './parseBands.ts'
 
 /** What `header.format` must spell. Anything else is a different wire format wearing this
@@ -59,6 +69,26 @@ const RECT_KIND = 0
 const ALPHA = 1
 
 /**
+ * The one appearance a segment box is drawn in, as the payload spells it.
+ *
+ * Matched literally, exactly as `parseSegmentBoxes.ts` matches the document's three
+ * declarations: an appearance this viewer does not describe is a payload to refuse rather
+ * than one to reproduce, because `segmentOverlay`'s stylesheet carries these three back and
+ * nothing else. The spellings are the document's own attribute values, which is what the
+ * format promises to send — `#ffffff` here where the document's style property reads
+ * `rgb(255, 255, 255)`, the same colour written the way the attribute writes it.
+ */
+const SEGMENT_APPEARANCE: Record<string, string> = {
+    fill: '#ffffff',
+    fillOpacity: '0.4',
+    stroke: '#000000'
+}
+
+/** The unit a stroke width arrives in. The width is a *dimension* and is read; the unit is
+ *  part of the spelling and is matched, as the document reader matches its `px`. */
+const PIXELS = 'px'
+
+/**
  * One strand's row in the header's table, as the format spells it.
  *
  * `pclaiScore` is a **string**, not a number: usually an integer spelled as text (`"993"`),
@@ -73,6 +103,32 @@ interface StrandRow {
     pclaiX: number | null
     pclaiY: number | null
     pclaiScore: string | null
+}
+
+/**
+ * One segment box's row in the header, as the format spells it.
+ *
+ * `box` is five numbers in the document's own coordinates and its own double precision —
+ * the whole of the rectangle, since #66. It travelled as the path command the document
+ * draws it with until then, which cost this repo an outline grammar, a tolerance and two
+ * spellings of one rectangle; `parseSegmentBoxes.ts` is that grammar, still the SVG route's
+ * reader and untouched by this.
+ *
+ * **The four appearance fields are strings**, and `strokeWidth` carries its CSS unit
+ * (`"2px"`): they are the document's own attribute values, on their way back out as
+ * attributes on the SVG route, so they travel as written rather than as numbers the format
+ * would have to spell back. Their spec said `0.4` and `2` when this reader was written
+ * against it and [has been corrected](https://github.com/CAST-genomics/PangenomeAPI/pull/71)
+ * — the same defect as `pclaiScore` above, caught the same way.
+ */
+interface SegmentRow {
+    id: string
+    box: { left: number, top: number, right: number, bottom: number, radius: number }
+    sequence: string
+    fill: string
+    fillOpacity: string
+    stroke: string
+    strokeWidth: string
 }
 
 interface BandColumn {
@@ -93,6 +149,7 @@ interface BandPayloadHeader {
         kinds: BandColumn
     }
     strands: StrandRow[]
+    segments: SegmentRow[]
     reversals: { corners: unknown[], connectors: unknown[] }
     bodyLength: number
 }
@@ -105,7 +162,7 @@ interface BandPayloadHeader {
  * bytes are aligned, and a copy where they are not. Nothing else in the response is read
  * afterwards, so there is nothing left to invalidate.
  */
-export function parseBandPayload(bytes: Uint8Array): ParsedMap {
+export function parseBandPayload(bytes: Uint8Array): TubeMapReading {
     const header = readHeader(bytes)
     const { count } = header.band
 
@@ -160,7 +217,7 @@ export function parseBandPayload(bytes: Uint8Array): ParsedMap {
 
     layoutIdsInPlace(strandIds, header.strands)
 
-    return {
+    const map: ParsedMap = {
         geometry,
         strandIds,
         bandDirections,
@@ -173,6 +230,128 @@ export function parseBandPayload(bytes: Uint8Array): ParsedMap {
         content,
         centre
     }
+
+    // The same `centre`, so the boxes and the bands cannot end up in two different frames —
+    // which is the reason the document route hands `parseSegmentBoxes` the one its band
+    // parser produced rather than re-deriving it.
+    return { map, boxes: readSegmentBoxes(header.segments, centre) }
+}
+
+/**
+ * Every segment box the render drew, in draw order, in the world frame the bands are in.
+ *
+ * The whole conversion is the frame change `parseSegmentBoxes` ends with, applied to numbers
+ * that arrived as numbers: **no grammar, no tolerance and no second spelling of a
+ * rectangle**. The nine redundancy relations that reader checks exist because five numbers
+ * had to be recovered from twenty-six printed ones, and there is nothing here to recover.
+ *
+ * What is checked instead is that the five numbers are five numbers and that the box is one
+ * this viewer can draw — the same conditions the layout refuses a box on where it is still
+ * in scope, restated here because a reader that trusts them has no way to say it was wrong.
+ * A segment that fails any of them refuses the whole payload, exactly as an unreadable
+ * outline refuses the whole document: a silently absent box is a variant nobody would
+ * notice was missing.
+ */
+function readSegmentBoxes(rows: SegmentRow[], centre: Point): SegmentBox[] {
+    return rows.map(segment => {
+        const box = segment.box
+
+        if (null === box || 'object' !== typeof box) {
+            throw new NonConformingTubeMap(
+                `Segment ${String(segment.id)} carries no box; a box is the five numbers `
+                + 'this viewer draws a segment from.'
+            )
+        }
+
+        for (const edge of [ 'left', 'top', 'right', 'bottom', 'radius' ] as const) {
+            if (false === Number.isFinite(box[edge])) {
+                throw new NonConformingTubeMap(
+                    `Segment ${String(segment.id)} has ${edge} ${String(box[edge])}, which is not a number.`
+                )
+            }
+        }
+
+        if (false === (box.radius > 0)) {
+            throw new NonConformingTubeMap(
+                `Segment ${String(segment.id)} has corner radius ${box.radius}; the radius must be positive.`
+            )
+        }
+
+        // The corners alone are `2 · radius` across, so a box smaller than that in either
+        // direction is not the rounded rectangle these five numbers claim. This and the
+        // positive radius above are two refusals #151 did not enumerate, and they are here
+        // for parity: `parseSegmentBoxes` makes both, so a box either reader would refuse
+        // is refused by both. The server makes them a third time on the way out, where the
+        // layout that produced the box is still in scope, which is what makes them
+        // unreachable rather than merely unmet.
+        if (box.right - box.left < 2 * box.radius || box.bottom - box.top < 2 * box.radius) {
+            throw new NonConformingTubeMap(
+                `Segment ${String(segment.id)} is ${box.right - box.left} by ${box.bottom - box.top}, `
+                + `smaller than its radius ${box.radius} allows.`
+            )
+        }
+
+        for (const field of [ 'fill', 'fillOpacity', 'stroke' ] as const) {
+            if (SEGMENT_APPEARANCE[field] !== segment[field]) {
+                throw new NonConformingTubeMap(
+                    `Segment ${String(segment.id)} is drawn with ${field} `
+                    + `"${String(segment[field])}", and this viewer draws segments with `
+                    + `"${SEGMENT_APPEARANCE[field]}".`
+                )
+            }
+        }
+
+        return {
+            id: String(segment.id),
+            sequence: segment.sequence,
+            x: box.left - centre.x,
+            y: centre.y - box.top,
+            width: box.right - box.left,
+            height: box.bottom - box.top,
+            radius: box.radius,
+            stroke: readStrokeWidth(segment.strokeWidth, segment.id)
+        }
+    })
+}
+
+/**
+ * A segment's stroke width, as a number of world units.
+ *
+ * The one appearance field that is a *dimension*, so it is read rather than matched — the
+ * overlay lays a CSS border of exactly these units and does arithmetic with it. The payload
+ * sends the document's own attribute value, unit and all (`"2px"`), which their spec said
+ * was `2` until [#70](https://github.com/CAST-genomics/PangenomeAPI/issues/70); a reader
+ * written from the spec as it stood would have made `NaN` of it and drawn a border of the
+ * wrong width, silently, because CSS drops a length it cannot read rather than complaining.
+ *
+ * So a spelling this cannot turn into a number is refused, like every other malformed
+ * field. `Number` rather than `parseFloat` for the same reason the rest of this file has no
+ * regular expression in it: `parseFloat` reads a prefix and discards the rest, so `"2px2"`
+ * and `"2 3"` would both come back as 2.
+ *
+ * **The unit is required, and a bare `"2"` is refused** — stricter than the format, which
+ * promises only the attribute value verbatim. It is what refusal parity costs: the document
+ * reader's grammar spells `stroke-width: 2px;` and refuses a document without the unit, so
+ * accepting one here would make the band route draw a map the document route will not, on a
+ * server that sends the two out of one render. The day the layout writes a unitless width
+ * both readers should learn it together.
+ */
+function readStrokeWidth(spelling: string, id: string): number {
+    const width = 'string' === typeof spelling && spelling.endsWith(PIXELS)
+        ? Number(spelling.slice(0, spelling.length - PIXELS.length))
+        : Number.NaN
+
+    // `NaN > 0` is false, which is the whole of what an unreadable spelling has to reach:
+    // one comparison refuses a width that is not a number, is not positive, or was never a
+    // number of pixels at all.
+    if (false === (width > 0)) {
+        throw new NonConformingTubeMap(
+            `Segment ${String(id)} has stroke width "${String(spelling)}", which is not a `
+            + `positive number of ${PIXELS}.`
+        )
+    }
+
+    return width
 }
 
 /** The header's own length, in bytes, from the four that precede it. */
@@ -224,9 +403,9 @@ function readHeader(bytes: Uint8Array): BandPayloadHeader {
     // classifies `internal` rather than `undrawable` — a viewer fault dressed over a bad
     // response, and the opposite of ADR `0005`'s identical failure card.
     if (null === header.band || 'object' !== typeof header.band
-        || false === Array.isArray(header.strands)) {
+        || false === Array.isArray(header.strands) || false === Array.isArray(header.segments)) {
         throw new NonConformingTubeMap(
-            'The payload\'s header carries no band and strand tables.'
+            'The payload\'s header carries no band, strand and segment tables.'
         )
     }
 

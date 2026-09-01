@@ -130,6 +130,19 @@ export function readEveryFixture(): Array<{ path: string, text: string }> {
  * compresses to 3.1 MB, against the payloads' 3.4 MB, and gunzipping the largest costs
  * about a tenth of a second. The API repo stores its own band-data baselines the same way
  * and for the same reason.
+ *
+ * **Regenerated 2026-09-01 for their #66**, which replaced each segment's `outline` string
+ * with the five numbers it encodes. Each payload is one command, from the API repo's root
+ * on `main`, against the same subgraph the endpoint would render:
+ *
+ *     node seqtubemap/generate-bands.mjs \
+ *       tests/fixtures/seqtubemap/<subgraph>.json <stem>.bands <start> <end> compressed \
+ *       "$(cat tests/fixtures/seqtubemap/<subgraph>.pclai.json)"
+ *
+ * `compressed` is the width mode the endpoint defaults to and the only one whose geometry
+ * is portable — `normal` measures labels with the platform's fonts. The bodies came back
+ * byte-identical and every header field but `segments` unchanged, which is what says the
+ * documents beside them are still of the same render and did not have to move.
  */
 export const PAIRED_FIXTURE_STEM = [
     'stm-chr8-78771162-78771252',
