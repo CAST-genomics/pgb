@@ -19,15 +19,13 @@
  *
  * ## Coordinates are converted here, once
  *
- * The SVG's y points down and its origin is the viewBox corner. Three.js's y points up
- * and PGB's camera sits at the origin with a symmetric frustum. Both differences are
- * resolved *in this file* and nowhere else: nothing downstream knows the source was SVG
- * or that y ever pointed down.
+ * The frame is `documentFrame.ts`'s and the subtraction is this file's: reading four
+ * numbers off a `viewBox` attribute is part of reading an SVG document, but the frame they
+ * define is not, and a second reader is to state it from the same function (#143). Applying
+ * it stays here because it is a pass over a `Float32Array`.
  *
- *     world.x = svg.x - centreX
- *     world.y = centreY - svg.y
- *
- * So `y0` and `y1` name the band's **upper** edge, and thickness extends in **-y**.
+ * Applied on the way out, so nothing downstream knows the source was SVG or that y ever
+ * pointed down: `y0` and `y1` name the band's **upper** edge, and thickness extends in **-y**.
  * Centring also halves coordinate magnitudes, which buys back a little of the float32
  * headroom that uncapped zoom spends.
  *
@@ -38,6 +36,8 @@
  * and SVG paints them with the painter's algorithm — order *is* z-order.
  */
 
+import type { DocumentFrame } from './documentFrame.ts'
+import { documentFrame } from './documentFrame.ts'
 import { NUMBER as N, NonConformingDocument, countOccurrences } from './documentGrammar.ts'
 import type { Point } from './geometry.ts'
 
@@ -90,7 +90,9 @@ export function observedDirection(directions: Uint8Array, band: number): BandDir
     return LEFTWARD === directions[band] ? 'leftward' : 'rightward'
 }
 
-export interface ParsedMap {
+/** `centre` and `content` are the document's frame, which `documentFrame.ts` states
+ *  once for every reader of it. */
+export interface ParsedMap extends DocumentFrame {
     /** Six floats per band, document order: x0, y0, width, y1, uTop, uBottom. World
      *  coordinates, y up, centred on the origin. `y0`/`y1` are the upper edge.
      *
@@ -160,12 +162,6 @@ export interface ParsedMap {
      *  take in the inset and both are spoken for. */
     strandScores: Array<string | null>
     strandCount: number
-    /** Extent of the content, in world units. Centred on the origin. */
-    content: { width: number, height: number }
-    /** The viewBox centre subtracted above, in the document's own units. Anything else
-     *  reading the same document has to apply it to land in the same frame — which is
-     *  what `parseSegmentBoxes` takes it for. */
-    centre: Point
 }
 
 /**
@@ -223,9 +219,9 @@ export function parseBands(text: string): ParsedMap {
         throw new NonConformingDocument('The response is not an SVG document.')
     }
 
-    const viewBox = parseViewBox(text)
-    const centreX = viewBox.minX + viewBox.width * 0.5
-    const centreY = viewBox.minY + viewBox.height * 0.5
+    const { minX, minY, width, height } = parseViewBox(text)
+    const { centre, content } = documentFrame(minX, minY, width, height)
+    const { x: centreX, y: centreY } = centre
 
     // Everything before `<g class="node">` is `g.track`; the segment boxes after it are
     // the whitelisted exception and are not this renderer's business. Slicing here
@@ -430,8 +426,8 @@ export function parseBands(text: string): ParsedMap {
         strandPlacements,
         strandScores,
         strandCount,
-        content: { width: viewBox.width, height: viewBox.height },
-        centre: { x: centreX, y: centreY }
+        content,
+        centre
     }
 }
 

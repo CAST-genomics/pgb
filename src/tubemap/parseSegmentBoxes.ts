@@ -51,9 +51,10 @@
  *
  * ## Coordinates
  *
- * Converted here, once, into the same world frame `parseBands.ts` emits: y up, centred on
- * the origin. So `y` names the box's **top** edge and `height` descends from it — the same
- * convention the bands' `y0`/`y1` follow, and nothing downstream knows the source was SVG.
+ * Converted here, once, into the same world frame `parseBands.ts` emits — the one
+ * `documentFrame.ts` states: y up, centred on the origin. So `y` names the box's **top**
+ * edge and `height` descends from it — the same convention the bands' `y0`/`y1` follow,
+ * and nothing downstream knows the source was SVG.
  */
 
 import { NUMBER as N, NonConformingDocument, countOccurrences } from './documentGrammar.ts'
@@ -141,9 +142,10 @@ const STROKE = SEQUENCE + 1
 /**
  * Every segment box in the document, in document order.
  *
- * `centre` is the viewBox's centre in the document's own units — the same translation
- * `parseBands.ts` applies, passed in rather than re-derived so the boxes and the bands
- * cannot end up in two different frames.
+ * `centre` is the document frame's centre, in the document's own units — the same
+ * translation `parseBands.ts` applies, handed in rather than re-derived so the boxes and
+ * the bands cannot end up in two different frames. `documentFrame.ts` is where it comes
+ * from and what it means; this file only subtracts it.
  */
 export function parseSegmentBoxes(text: string, centre: Point): SegmentBox[] {
     const start = text.indexOf('<g class="node"')
