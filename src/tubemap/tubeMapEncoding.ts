@@ -4,8 +4,9 @@
  * One picture, two wire formats. `/seqtubemap` returns an SVG document; `/seqtubemap?format=bands`
  * returns the same picture as the numbers themselves, an eighth to a ninth of the size on
  * the four regions that are worth measuring. `parseBands.ts` reads the first,
- * `parseBandPayload.ts` reads the second, and both produce the identical `ParsedMap`, so
- * everything downstream of `readTubeMap.ts` is untouched by which one ran (ADR `0005`).
+ * `parseBandPayload.ts` reads the second, and both produce the identical reading — the same
+ * `ParsedMap` and the same segment boxes — so everything downstream of `readTubeMap.ts` is
+ * untouched by which one ran (ADR `0005`).
  *
  * ## A flag, never a fallback
  *

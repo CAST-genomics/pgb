@@ -176,6 +176,13 @@ outline with the five numbers it encodes, which deletes this repo's outline gram
 tolerance-checked redundancy relations and its two spellings of one rectangle. Writing a
 parser for a string that is about to stop being sent is work with a known expiry date.
 
+> **Expired 2026-09-01, as it was meant to.** Their #66 landed, and
+> [#151](https://github.com/CAST-genomics/pgb/issues/151) reads the five numbers: the band
+> route draws segment boxes, `TubeMapReading` has no route-dependent hole in it, and
+> `parseSegmentBoxes.ts` is untouched and still the SVG route's reader. Nothing was written
+> against the string. The reader is 30 lines of frame change and refusal, against that
+> reader's 240 — which is the measurement the deferral was betting on.
+
 ## Consequences
 
 - **ADR `0002`'s largest accepted cost is discharged**, not merely amended. Once this parser

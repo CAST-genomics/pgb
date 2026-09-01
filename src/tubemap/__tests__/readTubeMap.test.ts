@@ -36,13 +36,20 @@ describe('readTubeMap', () => {
     })
 
     /**
-     * ADR `0005` rejects reading the payload's `outline` strings: their #66 replaces them
-     * with the five numbers they encode, which deletes this repo's outline grammar. So the
-     * band route draws no segment boxes until it does, and that is a decision recorded
-     * rather than an omission — this test is what keeps it from being read as a bug.
+     * The reading has no route-dependent hole in it.
+     *
+     * The band route drew no segment boxes until their #66 replaced the outline strings
+     * with the five numbers they encode. It does now, and `segmentOverlay` cannot tell
+     * which reader ran — which is the whole of what was left before the format flag is a
+     * one-line change. `parseBandPayload.test.ts` holds the two box sets to each other
+     * coordinate by coordinate; what is asserted here is that both routes produce them.
      */
-    it('draws no segment boxes on the band route, deliberately', () => {
-        expect(readTubeMap(readPayloadFixture(PAIRED_INVERTED_STEM)).boxes).toEqual([])
+    it('reads segment boxes on the band route too, identically', () => {
+        const fromPayload = readTubeMap(readPayloadFixture(PAIRED_INVERTED_STEM))
+        const fromDocument = readTubeMap(readPairedDocument(PAIRED_INVERTED_STEM))
+
+        expect(fromPayload.boxes.length).toBeGreaterThan(0)
+        expect(fromPayload.boxes).toEqual(fromDocument.boxes)
     })
 
     // The refusal is the parsers' own and is not re-thrown as something else here: the

@@ -19,6 +19,8 @@ import { NonConformingTubeMap } from '../nonConformingTubeMap.ts'
 import { FLAT, LEFTWARD, RIGHTWARD, parseBands } from '../parseBands.ts'
 import type { ParsedMap } from '../parseBands.ts'
 import { parseBandPayload } from '../parseBandPayload.ts'
+import { parseSegmentBoxes } from '../parseSegmentBoxes.ts'
+import type { SegmentBox } from '../parseSegmentBoxes.ts'
 import {
     PAIRED_FIXTURE_STEM,
     PAIRED_INVERTED_STEM,
@@ -73,8 +75,26 @@ function expectWithinUlp(actual: number, expected: number, ulp: number, what: st
 /** The payload and the document of one render, both parsed. */
 function bothReadings(stem: string): { payload: ParsedMap, document: ParsedMap } {
     return {
-        payload: parseBandPayload(readPayloadFixture(stem)),
+        payload: parseBandPayload(readPayloadFixture(stem)).map,
         document: parseBands(readPairedDocument(stem))
+    }
+}
+
+/**
+ * The segment boxes of one render, read both ways.
+ *
+ * The document's are recovered from twenty-six printed numbers by a grammar with a
+ * tolerance in it; the payload's are five numbers that arrived as numbers. They are
+ * compared exactly — `toEqual`, not a bound — because there is no rounding on either side
+ * to allow for: the layout's own doubles print and read back unchanged, which the 1,219
+ * boxes of the five renders bear out.
+ */
+function bothBoxSets(stem: string): { payload: SegmentBox[], document: SegmentBox[] } {
+    const document = parseBands(readPairedDocument(stem))
+
+    return {
+        payload: parseBandPayload(readPayloadFixture(stem)).boxes,
+        document: parseSegmentBoxes(readPairedDocument(stem), document.centre)
     }
 }
 
@@ -210,6 +230,22 @@ describe('parseBandPayload', () => {
 
             expectSameNumbers(payload.bandDirections, document.bandDirections, 'bandDirections')
         })
+
+        /**
+         * The five numbers, against the twenty-six they were printed as.
+         *
+         * This is the pairing's strongest statement, and the cheapest one to make: the
+         * document reader recovers a rectangle from a drawing command, the payload reader
+         * reads the rectangle, and the two are the same object — id, sequence, and every
+         * coordinate — in the same order. Nothing about a box is derived twice, so a
+         * mis-read field has nowhere to hide.
+         */
+        it('reads the same segment boxes as the document, box for box', () => {
+            const { payload, document } = bothBoxSets(stem)
+
+            expect(payload.length).toBe(document.length)
+            expect(payload).toEqual(document)
+        })
     })
 
     /**
@@ -221,7 +257,7 @@ describe('parseBandPayload', () => {
      * polymorphism, and 2,334 of its bands are drawn right-to-left.
      */
     it('counts the inversion fixture\'s 2,334 leftward bands', () => {
-        const { bandDirections } = parseBandPayload(readPayloadFixture(PAIRED_INVERTED_STEM))
+        const { bandDirections } = parseBandPayload(readPayloadFixture(PAIRED_INVERTED_STEM)).map
         const census = { [RIGHTWARD]: 0, [LEFTWARD]: 0, [FLAT]: 0 } as Record<number, number>
 
         for (const direction of bandDirections) {
@@ -243,7 +279,7 @@ describe('parseBandPayload', () => {
      * the widths signed, since two thirds of them are positive either way.
      */
     it('stores every band left-to-right, including the leftward ones', () => {
-        const { geometry, bandDirections } = parseBandPayload(readPayloadFixture(PAIRED_INVERTED_STEM))
+        const { geometry, bandDirections } = parseBandPayload(readPayloadFixture(PAIRED_INVERTED_STEM)).map
         let leftward = 0
 
         for (let band = 0; band < bandDirections.length; band += 1) {
@@ -267,7 +303,7 @@ describe('parseBandPayload', () => {
      * agreement is not agreement about a constant.
      */
     it('reads the top and bottom control abscissae as the different numbers they are', () => {
-        const { geometry, bandDirections } = parseBandPayload(readPayloadFixture(PAIRED_INVERTED_STEM))
+        const { geometry, bandDirections } = parseBandPayload(readPayloadFixture(PAIRED_INVERTED_STEM)).map
         let differing = 0
 
         for (let band = 0; band < bandDirections.length; band += 1) {
@@ -289,7 +325,7 @@ describe('parseBandPayload', () => {
      */
     it('views the response\'s bytes rather than copying them', () => {
         const bytes = readPayloadFixture(SMALLEST)
-        const { geometry } = parseBandPayload(bytes)
+        const { geometry } = parseBandPayload(bytes).map
 
         expect(geometry.buffer).toBe(bytes.buffer)
     })
@@ -309,8 +345,8 @@ describe('parseBandPayload', () => {
 
         shifted.set(bytes, 1)
 
-        const odd = parseBandPayload(shifted.subarray(1))
-        const aligned = parseBandPayload(readPayloadFixture(SMALLEST))
+        const odd = parseBandPayload(shifted.subarray(1)).map
+        const aligned = parseBandPayload(readPayloadFixture(SMALLEST)).map
 
         expect(odd.bandCount).toBe(aligned.bandCount)
         expectSameNumbers(odd.geometry, aligned.geometry, 'geometry')
@@ -367,6 +403,75 @@ describe('parseBandPayload', () => {
         it('when a strand sits in a row that is not its id', () => {
             expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
                 header.strands[4].id = 400
+            }))).toThrow(NonConformingTubeMap)
+        })
+
+        it('when a segment carries no box', () => {
+            expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                delete header.segments[3].box
+            }))).toThrow(NonConformingTubeMap)
+        })
+
+        it('when a segment carries no segments table at all', () => {
+            expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                delete header.segments
+            }))).toThrow(NonConformingTubeMap)
+        })
+
+        it('when one of a box\'s five numbers is not a number', () => {
+            for (const edge of [ 'left', 'top', 'right', 'bottom', 'radius' ]) {
+                expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                    header.segments[3].box[edge] = null
+                })), edge).toThrow(NonConformingTubeMap)
+            }
+        })
+
+        it('when a box is smaller than the corners it is drawn with', () => {
+            expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                header.segments[3].box.radius = 1000
+            }))).toThrow(NonConformingTubeMap)
+
+            expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                header.segments[3].box.radius = 0
+            }))).toThrow(NonConformingTubeMap)
+        })
+
+        /**
+         * The appearance is matched, not reproduced — the overlay's stylesheet carries
+         * exactly one fill, one opacity and one stroke colour back, as it does on the
+         * document route, so a box painted any other way is a picture this viewer would
+         * draw wrong rather than one it can draw.
+         */
+        it('when a segment is not painted the way this viewer paints one', () => {
+            for (const [ field, value ] of [
+                [ 'fill', '#ff0000' ],
+                [ 'fillOpacity', '0.5' ],
+                [ 'stroke', '#0000ff' ]
+            ]) {
+                expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                    header.segments[3][field] = value
+                })), field).toThrow(NonConformingTubeMap)
+            }
+        })
+
+        /**
+         * `strokeWidth` is the one appearance field that is a dimension, and the payload
+         * sends it as the document's attribute value — `"2px"`, a string with a unit. The
+         * overlay does arithmetic with it, so a spelling this reader cannot turn into a
+         * number is refused rather than allowed through as `NaN`, which CSS would drop
+         * silently and draw a border of the wrong width.
+         */
+        it('when the stroke width is not a number of pixels', () => {
+            for (const width of [ '2', '2em', 'thin', '', 'px', null, 2 ]) {
+                expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                    header.segments[3].strokeWidth = width
+                })), String(width)).toThrow(NonConformingTubeMap)
+            }
+        })
+
+        it('when the stroke has no width to draw', () => {
+            expect(() => parseBandPayload(payloadWithHeader(SMALLEST, header => {
+                header.segments[3].strokeWidth = '0px'
             }))).toThrow(NonConformingTubeMap)
         })
 
@@ -457,15 +562,6 @@ describe('parseBandPayload', () => {
         expect(payloadCard.note).toBe(documentCard.note)
     })
 
-    /**
-     * ADR `0002`'s cost, discharged and held discharged.
-     *
-     * The whole point of this path is that the picture is not recovered from text, and a
-     * regular expression is how it would creep back — a `split(/\s+/)` on the viewBox, a
-     * sniff at the response's first bytes. Cheap to state, and it states the thing the rest
-     * of the suite cannot: agreement with the document parser would survive a parser that
-     * ran a regex to get there.
-     */
     /**
      * ADR `0002`'s cost, discharged and held discharged.
      *
