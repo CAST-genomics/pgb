@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { NonConformingDocument } from '../documentGrammar.ts'
+import { NonConformingTubeMap } from '../nonConformingTubeMap.ts'
 import { parseBands } from '../parseBands.ts'
 import { parseSegmentBoxes } from '../parseSegmentBoxes.ts'
 import { readFixture } from './fixture.ts'
@@ -95,7 +95,7 @@ describe('parseSegmentBoxes', () => {
         const text = readFixture()
 
         expect(() => parseSegmentBoxes(text.replace('fill-opacity: 0.4', 'fill-opacity: 0.5'), { x: 0, y: 0 }))
-            .toThrow(NonConformingDocument)
+            .toThrow(NonConformingTubeMap)
     })
 
     it('refuses a box whose corner arithmetic does not close', () => {
@@ -104,7 +104,7 @@ describe('parseSegmentBoxes', () => {
         // The first box's opening `M 11 20`, which every other number in its outline is
         // checked against. Moved, the box is still a plausible path and no longer a rectangle.
         expect(() => parseSegmentBoxes(text.replace('d="M 11 20 Q 11 11', 'd="M 11 21 Q 11 11'), { x: 0, y: 0 }))
-            .toThrow(NonConformingDocument)
+            .toThrow(NonConformingTubeMap)
     })
 
     it('refuses a document that drops a box from g.node', () => {
@@ -113,7 +113,7 @@ describe('parseSegmentBoxes', () => {
         // silently absent variant would actually arrive.
         const broken = text.replace(' sequence="AGAGCCTGTCTTCTGCTTTTACACTTCTGGTGTCATCTTCCTTTTTTTT"', ' sequence=')
 
-        expect(() => parseSegmentBoxes(broken, { x: 0, y: 0 })).toThrow(NonConformingDocument)
+        expect(() => parseSegmentBoxes(broken, { x: 0, y: 0 })).toThrow(NonConformingTubeMap)
     })
 
     it('reads the corner radius and the stroke width off every box', () => {
@@ -162,14 +162,14 @@ describe('parseSegmentBoxes', () => {
         const text = readFixture()
 
         expect(() => parseSegmentBoxes(text.replace('d="M 11 20 Q 11 11', 'd="M 12 20 Q 12 11'), { x: 0, y: 0 }))
-            .toThrow(NonConformingDocument)
+            .toThrow(NonConformingTubeMap)
     })
 
     it('refuses a document whose boxes carry no stroke width it can read', () => {
         const text = readFixture()
 
         expect(() => parseSegmentBoxes(text.replace('stroke-width: 2px', 'stroke-width: thin'), { x: 0, y: 0 }))
-            .toThrow(NonConformingDocument)
+            .toThrow(NonConformingTubeMap)
     })
 })
 

@@ -38,7 +38,8 @@
 
 import type { DocumentFrame } from './documentFrame.ts'
 import { documentFrame } from './documentFrame.ts'
-import { NUMBER as N, NonConformingDocument, countOccurrences } from './documentGrammar.ts'
+import { NUMBER as N, countOccurrences } from './documentGrammar.ts'
+import { NonConformingTubeMap } from './nonConformingTubeMap.ts'
 import type { Point } from './geometry.ts'
 
 /** Constant across all 127,101 surveyed strand paths, and every `<rect>` height. */
@@ -211,12 +212,66 @@ export function strandCss(colors: Uint8Array, strandId: number): string {
     return `rgb(${colors[red]}, ${colors[red + 1]}, ${colors[red + 2]})`
 }
 
+/**
+ * One band's six floats, stored the way `ParsedMap` promises them: `x0` at the left end,
+ * `width` positive, the control abscissae as fractions of the span, and the frame applied.
+ *
+ * **Shared by both readers**, and here for the reason `documentFrame.ts` is a module: this
+ * is the second thing the document reader and the payload reader must not disagree about.
+ * They arrive at the same eight numbers by different routes — a path grammar, a
+ * `Float32Array` — and everything after that is one calculation, so it is written once. Two
+ * copies of a swap would drift the way two copies of a centre would, and the symptom is the
+ * same: a picture that is subtly wrong six weeks later.
+ *
+ * Returns whether the band was drawn leftward, which is the one thing the caller still has
+ * to record and the one thing the store itself erases.
+ *
+ * The curve is unchanged by the swap, exactly. A cubic whose two control points share an
+ * abscissa is its own reverse with the control points in the other order, and the shader's y
+ * is a smoothstep, which is symmetric about its midpoint. So a leftward band stored this way
+ * rasterizes to the pixels the document draws, and nothing downstream — pick pass, overlay,
+ * navigator — learns that direction exists.
+ */
+export function storeBand(
+    geometry: Float32Array,
+    at: number,
+    band: {
+        x0: number, y0: number, x1: number, y1: number,
+        controlTop: number, controlBottom: number
+    },
+    centre: Point
+): boolean {
+    let { x0, y0, x1, y1 } = band
+
+    const isLeftward = x1 < x0
+
+    if (isLeftward) {
+        // Abscissa *and* ordinate together, or the band would slope the wrong way.
+        const swapX = x0; x0 = x1; x1 = swapX
+        const swapY = y0; y0 = y1; y1 = swapY
+    }
+
+    // Normalized in double before the cast to float. `5514+` is 177,994 units wide, where a
+    // float32 ulp is 0.0156 — enough to move a control point measurably within a span of a
+    // few hundred units. Storing them as fractions confines the large magnitude to `x0`.
+    const width = x1 - x0
+
+    geometry[at] = x0 - centre.x
+    geometry[at + 1] = centre.y - y0
+    geometry[at + 2] = width
+    geometry[at + 3] = centre.y - y1
+    geometry[at + 4] = (band.controlTop - x0) / width
+    geometry[at + 5] = (band.controlBottom - x0) / width
+
+    return isLeftward
+}
+
 export function parseBands(text: string): ParsedMap {
     // Said before anything about bands, because the common way to arrive here with the
     // wrong bytes is an HTML error page or a redirect, and "no drawable elements in
     // g.track" reads as a defect in a tube map rather than as the absence of one.
     if (false === text.includes('<svg')) {
-        throw new NonConformingDocument('The response is not an SVG document.')
+        throw new NonConformingTubeMap('The response is not an SVG document.')
     }
 
     const { minX, minY, width, height } = parseViewBox(text)
@@ -234,7 +289,7 @@ export function parseBands(text: string): ParsedMap {
     const expected = countOccurrences(trackGroup, '<rect') + countOccurrences(trackGroup, '<path')
 
     if (0 === expected) {
-        throw new NonConformingDocument('The document draws no bands at all; its g.track group is empty.')
+        throw new NonConformingTubeMap('The document draws no bands at all; its g.track group is empty.')
     }
 
     const geometry = new Float32Array(expected * 6)
@@ -281,13 +336,13 @@ export function parseBands(text: string): ParsedMap {
             y1 = y0
 
             if (THICKNESS !== +match[4]) {
-                throw new NonConformingDocument(
+                throw new NonConformingTubeMap(
                     `A band in g.track is ${match[4]} units tall; every band in a tube map is ${THICKNESS}.`
                 )
             }
 
             if (0 >= +match[3]) {
-                throw new NonConformingDocument(
+                throw new NonConformingTubeMap(
                     `A band in g.track is ${match[3]} units wide; a band must have a positive width.`
                 )
             }
@@ -328,40 +383,14 @@ export function parseBands(text: string): ParsedMap {
         // plausible map of the wrong haplotypes, which is the failure this parser
         // exists to refuse.
         if (id > MAX_STRAND_ID) {
-            throw new NonConformingDocument(
+            throw new NonConformingTubeMap(
                 `A band carries trackID ${id}, above the ${MAX_STRAND_ID} this renderer can hold.`
             )
         }
 
-        // Which way the band was drawn, kept beside the geometry rather than in it. The
-        // geometry below is then always stored left-to-right, so a leftward band's endpoints
-        // — abscissa *and* ordinate together, or the band would slope the wrong way — swap.
-        //
-        // The curve is unchanged by the swap, exactly. A cubic whose two control points share
-        // an abscissa is its own reverse with the control points in the other order, and the
-        // shader's y is a smoothstep, which is symmetric about its midpoint. So a leftward
-        // band stored this way rasterizes to the same pixels the document draws, and nothing
-        // downstream — pick pass, overlay, navigator — learns that direction exists.
-        const isLeftward = x1 < x0
-
-        if (isLeftward) {
-            const swapX = x0; x0 = x1; x1 = swapX
-            const swapY = y0; y0 = y1; y1 = swapY
-        }
-
-        // Normalize the control abscissae in double before the cast to float. `5514+` is
-        // 177,994 units wide, where a float32 ulp is 0.0156 — enough to move a control
-        // point measurably within a span of a few hundred units. Storing them as
-        // fractions confines the large magnitude to `x0` alone.
-        const width = x1 - x0
         const at = bands * 6
+        const isLeftward = storeBand(geometry, at, { x0, y0, x1, y1, controlTop, controlBottom }, centre)
 
-        geometry[at] = x0 - centreX
-        geometry[at + 1] = centreY - y0
-        geometry[at + 2] = width
-        geometry[at + 3] = centreY - y1
-        geometry[at + 4] = (controlTop - x0) / width
-        geometry[at + 5] = (controlBottom - x0) / width
         strandIds[bands] = id
         bandDirections[bands] = isRect ? FLAT : (isLeftward ? LEFTWARD : RIGHTWARD)
 
@@ -386,7 +415,7 @@ export function parseBands(text: string): ParsedMap {
     // map — this API already returns 200-with-plausible-nonsense for an unknown node,
     // and a half-drawn map looks like a correct map of different data.
     if (bands !== expected) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `Of the ${expected} drawables in g.track, ${expected - bands} are not bands this renderer recognises.`
         )
     }
@@ -396,7 +425,7 @@ export function parseBands(text: string): ParsedMap {
     // Before the tables are built, not after: they are indexed by strand id and dense, and
     // a document numbering its strands with a gap in it has no such table to fill.
     if (strands.size !== strandCount) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `The document draws ${strands.size} strands but numbers them up to ${maxStrandId}; `
             + 'trackID must run from 0 upward with no gaps.'
         )
@@ -454,7 +483,7 @@ function assertGrammar(
 ): void {
     const expect = (actual: number, wanted: number, what: string): void => {
         if (actual !== wanted) {
-            throw new NonConformingDocument(
+            throw new NonConformingTubeMap(
                 `A band's ${what} is ${actual} where the band grammar requires ${wanted}.`
             )
         }
@@ -475,7 +504,7 @@ function assertGrammar(
     // as NaN and drawn as nothing — the same refusal a `<rect>` of width 0 already gets,
     // said for the curved case.
     if (x0 === x1) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `A band spans ${x0} to ${x1}; a band must have a positive width.`
         )
     }
@@ -508,7 +537,7 @@ function readPlacement(x: string | undefined, y: string | undefined): Point | nu
     const at = { x: Number(x), y: Number(y) }
 
     if (false === Number.isFinite(at.x) || false === Number.isFinite(at.y)) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `A band is placed at pclaiX="${x}" pclaiY="${y}", which is neither a coordinate nor "${ABSENT}".`
         )
     }
@@ -525,13 +554,13 @@ function parseViewBox(text: string): { minX: number, minY: number, width: number
     const match = /viewBox="([^"]+)"/.exec(text)
 
     if (null === match) {
-        throw new NonConformingDocument('The document declares no viewBox.')
+        throw new NonConformingTubeMap('The document declares no viewBox.')
     }
 
     const parts = match[1].trim().split(/[\s,]+/).map(Number)
 
     if (4 !== parts.length || false === parts.every(Number.isFinite)) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `The document's viewBox reads "${match[1]}", which is not four numbers.`
         )
     }

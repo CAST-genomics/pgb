@@ -99,10 +99,26 @@ which is comparable work and leaves the ~28 ms interaction wall standing.
 >   **no change on our side**, and this viewer serves as their conformance test: a bad
 >   deploy reaches us as an error card, which is exactly what the whole-document refusal was
 >   built for.
-> - **The parser changes at their increment C**, when the JSON-header-plus-binary-body
->   format lands. At that point the regex pass is deleted rather than shrunk — a
->   `Float32 × 6 + Uint16` body copies straight into the instance buffer with no parse at
->   all — and roughly 1.5 MB replaces 10.07 MB at the 10 kb region.
+> - **The parser changed at their increment C**, when the JSON-header-plus-binary-body
+>   format landed. The regex pass is deleted rather than shrunk — the
+>   body's `Float32 × 6` column is a view over the bytes that arrived, which *is* the
+>   instance buffer — and roughly 1.5 MB replaces 10.07 MB at the 10 kb region.
+>
+>   **Done, 2026-09-01** ([#145](https://github.com/CAST-genomics/pgb/issues/145)), as a
+>   second parser rather than a replacement: `parseBandPayload.ts` reads
+>   `?format=bands` into the same `ParsedMap`, and `parseBands.ts` stays, because the
+>   deployed server cannot speak the format yet and is the oracle the payload is checked
+>   against. ADR [`0005`](0005-reading-the-band-payload.md) is that decision and four
+>   others.
+>
+>   Measured over the five real subgraphs, both encodings out of one render: **1.25 MB
+>   against 9.97 MB** at the 8.0 kb region — the 1.5 MB projection was right and slightly
+>   pessimistic — and 0.07/0.13, 0.28/2.25, 0.43/3.61 and 1.40/12.58 MB at the other four,
+>   a ratio of 1.9× on the 90 bp subgraph rising to 9.0× on the largest. The cost this ADR
+>   accepted is discharged **on the band route**, and stands on the document route until the
+>   format is deployed. The reader landed ahead of the flag that selects it, so nothing in
+>   the app calls it yet — that wiring is the rest of
+>   [#143](https://github.com/CAST-genomics/pgb/issues/143).
 >
 > What survives unchanged is everything under *What makes it tractable*: the grammar, the
 > smoothstep collapse, the lapped joins, six floats per band. Those were never facts about

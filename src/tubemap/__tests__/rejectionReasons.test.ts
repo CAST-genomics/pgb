@@ -16,7 +16,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { NonConformingDocument } from '../documentGrammar.ts'
+import { NonConformingTubeMap } from '../nonConformingTubeMap.ts'
 import { describeFailure } from '../loadFailure.ts'
 import { MAX_STRAND_ID, parseBands } from '../parseBands.ts'
 import { parseSegmentBoxes } from '../parseSegmentBoxes.ts'
@@ -111,7 +111,7 @@ describe('what the researcher is told when a document is refused', () => {
 
             // The corruption has to actually reach the gate, or the sentence below is a
             // sentence about a document that was drawn.
-            expect(thrown, `${what} was accepted`).toBeInstanceOf(NonConformingDocument)
+            expect(thrown, `${what} was accepted`).toBeInstanceOf(NonConformingTubeMap)
 
             const failure = describeFailure('/tube-map.svg', thrown)
 
