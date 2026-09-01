@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { NonConformingTubeMap } from '../nonConformingTubeMap.ts'
 import { parseBands } from '../parseBands.ts'
 import { parseSegmentBoxes } from '../parseSegmentBoxes.ts'
-import { readFixture } from './fixture.ts'
+import { readFixture, readPairedDocument } from './fixture.ts'
 
 /** What the survey in #37 recorded for the committed document. */
 const SURVEYED = {
@@ -154,6 +154,58 @@ describe('parseSegmentBoxes', () => {
     })
 
     /**
+     * The other way the server spells a box exactly as wide as its corners are round —
+     * verbatim from segment `181810312` of chr8:78,771,162-78,771,252, rendered on their
+     * `main` after PangenomeAPI#66. `parseSegmentBoxes.ts`'s header says why the string
+     * came out this way; what matters here is that it did, and that the reader reads the
+     * spelling it was given rather than deriving which one it should have been handed.
+     */
+    const LONG_WAY = '<path id="181810312" d="'
+        + 'M 4079.571428571429 35 Q 4079.571428571429 26 4088.571428571429 26 '
+        + 'L 4088.5714285714294 26 Q 4097.571428571429 26 4097.571428571429 35 '
+        + 'L 4097.571428571429 6995 Q 4097.571428571429 7004 4088.5714285714294 7004 '
+        + 'L 4088.571428571429 7004 Q 4079.571428571429 7004 4079.571428571429 6995 '
+        + 'L 4079.571428571429 35" sequence="A" '
+        + 'style="fill: rgb(255, 255, 255); fill-opacity: 0.4; stroke: rgb(0, 0, 0); stroke-width: 2px;"'
+
+    /** One `<path>`, as a `g.node` the parser will read. */
+    const asDocument = (box: string): string => `<g class="node">${box}</path></g>`
+
+    it('reads a box as wide as its corners are round that spells its horizontal runs anyway', () => {
+        const boxes = parseSegmentBoxes(asDocument(LONG_WAY), { x: 0, y: 0 })
+
+        expect(boxes).toHaveLength(1)
+        expect(boxes[0].width).toBeCloseTo(18, 9)
+        expect(boxes[0].radius).toBe(9)
+    })
+
+    /** The invariant that replaced the prediction: the two runs stand or fall together.
+     *  The bottom run alone is deleted, so this is the one edit under test. */
+    it('refuses a box that spells one horizontal run and not the other', () => {
+        const oneRun = LONG_WAY.replace('L 4088.571428571429 7004 ', '')
+
+        expect(oneRun).not.toBe(LONG_WAY)
+        expect(() => parseSegmentBoxes(asDocument(oneRun), { x: 0, y: 0 })).toThrow(NonConformingTubeMap)
+    })
+
+    /**
+     * What the deleted prediction was also doing, kept as a check on the document instead.
+     *
+     * Omitting both runs asserts that the top-left corner ends where the top-right corner
+     * begins. A box 70 units wide that omits them is not a rounded rectangle, and reading
+     * it as one would draw a shape the document never described — so the corners are asked
+     * to actually meet, the same way every other redundancy in the outline is checked.
+     */
+    it('refuses a box that omits its horizontal runs without its corners meeting', () => {
+        const tooWide = LONG_WAY
+            .replace(/4097\.571428571429/g, '4149.571428571429')
+            .replace('L 4088.5714285714294 26 ', '')
+            .replace('L 4088.571428571429 7004 ', '')
+
+        expect(() => parseSegmentBoxes(asDocument(tooWide), { x: 0, y: 0 })).toThrow(/omits its horizontal edges/)
+    })
+
+    /**
      * The tolerance absorbs printing, not geometry. A whole unit off is a different shape
      * and stays refused — the check exists because a mis-numbered group yields a plausible
      * rectangle, and loosening it into meaninglessness would give that back.
@@ -202,5 +254,32 @@ describe('the two parsers, on one document', () => {
         const right = Math.max(...boxes.map(box => box.x + box.width))
 
         expect(Math.abs(left + right)).toBeLessThan(map.content.width * 0.02)
+    })
+})
+
+describe('a document rendered after PangenomeAPI#66', () => {
+
+    /**
+     * The corpus's post-#66 witness, and the one committed document that carries the
+     * spelling #152 was about. The five fetched documents are pre-#66 renders and cannot
+     * exhibit it; the paired documents were re-rendered on their `main` on 2026-09-01, and
+     * exactly one box in the 90 bp region moved — `181810312`, which is 18 units wide with
+     * radius 9 and now writes the two straight runs `18.000000000000455 - 18` leaves over.
+     *
+     * A reader that predicts the spelling from the width refuses this document whole.
+     */
+    it('reads the 90 bp region, whose narrowest box spells its horizontal runs', () => {
+        const boxes = parseSegmentBoxes(readPairedDocument('stm-chr8-78771162-78771252'), { x: 0, y: 0 })
+
+        expect(boxes).toHaveLength(9)
+
+        // Five of the nine are as wide as their corners are round. Four come out exactly
+        // 18 and are still written the short way; the fifth does not, and is written the
+        // long way — which is the whole of what #66 changed, and the whole of why
+        // predicting the spelling from the width was wrong.
+        const narrow = boxes.filter(box => box.width < 2 * box.radius + 1)
+
+        expect(narrow.map(box => box.id)).toEqual(['181810310', '181810311', '181810312', '181810315', '181810316'])
+        expect(narrow.filter(box => box.width !== 2 * box.radius).map(box => box.id)).toEqual(['181810312'])
     })
 })
