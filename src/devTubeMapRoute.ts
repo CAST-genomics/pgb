@@ -35,6 +35,7 @@
  */
 
 import { mountTubeMapSurface } from './tubemap/tubeMapSurface.ts'
+import { tubeMapEncodingOf } from './tubemap/tubeMapEncoding.ts'
 
 /**
  * The committed test corpus, and the default when no `?url=` is given. It is node 5519
@@ -91,9 +92,13 @@ const viewer = mountTubeMapSurface(container, { pickReadout, strandFloorCssPx, p
 // the reader can see, edit and paste elsewhere.
 field.value = initialUrl
 
+// The encoding travels with the URL, worked out from it: this page opens whatever it is
+// handed, so unlike the app — which builds both halves from `TUBE_MAP_ENCODING` — it has to
+// read the format back out. A `format=bands` request or a `.bands` fixture is a payload.
 picker.addEventListener('submit', event => {
     event.preventDefault()
-    void viewer.open(field.value.trim())
+    const url = field.value.trim()
+    void viewer.open(url, tubeMapEncodingOf(url))
 })
 
-void viewer.open(initialUrl)
+void viewer.open(initialUrl, tubeMapEncodingOf(initialUrl))

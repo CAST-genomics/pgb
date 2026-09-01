@@ -18,6 +18,7 @@
 import { mountTubeMapPanel } from './mountTubeMapPanel.ts'
 import { mountTubeMapSurface } from './tubemap/tubeMapSurface.ts'
 import { FIXTURE_URL, targetForUrl } from './devTubeMapTarget.ts'
+import { tubeMapEncodingOf } from './tubemap/tubeMapEncoding.ts'
 
 /**
  * `?pick`, honoured here as `devTubeMapRoute.ts` honours it, and for the same reason it exists
@@ -53,8 +54,15 @@ field.value = initialUrl
 // The header is written from the target and the map from the url, so the two are worked out
 // from the same string — `?url=` and the picker alike. Opening with a fixed target regardless
 // of the url is what had this page captioning `5514+` as `5519` (#128).
+//
+// The encoding is worked out from that same string, and for the same reason: this page does
+// not *build* its URL, so it cannot read the format off the flag the way the app does. A
+// `format=bands` request or a `.bands` fixture is a payload; anything else is a document.
+// Per `open` rather than once at mount, so pasting a payload URL over a document one is a
+// click rather than a reload.
 opener.addEventListener('click', () => {
-    panel.open(targetForUrl(field.value.trim()), field.value.trim())
+    const url = field.value.trim()
+    panel.open(targetForUrl(url), url, tubeMapEncodingOf(url))
 })
 
-panel.open(targetForUrl(initialUrl), initialUrl)
+panel.open(targetForUrl(initialUrl), initialUrl, tubeMapEncodingOf(initialUrl))

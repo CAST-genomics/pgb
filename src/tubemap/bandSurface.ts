@@ -141,8 +141,8 @@ import type { Point, Size } from './geometry.ts'
 import { readInversion, type HaplotypeReading } from './inversion.ts'
 import { createInversionNote, type InversionNote } from './inversionNote.ts'
 import { createNavigator, type NavigatorHandle } from './navigator.ts'
-import { THICKNESS, parseBands, strandCss, type ParsedMap } from './parseBands.ts'
-import { parseSegmentBoxes } from './parseSegmentBoxes.ts'
+import { THICKNESS, strandCss, type ParsedMap } from './parseBands.ts'
+import { readTubeMap } from './readTubeMap.ts'
 import { createPclaiInset, type PclaiInset } from './pclaiInset.ts'
 import { createSegmentOverlay, type SegmentOverlay } from './segmentOverlay.ts'
 import { canvasPoint, overChrome } from './surfacePointer.ts'
@@ -438,9 +438,10 @@ interface Drawing {
  * everything about the *view* — fitting, zooming, what a resize does to the framing —
  * is behind these four calls, because none of it is the mount's business.
  *
- * `show` takes the response text rather than a parsed document: reading the bytes into
- * six floats per band is this surface's own act, and the gate that can refuse them is
- * part of it.
+ * `show` takes the response rather than a parsed document: reading it into six floats per
+ * band is this surface's own act, and the gate that can refuse them is part of it. Which
+ * *reading* that is — the SVG document's grammar or the band payload's typed arrays — is
+ * `readTubeMap.ts`'s, and is settled by whether the response arrived as text or as bytes.
  *
  * This lived in `surfaceRenderer.ts` until 2026-08-16, where it was the vocabulary two
  * surfaces answered in. #40 left one, so it is declared beside the one.
@@ -450,7 +451,7 @@ export interface BandSurface {
      * Display the document. Throws if it cannot be drawn — the mount turns that into the
      * error state, so the surface never shows half a map.
      */
-    show(text: string): void
+    show(content: string | Uint8Array): void
     /** Drop the current document, leaving the surface empty and ready for another. */
     clear(): void
     /**
@@ -1130,12 +1131,10 @@ export function createBandSurface(host: HTMLElement, options: BandSurfaceOptions
 
     return {
 
-        show(text: string): void {
-            // Both readings of the document before anything is built, and both able to
-            // refuse it: a box the grammar cannot read is a variant nobody would notice was
-            // missing, so it refuses the whole map exactly as a non-conforming band does.
-            const map = parseBands(text)
-            const boxes = parseSegmentBoxes(text, map.centre)
+        show(content: string | Uint8Array): void {
+            // Everything read out of the response before anything is built, and every way it
+            // can be refused: the surface never shows half a map.
+            const { map, boxes } = readTubeMap(content)
             const built = gpu()
 
             releaseDrawing()

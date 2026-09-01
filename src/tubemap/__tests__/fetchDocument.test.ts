@@ -106,6 +106,82 @@ describe('fetchDocument', () => {
         expect(init?.credentials).toBe('omit')
     })
 
+    /**
+     * The band payload arrives as bytes, and the only thing that changes is how the body
+     * is read. Everything above this line — the clock, the abort, the classification, the
+     * omitted credentials — is the same code on both paths, which is what makes the
+     * failure card identical whichever encoding failed (ADR `0005` §5).
+     */
+    describe('reading the band payload', () => {
+
+        /** A server that answers with `body`, recording which reader was asked for it. */
+        function answers(body: string | Uint8Array) {
+            const asked: string[] = []
+
+            const response = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                text: () => { asked.push('text'); return Promise.resolve(String(body)) },
+                arrayBuffer: () => {
+                    asked.push('arrayBuffer')
+                    const bytes = 'string' === typeof body ? new TextEncoder().encode(body) : body
+                    return Promise.resolve(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
+                }
+            }
+
+            vi.stubGlobal('fetch', () => Promise.resolve(response))
+
+            return asked
+        }
+
+        it('reads the response as bytes when the band payload was asked for', async () => {
+            const asked = answers(new Uint8Array([1, 2, 3, 4]))
+
+            const payload = await fetchDocument(URL, undefined, 10_000, 'bands')
+
+            expect(asked).toEqual(['arrayBuffer'])
+            expect(payload).toBeInstanceOf(Uint8Array)
+            expect(Array.from(payload as Uint8Array)).toEqual([1, 2, 3, 4])
+        })
+
+        it('reads the response as text when it was not', async () => {
+            const asked = answers('<svg/>')
+
+            expect(await fetchDocument(URL, undefined, 10_000)).toBe('<svg/>')
+            expect(asked).toEqual(['text'])
+        })
+
+        // Emptiness is a property of the response rather than of either reading of it, so
+        // both paths say the same sentence about it — and the researcher, who is not told
+        // which encoding was asked for, must not be able to tell from the card.
+        it('calls an empty payload empty, in the same words as an empty document', async () => {
+            answers(new Uint8Array(0))
+            const fromPayload = await fetchDocument(URL, undefined, 10_000, 'bands').catch(error => error)
+
+            answers('   ')
+            const fromDocument = await fetchDocument(URL, undefined, 10_000).catch(error => error)
+
+            expect((fromPayload as TubeMapLoadError).kind).toBe('content')
+            expect(fromPayload.message).toBe(fromDocument.message)
+        })
+
+        it('holds the payload’s body to the same clock as the document’s', async () => {
+            vi.stubGlobal('fetch', ((_input: unknown, init?: { signal?: AbortSignal }) => Promise.resolve({
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                arrayBuffer: () => new Promise<ArrayBuffer>((_resolve, reject) => {
+                    init?.signal?.addEventListener('abort', () => reject(abortError()))
+                })
+            })) as unknown as typeof fetch)
+
+            const failure = await fetchDocument(URL, undefined, 20, 'bands').catch(error => error)
+
+            expect((failure as TubeMapLoadError).kind).toBe('slow')
+        })
+    })
+
     it('waits longer than the slowest response ever measured', () => {
         // 65.6 s, `5511+` at 7,632 bp (`data/failureProbe.json`). A limit under that would
         // refuse nodes that work, which is worse than the hang it replaces.

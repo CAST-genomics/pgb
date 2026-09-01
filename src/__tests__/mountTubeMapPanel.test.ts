@@ -14,6 +14,7 @@ import eventBus from '../utils/eventBus.ts'
 import { buildSeqTubeMapURL, type SeqTubeMapTarget } from '../pangenomeURL.ts'
 import { mountTubeMapPanel, formatPanelTitle, panelGeometryForHost, clampIntoView, HOST_AREA_FRACTION } from '../mountTubeMapPanel.ts'
 import type { TubeMapSurfaceHandle } from '../tubemap/tubeMapSurface.ts'
+import { TUBE_MAP_ENCODING, type TubeMapEncoding } from '../tubemap/tubeMapEncoding.ts'
 
 const TARGET: SeqTubeMapTarget = {
     chrom: 'chr1',
@@ -28,17 +29,21 @@ const FIXTURE_URL = '/src/tubemap/__tests__/fixtures/stm-chr1-25331046-25331646.
 function surfaceSpy() {
     const containers: HTMLElement[] = []
     const opened: string[] = []
+    const encodings: Array<TubeMapEncoding | undefined> = []
     const destroy = vi.fn()
 
     const mountSurface = (container: HTMLElement): TubeMapSurfaceHandle => {
         containers.push(container)
         return {
-            open: async (url: string) => { opened.push(url) },
+            open: async (url: string, encoding?: TubeMapEncoding) => {
+                opened.push(url)
+                encodings.push(encoding)
+            },
             destroy,
         }
     }
 
-    return { mountSurface, containers, opened, destroy }
+    return { mountSurface, containers, opened, encodings, destroy }
 }
 
 function card(): HTMLElement | null {
@@ -171,6 +176,49 @@ describe('mountTubeMapPanel', () => {
         expect(card()!.hidden).toBe(false)
         expect(card()!.querySelector('.card-title')!.textContent).toBe('5519 · chr1:25,331,046-25,331,646')
         expect(spy.opened).toEqual([buildSeqTubeMapURL(TARGET)])
+    })
+
+    /**
+     * The request and the parse come from one value, which is the whole of what a flag buys
+     * over a probe: there is no state in which the URL asks for a payload and the viewer
+     * reads a document. Both spellings are exercised, because the one that is not the
+     * default today is the one that will be tomorrow.
+     */
+    it('spells the URL and reads the response in one encoding', () => {
+        for (const encoding of ['document', 'bands'] as const) {
+            const spy = surfaceSpy()
+            const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface, encoding })
+            handle.open(TARGET)
+
+            expect(spy.opened).toEqual([buildSeqTubeMapURL(TARGET, encoding)])
+            expect(spy.encodings).toEqual([encoding])
+
+            handle.destroy()
+        }
+    })
+
+    // Flipping it is a deliberate act gated on the format being deployed to the server the
+    // viewer talks to (#146), not something a refactor should be able to do by accident.
+    it('asks for the document until the flag says otherwise', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        handle.open(TARGET)
+
+        expect(TUBE_MAP_ENCODING).toBe('document')
+        expect(spy.encodings).toEqual([TUBE_MAP_ENCODING])
+    })
+
+    it('takes an explicit URL and the encoding it is in, together', () => {
+        const spy = surfaceSpy()
+        const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
+        panel = handle
+
+        handle.open(TARGET, '/fixtures/stm.bands', 'bands')
+
+        expect(spy.opened).toEqual(['/fixtures/stm.bands'])
+        expect(spy.encodings).toEqual(['bands'])
     })
 
     it('takes an explicit URL, so a fixture can be opened against the real chrome', () => {

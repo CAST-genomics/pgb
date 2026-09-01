@@ -8,6 +8,7 @@
  */
 
 import type { NodeModel } from './datasetModel.js'
+import type { TubeMapEncoding } from './tubemap/tubeMapEncoding.ts'
 
 /** The host that serves both `/json` (the dataset) and `/seqtubemap` (the map). */
 const PANGENOME_API_ORIGIN = 'https://pangenome-api.ucsd.edu:8000'
@@ -36,11 +37,22 @@ export interface SeqTubeMapTarget {
  *    they change nothing when sent, and an *unrecognised* value for either is a 500. They
  *    are sent because a default that is not pinned is a default that can move.
  *
+ * `format=bands` is a fourth, and it is the only one that varies: it asks for the band
+ * payload rather than the SVG document. It is **appended last and only when asked for**, so
+ * the document URL is character for character the string it has always been — the two
+ * spellings differ by exactly that suffix, which is what `buildSeqTubeMapURL`'s tests pin.
+ * Which one is asked for is never this function's to decide and never a probe's: the flag is
+ * `TUBE_MAP_ENCODING`, its host reads it, and this stays a pure spelling of what it is
+ * handed. `tubeMapEncoding.ts` records why a fallback is the wrong shape for this API.
+ *
  * The parameter order is the one the spike's captured URLs used. Nothing on the server
  * depends on it; the tests compare whole strings, and matching them by eye is easier when
  * the order is stable.
  */
-export function buildSeqTubeMapURL({ chrom, start, end, minigraphnode }: SeqTubeMapTarget): string {
+export function buildSeqTubeMapURL(
+    { chrom, start, end, minigraphnode }: SeqTubeMapTarget,
+    encoding: TubeMapEncoding = 'document'
+): string {
     const params = new URLSearchParams({
         chrom,
         start: String(start),
@@ -50,6 +62,10 @@ export function buildSeqTubeMapURL({ chrom, start, end, minigraphnode }: SeqTube
         nodewidthoption: 'compressed',
         minigraphnode,
     })
+
+    if ('bands' === encoding) {
+        params.set('format', 'bands')
+    }
 
     return `${PANGENOME_API_ORIGIN}/seqtubemap?${params}`
 }

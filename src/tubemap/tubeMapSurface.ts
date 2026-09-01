@@ -3,9 +3,16 @@
  *
  * `mountTubeMapSurface(container)` renders the surface into any container and knows
  * nothing about panel chrome, cards, or PGB. Its entire input surface is
- * `open(url)`: the host constructs the URL — from a clicked minigraph node's id and
+ * `open(url, encoding)`: the host constructs the URL — from a clicked minigraph node's id and
  * coordinates, or from a fixture in `public/` — and the viewer never builds one, never
  * inspects one, and never learns whether it is local or remote.
+ *
+ * `encoding` is the second half of that same rule. One picture arrives in two wire formats,
+ * and the viewer never probes for which the server speaks, never retries and never learns:
+ * it is *told*, by the host that built the URL, so the two cannot disagree. Which encoding
+ * it is changes two things and nothing else — the body is read as bytes rather than as text,
+ * and `readTubeMap` hands those bytes to the other parser. `tubeMapEncoding.ts` carries the
+ * flag and the 90-second measurement that rules a fallback out.
  *
  * The viewer performs no layout. The server returns a finished picture; this is a
  * viewport and interaction layer over someone else's drawing.
@@ -33,6 +40,7 @@
 import { createBandSurface, type BandSurface } from './bandSurface.ts'
 import { fetchDocument } from './fetchDocument.ts'
 import { describeFailure, type LoadFailure } from './loadFailure.ts'
+import type { TubeMapEncoding } from './tubeMapEncoding.ts'
 import { shieldFromMap } from './surfacePointer.ts'
 import { SURFACE_STYLES } from './surfaceStyles.ts'
 
@@ -67,8 +75,12 @@ export interface TubeMapSurfaceOptions {
 }
 
 export interface TubeMapSurfaceHandle {
-    /** Fetch and display the tube map at `url`. Rejects only on programmer error; load failures are shown in place. */
-    open(url: string): Promise<void>
+    /**
+     * Fetch and display the tube map at `url`, reading the response in `encoding` — which
+     * must be the one the URL asks for, and which the host that built it knows. Rejects
+     * only on programmer error; load failures are shown in place.
+     */
+    open(url: string, encoding?: TubeMapEncoding): Promise<void>
     /** Remove every listener and every node this mount created. */
     destroy(): void
 }
@@ -170,7 +182,7 @@ export function mountTubeMapSurface(
 
     return {
 
-        async open(url: string): Promise<void> {
+        async open(url: string, encoding: TubeMapEncoding = 'document'): Promise<void> {
             pending?.abort()
             const controller = new AbortController()
             pending = controller
@@ -179,13 +191,13 @@ export function mountTubeMapSurface(
             showLoading()
 
             try {
-                const text = await fetchDocument(url, controller.signal, options.patienceMs)
+                const response = await fetchDocument(url, controller.signal, options.patienceMs, encoding)
 
                 if (controller.signal.aborted) {
                     return
                 }
 
-                surface.show(text)
+                surface.show(response)
                 hideStatus()
             } catch (error) {
                 if (controller.signal.aborted) {
