@@ -38,7 +38,7 @@
  * collapses them — and the heading is the half a reader takes in first.
  */
 
-import { NonConformingDocument } from './documentGrammar.ts'
+import { NonConformingTubeMap } from './nonConformingTubeMap.ts'
 import { TubeMapLoadError } from './fetchDocument.ts'
 
 /** Which of the five things went wrong. The reader's next move differs for each. */
@@ -91,7 +91,7 @@ function classify(error: unknown): FailureKind {
         return 'network' === error.kind ? 'unreachable' : 'absent'
     }
 
-    if (error instanceof NonConformingDocument) {
+    if (error instanceof NonConformingTubeMap) {
         return 'undrawable'
     }
 

@@ -369,6 +369,39 @@ look **mixed**.
 *Avoid "strand"* for this sense — that is the ± DNA strand, and it already means a
 haplotype's ribbon here.
 
+### band payload
+
+What `/seqtubemap?format=bands` returns: the same picture as the SVG document, said as
+the numbers themselves — a JSON header carrying the frame, the **strand** table and the
+**segment** boxes, then a columnar body of six `Float32`s, a `Uint16` and a `Uint8` per
+**band**. Specified in the API repo's `docs/band-format.md`; read by
+`parseBandPayload.ts` into the same `ParsedMap` the document parser produces, so nothing
+downstream learns which arrived. Chosen by an explicit flag, never by a fallback
+(ADR `0005`).
+
+Roughly 8× smaller than the document at every size that matters, because the per-strand
+values are said once rather than once per band, and because the body needs no parse: the
+geometry column is a `Float32Array` view over the bytes that arrived, which is the
+instance buffer.
+
+*Avoid "the binary format"* — that names how it is spelled rather than what it carries,
+and the header is JSON. *Avoid calling the document "the SVG version" of it*: the payload
+is canonical and the document is a rendering of it.
+
+### reversal
+
+The shape a **strand** doubling back on itself draws: a pair of **corners** — quarter
+turns built from quadratics — and a **vertical connector**, a rectangle as tall as the
+reversal is deep rather than **thickness** tall. Outside the six-value **band** grammar,
+so neither reader can draw one, and a **band payload** carrying any is refused whole.
+No production response has contained one.
+
+**Not an inverted haplotype.** *Reversal* is a fact about the drawing — a shape, with
+parts; **inverted** is a fact about a **route**, read from its **band direction** against
+the **reference direction**. An inverted haplotype in every document in this corpus is
+drawn entirely out of ordinary bands and no reversals at all. Two words a letter apart
+for different things, and both are live here.
+
 ### segment
 
 A stretch of genomic sequence *inside* a **sequence tube map** — one vertex of the

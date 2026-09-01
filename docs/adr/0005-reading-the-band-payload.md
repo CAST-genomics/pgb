@@ -106,15 +106,50 @@ a picture — and the failure card is identical whichever encoding failed, becau
 the researcher sits the encoding is not their business.
 
 The error type is renamed with it: a payload that fails a version check is not a
-non-conforming *document*.
+non-conforming *document*. It is `NonConformingTubeMap`, and it moved out of
+`documentGrammar.ts` so a reader of numbers can throw it without importing anything about
+SVG text.
+
+**Four more conditions were added at #145. Three of them are the document parser's, not new
+policy**, and the fourth is what the four above turn out to need to be reachable at all:
+
+- **A band of no width.** `x0 === x1` leaves no span to normalize the control abscissae
+  against, so the band stores as `NaN` and draws as nothing. The document parser refuses it
+  in both arms, and refusal parity between two readers of one picture is most of why there
+  are two.
+- **A thickness other than 15, or an opacity other than 1.** The document parser refuses
+  both — its pattern matches `fill-opacity: 1` and its `<rect>` arm requires a height of
+  `THICKNESS` — and `THICKNESS` is compiled into `bandSurface`, so a payload declaring 20
+  would be drawn 15 tall in silence. The format cannot carry either value anyway.
+- **A column whose declared `byteLength` disagrees with the band count.** The header states
+  each column's size twice; the two disagreeing is the header disagreeing with itself, which
+  is the fourth condition said one level in.
+- **A header with no `band` or `strands`.** Without this the other checks are unreachable in
+  the case that most needs them: an unguarded `header.band.thickness` throws a `TypeError`,
+  which `describeFailure` classifies `internal` — a viewer fault dressed over a bad
+  response, and the exact opposite of the identical failure card above.
+
+**And one thing is deliberately *not* refused:** a non-empty `overlays`. The ruler and the
+per-segment labels are not drawn on either route — the document reader slices `g.track` and
+reads nothing outside it — so refusing them here would refuse maps the other reader draws.
 
 ## Two smaller things, recorded so they are not rediscovered
 
 **The strand id is a row index**, not a `trackID`. The payload's `Uint16` indexes the
-header's `strands` array; the two coincide today — ids are dense `0..n-1`, one row per strand
-— and each row carries its own `id`. The parser indexes by row and asserts
-`row === strands[row].id`, so the day a recolouring gives one strand two rows it fails loudly
-rather than mixing two strands' colours.
+header's `strands` array, and each row carries its own `id`, which is the `trackID` the
+document spells. The parser translates row to `id` once and indexes its tables by `id`, which
+is what the document parser indexes by and what makes the two `ParsedMap`s comparable.
+
+> **Corrected 2026-09-01, at #145.** This paragraph said "the two coincide today — ids are
+> dense `0..n-1`, one row per strand" and prescribed asserting `row === strands[row].id`.
+> The first half is wrong and the assertion refuses all five real payloads: the strand table
+> is written in **paint order**, so row 0 of the 90 bp render is strand 463 and row 463 is
+> strand 0. The ids *are* dense and unique — which is what the tables are built on — but they
+> are a permutation of the rows rather than equal to them. Their spec says so plainly ("read
+> the row and take its `id` if you need the layout's number"), so this was an error in
+> reading it rather than a defect in it. What the assertion was for survives in a different
+> form: the ids are checked to be a permutation, so two rows for one strand still fails
+> loudly rather than mixing two strands' colours.
 
 **`pclaiScore` is an opaque string**, as it already is here: usually an integer spelled as
 text (`"993"`), and spelled `"impainted"` on strands that *are* placed. Their spec said
@@ -145,12 +180,36 @@ parser for a string that is about to stop being sent is work with a known expiry
 
 - **ADR `0002`'s largest accepted cost is discharged**, not merely amended. Once this parser
   is the one that runs, this viewer no longer infers geometry from drawing commands.
+- **The pairing is committed, and it needs a document of its own.** A payload and a document
+  are an oracle for each other only if one render produced both, and the five documents this
+  repo already commits were fetched from the deployed server on `release` while the payload
+  format is on `main` — the layout has moved between them, and chr1:25,331,046-25,331,646
+  draws 8,089 bands on one against 10,270 on the other. So each payload is committed beside a
+  document from its own render, gzipped (3.1 MB against the payloads' 3.4 MB), and the five
+  fetched documents stay exactly what they are: what the server this viewer talks to returns.
+
+- **Two parsers must not drift about the swap either.** The frame was the first thing both
+  readers had to agree on and `storeBand` is the second: the swap to a positive width, the
+  normalization of the control abscissae and the application of the centre are one
+  calculation written once, in `parseBands.ts`, and called from both. They reach the same
+  eight numbers by different routes — a path grammar, a `Float32Array` — and everything after
+  that is shared.
+
 - **Two parsers must not drift about where the origin is.** Both derive the frame from the
   same four viewBox numbers through one shared function; the extraction is
   [#144](https://github.com/CAST-genomics/pgb/issues/144) and lands before the parser does.
 - **Float32 is the wire's one lossy step.** The layout computes in doubles and a coordinate
   arrives rounded — `138.71428571428573` becomes `138.7142791748047`. This costs nothing
   here: the instance buffer is float32, so the rounding would happen on this side anyway.
+
+  **Measured at #145, and the two readers agree to within one float32 ulp of the document's
+  own width rather than exactly.** The ordinates are identical; `width` and the two control
+  fractions are not, because this parser derives them from numbers the wire already rounded
+  while the document parser derives them in double and rounds once — a double rounding, and
+  for the control fractions one amplified by cancellation, `controlTop - x0` being a span of
+  tens of units taken between two numbers near 10⁵. The largest disagreement over the five
+  renders is **0.86 ulp**, which at `5514+` is 0.013 units against a band 15 units thick.
+  Nothing downstream can see it, and it is the bound the pairing test asserts.
 - **`reversal` and `band payload` enter the vocabulary**, and `reversal` is *not* **inverted
   haplotype**: it is the drawn shape a strand doubling back makes, of which a corner and a
   vertical connector are the parts. Two words a letter apart for different things, in a repo

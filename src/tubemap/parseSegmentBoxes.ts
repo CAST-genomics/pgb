@@ -57,7 +57,8 @@
  * and nothing downstream knows the source was SVG.
  */
 
-import { NUMBER as N, NonConformingDocument, countOccurrences } from './documentGrammar.ts'
+import { NUMBER as N, countOccurrences } from './documentGrammar.ts'
+import { NonConformingTubeMap } from './nonConformingTubeMap.ts'
 import type { Point } from './geometry.ts'
 
 /**
@@ -169,7 +170,7 @@ export function parseSegmentBoxes(text: string, centre: Point): SegmentBox[] {
     }
 
     if (boxes.length !== expected) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `Of the ${expected} segment boxes in g.node, ${expected - boxes.length} are not outlines `
             + 'this renderer recognises.'
         )
@@ -190,14 +191,14 @@ function readBox(match: RegExpExecArray, centre: Point): SegmentBox {
 
     const expect = (index: number, wanted: number, what: string): void => {
         if (false === sameCoordinate(at(index), wanted)) {
-            throw new NonConformingDocument(
+            throw new NonConformingTubeMap(
                 `Segment box ${match[1]} has ${what} ${at(index)} where the outline grammar requires ${wanted}.`
             )
         }
     }
 
     if (false === (radius > 0)) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `Segment box ${match[1]} has corner radius ${radius}; the radius must be positive.`
         )
     }
@@ -212,7 +213,7 @@ function readBox(match: RegExpExecArray, centre: Point): SegmentBox {
     const square = sameCoordinate(right - left, 2 * radius)
 
     if (present(HORIZONTAL_TOP) === square || present(HORIZONTAL_LOW) === square) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `Segment box ${match[1]} is ${right - left} wide with radius ${radius}, `
             + 'and spells its horizontal edges inconsistently.'
         )
@@ -249,7 +250,7 @@ function readBox(match: RegExpExecArray, centre: Point): SegmentBox {
     expect(VERTICAL_LEFT + 1, top + radius, 'closing ordinate')
 
     if (false === atLeast(right - left, 2 * radius) || false === atLeast(bottom - top, 2 * radius)) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `Segment box ${match[1]} is ${right - left} by ${bottom - top}, smaller than its radius ${radius} allows.`
         )
     }
@@ -257,7 +258,7 @@ function readBox(match: RegExpExecArray, centre: Point): SegmentBox {
     const stroke = +match[STROKE]
 
     if (false === (stroke > 0)) {
-        throw new NonConformingDocument(
+        throw new NonConformingTubeMap(
             `Segment box ${match[1]} has stroke width ${stroke}; the stroke must be positive.`
         )
     }

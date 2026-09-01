@@ -9,7 +9,7 @@
 
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { NonConformingDocument } from '../documentGrammar.ts'
+import { NonConformingTubeMap } from '../nonConformingTubeMap.ts'
 import {
     FLAT,
     LEFTWARD,
@@ -213,7 +213,7 @@ describe('parseBands', () => {
         const text = readFixture()
 
         expect(() => parseBands(text.replace('height="15"', 'height="16"')))
-            .toThrow(NonConformingDocument)
+            .toThrow(NonConformingTubeMap)
     })
 
     it('says a response is not an SVG before it says anything about bands', () => {
@@ -228,7 +228,7 @@ describe('parseBands', () => {
         const text = readFixture()
 
         expect(() => parseBands(text.replace(/trackID="0"/g, 'trackID="9000"')))
-            .toThrow(NonConformingDocument)
+            .toThrow(NonConformingTubeMap)
     })
 
     it('reads the degenerate flat bands as level, mid-controlled bands', () => {
@@ -259,7 +259,7 @@ describe('parseBands', () => {
         const text = readFixture()
         const broken = text.replace(/trackID="0"/g, `trackID="${MAX_STRAND_ID + 1}"`)
 
-        expect(() => parseBands(broken)).toThrow(NonConformingDocument)
+        expect(() => parseBands(broken)).toThrow(NonConformingTubeMap)
     })
 
     it('holds THICKNESS at the surveyed constant', () => {
@@ -414,7 +414,7 @@ describe('parseBands', () => {
             const flat = '<path d="M 100 200 C 150 200 150 260 100 260 V 275 C 150 275 150 215 100 215 Z"'
 
             expect(() => parseBands(text.replace(/<path d="[^"]*"/, flat)))
-                .toThrow(NonConformingDocument)
+                .toThrow(NonConformingTubeMap)
         })
 
         it('spells the two directions in the vocabulary CONTEXT.md fixes', () => {
@@ -508,7 +508,7 @@ describe('parseBands', () => {
             const text = readFixture()
 
             expect(() => parseBands(text.replace(/ trackName="[^"]*"/, '')))
-                .toThrow(NonConformingDocument)
+                .toThrow(NonConformingTubeMap)
         })
     })
 
@@ -593,7 +593,7 @@ describe('parseBands', () => {
             const text = readFixture()
 
             expect(() => parseBands(text.replace(/pclaiY="0.12"/g, 'pclaiY="None"')))
-                .toThrow(NonConformingDocument)
+                .toThrow(NonConformingTubeMap)
         })
 
         it('carries the score the document spells, including the ones that are not numbers', () => {
@@ -611,7 +611,7 @@ describe('parseBands', () => {
             const text = readFixture()
 
             expect(() => parseBands(text.replace(/pclaiX="-1.585"/g, 'pclaiX="left"')))
-                .toThrow(NonConformingDocument)
+                .toThrow(NonConformingTubeMap)
         })
     })
 })

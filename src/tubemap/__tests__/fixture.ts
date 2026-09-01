@@ -26,6 +26,7 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { gunzipSync } from 'node:zlib'
 
 export const FIXTURE_PATH = 'src/tubemap/__tests__/fixtures/stm-chr1-25331046-25331646.svg'
 
@@ -108,4 +109,54 @@ export function readInvertedFixture(): string {
 /** Each document's path with its text, for the regression that reads the whole corpus. */
 export function readEveryFixture(): Array<{ path: string, text: string }> {
     return EVERY_FIXTURE_PATH.map(path => ({ path, text: readFileSync(path, 'utf8') }))
+}
+
+/**
+ * The band payloads, and the documents they are paired with.
+ *
+ * A payload and a document of the same region are only an oracle for each other if they
+ * came out of **one render**, and the five documents above did not: they were fetched from
+ * the deployed server, which follows `release`, while the payload format is on `main` some
+ * sixty commits ahead. The layout has moved between the two — chr1:25,331,046-25,331,646
+ * draws 8,089 bands on `main` against the committed document's 10,270, and its viewBox is
+ * 27,953 wide against 35,562 — so pairing a payload with the document beside it would
+ * compare two different pictures and call the difference a parser bug.
+ *
+ * So each payload is committed with the document from **its own** render. The five above
+ * are untouched and stay what they are: what the server this viewer actually talks to
+ * returns, and the corpus `parseBands` is pinned against.
+ *
+ * Gzipped, because that is what makes the pairing affordable: 29.9 MB of documents
+ * compresses to 3.1 MB, against the payloads' 3.4 MB, and gunzipping the largest costs
+ * about a tenth of a second. The API repo stores its own band-data baselines the same way
+ * and for the same reason.
+ */
+export const PAIRED_FIXTURE_STEM = [
+    'stm-chr8-78771162-78771252',
+    'stm-chr1-25331046-25331646',
+    'stm-chr8-10079054-10080461',
+    'stm-node-5514-chr1-25301271-25309238',
+    'stm-node-5520-chr1-25331646-25335796'
+]
+
+/** The inversion, by name, for the tests that are about it: 2,334 of its 13,246 bands are
+ *  leftward curves, and it is the only fixture that can say so. */
+export const PAIRED_INVERTED_STEM = 'stm-chr8-10079054-10080461'
+
+const FIXTURE_DIR = 'src/tubemap/__tests__/fixtures'
+
+/** One region's payload, as the bytes a `fetch` would hand over. */
+export function readPayloadFixture(stem: string): Uint8Array {
+    const file = readFileSync(`${FIXTURE_DIR}/${stem}.bands`)
+
+    // Detached from Node's buffer pool, because the parser views the bytes in place: a
+    // pooled `Buffer` shares an ArrayBuffer with whatever else was read nearby, and a
+    // parser that writes through its view would scribble on it. A `fetch` hands over a
+    // buffer of its own, so this restores what the browser gives and nothing more.
+    return new Uint8Array(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength))
+}
+
+/** The document from the same render as that region's payload. */
+export function readPairedDocument(stem: string): string {
+    return gunzipSync(readFileSync(`${FIXTURE_DIR}/${stem}.paired.svg.gz`)).toString('utf8')
 }

@@ -14,16 +14,11 @@
  * That last one is the policy, and it is the same policy for both: a half-drawn map looks
  * like a correct map of different data. This API already answers an unknown node with
  * 200-and-plausible-nonsense, so partial rendering is never offered.
+ *
+ * The refusal they throw is `nonConformingTubeMap.ts`'s, which is where it moved when the
+ * band payload gained a reader: it is no longer a document that can be refused, and a
+ * reader of numbers takes it without importing any of this.
  */
-
-/** A document this renderer will not draw, and why. Shown in the mount's error state. */
-export class NonConformingDocument extends Error {
-
-    constructor(message: string) {
-        super(message)
-        this.name = 'NonConformingDocument'
-    }
-}
 
 /** One capture of a coordinate, in every spelling the documents use. */
 export const NUMBER = '(-?[\\d.]+(?:[eE]-?\\d+)?)'

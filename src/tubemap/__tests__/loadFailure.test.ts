@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { NonConformingDocument } from '../documentGrammar.ts'
+import { NonConformingTubeMap } from '../nonConformingTubeMap.ts'
 import { TubeMapLoadError } from '../fetchDocument.ts'
 import { describeFailure } from '../loadFailure.ts'
 
@@ -50,7 +50,7 @@ describe('describeFailure', () => {
         for (const other of [
             new TubeMapLoadError('offline', 'network'),
             new TubeMapLoadError('empty', 'content'),
-            new NonConformingDocument('a band is 20 tall'),
+            new NonConformingTubeMap('a band is 20 tall'),
             new TypeError('boom')
         ]) {
             expect(describeFailure(REQUESTED_URL, other).note).toBeUndefined()
@@ -58,14 +58,14 @@ describe('describeFailure', () => {
     })
 
     it('names a document off the grammar as one that cannot be drawn', () => {
-        const failure = describeFailure(REQUESTED_URL, new NonConformingDocument('A band is drawn 20 units tall; every band is 15.'))
+        const failure = describeFailure(REQUESTED_URL, new NonConformingTubeMap('A band is drawn 20 units tall; every band is 15.'))
 
         expect(failure.kind).toBe('undrawable')
         expect(failure.reason).toBe('A band is drawn 20 units tall; every band is 15.')
     })
 
     it('gives an undrawable document a heading of its own, so it is not read as a fetch failure', () => {
-        const undrawable = describeFailure(REQUESTED_URL, new NonConformingDocument('nope'))
+        const undrawable = describeFailure(REQUESTED_URL, new NonConformingTubeMap('nope'))
         const unreachable = describeFailure(REQUESTED_URL, new TubeMapLoadError('nope', 'network'))
 
         expect(undrawable.heading).not.toBe(unreachable.heading)
@@ -91,7 +91,7 @@ describe('describeFailure', () => {
         const failures = [
             describeFailure(REQUESTED_URL, new TubeMapLoadError('Could not reach it', 'network')),
             describeFailure(REQUESTED_URL, new TubeMapLoadError('The response was empty', 'content')),
-            describeFailure(REQUESTED_URL, new NonConformingDocument('A band is 20 tall')),
+            describeFailure(REQUESTED_URL, new NonConformingTubeMap('A band is 20 tall')),
             describeFailure(REQUESTED_URL, new TypeError('boom')),
             describeFailure(REQUESTED_URL, 42)
         ]
