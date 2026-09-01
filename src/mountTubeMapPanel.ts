@@ -44,6 +44,7 @@
 import eventBus from './utils/eventBus.ts'
 import { Draggable } from './utils/draggable.js'
 import { buildSeqTubeMapURL, type SeqTubeMapTarget } from './pangenomeURL.ts'
+import { TUBE_MAP_ENCODING, type TubeMapEncoding } from './tubemap/tubeMapEncoding.ts'
 import { mountTubeMapSurface, type TubeMapSurfaceHandle } from './tubemap/tubeMapSurface.ts'
 
 const CONTAINER_ID = 'tube-map-panel-container'
@@ -75,18 +76,34 @@ export interface TubeMapPanelOptions {
      * tested without a WebGL context; PGB always takes the default.
      */
     mountSurface?: (container: HTMLElement) => TubeMapSurfaceHandle
+
+    /**
+     * Which encoding to ask the server for, defaulting to the flag `TUBE_MAP_ENCODING`.
+     *
+     * **This is the panel's only reading of the flag, and it is one reading.** The same
+     * value spells the URL and tells the viewer how to read what comes back, so the request
+     * and the parse cannot disagree about which format is on the wire — which is the whole
+     * of what a flag buys over a probe. Overridden per-`open` by the dev pages, which open a
+     * URL they were handed rather than one they built.
+     */
+    encoding?: TubeMapEncoding
 }
 
 export interface TubeMapPanelHandle {
     /**
      * Show the panel and load `target`'s map, replacing whatever it was showing.
      *
-     * `url` defaults to `buildSeqTubeMapURL(target)` and is passed explicitly only to open
-     * a captured document — the committed fixture — against the real chrome. The header is
-     * written from `target` either way, so the two can never disagree about which node is
-     * on screen.
+     * `url` defaults to `buildSeqTubeMapURL(target, encoding)` and is passed explicitly only
+     * to open a captured document — the committed fixture, a payload — against the real
+     * chrome. The header is written from `target` either way, so the two can never disagree
+     * about which node is on screen.
+     *
+     * `encoding` defaults to the panel's own and travels with `url` for the same reason: a
+     * caller handing over a URL it did not build is the one caller that knows something the
+     * flag does not. The two move together or not at all — a URL asking for a payload read
+     * as a document is the one disagreement this whole design exists to make impossible.
      */
-    open(target: SeqTubeMapTarget, url?: string): void
+    open(target: SeqTubeMapTarget, url?: string, encoding?: TubeMapEncoding): void
     /** Hide the card, keeping the mounted surface and whatever it is showing. */
     close(): void
     /** Release every listener and remove every node this mount created. Safe to call twice. */
@@ -193,7 +210,11 @@ function parsePixels(value: string): number | null {
 
 export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPanelHandle {
 
-    const { mountSurface = mountTubeMapSurface, host = document.querySelector<HTMLElement>(HOST_SELECTOR) } = options
+    const {
+        mountSurface = mountTubeMapSurface,
+        host = document.querySelector<HTMLElement>(HOST_SELECTOR),
+        encoding = TUBE_MAP_ENCODING
+    } = options
 
     const { card, header, title, fullscreenButton, closeButton, body } = createCardDOM()
 
@@ -216,10 +237,14 @@ export function mountTubeMapPanel(options: TubeMapPanelOptions = {}): TubeMapPan
      */
     let floatingGeometry: FloatingGeometry | null = null
 
-    function open(target: SeqTubeMapTarget, url: string = buildSeqTubeMapURL(target)): void {
+    function open(
+        target: SeqTubeMapTarget,
+        url: string = buildSeqTubeMapURL(target, encoding),
+        requested: TubeMapEncoding = encoding
+    ): void {
         title.textContent = formatPanelTitle(target)
         card.hidden = false
-        void surface.open(url)
+        void surface.open(url, requested)
     }
 
     // Leaving fullscreen is part of going away, not a separate thing the user has to

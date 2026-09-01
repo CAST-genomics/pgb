@@ -48,11 +48,18 @@ export const FIXTURE_TARGET: SeqTubeMapTarget = {
  */
 export const UNKNOWN = '?'
 
-/** `stm-node-5514-chr1-25301271-25309238.svg` — node, contig, and the interval it spans. */
-const NAMED = /(?:^|\/)stm-node-(\d+)-([^/-]+)-(\d+)-(\d+)\.svg$/
+/**
+ * `stm-node-5514-chr1-25301271-25309238.svg` — node, contig, and the interval it spans.
+ *
+ * `.bands` as well as `.svg`, because the same convention names the payload of the same
+ * region and the header is a claim about the region rather than about the encoding. A
+ * payload captioned `?` beside a document captioned `5514` is the asymmetry #128 removed,
+ * reintroduced one file extension along.
+ */
+const NAMED = /(?:^|\/)stm-node-(\d+)-([^/-]+)-(\d+)-(\d+)\.(?:svg|bands)$/
 
 /** `stm-chr1-25331046-25331646.svg` — the same, from before the node was written down. */
-const INTERVAL = /(?:^|\/)stm-([^/-]+)-(\d+)-(\d+)\.svg$/
+const INTERVAL = /(?:^|\/)stm-([^/-]+)-(\d+)-(\d+)\.(?:svg|bands)$/
 
 export function targetForUrl(url: string): SeqTubeMapTarget {
     if (FIXTURE_URL === url) {

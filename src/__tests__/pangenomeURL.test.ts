@@ -66,6 +66,25 @@ describe('buildSeqTubeMapURL', () => {
         expect(params.get('version')).toBe('v2')
         expect(params.get('nodewidthoption')).toBe('compressed')
     })
+
+    /**
+     * The band payload is asked for by a flag the host sets, never by a probe (ADR
+     * `0005` §3). Both spellings are pinned here because the whole switch is one
+     * parameter: the document URL must stay exactly what it was, and the band URL must be
+     * that string with one thing added.
+     */
+    it('asks for the band payload, and only when told to', () => {
+        const target = { chrom: 'chr1', start: 25200904, end: 25236799, minigraphnode: '5504' }
+
+        expect(buildSeqTubeMapURL(target, 'document')).toBe(KNOWN_GOOD_5504)
+        expect(buildSeqTubeMapURL(target, 'bands')).toBe(`${KNOWN_GOOD_5504}&format=bands`)
+    })
+
+    it('asks for the document when it is not told which format to ask for', () => {
+        const target = { chrom: 'chr1', start: 25200904, end: 25236799, minigraphnode: '5504' }
+
+        expect(buildSeqTubeMapURL(target)).toBe(buildSeqTubeMapURL(target, 'document'))
+    })
 })
 
 describe('tubeMapTargetForNode', () => {

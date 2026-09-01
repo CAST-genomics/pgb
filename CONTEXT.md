@@ -376,8 +376,10 @@ the numbers themselves — a JSON header carrying the frame, the **strand** tabl
 **segment** boxes, then a columnar body of six `Float32`s, a `Uint16` and a `Uint8` per
 **band**. Specified in the API repo's `docs/band-format.md`; read by
 `parseBandPayload.ts` into the same `ParsedMap` the document parser produces, so nothing
-downstream learns which arrived. Chosen by an explicit flag, never by a fallback
-(ADR `0005`).
+downstream learns which arrived. Chosen by an explicit flag — `TUBE_MAP_ENCODING`,
+which the host reads once to spell the request *and* to read the response — never by a
+probe or a fallback (ADR `0005`). It defaults to the document until the format is
+deployed to the server this viewer talks to.
 
 Roughly 8× smaller than the document at every size that matters, because the per-strand
 values are said once rather than once per band, and because the body needs no parse: the
@@ -676,7 +678,10 @@ at all — why, and what that costs, is
 
 The floating, draggable, resizable card that hosts a **sequence tube map**,
 opened from a node's context menu. Not a **Look**: it owns its own WebGL scene,
-camera and render loop, and its entire input surface is `open(url: string)`.
+camera and render loop, and the surface it wraps has an input surface of one
+call, `open(url, encoding)`: the host says which URL and whether to read the
+response as a **band payload** or as a document, and the viewer never builds a
+URL, inspects one, or probes for what the server supports.
 Why the Look rule does not reach it, and what that costs — including the panel
 adding a third representation of the locus with no **bidirectional mapping** to
 the other two — is

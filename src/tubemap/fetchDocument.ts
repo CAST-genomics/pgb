@@ -6,9 +6,15 @@
  * never checks eligibility, and never learns whether it is local or remote. A fixture in
  * `public/` is just another URL.
  *
- * The response comes back as text rather than as a parsed document, because the two
- * surfaces read the same bytes in incompatible ways — `DOMParser` into a live tree, or a
- * regex into six floats per band — and neither reading belongs to the fetch.
+ * The response comes back unparsed — as text, or as bytes — because reading it is not the
+ * fetch's business: `readTubeMap.ts` is where a response becomes a picture.
+ *
+ * **Text or bytes is the caller's to say, and it is the only thing the format flag changes
+ * here.** The band payload is a length, a JSON header and typed arrays over what follows
+ * (`parseBandPayload.ts`), so decoding it as UTF-8 would corrupt it before anything could
+ * read it. Everything else below — the clock, the two aborts, the classification, the
+ * omitted credentials, the empty-response sentence — is one piece of code on both paths,
+ * which is what makes the failure card identical whichever encoding failed (ADR `0005`).
  *
  * Note from the CORS survey (`notes/sequence-tube-map/measurements/2026-08-12-api-reachability-and-cors.md`): the API's
  * error responses carry no CORS headers, so a 500 reaches the browser as an opaque
@@ -32,6 +38,8 @@
  * this viewer's — see `notes/sequence-tube-map/measurements/2026-08-13-api-fetch-ceiling.md`.
  */
 
+import type { TubeMapEncoding } from './tubeMapEncoding.ts'
+
 /**
  * How long to wait before calling it a server-side problem.
  *
@@ -53,8 +61,9 @@ export class TubeMapLoadError extends Error {
 export async function fetchDocument(
     url: string,
     signal?: AbortSignal,
-    patienceMs: number = PATIENCE_MS
-): Promise<string> {
+    patienceMs: number = PATIENCE_MS,
+    encoding: TubeMapEncoding = 'document'
+): Promise<string | Uint8Array> {
 
     // Our own controller rather than the caller's, so the two reasons a request stops stay
     // distinguishable: the caller aborting is silent housekeeping — a second `open()`
@@ -96,23 +105,26 @@ export async function fetchDocument(
             throw new TubeMapLoadError(`The server answered ${response.status} ${response.statusText}`, 'network')
         }
 
-        let text: string
+        let body: string | Uint8Array
 
         try {
-            text = await response.text()
+            body = 'bands' === encoding
+                ? new Uint8Array(await response.arrayBuffer())
+                : await response.text()
         } catch (error) {
             throw translate(error, expired, signal, patienceMs)
         }
 
         // Emptiness is a property of the response, not of either reading of it, so it is
-        // named here. Left to the renderers it comes back as whatever each one's parser
-        // happens to miss first — "no drawable elements in g.track" is a diagnosis of the
-        // band grammar, and the document had no bytes.
-        if (0 === text.trim().length) {
+        // named here — in one sentence, said the same way about no bytes as about no text.
+        // Left to the renderers it comes back as whatever each one's parser happens to miss
+        // first — "no drawable elements in g.track" is a diagnosis of the band grammar, and
+        // the document had no bytes.
+        if (isEmpty(body)) {
             throw new TubeMapLoadError('The response was empty — no tube map for this minigraph node.', 'content')
         }
 
-        return text
+        return body
     } finally {
         clearTimeout(timer)
         signal?.removeEventListener('abort', relay)
@@ -140,6 +152,11 @@ function translate(error: unknown, expired: boolean, signal: AbortSignal | undef
     }
 
     return new TubeMapLoadError(`The request did not complete — ${describe(error)}`, 'network')
+}
+
+/** Nothing arrived: no bytes at all, or a document that is only whitespace. */
+function isEmpty(body: string | Uint8Array): boolean {
+    return 'string' === typeof body ? 0 === body.trim().length : 0 === body.byteLength
 }
 
 function describe(error: unknown): string {

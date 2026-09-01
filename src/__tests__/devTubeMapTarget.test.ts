@@ -46,6 +46,14 @@ describe('targetForUrl', () => {
             .toEqual({ chrom: 'chr8', start: 10079054, end: 10080461, minigraphnode: UNKNOWN })
     })
 
+    // The payload of a region is named the way its document is, so the header says the same
+    // thing about both — the encoding is not what the caption is a claim about.
+    it('reads a captured payload out of its filename too', () => {
+        expect(targetForUrl('/fixtures/stm-node-5514-chr1-25301271-25309238.bands')).toEqual({
+            chrom: 'chr1', start: 25301271, end: 25309238, minigraphnode: '5514',
+        })
+    })
+
     it('claims nothing about a URL it cannot read', () => {
         expect(targetForUrl('/does-not-exist.svg').minigraphnode).toBe(UNKNOWN)
         expect(targetForUrl('/does-not-exist.svg').chrom).toBe(UNKNOWN)
