@@ -175,7 +175,7 @@ describe('mountTubeMapPanel', () => {
 
         expect(card()!.hidden).toBe(false)
         expect(card()!.querySelector('.card-title')!.textContent).toBe('5519 · chr1:25,331,046-25,331,646')
-        expect(spy.opened).toEqual([buildSeqTubeMapURL(TARGET)])
+        expect(spy.opened).toEqual([buildSeqTubeMapURL(TARGET, TUBE_MAP_ENCODING)])
     })
 
     /**
@@ -197,16 +197,18 @@ describe('mountTubeMapPanel', () => {
         }
     })
 
-    // Flipping it is a deliberate act gated on the format being deployed to the server the
-    // viewer talks to (#146), not something a refactor should be able to do by accident.
-    it('asks for the document until the flag says otherwise', () => {
+    // The flag was flipped to 'bands' on 2026-09-02, when the format reached the deployed
+    // server. Which way it points is a deliberate act (#146), not something a refactor
+    // should be able to change by accident, so it is pinned in both directions: the default
+    // is the payload, and the panel asks for what the flag says.
+    it('asks for the band payload, which is what the flag says', () => {
         const spy = surfaceSpy()
         const handle = mountTubeMapPanel({ mountSurface: spy.mountSurface })
         panel = handle
 
         handle.open(TARGET)
 
-        expect(TUBE_MAP_ENCODING).toBe('document')
+        expect(TUBE_MAP_ENCODING).toBe('bands')
         expect(spy.encodings).toEqual([TUBE_MAP_ENCODING])
     })
 

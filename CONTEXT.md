@@ -378,8 +378,9 @@ the numbers themselves — a JSON header carrying the frame, the **strand** tabl
 `parseBandPayload.ts` into the same `ParsedMap` the document parser produces, so nothing
 downstream learns which arrived. Chosen by an explicit flag — `TUBE_MAP_ENCODING`,
 which the host reads once to spell the request *and* to read the response — never by a
-probe or a fallback (ADR `0005`). It defaults to the document until the format is
-deployed to the server this viewer talks to.
+probe or a fallback (ADR `0005`). The flag has read `'bands'` since 2026-09-02, when the
+format reached the server this viewer talks to; `parseBands.ts` stays, for the older
+documents committed as fixtures and for a deployment that has not taken the format.
 
 Roughly 8× smaller than the document at every size that matters, because the per-strand
 values are said once rather than once per band, and because the body needs no parse: the

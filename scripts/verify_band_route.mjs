@@ -101,9 +101,13 @@ if (null === live) {
     check('the document route draws', document_.drew, `${document_.seconds.toFixed(1)} s`)
     check('the band route draws', payload.drew, `${payload.seconds.toFixed(1)} s`)
     check('the document route draws its segment boxes', document_.boxes > 0, `${document_.boxes}`)
-    // Not a defect: ADR `0005` rejects reading the payload's outline strings, which their
-    // #66 is about to replace. It is asserted so that the day it changes, it changes here.
-    check('the band route draws none, as decided', 0 === payload.boxes, `${payload.boxes}`)
+    // It changed here, on the day it changed. ADR `0005` rejected reading the payload's
+    // outline strings and this asserted zero boxes; their #66 replaced those strings with
+    // the five numbers a box is, #151 read them, and the two routes now draw the same
+    // boxes from the same render — which is the stronger statement, so it is the one made.
+    check('the band route draws its segment boxes too', payload.boxes > 0, `${payload.boxes}`)
+    check('both routes draw the same boxes', document_.boxes === payload.boxes,
+        `${document_.boxes} vs ${payload.boxes}`)
     check('neither route shows an error', null === document_.heading && null === payload.heading)
 
     await page.screenshot({ path: '/tmp/stm-band-route.png' })
@@ -127,6 +131,11 @@ if (null === live) {
     console.log(JSON.stringify({ node: live, document: document_, payload }, null, 1))
 
     check(`node ${live} draws from the band payload`, payload.drew, `${payload.seconds.toFixed(1)} s`)
+    check(`node ${live} draws the same segment boxes either way`, document_.boxes === payload.boxes,
+        `${document_.boxes} vs ${payload.boxes}`)
+
+    await page.screenshot({ path: `/tmp/stm-band-route-live-${live}.png` })
+    console.log(`\n  /tmp/stm-band-route-live-${live}.png`)
 }
 
 await browser.close()
