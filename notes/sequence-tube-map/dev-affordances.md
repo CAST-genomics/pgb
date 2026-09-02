@@ -459,9 +459,8 @@ arrive as `unreachable`; a 502 measured on 2026-09-02 carried them and arrived a
 `The server answered 502 Bad Gateway` in three seconds — with a JSON `detail` naming the stage
 that died. The survey used `curl` without an `Origin` header, which a server echoing CORS only
 on CORS requests would answer exactly that way, so the two observations may not disagree at all.
-[`measurements/2026-09-02-node-119582-and-the-chr7-region-around-it.md`](measurements/2026-09-02-node-119582-and-the-chr7-region-around-it.md)
-has that failure in full, including why a fast 502 and a 90-second `slow` are easy to mistake
-for each other on the card.
+The 2026-09-02 measurement note under `measurements/` has that failure in full, including why a
+fast 502 and a 90-second `slow` are easy to mistake for each other on the card.
 
 ---
 
