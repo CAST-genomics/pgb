@@ -59,7 +59,18 @@ The live server follows `release`; the band format is on `main`, roughly 60 comm
 viewer that could only read bands could not talk to the deployed server at all.
 
 So `parseBands.ts` stays until the format is deployed **and** settled, and deleting it is a
-separate decision taken later. This also keeps the SVG as the oracle the payload is checked
+separate decision taken later.
+
+**Amended 2026-09-02.** The first half of that condition is met: the deployed server answers
+`?format=bands` at the URL `buildSeqTubeMapURL` builds — 200, `application/octet-stream`,
+CORS present, a `pangenome-bands` v1 payload whose body is byte for byte the one the
+committed fixtures carry — and `TUBE_MAP_ENCODING` now reads `'bands'`, so this is the
+encoding the app requests. The second half is not: on the day it was flipped the same
+deployment also changed two things in the `strands` metadata (a reference range appended to
+every name; `pclaiScore` able to read `"impainted"`), which is what "settled" was guarding
+against. `parseBands.ts` therefore stays, and deleting it remains a later decision — now
+also because the five documents committed under `__tests__/fixtures` are older renders that
+only it can read. This also keeps the SVG as the oracle the payload is checked
 against, which is why
 [their ADR 0001](https://github.com/CAST-genomics/PangenomeAPI/blob/main/docs/adr/0001-additive-band-format.md)
 made the format additive rather than replacing the route.
@@ -73,7 +84,8 @@ against a `PATIENCE_MS` of 90 s. A fallback would therefore spend up to ninety s
 the second request began, on exactly the large nodes this whole effort exists for.
 
 The viewer never probes, never retries, and never learns what the server supports. It is
-told, by a flag, which defaults to the document until the format is deployed.
+told, by a flag — which read `'document'` until the format was deployed, and has read
+`'bands'` since 2026-09-02.
 
 ### 4. Direction is derived here, and the wire does not carry it
 

@@ -115,42 +115,60 @@ export function readEveryFixture(): Array<{ path: string, text: string }> {
  * The band payloads, and the documents they are paired with.
  *
  * A payload and a document of the same region are only an oracle for each other if they
- * came out of **one render**, and the five documents above did not: they were fetched from
- * the deployed server, which follows `release`, while the payload format is on `main` some
- * sixty commits ahead. The layout has moved between the two — chr1:25,331,046-25,331,646
- * draws 8,089 bands on `main` against the committed document's 10,270, and its viewBox is
- * 27,953 wide against 35,562 — so pairing a payload with the document beside it would
- * compare two different pictures and call the difference a parser bug.
+ * came out of **one render**, and the five documents above did not: they were fetched
+ * between 2026-08-17 and 2026-08-25, from a deployment two layouts ago. The layout has
+ * moved since — chr1:25,331,046-25,331,646 draws 8,089 bands now against the committed
+ * document's 10,270, and its viewBox is 27,953 wide against 35,562 — so pairing a payload
+ * with the document beside it would compare two different pictures and call the difference
+ * a parser bug.
  *
  * So each payload is committed with the document from **its own** render. The five above
- * are untouched and stay what they are: what the server this viewer actually talks to
- * returns, and the corpus `parseBands` is pinned against.
+ * are untouched and stay what they are: older renders, and the corpus `parseBands` is
+ * pinned against. They are no longer what the deployed server returns — that is what the
+ * `.paired` documents are, as of the capture below — and they are kept anyway, because a
+ * reader that only ever sees today's output is a reader with no regression corpus.
  *
  * Gzipped, because that is what makes the pairing affordable: 29.9 MB of documents
  * compresses to 3.1 MB, against the payloads' 3.4 MB, and gunzipping the largest costs
  * about a tenth of a second. The API repo stores its own band-data baselines the same way
  * and for the same reason.
  *
- * **Regenerated 2026-09-01 for their #66**, which replaced each segment's `outline` string
- * with the five numbers it encodes. Each half is one command, from the API repo's root on
- * `main`, against the same subgraph the endpoint would render:
+ * **Re-captured 2026-09-02 from the deployed server**, when the band format reached it and
+ * `TUBE_MAP_ENCODING` was flipped to `'bands'`. Both halves now come from the live endpoint
+ * rather than from the API repo's generators, which is a stronger pairing than the one they
+ * replace: the two responses are of one render because they are of one deployment, and they
+ * are the same bytes the app itself will receive. Each half is one request, differing by the
+ * one parameter:
  *
- *     node seqtubemap/generate-bands.mjs \
- *       tests/fixtures/seqtubemap/<subgraph>.json <stem>.bands <start> <end> compressed \
- *       "$(cat tests/fixtures/seqtubemap/<subgraph>.pclai.json)"
+ *     curl -o <stem>.bands \
+ *       'https://pangenome-api.ucsd.edu:8000/seqtubemap?chrom=<chrom>&start=<start>&end=<end>\
+ *        &version=v2&pathnumoption=normal&nodewidthoption=compressed&minigraphnode=<node>&format=bands'
  *
- *     node seqtubemap/generate-svg.mjs \
- *       tests/fixtures/seqtubemap/<subgraph>.json <stem>.paired.svg <start> <end> compressed \
- *       "$(cat tests/fixtures/seqtubemap/<subgraph>.pclai.json)"
+ *     curl -o <stem>.paired.svg \
+ *       '…the same URL without &format=bands'
+ *     gzip -9 -n <stem>.paired.svg
  *
- * `compressed` is the width mode the endpoint defaults to and the only one whose geometry
- * is portable — `normal` measures labels with the platform's fonts. The gzip is level 9,
- * which is what reproduces the committed bytes.
+ * `nodewidthoption=compressed` is the width mode the endpoint defaults to and the only one
+ * whose geometry is portable — `normal` measures labels with the platform's fonts. The `-n`
+ * keeps the timestamp out of the gzip header so a re-capture of identical bytes is a
+ * no-diff. The nodes are `141457`, `5519`, `136685`, `5514`, `5520`, in the order of the
+ * stems below.
  *
- * The payload bodies came back byte-identical and every header field but `segments`
- * unchanged; the documents came back identical up to `<g class="node">` and moved only
- * inside it. So the two halves are still of one render, and the bands the pairing exists to
- * compare did not shift under it.
+ * **All five payload bodies came back byte-identical** to the 2026-09-01 generation — every
+ * float, strand id and kind — so the geometry these fixtures exist to pin did not move. Two
+ * things in the `strands` metadata did, both server-side and both carried by the document
+ * and the payload alike:
+ *
+ *  - **A strand's name now carries its reference range**, `…#0[25481410-25481673]`. Where a
+ *    name previously counted a repeated placement in its fourth component (`…#1`, `…#2`),
+ *    that component now reads `#0` on every strand and the range disambiguates instead: 735
+ *    of `5520+`'s 1,201 names changed this way, 5 of `5514+`'s 383, none elsewhere.
+ *    `strandLabel.ts` splits on `#` and renders what it is handed, so this shows up as a
+ *    longer label and nothing more.
+ *  - **`pclaiScore` can read `"impainted"`**, on strands that were unplaced before and now
+ *    carry a placement and a colour — one strand in three of the five regions. The field was
+ *    already `string | null` on both readers for exactly this class of surprise, so it
+ *    passes through; the visible change is one fewer grey strand.
  *
  * What did move is what makes these documents worth having. #66 changed how a segment's
  * outline is spelled, and `parseSegmentBoxes.ts`'s header states what changed and why it
