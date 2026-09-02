@@ -105,12 +105,53 @@ open 'http://localhost:5173/dev/tubemap.html?url=/src/tubemap/__tests__/fixtures
 open 'http://localhost:5173/dev/tubemap-app.html?pick'    # the same, under Bootstrap
 ```
 
+### Asking for the band payload rather than the document
+
+`/seqtubemap` serves one picture in two encodings: the SVG document, and — with
+`&format=bands` — the same picture as the numbers themselves, an eighth to a tenth of the size.
+The app asks for the payload and nothing else (`TUBE_MAP_ENCODING` in
+`src/tubemap/tubeMapEncoding.ts`). The dev pages cannot: they open whatever they are handed, so
+they read the encoding back out of the URL — **a `format=bands` query or a `.bands` path is a
+payload; anything else is a document.** Nothing else changes, on either page.
+
+So the two encodings are one parameter apart, and pasting one over the other in the text field
+is a click:
+
+```bash
+# live, the payload — what the app itself requests
+python3 -c "import urllib.parse,sys; print('http://localhost:5173/dev/tubemap-panel.html?url=' + urllib.parse.quote(sys.argv[1], safe=''))" \
+  'https://pangenome-api.ucsd.edu:8000/seqtubemap?chrom=chr1&start=25331646&end=25335796&version=v2&pathnumoption=normal&nodewidthoption=compressed&minigraphnode=5520&format=bands'
+
+# committed fixtures, no server needed — one region, both encodings
+open 'http://localhost:5173/dev/tubemap-panel.html?url=/src/tubemap/__tests__/fixtures/stm-chr8-10079054-10080461.bands'
+open 'http://localhost:5173/dev/tubemap-panel.html?url=/src/tubemap/__tests__/fixtures/stm-chr8-10079054-10080461.paired.svg.gz'
+```
+
+Those last two are the A/B worth having: **the same render, read two ways**, and they draw the
+same map — 91 segment boxes and "166 of 463 haplotypes inverted" either way. Open the `.gz` path
+as it is; the dev server sends `content-encoding: gzip` and the browser decompresses it before
+the viewer sees a byte.
+
+**Nothing on screen says which arrived, and that is the point** — both readers produce the same
+`ParsedMap` and the same segment boxes (ADR [`0005`](docs/adr/0005-reading-the-band-payload.md)).
+To confirm which one you got, read the response in DevTools' Network panel: the payload is
+`application/octet-stream` and starts with a `uint32` length and a JSON header; the document is
+`image/svg+xml`. On node `5520+` that is 1.4 MB against 14.2 MB, and 3.9 s against 7.2 s.
+
+Two traps. **Drop the `.gz` and the request still returns 200** — Vite answers an unknown path
+with `index.html`, so `…paired.svg` hands the viewer 5 KB of HTML and you get a parse failure
+where you expected a missing file. And the five plain `.svg` fixtures are **older renders** than
+the `.bands` beside them, with different band counts and viewBoxes: they are the document
+reader's corpus, not an oracle for the payload. `src/tubemap/__tests__/fixture.ts` says which is
+which.
+
 Two things worth knowing before relying on these pages. The default fixture is a 5.6:1 strip,
 and a class of framing bug cannot fail against it — open the tall
 `stm-chr8-78771162-78771252.svg` before believing anything about fitting or the navigator. And
 a load failure is classified rather than generic: `unreachable`, `slow`, `absent`, `undrawable`
-and `internal` mean different things, and the API's error responses carry no CORS headers, so a
-genuine server error reaches the browser as `unreachable`.
+and `internal` mean different things, and which one you get depends on whether the error
+response carries CORS headers — a 502 measured on 2026-09-02 did, and arrived as a readable
+status rather than as `unreachable`.
 
 Full reference — every affordance, every gesture, and the reasoning behind each:
 [`notes/sequence-tube-map/dev-affordances.md`](notes/sequence-tube-map/dev-affordances.md).
