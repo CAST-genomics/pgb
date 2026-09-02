@@ -125,19 +125,74 @@ The panel page additionally parses `chrom/start/end/minigraphnode` out of whatev
 give it to build the card *header*, falling back to the fixture target for a bare fixture
 path. The header is always written from the target, never from the URL.
 
+#### The encoding travels with the URL, and the pages read it back out
+
+`/seqtubemap` serves one picture two ways — the SVG document, and with `&format=bands` the same
+picture as the numbers themselves. The shipped app asks for the payload and nothing else: it
+builds both halves, the request and the reader, from one constant (`TUBE_MAP_ENCODING` in
+`src/tubemap/tubeMapEncoding.ts`), which is what makes a state where the URL asks for a payload
+and the viewer reads a document unreachable.
+
+These pages cannot do that, because they do not *build* their URL — they open whatever is typed
+into the field or passed as `?url=`. So they work the pair out of the string, through
+`tubeMapEncodingOf()`, on the same rule `devTubeMapTarget.ts` uses to work out the node:
+
+| The URL | Read as |
+|---|---|
+| `…&format=bands` | payload — bytes, `parseBandPayload.ts` |
+| a `.bands` path | payload — the committed fixture |
+| anything else | document — text, `parseBands.ts` |
+
+The panel page re-reads it **per `open`** rather than once at mount, so pasting a payload URL
+over a document one in the field is a click rather than a reload. Nothing else about either page
+changes, and nothing on screen reports which arrived — that is ADR
+[`0005`](../../docs/adr/0005-reading-the-band-payload.md)'s whole claim, that everything
+downstream of `readTubeMap.ts` is untouched by which reader ran.
+
+```bash
+# a live payload — the encoded form, because ?url= collides (see above)
+python3 -c "import urllib.parse,sys; print('http://localhost:5173/dev/tubemap-panel.html?url=' + urllib.parse.quote(sys.argv[1], safe=''))" \
+  'https://pangenome-api.ucsd.edu:8000/seqtubemap?chrom=chr1&start=25331646&end=25335796&version=v2&pathnumoption=normal&nodewidthoption=compressed&minigraphnode=5520&format=bands'
+
+# the same render read both ways, no server needed
+open 'http://localhost:5173/dev/tubemap-panel.html?url=/src/tubemap/__tests__/fixtures/stm-chr8-10079054-10080461.bands'
+open 'http://localhost:5173/dev/tubemap-panel.html?url=/src/tubemap/__tests__/fixtures/stm-chr8-10079054-10080461.paired.svg.gz'
+```
+
+Those two draw the same map — 91 segment boxes, "166 of 463 haplotypes inverted" — which is the
+pairing being demonstrated rather than a coincidence: §2's table says which fixtures are of one
+render and which are not. Open the `.gz` as it is; the dev server sends `content-encoding: gzip`
+and the browser decompresses before the viewer sees a byte. **Dropping the `.gz` does not 404** —
+Vite answers an unknown path with `index.html`, so `…paired.svg` hands the viewer 5 KB of HTML
+and fails as a parse rather than as a missing file — §8's silent-fallback trap in a third
+costume, this one served by our own dev server rather than by the API.
+
+To see which encoding actually went out, read the response in DevTools' Network panel: the
+payload is `application/octet-stream`, opening with a `uint32` length and a JSON header; the
+document is `image/svg+xml`. On `5520+` that is 1.4 MB against 14.2 MB, and 3.9 s against 7.2 s
+end to end through this page.
+
 ---
 
 ## 2. The default document, and the second one
 
-Two documents are committed, and they are the entire test corpus. They live under `src/`
-rather than `public/` because `public/` is copied into `dist/` verbatim — a fixture parked
-there would add 3.5 MB to every deploy for the sake of a page that is not in the build.
-Vite's dev server serves them at their on-disk path anyway.
+The corpus lives under `src/` rather than `public/` because `public/` is copied into `dist/`
+verbatim — a fixture parked there would add 3.5 MB to every deploy for the sake of a page that
+is not in the build. Vite's dev server serves them at their on-disk path anyway.
+
+Two documents carry the shapes that matter, and they are where every parser test starts:
 
 | Fixture | Shape | Why it exists |
 |---|---|---|
 | `stm-chr1-25331046-25331646.svg` | 35562 × 6325 — a **5.6:1 strip** | node 5519; the default on both pages, and where every parser test starts |
 | `stm-chr8-78771162-78771252.svg` | 4717 × 7115 — **taller than wide** | node 141457; the shape the strip cannot catch |
+
+Since the band payload there are three kinds of file rather than one, for five regions:
+`<stem>.svg` is a document fetched from the server in August, `<stem>.bands` is a payload, and
+`<stem>.paired.svg.gz` is the document of **that payload's own render**. A `.svg` and the
+`.bands` beside it are *different renders* and their band counts and viewBoxes differ, so they
+are not an oracle for each other; a `.bands` and its `.paired.svg.gz` are. Which is which, and
+what moved between the renders, is `src/tubemap/__tests__/fixture.ts`.
 
 The tall one is worth knowing about. Three defects fixed in pgb #99 were all the assumption
 that every tube map is a strip — the navigator's height had no ceiling, `fitZoom` fitted the
@@ -396,9 +451,17 @@ map, with the URL on a line of its own. The five kinds (`src/tubemap/loadFailure
 | `internal` | a bug here | here |
 
 `slow` is kept apart from `unreachable` on purpose: nothing is wrong with the network, the
-URL or the browser, and "could not be fetched" sends people to look at all three. The API's
-error responses carry **no CORS headers**, so a genuine 500 reaches the browser as an opaque
-network failure rather than a status — it will read as `unreachable`.
+URL or the browser, and "could not be fetched" sends people to look at all three.
+
+**Whether a server error reaches you as a status or as an opaque failure is not settled.** The
+2026-08-12 survey found the API's error responses carrying no CORS headers, which makes a 500
+arrive as `unreachable`; a 502 measured on 2026-09-02 carried them and arrived as a readable
+`The server answered 502 Bad Gateway` in three seconds — with a JSON `detail` naming the stage
+that died. The survey used `curl` without an `Origin` header, which a server echoing CORS only
+on CORS requests would answer exactly that way, so the two observations may not disagree at all.
+[`measurements/2026-09-02-node-119582-and-the-chr7-region-around-it.md`](measurements/2026-09-02-node-119582-and-the-chr7-region-around-it.md)
+has that failure in full, including why a fast 502 and a 90-second `slow` are easy to mistake
+for each other on the card.
 
 ---
 
