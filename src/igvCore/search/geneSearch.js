@@ -9,15 +9,27 @@ const DEFAULT_SEARCH_CONFIG = {
 }
 
 /**
- * Look a gene name up with the search web service.
+ * Look a gene name up, MANE transcripts first and the web service second.
  *
- * Resolves to undefined when the service answers but knows nothing about the
- * name; throws when the service could not be reached or timed out. Callers
+ * The MANE tier is an indexed bigBed the genome config already points at, and it
+ * answers the common gene name locally. igv.js searches it first for the same
+ * reason: locus.php is slow and getting slower.
+ *
+ * Resolves to undefined when every tier answers but knows nothing about the
+ * name; throws when the web service could not be reached or timed out. Callers
  * must keep those two apart -- "no such gene" and "the lookup never happened"
  * are different things to tell a user.
  */
 async function searchFeatures(browser, name) {
-    return await searchWebService(browser, name.toUpperCase(), DEFAULT_SEARCH_CONFIG)
+
+    name = name.toUpperCase()
+
+    const maneTranscript = await browser.genome.getManeTranscript(name)
+    if (maneTranscript) {
+        return maneTranscript
+    }
+
+    return await searchWebService(browser, name, DEFAULT_SEARCH_CONFIG)
 }
 
 /**

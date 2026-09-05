@@ -8,6 +8,7 @@ import CytobandFile from "./cytobandFile.js"
 
 import {loadChromSizes} from "./chromSizes.js"
 import ChromAliasDefaults from "./chromAliasDefaults.js"
+import BWSource from "../io/bigwig/bwSource.js"
 
 const ucsdIDMap = new Map([
     ["1kg_ref", "hg18"],
@@ -343,6 +344,51 @@ class Genome {
 
     getHubURLs() {
         return this.config.hubs
+    }
+
+    /**
+     * Return the MANE transcript with the given name, or null if not found. Also checks the refseq
+     * historical db, when the genome config supplies one, for backward compatibility. hg38 only.
+     *
+     * This is a local, indexed lookup (bigBed + trix), and it is how igv.js answers the common gene
+     * name without going near a web service. Ported from igv.js js/genome/genome.js.
+     *
+     * @param {string} name
+     * @return {Promise<Object|null>}
+     */
+    async getManeTranscript(name) {
+
+        if (!this.maneFeatureSource && this.config.maneBbURL) {
+            this.loadManeFeatureSource()
+        }
+        if (this.maneFeatureSource) {
+            const feature = await this.maneFeatureSource.search(name)
+            if (feature) {
+                return feature
+            }
+        }
+
+        if (!this.rsDBFeatureSource && this.config.rsdbURL) {
+            this.rsDBFeatureSource = new BWSource({url: this.config.rsdbURL}, this)
+        }
+        if (this.rsDBFeatureSource) {
+            const feature = await this.rsDBFeatureSource.search(name)
+            if (feature) {
+                return feature
+            }
+        }
+
+        return null
+    }
+
+    loadManeFeatureSource() {
+        if (this.config.maneBbURL != null) {
+            const bbConfig = {url: this.config.maneBbURL}
+            if (this.config.maneTrixURL) {
+                bbConfig.trixURL = this.config.maneTrixURL
+            }
+            this.maneFeatureSource = new BWSource(bbConfig, this)
+        }
     }
 }
 

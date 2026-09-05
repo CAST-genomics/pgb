@@ -14,18 +14,37 @@ vi.mock('igv-utils', async () => {
 import { searchFeatures } from '../search/geneSearch.js'
 import { igvxhr } from 'igv-utils'
 
+// The MANE tier is consulted first; a stub that knows nothing falls through to
+// the web service, which is what these tests are about.
+const makeBrowser = (maneTranscript = null) => ({
+    genome: {
+        id: 'hg38',
+        getChromosomeName: chr => chr,
+        getManeTranscript: async () => maneTranscript,
+    },
+})
+
 describe('searchFeatures (seam test)', () => {
+
+    // Regression: the gene lookup broke because it went straight to
+    // igv.org/genomes/locus.php, which now answers in 3-6s and straddles the
+    // client timeout. igv.js does not have this problem because it resolves the
+    // common gene name from an indexed MANE bigBed first. So do we.
+    it('resolves from MANE transcripts without touching the web service', async () => {
+        igvxhr.loadString.mockClear()
+        const mane = {chr: 'chr11', start: 108222802, end: 108369102, name: 'ATM'}
+
+        const result = await searchFeatures(makeBrowser(mane), 'atm')
+
+        expect(result).toBe(mane)
+        expect(igvxhr.loadString).not.toHaveBeenCalled()
+    })
 
     it('resolves a gene name to a locus via web service', async () => {
         // Mock the IGV search service response format: "GENE\tchr:start-end\tsource"
         igvxhr.loadString.mockResolvedValueOnce('BRCA2\tchr13:32,315,474-32,400,266\trefseq')
 
-        const browser = {
-            genome: {
-                id: 'hg38',
-                getChromosomeName: chr => chr,
-            },
-        }
+        const browser = makeBrowser()
 
         const result = await searchFeatures(browser, 'brca2')
 
@@ -38,12 +57,7 @@ describe('searchFeatures (seam test)', () => {
     it('returns undefined when web service returns empty result', async () => {
         igvxhr.loadString.mockResolvedValueOnce('')
 
-        const browser = {
-            genome: {
-                id: 'hg38',
-                getChromosomeName: chr => chr,
-            },
-        }
+        const browser = makeBrowser()
 
         const result = await searchFeatures(browser, 'NONEXISTENT_GENE')
         expect(result).toBeUndefined()
@@ -57,12 +71,7 @@ describe('searchFeatures (seam test)', () => {
     it('throws when the web service fails, rather than reporting no such gene', async () => {
         igvxhr.loadString.mockImplementationOnce(() => { throw new Error('Timed out') })
 
-        const browser = {
-            genome: {
-                id: 'hg38',
-                getChromosomeName: chr => chr,
-            },
-        }
+        const browser = makeBrowser()
 
         let thrown
         try {
@@ -76,12 +85,7 @@ describe('searchFeatures (seam test)', () => {
     it('allows the slow upstream service more than five seconds', async () => {
         igvxhr.loadString.mockResolvedValueOnce('')
 
-        const browser = {
-            genome: {
-                id: 'hg38',
-                getChromosomeName: chr => chr,
-            },
-        }
+        const browser = makeBrowser()
 
         await searchFeatures(browser, 'brca2')
 
