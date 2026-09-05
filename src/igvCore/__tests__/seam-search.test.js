@@ -49,8 +49,13 @@ describe('searchFeatures (seam test)', () => {
         expect(result).toBeUndefined()
     })
 
-    it('returns undefined when web service throws', async () => {
-        igvxhr.loadString.mockRejectedValueOnce(new Error('Network error'))
+    // Regression: the upstream locus service now answers in 3-6s, straddling
+    // the client timeout. searchFeatures used to swallow that, which made a
+    // timeout indistinguishable from an unknown gene -- so the locus input
+    // blamed what the user typed ("Invalid input format") for a lookup that
+    // never happened. A failed lookup must surface as a failure.
+    it('throws when the web service fails, rather than reporting no such gene', async () => {
+        igvxhr.loadString.mockImplementationOnce(() => { throw new Error('Timed out') })
 
         const browser = {
             genome: {
@@ -59,7 +64,28 @@ describe('searchFeatures (seam test)', () => {
             },
         }
 
-        const result = await searchFeatures(browser, 'brca2')
-        expect(result).toBeUndefined()
+        let thrown
+        try {
+            await searchFeatures(browser, 'brca2')
+        } catch (error) {
+            thrown = error
+        }
+        expect(thrown?.message).toBe('Timed out')
+    })
+
+    it('allows the slow upstream service more than five seconds', async () => {
+        igvxhr.loadString.mockResolvedValueOnce('')
+
+        const browser = {
+            genome: {
+                id: 'hg38',
+                getChromosomeName: chr => chr,
+            },
+        }
+
+        await searchFeatures(browser, 'brca2')
+
+        const [, options] = igvxhr.loadString.mock.calls.at(-1)
+        expect(options.timeout).toBeGreaterThan(5000)
     })
 })

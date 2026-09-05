@@ -61,7 +61,14 @@ class LocusInput {
                 await this.ingestLocus(locus.chr, locus.startBP, locus.endBP);
             } else {
                 // Finally try gene name search
-                const result = await searchFeatures({ genome: globals.defaultGenome }, candidateInput)
+                let result
+                try {
+                    result = await searchFeatures({ genome: globals.defaultGenome }, candidateInput)
+                } catch (error) {
+                    // The lookup never happened -- say so, rather than blaming what was typed.
+                    this.showError(`Gene name lookup is unavailable right now (${error && error.message ? error.message : error}). Try again in a moment, or enter a locus such as chr1:25240000-25460000.`)
+                    return
+                }
                 if (result) {
                     const { chr, start, end, name } = result
                     const token = (name || candidateInput).toUpperCase()

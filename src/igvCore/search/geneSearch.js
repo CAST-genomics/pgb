@@ -2,25 +2,22 @@ import {igvxhr, StringUtils} from 'igv-utils'
 
 
 const DEFAULT_SEARCH_CONFIG = {
-    timeout: 5000,
+    timeout: 20000,
     type: "plain",
     url: 'https://igv.org/genomes/locus.php?genome=$GENOME$&name=$FEATURE$',
     coords: 0
 }
 
+/**
+ * Look a gene name up with the search web service.
+ *
+ * Resolves to undefined when the service answers but knows nothing about the
+ * name; throws when the service could not be reached or timed out. Callers
+ * must keep those two apart -- "no such gene" and "the lookup never happened"
+ * are different things to tell a user.
+ */
 async function searchFeatures(browser, name) {
-
-    let feature
-
-    name = name.toUpperCase()
-
-    try {
-        feature = await searchWebService(browser, name, DEFAULT_SEARCH_CONFIG)
-        return feature
-    } catch (error) {
-        console.log("Search service not available " + error)
-    }
-
+    return await searchWebService(browser, name.toUpperCase(), DEFAULT_SEARCH_CONFIG)
 }
 
 /**
@@ -73,7 +70,12 @@ async function search(browser, string) {
             locusObject = undefined
 
             // Not a locus string, search track annotations
-            const feature = await searchFeatures(browser, locus)
+            let feature
+            try {
+                feature = await searchFeatures(browser, locus)
+            } catch (error) {
+                console.log("Search service not available " + error)
+            }
             if(feature) {
                 locusObject = {
                     chr: feature.chr,
