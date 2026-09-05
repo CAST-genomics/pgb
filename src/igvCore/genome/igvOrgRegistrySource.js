@@ -1,7 +1,10 @@
 import { igvxhr } from 'igv-utils'
 
+// Both mirror igv.js js/genome/genomeUtils.js. The primary is referer-gated -- it
+// serves the IGV applications and answers 403 to anything else -- so the backup is
+// the only tier we can reach outside a browser. Keep it in step with upstream.
 const PRIMARY_URL = 'https://igv.org/genomes/genomes3.json'
-const BACKUP_URL = 'https://raw.githubusercontent.com/igvteam/igv/master/resources/genomes3.json'
+const BACKUP_URL = 'https://raw.githubusercontent.com/igvteam/igv-data/refs/heads/main/genomes/web/genomes.json'
 
 async function initialize() {
 
