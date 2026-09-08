@@ -143,14 +143,20 @@ That is everything. Thank you.
 ```sh
 npm ci
 npm run build
-cd dist && zip -r ../pgb-vX.Y.Z.zip . -x '.DS_Store' -x '**/.DS_Store'
+find dist -name .DS_Store -delete
+zip -r pgb-vX.Y.Z.zip dist
 ```
 
-Note the zip is made from *inside* `dist`, so it unpacks as a directory of files. The
-procedure above assumes a top-level `dist/` in the archive — if you zip `dist` itself
-(`zip -r pgb.zip dist`), keep it that way, but be consistent, and say which you did.
+`dist` itself goes in, so the archive has a single top-level `dist/` directory — which is
+what the administrator's procedure above unpacks and moves into place. Keep it that way:
+an archive that explodes into loose files in the current directory is a different and much
+worse accident on a live document root.
 
-`find dist -name .DS_Store -delete` before zipping if the exclusions miss any.
+Confirm before sending:
+
+```sh
+unzip -l pgb-vX.Y.Z.zip | grep -cE 'dist/assets/index-.*\.(js|css)$'   # expect 2
+```
 
 ### Why the version reporting works the way it does
 
