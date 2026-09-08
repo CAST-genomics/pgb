@@ -138,8 +138,16 @@ Run from a clean `main` that is in sync with `origin`.
    git rev-parse release vX.Y.Z^{commit}   # expect two identical hashes
    ```
 
-   Building the tarball and handing it to the hosting facility happens outside this repo
-   and is not scripted here. It is done from `release`, not from `main`.
+9. **Build the zip and send it, with the deployment instructions.** Done from `release`,
+   not from `main`. [`docs/DEPLOYMENT.md`](../DEPLOYMENT.md) has the build command and — in
+   its first section, written to be forwarded verbatim — the procedure the server
+   administrator follows.
+
+   Send that section every time, not just the first. Its load-bearing instruction is
+   *clear the old directory before unpacking*: the bundle filenames are content-hashed, so
+   unzipping over an existing install leaves every previous release in place, and a browser
+   holding a stale `index.html` will keep loading one of them. That failure is silent — the
+   site works, it is simply an old version of it.
 
 To correct notes after publishing: `gh release edit vX.Y.Z --notes-file <path>`. Do **not**
 move or re-point a tag that has a published release; cut a patch release instead. The same

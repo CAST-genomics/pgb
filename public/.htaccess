@@ -1,0 +1,47 @@
+# PGB deployment caching rules (Apache).
+#
+# Why this file exists: everything under assets/ is content-hashed, so a given filename's
+# contents never change; index.html is not hashed, and it is the only thing that names the
+# current bundle. Without explicit rules Apache sends neither Cache-Control nor Expires for
+# index.html, and browsers then apply *heuristic* freshness — roughly 10% of the document's
+# age — so a months-old index.html is treated as fresh for weeks and is not even
+# revalidated. The tab keeps loading the old assets/index-<hash>.js it names, and the app
+# silently runs an old version. That is exactly what happened at pangenome.ucsd.edu.
+#
+# This file only takes effect if the site's Apache config allows overrides for this
+# directory (`AllowOverride FileInfo Options Indexes` or `AllowOverride All`). If it does
+# not, the same directives can be pasted into the <Directory> block of the site config
+# instead. See docs/agents/deployment-instructions.md.
+
+<IfModule mod_headers.c>
+
+    # index.html: always revalidate. `no-cache` does not mean "do not store" — the browser
+    # may keep it, but must check with the server before reuse. A 304 makes that check
+    # nearly free, and it guarantees a reload picks up a new deployment.
+    <FilesMatch "^index\.html$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+
+    # Content-hashed build output: cache hard and never revalidate. A new build produces a
+    # new filename, so there is no such thing as a stale hit here.
+    <FilesMatch "-[A-Za-z0-9_-]{8,}\.(js|css|png|jpg|jpeg|svg|woff2?)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # Datasets and registries: not hashed, and they do change between releases. An hour of
+    # caching keeps the app quick without stranding a researcher on last month's registry.
+    <FilesMatch "\.(json|tsv)$">
+        Header set Cache-Control "public, max-age=3600, must-revalidate"
+    </FilesMatch>
+
+</IfModule>
+
+# Range requests are load-bearing: the annotation tracks read BigBed and .fai indexes by
+# byte range. Compressing those transparently would break range arithmetic.
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json text/tab-separated-values
+</IfModule>
+
+# No directory listing. assets/ was publicly browsable, which is how four stale bundles
+# were found — useful once, but it should not be the site's normal posture.
+Options -Indexes
