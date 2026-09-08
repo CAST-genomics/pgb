@@ -23,7 +23,7 @@ import eventBus from "./utils/eventBus.ts"
 const EXPORT_SCALE = 4
 import ContextMenuService from "./contextMenuService.js"
 import {rubinColors} from "./utils/color/color.js"
-import {showRelease} from "./utils/utils.js"
+import {buildVersion, fetchLatestRelease, isStaleAgainstLatest} from "./utils/utils.js"
 import appConfig from './appConfig.js'
 import './styles/app.scss'
 
@@ -40,13 +40,11 @@ export const globals = {
 
 document.addEventListener("DOMContentLoaded", async (event) => {
 
-    const release = await showRelease()
-    if (release){
-        console.log(`Release: ${release}`)
-    }
-
-    // Initialize info button popover
-    initializeInfoButton(release)
+    // The build version is known synchronously and is the load-bearing half; the latest
+    // release tag is a network call that may fail, and the popover is useful without it.
+    const version = buildVersion()
+    console.log(`PGB build version: ${version ?? 'unknown'}`)
+    initializeInfoButton(version, await fetchLatestRelease())
 
     await materialService.initialize()
 
@@ -163,16 +161,35 @@ document.addEventListener("DOMContentLoaded", async (event) => {
 
 })
 
-function initializeInfoButton(release) {
+/**
+ * The info popover. It answers one question — *what code is this tab actually running?* —
+ * so the running build's own version leads, and the newest published release is offered
+ * only as context beneath it.
+ *
+ * When the two disagree the popover says so outright. A hosted copy served from a stale
+ * `index.html` is otherwise indistinguishable from a current one, and that ambiguity has
+ * already cost a debugging session.
+ */
+function initializeInfoButton(version, latestRelease) {
     const infoButton = document.getElementById('info-button');
     if (!infoButton) return;
+
+    const lines = [ `Running build: ${version ?? 'unknown'}` ]
+
+    if (latestRelease) {
+        lines.push(`Latest release: ${latestRelease}`)
+        if (isStaleAgainstLatest(version, latestRelease)) {
+            lines.push('This copy is out of date. Reload with a cache bypass (Shift-Reload); if it persists, the deployment needs updating.')
+        }
+    }
 
     const config = {
         container: 'body',
         placement: 'bottom',
         trigger: 'click',
         title: 'Release Information',
-        content: release ? `Current Release: ${release}` : 'Unable to fetch release information'
+        html: true,
+        content: lines.map(line => `<div>${line}</div>`).join('')
     };
 
     new bootstrap.Popover(infoButton, config);

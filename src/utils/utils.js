@@ -114,7 +114,28 @@ function getWorldDistanceFromPixelDistance(camera, pixelDistance, container) {
     return worldDistance
 }
 
-async function showRelease() {
+/**
+ * The version this bundle was built from — `package.json`'s `version`, frozen into the
+ * code by Vite's `define` at build time.
+ *
+ * This is the only trustworthy answer to "what is this deployment running?". It travels
+ * *inside* the bundle, so a browser holding a stale `index.html` that still points at an
+ * old `assets/index-<hash>.js` reports that old bundle's version, which is the truth.
+ */
+function buildVersion() {
+    return typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : null
+}
+
+/**
+ * The newest release tag published on GitHub, or `null` if it cannot be reached.
+ *
+ * This is *not* the running version and must never be presented as one. It was, until the
+ * deployment at pangenome.ucsd.edu spent three months serving a June bundle while the info
+ * popover — reading this endpoint — cheerfully reported the current tag. It is kept only
+ * so the popover can say "a newer release exists", which is a genuinely useful thing for a
+ * researcher on a hosted copy to know.
+ */
+async function fetchLatestRelease() {
     const repoOwner = 'CAST-genomics';
     const repoName = 'pgb';
     const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`;
@@ -130,6 +151,16 @@ async function showRelease() {
         console.error('Failed to fetch latest release tag:', error);
         return null;
     }
+}
+
+/**
+ * Compare a build version against a release tag, tolerating the `v` prefix that tags carry
+ * and `package.json` does not. Neither side being known is not a mismatch — an offline tab
+ * should say nothing rather than accuse the deployment.
+ */
+function isStaleAgainstLatest(build, latest) {
+    if (!build || !latest) return false
+    return latest.replace(/^v/, '') !== build.replace(/^v/, '')
 }
 
 // Handles "pre-release" tags as well as release tags
@@ -152,4 +183,4 @@ async function __showRelease() {
     }
 }
 
-export { prettyPrint, loadPath, uniqueRandomGenerator, getWorldDistanceFromPixelDistance, showRelease }
+export { prettyPrint, loadPath, uniqueRandomGenerator, getWorldDistanceFromPixelDistance, buildVersion, fetchLatestRelease, isStaleAgainstLatest }
