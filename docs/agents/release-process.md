@@ -1,10 +1,13 @@
 # Release process
 
-PGB ships as a tagged GitHub release. There is no npm publish and no deploy step in this
-repo — a release is a **git tag**, a **release page**, and a **version in `package.json`**
-that agrees with both.
+PGB ships as a tagged GitHub release. There is no npm publish and no automated deploy in
+this repo — a release is a **git tag**, a **release page**, a **version in `package.json`**
+that agrees with both, and the **`release` branch** moved forward to that same commit.
 
 Releases so far: `v2.5.0`, `v2.6.0`, `v2.7.0`. The tag is the version with a leading `v`.
+
+The tag and the release page are the record; the `release` branch is the thing that
+actually ships. See [The `release` branch](#the-release-branch).
 
 ## Where the version lives
 
@@ -37,6 +40,35 @@ Semantic versioning, read against PGB's own surfaces rather than a public API:
 A large feature is still a **minor** bump if it takes nothing away. The tube map panel was a
 whole new viewer and went out as `2.7.0`, because no dataset, Look, or event-bus contract
 changed under it. Reach for major only when something a user relies on stops working.
+
+## The `release` branch
+
+`release` is the branch the hosting facility gets. Shipping is manual — the tree is
+archived into a tarball and handed over out of band — so nothing in this repo reads the
+branch automatically. Its job is to be an unambiguous answer to "what is running out
+there?", separate from `main`, which moves continuously.
+
+Three properties define it:
+
+- **`release` only ever points at a commit that is already on `main` and already tagged.**
+  Nothing is authored on `release`. It is a bookmark, not a line of development.
+- **It moves by fast-forward.** `git merge --ff-only main` is the whole operation. Because
+  the branch has no commits of its own, this always succeeds — and if it ever fails, that
+  is the signal that someone committed directly to `release`, which is the one thing this
+  arrangement forbids. Resolve that before shipping; do not reach for a merge commit to
+  paper over it.
+- **The tag comes along for free.** Fast-forwarding to the tagged commit makes `vX.Y.Z`
+  reachable from `release`, so `git describe` on a checkout of the branch names the
+  release. This is why the merge happens *after* the tag exists rather than before.
+
+Blessing the branch is a deliberate, separate act from tagging. A tag says "this commit
+builds and is what we called `v2.8.0`". Moving `release` says "and this is the one we are
+handing to the hosting facility." Usually the same commit, on the same afternoon — but
+keeping them as two steps leaves room to tag a release and hold off shipping it.
+
+`release` lagged `main` by a wide margin before this procedure was written; its last
+movement was `#81` in June 2026, and it does not contain `v2.7.0`. No catch-up work is
+needed — the first fast-forward under this procedure brings it current in one step.
 
 ## The sequence
 
@@ -85,8 +117,34 @@ Run from a clean `main` that is in sync with `origin`.
 
 7. **Verify.** `gh release list` — the new tag should read `Latest`.
 
+8. **Bless the release branch.** This is what the hosting facility receives.
+
+   ```sh
+   git checkout release
+   git pull --ff-only origin release
+   git merge --ff-only main
+   git push origin release
+   git checkout main
+   ```
+
+   `--ff-only` on both the pull and the merge is deliberate: it refuses rather than
+   inventing a merge commit. If either one is rejected, stop and read [The `release`
+   branch](#the-release-branch) — something has been committed to `release` directly, and
+   the shipped tree has diverged from the tagged one.
+
+   Confirm the branch landed where you meant it to:
+
+   ```sh
+   git rev-parse release vX.Y.Z^{commit}   # expect two identical hashes
+   ```
+
+   Building the tarball and handing it to the hosting facility happens outside this repo
+   and is not scripted here. It is done from `release`, not from `main`.
+
 To correct notes after publishing: `gh release edit vX.Y.Z --notes-file <path>`. Do **not**
-move or re-point a tag that has a published release; cut a patch release instead.
+move or re-point a tag that has a published release; cut a patch release instead. The same
+applies to `release`: to un-ship something, move it forward to a new tagged commit, never
+backward or sideways.
 
 ## What the notes say
 
