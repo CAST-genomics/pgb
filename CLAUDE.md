@@ -67,4 +67,4 @@ Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, plus the `notes/`
 
 ### Releases
 
-A release is a git tag, a GitHub release page, and a matching `version` in `package.json`. See `docs/agents/release-process.md`.
+A release is a git tag, a GitHub release page, a matching `version` in `package.json`, and the `release` branch fast-forwarded to that commit — `release` is what ships to the hosting facility. See `docs/agents/release-process.md`.
