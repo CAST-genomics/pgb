@@ -4,7 +4,14 @@ PGB ships as a tagged GitHub release. There is no npm publish and no automated d
 this repo — a release is a **git tag**, a **release page**, a **version in `package.json`**
 that agrees with both, and the **`release` branch** moved forward to that same commit.
 
-Releases so far: `v2.5.0`, `v2.6.0`, `v2.7.0`. The tag is the version with a leading `v`.
+Releases so far: `v2.5.0`, `v2.6.0`, `v2.7.0`, `v2.8.0`, `v2.8.1`, `v2.8.3`. The tag is the
+version with a leading `v`.
+
+There is no `2.8.2`. The version was bumped to it on `main` (`44a7a6a`, #166) but never
+tagged, never given a release page, and never shipped — `release` still sat a commit behind
+it. `2.8.3` supersedes it rather than a tag being invented after the fact, which is the
+right move for any bump that dies before step 4: the ladder skips a rung, and no tag claims
+a release that never went out.
 
 The tag and the release page are the record; the `release` branch is the thing that
 actually ships. See [The `release` branch](#the-release-branch).
@@ -17,10 +24,11 @@ app". Two things about it are specific to this repo and worth knowing before you
 - **`"private": true`** — the package is never published to npm. Nothing outside this repo
   reads the version, so bumping it is a bookkeeping act, not a release trigger. It matters
   because it is what a reader checks to answer "which release is this working tree?".
-- **`package-lock.json` is gitignored** (`.gitignore:10`). `npm version` rewrites the
-  lockfile's copy of the version too, but that change is invisible to git. Only
-  `package.json` appears in the commit. This is fine — just don't go looking for the
-  lockfile in `git status`.
+- **`package-lock.json` is tracked** as of `9b06365`, and carries its own copy of the
+  version. `npm version` rewrites both files and stages both, so the bump commit touches
+  two files, not one. (Before `9b06365` the lockfile was gitignored and the bump commit
+  showed only `package.json` — which is why the `v2.8.1` and earlier bump commits look
+  smaller than the ones after it.)
 
 `version` was `0.0.0` from the start of the project through the `v2.7.0` tag; the field was
 adopted after that release and set to `2.7.0` retroactively. So `v2.7.0`'s tagged commit
