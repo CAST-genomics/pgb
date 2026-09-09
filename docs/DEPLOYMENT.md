@@ -77,15 +77,19 @@ under a live URL.
 
 The zip contains a `.htaccess` file at the top level of `dist/`. It sets the caching rules
 the application needs. **It only takes effect if overrides are enabled for that directory.**
-Please confirm the site's `<Directory>` block contains `AllowOverride All` (or at minimum
-`AllowOverride FileInfo Options Indexes`), and that `mod_headers` is enabled:
+Please confirm the site's `<Directory>` block contains `AllowOverride FileInfo` (or
+`AllowOverride All`), and that `mod_headers` is enabled:
 
 ```sh
 httpd -M | grep headers          # should print "headers_module (shared)"
 ```
 
-If you would rather not enable `.htaccess` overrides, that is completely fine — just paste
-the equivalent directives directly into the site's configuration instead:
+Every directive in the file is in Apache's `FileInfo` override class, so it cannot break
+anything: with a narrower `AllowOverride` it is ignored and the site simply loses the
+caching rules. There is no setting under which it causes an error.
+
+If you would rather not enable `.htaccess` overrides at all, that is completely fine — just
+paste the equivalent directives directly into the site's configuration instead:
 
 ```apache
 <Directory /var/www/pangenome>
@@ -116,8 +120,12 @@ the equivalent directives directly into the site's configuration instead:
 
 Two notes on this:
 
-- **`Options -Indexes`** turns off directory listing. `https://pangenome.ucsd.edu/assets/`
-  is currently browsable by anyone.
+- **`Options -Indexes`** turns off directory listing, and appears only here rather than in
+  the shipped `.htaccess`. `https://pangenome.ucsd.edu/assets/` is currently browsable by
+  anyone, which is worth closing — but `Options` is a different override class from the
+  caching directives, so a `.htaccess` carrying it returns a 500 for the whole directory
+  wherever that class is not granted. It is a request to make in the server config, never
+  a rule to ship in the archive.
 - **Please do not enable transparent compression for `.bb`, `.bbi`, `.fai`, or `.tbi`
   files.** The application reads those by HTTP byte range, and compressing them in flight
   breaks the range arithmetic. The supplied config compresses only text formats.

@@ -42,6 +42,10 @@
     AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json text/tab-separated-values
 </IfModule>
 
-# No directory listing. assets/ was publicly browsable, which is how four stale bundles
-# were found — useful once, but it should not be the site's normal posture.
-Options -Indexes
+# Nothing below this point, deliberately: every directive in this file belongs to Apache's
+# `FileInfo` override class, so the file is either honoured or ignored depending on
+# `AllowOverride` — it can never be fatal. A directive from another class (`Options
+# -Indexes` was here, and `Options` is its own class) makes Apache reject the whole
+# directory with a 500 wherever the override is not granted, which is a far worse outcome
+# than the caching problem this file exists to solve. Turning off directory listing is a
+# server-config recommendation in docs/DEPLOYMENT.md instead.
