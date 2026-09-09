@@ -21,5 +21,9 @@ export interface EventMap {
     'lineIntersection':           { t: number; nodeName: string; nodeLine: Object3DLike };
     'clearIntersection':          Record<string, never>;
     'datasetLoaded':              { dataset: DatasetModel };
+    // Widget asks for a re-fetch under a different layout; main.js performs it.
+    'layout:rebuild':             { mode: 'linear' | 'force'; spineAssembly: string | null };
+    // Fetch finished, success or failure — clears the widget's in-flight lock.
+    'layout:rebuildSettled':      { ok: boolean };
     'pclai-system-changed':       { system: 'hg38' | 'asm' };
 }

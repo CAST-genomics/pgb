@@ -1,6 +1,7 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.ts';
 import GenomicService from "../genomicService.js"
+import { DEFAULT_DATASET_LAYOUT, type DatasetLayout, type DatasetModel } from '../datasetModel.ts';
 
 class AssemblyWidget {
     static ASSEMBLY_SPINE_FEATURES_EMPHASIS = 'spine_features';
@@ -17,9 +18,17 @@ class AssemblyWidget {
     searchInput: HTMLInputElement | null
     switchInput: HTMLInputElement | null
     modeLabel: HTMLElement | null
+    linearSwitch: HTMLInputElement | null
+    rebuildButton: HTMLButtonElement | null
+    spineLabel: HTMLElement | null
     selectedAssembly: { name: string; color: string } | null
     allAssemblyItems: Map<string, HTMLElement>
     emphasisMode: string
+    linearEnabled: boolean
+    rebuildInFlight: boolean
+    datasetLayout: DatasetLayout
+    private hideTimeoutId: ReturnType<typeof setTimeout> | null
+    private unsubscribers: Array<() => void>
     constructor(assemblyWidgetContainer: HTMLElement, genomicService: any, geometryManager: any) {
 
         this.assemblyWidgetContainer = assemblyWidgetContainer;
@@ -33,11 +42,24 @@ class AssemblyWidget {
         this.searchInput = null; // Will be initialized when card is shown
         this.switchInput = null; // Will be initialized when card is shown
         this.modeLabel = null; // Will be initialized when card is shown
+        this.linearSwitch = null; // Will be initialized when card is shown
+        this.rebuildButton = null; // Will be initialized when card is shown
+        this.spineLabel = null; // Will be initialized when card is shown
 
         this.selectedAssembly = null; // Track selected assembly as { name, color } object
         this.allAssemblyItems = new Map(); // Store all items for filtering
 
         this.emphasisMode = AssemblyWidget.ASSEMBLY_SUBGRAPH_EMPHASIS; // Default to subgraph emphasis
+
+        this.linearEnabled = false;
+        this.rebuildInFlight = false;
+        this.datasetLayout = { ...DEFAULT_DATASET_LAYOUT };
+        this.hideTimeoutId = null;
+
+        this.unsubscribers = [
+            eventBus.subscribe('datasetLoaded', ({ dataset }) => this.onDatasetLoaded(dataset)),
+            eventBus.subscribe('layout:rebuildSettled', ({ ok }) => this.onRebuildSettled(ok)),
+        ];
 
     }
 
@@ -113,32 +135,61 @@ class AssemblyWidget {
         event.stopPropagation();
 
         if (this.selectedAssembly && this.selectedAssembly.name === assembly) {
-            // Deselect current assembly selector
-            this.clearSelection();
-            this.selectedAssembly = null;
+            this.deselectAssembly();
+        } else {
+            this.selectAssembly(assembly);
+        }
+    }
 
+    /**
+     * Select an assembly and emphasize it. Selection never changes the layout —
+     * only the Rebuild button fetches. Also used to restore the spine selection
+     * after a reload, which is why it takes a key rather than a click event.
+     */
+    selectAssembly(assembly: string): void {
+
+        const item = this.allAssemblyItems.get(assembly);
+        if (!item) {
+            console.warn(`selectAssembly: no list item for ${ assembly }`);
+            return;
+        }
+
+        // Deselect previous assembly selector if one exists
+        if (this.selectedAssembly !== null) {
+            this.clearSelection();
             const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
             eventBus.publish('assembly:normal', { nodeSet })
-        } else {
-            // Deselect previous assembly selector if one exists
-            if (this.selectedAssembly !== null) {
-                this.clearSelection();
-                const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
-                eventBus.publish('assembly:normal', { nodeSet })
-            }
-
-            console.log(`selected ${ assembly }`)
-
-            // Select new genome and store its name and color
-            this.selectedAssembly =
-                {
-                    name: assembly,
-                    color: AssemblyWidget.NODE_EMPHASIS_COLOR
-                };
-            (event.target as HTMLElement).classList.add('assembly-widget__genome-selector--selected')
-
-            this.emphasizeAssembly(this.selectedAssembly);
         }
+
+        console.log(`selected ${ assembly }`)
+
+        // Select new genome and store its name and color
+        this.selectedAssembly =
+            {
+                name: assembly,
+                color: AssemblyWidget.NODE_EMPHASIS_COLOR
+            };
+
+        item.querySelector('.assembly-widget__genome-selector')
+            ?.classList.add('assembly-widget__genome-selector--selected')
+
+        this.emphasizeAssembly(this.selectedAssembly);
+
+        this.updateRebuildState();
+    }
+
+    /**
+     * Drop emphasis. The layout is untouched — dataset.layout.spineAssembly,
+     * not the selection, is the record of what the geometry is laid out against.
+     */
+    deselectAssembly(): void {
+        this.clearSelection();
+        this.selectedAssembly = null;
+
+        const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
+        eventBus.publish('assembly:normal', { nodeSet })
+
+        this.updateRebuildState();
     }
 
     emphasizeAssembly(selectedAssembly: { name: string; color: string }): void {
@@ -183,7 +234,7 @@ class AssemblyWidget {
 
     initializeSwitchInput(): void {
         if (!this.switchInput) {
-            this.switchInput = this.assemblyWidgetContainer.querySelector('.form-check-input[type="checkbox"]');
+            this.switchInput = this.assemblyWidgetContainer.querySelector('#emphasis-mode-switch');
             if (this.switchInput) {
                 this.switchInput.addEventListener('change', this.onSwitchChange.bind(this));
                 console.log('Switch input initialized successfully');
@@ -204,6 +255,181 @@ class AssemblyWidget {
                 console.error('Mode label element not found');
             }
         }
+    }
+
+    initializeLinearSwitch(): void {
+        if (!this.linearSwitch) {
+            this.linearSwitch = this.assemblyWidgetContainer.querySelector('#linear-mode-switch');
+            if (this.linearSwitch) {
+                this.linearSwitch.addEventListener('change', this.onLinearSwitchChange.bind(this));
+                this.linearSwitch.checked = this.linearEnabled;
+                console.log('Linear switch initialized successfully');
+            } else {
+                console.error('Linear switch element not found');
+            }
+        }
+    }
+
+    initializeRebuildButton(): void {
+        if (!this.rebuildButton) {
+            this.rebuildButton = this.assemblyWidgetContainer.querySelector('#linear-rebuild-button');
+            if (this.rebuildButton) {
+                this.rebuildButton.addEventListener('click', this.onRebuildClick.bind(this));
+                console.log('Rebuild button initialized successfully');
+            } else {
+                console.error('Rebuild button element not found');
+            }
+        }
+    }
+
+    initializeSpineLabel(): void {
+        if (!this.spineLabel) {
+            this.spineLabel = this.assemblyWidgetContainer.querySelector('#linear-spine-label');
+            if (!this.spineLabel) {
+                console.error('Spine label element not found');
+            }
+        }
+    }
+
+    /**
+     * The layout the current switch + selection state is asking for, or null
+     * when there is nothing coherent to ask for.
+     *
+     * Deselecting while linear returns null rather than force: dropping
+     * emphasis must not offer to throw the linearization away.
+     */
+    private desiredLayout(): { mode: 'linear' | 'force'; spineAssembly: string | null } | null {
+        if (!this.linearEnabled) {
+            return { mode: 'force', spineAssembly: null };
+        }
+        if (!this.selectedAssembly) {
+            return null;
+        }
+        return { mode: 'linear', spineAssembly: GenomicService.looseKey(this.selectedAssembly.name) };
+    }
+
+    /**
+     * Rebuild is available exactly when the layout on screen differs from the
+     * one the controls describe. That comparison is the staleness indicator —
+     * there is no separate invalidation state to keep in sync.
+     */
+    private canRebuild(): boolean {
+        if (!this.datasetLayout.refetchable || this.rebuildInFlight) {
+            return false;
+        }
+        const desired = this.desiredLayout();
+        if (!desired) {
+            return false;
+        }
+        return desired.mode !== this.datasetLayout.mode
+            || desired.spineAssembly !== this.datasetLayout.spineAssembly;
+    }
+
+    updateRebuildState(): void {
+        if (this.rebuildButton) {
+            this.rebuildButton.disabled = !this.canRebuild();
+        }
+        if (this.linearSwitch) {
+            // Dropped files and arbitrary URLs carry no request to reissue.
+            this.linearSwitch.disabled = !this.datasetLayout.refetchable || this.rebuildInFlight;
+        }
+    }
+
+    updateSpineLabel(): void {
+        if (!this.spineLabel) {
+            return;
+        }
+
+        const { spineAssembly } = this.datasetLayout;
+        if (!spineAssembly) {
+            this.spineLabel.textContent = 'Spine: —';
+            return;
+        }
+
+        const resolved = this.genomicService.resolveAssemblyKey(spineAssembly) || spineAssembly;
+        const [ assemblyName, haplotype ] = GenomicService.presentationAssemblyLabel(resolved);
+        this.spineLabel.textContent = `Spine: ${ assemblyName } hap${ haplotype }`;
+    }
+
+    /**
+     * Publish, do not fetch. main.js owns the network call, which keeps the
+     * whole effect of this control visible in the composition root.
+     */
+    private requestRebuild(): void {
+        const desired = this.desiredLayout();
+        if (!desired) {
+            return;
+        }
+
+        // The button is the only trigger and is disabled while pending, so at
+        // most one rebuild is ever in flight — no sequence token needed.
+        this.rebuildInFlight = true;
+        this.updateRebuildState();
+
+        eventBus.publish('layout:rebuild', desired);
+    }
+
+    onRebuildClick(): void {
+        if (this.canRebuild()) {
+            this.requestRebuild();
+        }
+    }
+
+    onLinearSwitchChange(event: Event): void {
+        this.linearEnabled = (event.target as HTMLInputElement).checked;
+        console.log('Linear mode toggled:', this.linearEnabled);
+
+        // Fire immediately when the toggle alone determines a new layout —
+        // turning it on with an assembly selected, or turning it off while
+        // linearized. Otherwise the switch looks inert and the user has to
+        // discover the Rebuild button.
+        if (this.canRebuild()) {
+            this.requestRebuild();
+        } else {
+            this.updateRebuildState();
+        }
+    }
+
+    onRebuildSettled(ok: boolean): void {
+        this.rebuildInFlight = false;
+
+        if (!ok) {
+            // The fetch failed and the previous scene is still up. Put the
+            // switch back in sync with the layout actually on screen.
+            this.linearEnabled = this.datasetLayout.mode === 'linear';
+            if (this.linearSwitch) {
+                this.linearSwitch.checked = this.linearEnabled;
+            }
+        }
+
+        this.updateRebuildState();
+    }
+
+    /**
+     * Runs after populateList() has already cleared the selection, so the
+     * spine assembly is re-selected here — otherwise a rebuild would erase the
+     * selection that triggered it and the toggle would appear to reset itself.
+     */
+    onDatasetLoaded(dataset: DatasetModel): void {
+        this.datasetLayout = dataset.layout;
+        this.rebuildInFlight = false;
+
+        this.linearEnabled = dataset.layout.mode === 'linear';
+        if (this.linearSwitch) {
+            this.linearSwitch.checked = this.linearEnabled;
+        }
+
+        if (dataset.layout.spineAssembly) {
+            const fullKey = this.genomicService.resolveAssemblyKey(dataset.layout.spineAssembly);
+            if (fullKey) {
+                this.selectAssembly(fullKey);
+            } else {
+                console.warn(`spine assembly ${ dataset.layout.spineAssembly } is not present in this dataset`);
+            }
+        }
+
+        this.updateSpineLabel();
+        this.updateRebuildState();
     }
 
     onSearchInput(event: Event): void {
@@ -276,6 +502,12 @@ class AssemblyWidget {
     }
 
     showCard(): void {
+        // A hide from this same load may still be pending; without this the
+        // deferred display:none lands after the card has been reopened.
+        if (this.hideTimeoutId !== null) {
+            clearTimeout(this.hideTimeoutId);
+            this.hideTimeoutId = null;
+        }
         this.assemblyWidgetContainer.style.display = '';
         this.assemblyWidgetContainer.style.top = '0px'
         this.assemblyWidgetContainer.style.left = '0px'
@@ -287,12 +519,20 @@ class AssemblyWidget {
             this.initializeSwitchInput();
             // Initialize mode label when card is shown
             this.initializeModeLabel();
+            // Initialize linear-mode controls when card is shown
+            this.initializeLinearSwitch();
+            this.initializeRebuildButton();
+            this.initializeSpineLabel();
+            // Footer elements only exist now, so sync them to the loaded dataset
+            this.updateSpineLabel();
+            this.updateRebuildState();
         }, 0);
     }
 
     hideCard(): void {
         this.assemblyWidgetContainer.classList.remove('show');
-        setTimeout(() => {
+        this.hideTimeoutId = setTimeout(() => {
+            this.hideTimeoutId = null;
             this.assemblyWidgetContainer.style.display = 'none';
             // Clear search input when hiding card
             if (this.searchInput) {
@@ -314,6 +554,10 @@ class AssemblyWidget {
 
     destroy(): void {
         this.draggable.destroy();
+        for (const unsubscribe of this.unsubscribers) {
+            unsubscribe();
+        }
+        this.unsubscribers = [];
         if (this.searchInput) {
             this.searchInput.removeEventListener('input', this.onSearchInput.bind(this));
         }

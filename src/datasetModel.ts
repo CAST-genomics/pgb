@@ -72,8 +72,26 @@ export interface DatasetIndex {
     hasAssemblyMetadata: boolean;
 }
 
+/**
+ * How the geometry of a dataset was laid out, and whether that layout can be
+ * changed without re-entering a locus (in the case of a file which was dropped in,
+ * since the linearization requires all the information in a typical request)
+ */
+export interface DatasetLayout {
+    mode: 'linear' | 'force';
+    spineAssembly: string | null;
+    refetchable: boolean;
+}
+
+export const DEFAULT_DATASET_LAYOUT: DatasetLayout = {
+    mode: 'force',
+    spineAssembly: null,
+    refetchable: false,
+};
+
 export interface DatasetModel {
     formatVersion: FormatVersion;
+    layout: DatasetLayout;
     locus: { queriedLocus: string | null; actualLocus: string | null };
     assemblyIndex: Map<string, { sequenceId: string; region: string }> | null;
     sequences: Map<string, string>;

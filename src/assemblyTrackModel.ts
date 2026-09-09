@@ -42,7 +42,7 @@ function parseRegion(region: string): { start: number; end: number } | null {
 }
 
 function normalizeStrand(s: string | null | undefined): '+' | '-' {
-    return s === '-' ? '-' : '+'
+    return (s === '-' || s === '<') ? '-' : '+'
 }
 
 /**
