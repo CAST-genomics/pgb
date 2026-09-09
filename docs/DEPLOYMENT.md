@@ -15,12 +15,17 @@ site: HTML, JavaScript, CSS, and data files. Nothing needs to be installed or re
 
 ### The one thing that matters
 
-**Delete the old files before unpacking the new ones. Do not unzip over the top of the
-existing installation.**
+**The zip is the entire site. Replace the served directory with it — do not merge, do not
+unzip on top, do not preserve anything from the previous install.**
 
-PGB's JavaScript filenames contain a content hash — `assets/index-DSDOJ5fl.js`. Every
-release produces a new filename. If you unzip over an existing install, the *old* files are
-not removed, and the site ends up serving several versions at once:
+There is nothing in an existing PGB installation worth keeping. No uploaded content, no
+generated files, no local state. Every file the site needs is in the archive. If a file is
+present on the server and absent from the zip, it is stale by definition and must go.
+
+That is not a stylistic preference. PGB's JavaScript filenames contain a content hash —
+`assets/index-DSDOJ5fl.js` — so every release produces a *new* filename, and `unzip` has no
+reason to remove the old one. Unpacking over an existing install therefore accumulates
+versions rather than replacing them:
 
 ```
 assets/index-BjTEuFA2.js    ← October 2025
@@ -29,34 +34,44 @@ assets/index-CQQeYjFN.js    ← June 2026
 assets/index-DSDOJ5fl.js    ← the version you just installed
 ```
 
-Any browser that still has an older `index.html` cached will keep requesting the older
-JavaScript file — and because that file is still sitting there, the server happily returns
-it. The visitor sees a months-old version of the application with no error and no
-indication anything is wrong. This has already happened once and cost several days of
-confusion.
+`index.html` is the only file that names which bundle to load, and it is *not* hashed — it
+has the same name in every release. A browser holding a cached `index.html` from June asks
+for June's bundle, that file is still sitting on disk, and the server returns it with a
+`200`. The visitor gets a three-month-old application with no error, no fallback, and no
+indication whatsoever that anything is wrong.
+
+Delete the old files and that request returns `404` instead: the page fails loudly and
+visibly, which is enormously preferable to failing silently. This has already happened once
+at pangenome.ucsd.edu and cost days of confusion.
 
 ### Procedure
 
 Assuming the site lives at `/var/www/pangenome` — substitute your actual document root.
 
 ```sh
-# 1. Keep a rollback copy of the current install.
+# 1. Move the entire current install out of the way. Not "clean it up" — move all of it.
+#    This is the rollback copy; keep it outside the document root, never inside it.
 sudo mv /var/www/pangenome /var/www/pangenome.backup-$(date +%Y%m%d)
 
-# 2. Unpack the new zip into a fresh directory.
-mkdir -p /tmp/pgb-new && cd /tmp/pgb-new
-unzip ~/pgb-vX.Y.Z.zip          # this creates a "dist" directory
+# 2. Unpack the zip somewhere clean. It contains a single "dist" directory.
+rm -rf /tmp/pgb-new && mkdir -p /tmp/pgb-new && cd /tmp/pgb-new
+unzip ~/pgb-vX.Y.Z.zip
 
-# 3. Put it in place.
+# 3. That directory, exactly as unpacked, becomes the site.
 sudo mv /tmp/pgb-new/dist /var/www/pangenome
 sudo chown -R apache:apache /var/www/pangenome    # or www-data:www-data on Debian/Ubuntu
 sudo chmod -R a+rX /var/www/pangenome
 ```
 
-No `systemctl restart` is needed. Apache picks up static files immediately.
+Step 1 is what makes this a replacement rather than a merge. Copying the new files *into*
+the existing directory — `cp -r`, `rsync` without `--delete`, unzipping in place — all
+reproduce the exact failure this procedure exists to prevent.
 
-Once it looks right, remove the backup directory at your convenience. Keeping it *next to*
-the live directory is fine; do not leave it *inside* the live one.
+No `systemctl restart` is needed; Apache picks up static files immediately.
+
+Delete the backup directory once the checks below pass. Keeping it *beside* the live
+directory is fine; it must never end up *inside* it, or it becomes stale content served
+under a live URL.
 
 ### Apache configuration (one time only)
 
@@ -111,14 +126,17 @@ Two notes on this:
 
 Two checks, both quick.
 
-**1. From your own machine, confirm no old bundles remain:**
+**1. From your own machine, confirm the directory holds the new release and nothing else:**
 
 ```sh
 ls /var/www/pangenome/assets/
 ```
 
-There should be exactly one `index-*.js` and one `index-*.css`. If there are several, the
-old install was not cleared — go back and do step 1.
+Exactly two files: one `index-*.js` and one `index-*.css`. Any additional `index-*.js` is a
+leftover from a previous release, which means the install was merged rather than replaced —
+go back to step 1 and start over. Do not simply delete the extras; a directory that
+accumulated bundles may have accumulated other stale files too, and the point is to be
+certain rather than to tidy.
 
 **2. From a browser, confirm the running version.** Open the site, click the ⓘ button in
 the top-right of the navigation bar. It reports:
