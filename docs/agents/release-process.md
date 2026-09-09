@@ -4,14 +4,26 @@ PGB ships as a tagged GitHub release. There is no npm publish and no automated d
 this repo — a release is a **git tag**, a **release page**, a **version in `package.json`**
 that agrees with both, and the **`release` branch** moved forward to that same commit.
 
-Releases so far: `v2.5.0`, `v2.6.0`, `v2.7.0`, `v2.8.0`, `v2.8.1`, `v2.8.3`. The tag is the
-version with a leading `v`.
+Releases so far: `v2.5.0`, `v2.6.0`, `v2.7.0`, `v2.8.0`, `v2.8.1`, `v2.8.3`, `v2.9.0`. The
+tag is the version with a leading `v`.
 
-There is no `2.8.2`. The version was bumped to it on `main` (`44a7a6a`, #166) but never
+Two gaps in that ladder are worth knowing, because both illustrate rules stated below.
+
+**There is no `2.8.2`.** The version was bumped to it on `main` (`44a7a6a`, #166) but never
 tagged, never given a release page, and never shipped — `release` still sat a commit behind
-it. `2.8.3` supersedes it rather than a tag being invented after the fact, which is the
+it. `2.8.3` superseded it rather than a tag being invented after the fact, which is the
 right move for any bump that dies before step 4: the ladder skips a rung, and no tag claims
 a release that never went out.
+
+**`2.8.3` was published and then superseded by `2.9.0` the same day**, over the same tree.
+It went out as a patch, but it carried linear mode (#109) — a new capability, which
+[Choosing the number](#choosing-the-number) makes a minor. Because its tag and release page
+were already published, they were left exactly where they were and `2.9.0` was cut as a new
+release on top; the `v2.8.3` page is marked superseded and says why. This is the shape every
+"wrong number, already published" correction should take. Re-pointing the tag would have
+been the tempting move and is the one thing forbidden — see the end of [The
+sequence](#the-sequence). It cost one extra release to fix, and nothing had shipped yet,
+which is the argument for settling the bump level *before* step 3 rather than after step 6.
 
 The tag and the release page are the record; the `release` branch is the thing that
 actually ships. See [The `release` branch](#the-release-branch).
@@ -42,7 +54,7 @@ Semantic versioning, read against PGB's own surfaces rather than a public API:
 | Bump | When | Example |
 |---|---|---|
 | **major** (`3.0.0`) | A dataset format is dropped, or a change breaks how existing users drive the app | dropping v1/v2 dataset support would have been one, had it not shipped inside `v2.6.0` |
-| **minor** (`2.8.0`) | New capability, additive | the tube map panel (`v2.7.0`), Assembly Walk mode (`v2.6.0`) |
+| **minor** (`2.9.0`) | New capability, additive | linear mode (`v2.9.0`), the tube map panel (`v2.7.0`), Assembly Walk mode (`v2.6.0`) |
 | **patch** (`2.7.1`) | Fixes only, no new capability | a raycast regression fix |
 
 A large feature is still a **minor** bump if it takes nothing away. The tube map panel was a
