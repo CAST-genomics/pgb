@@ -295,6 +295,7 @@ describe('layout', () => {
             mode: 'force',
             spineAssembly: null,
             refetchable: false,
+            spineNodes: null,
         })
     })
 
@@ -305,7 +306,8 @@ describe('layout', () => {
             refetchable: true,
         }
         const result = parseDataset(makeV3(), requestLayout)
-        expect(result.layout).toEqual(requestLayout)
+        // spineNodes is never part of a request snapshot; only the response carries it.
+        expect(result.layout).toEqual({ ...requestLayout, spineNodes: null })
     })
 
     it('fills unspecified fields from the default', () => {
@@ -314,6 +316,7 @@ describe('layout', () => {
             mode: 'force',
             spineAssembly: null,
             refetchable: true,
+            spineNodes: null,
         })
     })
 
@@ -385,6 +388,29 @@ describe('spine block', () => {
         const { layout } = parseDataset(v3)
         expect(layout.mode).toBe('linear')
         expect(layout.spineAssembly).toBeNull()
+    })
+
+    it('reads the spine walk in the order the backend laid it out', () => {
+        // Order is the point: adjacency in this array is what tells the geometry which
+        // spine-to-spine edges are skips. It must survive the parse untouched.
+        const v3 = makeV3()
+        v3.spine = spineBlock({ nodes: ['110051+', '110052+', '110053+'] })
+        const { layout } = parseDataset(v3)
+        expect(layout.spineNodes).toEqual(['110051+', '110052+', '110053+'])
+    })
+
+    it('leaves the spine walk null for a response that omits it', () => {
+        // Linear responses predating the attribute. Geometry falls back to hiding
+        // spine-to-spine edges wholesale rather than guessing at an order.
+        const v3 = makeV3()
+        v3.spine = spineBlock()
+        expect(parseDataset(v3).layout.spineNodes).toBeNull()
+    })
+
+    it('discards a malformed spine walk rather than half-reading it', () => {
+        const v3 = makeV3()
+        v3.spine = spineBlock({ nodes: [null, 42, ''] })
+        expect(parseDataset(v3).layout.spineNodes).toBeNull()
     })
 })
 

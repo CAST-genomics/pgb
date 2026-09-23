@@ -81,12 +81,22 @@ export interface DatasetLayout {
     mode: 'linear' | 'force';
     spineAssembly: string | null;
     refetchable: boolean;
+    /**
+     * The spine's node ids, signed and in spine order, exactly as the backend laid
+     * them out. This is the authoritative topology: two spine nodes are adjacent when
+     * they are consecutive here, and any other edge joining two spine nodes is a skip.
+     *
+     * Null for force layouts, and for linear responses predating the backend's
+     * `spine.nodes` attribute.
+     */
+    spineNodes: string[] | null;
 }
 
 export const DEFAULT_DATASET_LAYOUT: DatasetLayout = {
     mode: 'force',
     spineAssembly: null,
     refetchable: false,
+    spineNodes: null,
 };
 
 export interface DatasetModel {

@@ -329,6 +329,18 @@ function normalizeSpineBlock(raw: unknown): Partial<DatasetLayout> {
             .join('#');
     }
 
+    // `spine.nodes` is the backend's own spine walk: signed node ids in spine order.
+    // It is the only trustworthy source of spine topology — a walk recomputed from the
+    // edge list takes shortcuts across skip edges and silently omits the nodes they
+    // bypass. Older linear responses predate it, hence the presence check.
+    if (Array.isArray(spine.nodes)) {
+        const spineNodes = spine.nodes
+            .filter(id => typeof id === 'string' && id.length > 0) as string[];
+        if (spineNodes.length > 0) {
+            normalized.spineNodes = spineNodes;
+        }
+    }
+
     return normalized;
 }
 

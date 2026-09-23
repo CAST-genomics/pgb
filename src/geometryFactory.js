@@ -1,11 +1,14 @@
 import * as THREE from 'three';
-import LineFactory from './lineFactory.js';
+import LineFactory, { ARC_PARAMS } from './lineFactory.js';
 import { buildNodeRibbonGeometry } from './ribbonNode.ts';
 import {prettyPrint} from "./utils/utils.js"
 
 class GeometryFactory {
 
     static EDGE_LINE_Z_OFFSET = -12;
+
+    // #spineSkipCount: this edge is not drawn at all.
+    static EDGE_HIDDEN = -1;
 
     constructor(genomicService) {
         this.genomicService = genomicService;
@@ -23,7 +26,7 @@ class GeometryFactory {
 
         this.#createNodeGeometries(dataset.nodes);
 
-        this.#createEdgeGeometries(dataset.edges, this.#spineNodeIds(dataset));
+        this.#createEdgeGeometries(dataset.edges, this.#spineTopology(dataset));
 
         const result = {
             splines: this.splines,
@@ -81,12 +84,30 @@ class GeometryFactory {
     }
 
     /**
-     * The node ids of the spine walk, when the dataset was laid out linearly.
-     * Null in force mode, or when the spine assembly can't be resolved to a walk.
+     * The spine's topology, when the dataset was laid out linearly. Null in force mode.
+     *
+     * `order` is the backend's own spine walk, position by node id, and is the only
+     * source trusted to say which spine nodes are adjacent. A walk recomputed here from
+     * the edge list cannot answer that question: it is a shortest path, so it takes
+     * every skip edge as a shortcut and drops the nodes they bypass.
+     *
+     * Linear responses predating the backend's `spine.nodes` attribute fall back to
+     * that recomputed walk for membership alone — enough to keep hiding spine-to-spine
+     * edges the way they always were. No arcs are drawn from it: an order this code
+     * does not trust must not be the thing that decides what counts as a skip.
      */
-    #spineNodeIds(dataset) {
-        const { mode, spineAssembly } = dataset.layout || {};
-        if (mode !== 'linear' || !spineAssembly) {
+    #spineTopology(dataset) {
+        const { mode, spineAssembly, spineNodes } = dataset.layout || {};
+        if (mode !== 'linear') {
+            return null;
+        }
+
+        if (spineNodes && spineNodes.length > 0) {
+            const order = new Map(spineNodes.map((id, index) => [id, index]));
+            return { nodeIds: new Set(spineNodes), order };
+        }
+
+        if (!spineAssembly) {
             return null;
         }
 
@@ -96,25 +117,61 @@ class GeometryFactory {
             return null;
         }
 
-        return new Set(walk.spineFeatures.spine.nodes.map(({ id }) => id));
+        return { nodeIds: new Set(walk.spineFeatures.spine.nodes.map(({ id }) => id)), order: null };
+    }
+
+    /**
+     * How an edge between two spine nodes should be drawn, as a count of the spine
+     * nodes it jumps over:
+     *
+     *   0             draw it straight — at least one endpoint is off the spine
+     *   EDGE_HIDDEN   do not draw it at all
+     *   n > 0         draw it as an arc over n spine nodes
+     *
+     * The spine is laid out as a straight run of abutting nodes, so an edge joining two
+     * *adjacent* spine nodes adds nothing but overdraw along that run, and is hidden. An
+     * edge joining two spine nodes the spine does not place next to each other is a
+     * skip: it carries real structure the straight run cannot show, so it arcs.
+     * Direction is not part of the test — a backwards skip is still a skip.
+     */
+    #spineSkipCount(spine, startNodeName, endNodeName) {
+        if (!spine || !spine.nodeIds.has(startNodeName) || !spine.nodeIds.has(endNodeName)) {
+            return 0;
+        }
+
+        if (!spine.order) {
+            return GeometryFactory.EDGE_HIDDEN;
+        }
+
+        const gap = Math.abs(spine.order.get(endNodeName) - spine.order.get(startNodeName));
+
+        return gap === 1 ? GeometryFactory.EDGE_HIDDEN : gap - 1;
     }
 
     /**
      * Create edge line geometries without materials
      *
-     * @param {Set<string>|null} spineNodeIds - In linear mode the spine is drawn as a
-     * straight run of nodes, so the edges joining spine nodes to each other add nothing
-     * but overdraw along that run. Skip them. Edges with at least one off-spine endpoint
-     * still carry the graph's branching structure and are kept.
+     * @param {{ nodeIds: Set<string>, order: Map<string, number>|null }|null} spine -
+     * the spine topology, per #spineTopology. Null in force mode, where every edge is
+     * drawn straight. Edges with at least one off-spine endpoint carry the graph's
+     * branching structure and are always drawn straight; #spineSkipCount decides the
+     * rest.
      */
-    #createEdgeGeometries(edges, spineNodeIds) {
+    #createEdgeGeometries(edges, spine) {
+
+        // Successive arcs alternate above and below the spine, so two skips over the
+        // same stretch of it stay legible instead of stacking. `edges` arrives in the
+        // backend's order, which follows the spine, so alternating them as they are
+        // drawn alternates them along the spine.
+        let arcSide = ARC_PARAMS.START_SIDE;
 
         for (const { startingNode, endingNode } of edges) {
 
             const startNodeName = this.getActualSignedNodeName(startingNode);
             const endNodeName = this.getActualSignedNodeName(endingNode);
 
-            if (spineNodeIds && spineNodeIds.has(startNodeName) && spineNodeIds.has(endNodeName)) {
+            const skippedNodeCount = this.#spineSkipCount(spine, startNodeName, endNodeName);
+            if (skippedNodeCount === GeometryFactory.EDGE_HIDDEN) {
                 continue;
             }
 
@@ -129,10 +186,18 @@ class GeometryFactory {
             xyzEnd.z = GeometryFactory.EDGE_LINE_Z_OFFSET;
 
 
+            let geometry;
+            if (skippedNodeCount > 0) {
+                geometry = LineFactory.createSkipArcGeometry(xyzStart, xyzEnd, skippedNodeCount, arcSide);
+                arcSide *= -1;
+            } else {
+                geometry = LineFactory.createEdgeRectGeometry(xyzStart, xyzEnd);
+            }
+
             const payload =
                 {
                     type: 'edge',
-                    geometry: LineFactory.createEdgeRectGeometry(xyzStart, xyzEnd),
+                    geometry,
                     startPoint: xyzStart,
                     endPoint: xyzEnd,
                     startNode: startNodeName,
