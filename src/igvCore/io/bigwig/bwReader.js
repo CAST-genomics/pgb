@@ -264,7 +264,9 @@ class BWReader {
                     return false
                 })
                 if (matching.length > 0) {
-                    return matching.reduce((l, f) => (l.end - l.start) > (f.end - f.start) ? l : f, features[0])
+                    // Seed from the matches, not the block: a block holds hundreds of
+                    // unrelated features, and its first one must not outrank the match.
+                    return matching.reduce((l, f) => (l.end - l.start) > (f.end - f.start) ? l : f)
                 } else {
                     return undefined
                 }
