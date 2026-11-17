@@ -57,6 +57,14 @@
       background-color: white;
     }
 
+    // Bootstrap's outline hover is white text on a grey fill; with our white
+    // fill that blanks the label. Darken instead to signal "selectable".
+    .btn:not(.active):hover {
+      color: colors.$licorice;
+      background-color: colors.$mercury;
+      border-color: colors.$steel;
+    }
+
     .btn.active {
       color: white;
       background-color: colors.$steel;
