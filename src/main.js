@@ -16,6 +16,7 @@ import HeatmapLook from "./looks/heatmapLook.ts"
 import SceneManager from './sceneManager.js'
 import PangenomeService from "./pangenomeService.js"
 import mountAnnotationTrack from "./mountAnnotationTrack.ts"
+import { mountLocusDisplay } from "./mountLocusDisplay.ts"
 import { mountPrintPanel } from "./widgets/printPanel.ts"
 import { downloadBlob, timestampedFilename } from "./utils/downloadBlob.ts"
 import eventBus from "./utils/eventBus.ts"
@@ -29,12 +30,13 @@ import './styles/app.scss'
 
 let contextMenuService
 
-/** @type {{ app: any, locusInput: any, defaultGenome: any, annotationTrack: any, widgetService: any }} */
+/** @type {{ app: any, locusInput: any, defaultGenome: any, annotationTrack: any, locusDisplay: any, widgetService: any }} */
 export const globals = {
     app: null,
     locusInput: null,
     defaultGenome: null,
     annotationTrack: null,
+    locusDisplay: null,
     widgetService: null,
 }
 
@@ -86,6 +88,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
         container: document.querySelector('.pgb-gene-annotation-track-container'),
         genomicService, sceneManager, raycastService
     })
+
+    globals.locusDisplay = mountLocusDisplay(threeJSContainer)
 
     const pangenomeService = new PangenomeService()
 

@@ -1,0 +1,32 @@
+// Locus display (#175) — inert caption at the top of the 3D view.
+// Painted, not interactive: no pointer events, no selection.
+.pgb-locus-display {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--bs-body-color);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 1;
+
+  &:empty {
+    display: none;
+  }
+
+  &__item {
+    display: inline-flex;
+    gap: 0.4em;
+    white-space: nowrap;
+  }
+
+  &__value {
+    font-weight: 600;
+  }
+}

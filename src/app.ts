@@ -453,6 +453,8 @@ class App {
 
         globals.annotationTrack.clear()
 
+        globals.locusDisplay.clear()
+
         this.genomicService.clear()
 
         this.geometryManager.clear()
