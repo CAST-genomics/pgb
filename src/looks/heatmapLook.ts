@@ -3,7 +3,7 @@ import Look from "./look.ts"
 import {assemblyMetadataService } from "../assemblyMetadataService.ts"
 import {frequencyAnalysisService} from "../frequencyAnalysisService.js"
 import {frequencyToColorContinuous} from "../utils/color/tufteHeatmapColors.js"
-import { ylGnBu, ylOrRd, blues } from "../utils/color/color-ramps.js"
+import { ylGnBu, ylOrRd, blues, devon, cetL12 } from "../utils/color/color-ramps.js"
 
 /**
  * Parameter-binding events (the Look's "shader uniforms" — inputs that drive
@@ -69,8 +69,9 @@ class HeatmapLook extends Look {
                 rawFrequency = frequency.population[ acronym ]
             }
 
-            // const color = new THREE.Color(ylOrRd.hex(rawFrequency))
-            const color = frequencyToColorContinuous(rawFrequency)
+            // const color = frequencyToColorContinuous(rawFrequency)
+            // Guard: ramp.color(undefined) indexes rgbStops[NaN] and throws.
+            const color = cetL12.color(rawFrequency ?? 0)
             console.log(`frequency ${ rawFrequency }`)
 
             // Ribbon nodes carry a ShaderMaterial whose color lives in a uniform;
