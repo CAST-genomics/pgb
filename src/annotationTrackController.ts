@@ -101,6 +101,9 @@ class AnnotationTrackController {
 
         const { anchors, bpStart, bpEnd } = this.coordinateIndex.build(trackModel)
 
+        // New assembly: start at the top feature row.
+        this.canvas.resetScroll()
+
         const chr = this.genomicService.getSequenceId(this.assembly)
 
         const genomeLibraryKey = this.genomicService.getGenomeLibraryKey(this.assembly)
@@ -184,12 +187,13 @@ class AnnotationTrackController {
             return
         }
 
-        const { left, width } = this.container.getBoundingClientRect();
-        const exe = event.clientX - left;
+        // Map through the drawable track width (excludes the scrollbar gutter),
+        // the same width the genes were drawn against.
+        const exe = event.clientX - this.canvas.trackLeft
+        const param = exe / this.canvas.trackWidth
+        if (param < 0 || param > 1) return   // over the scrollbar gutter
 
         this.canvas.showFeedbackAtPixel(exe)
-
-        const param = (exe / width)
 
         const result = this.coordinateIndex.getXYZFromTrackParam(param, this.sceneManager)
         if (!result) return;
