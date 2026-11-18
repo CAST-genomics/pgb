@@ -2,7 +2,7 @@
 
 Interaction flows between the **PCLAI Widget** (scrollable list of `assembly#haplotype` coordinate keys) and the **PCLAI Chart** (2D scatter plot with reference background) when the user selects an item in the widget.
 
-The two components are decoupled — they communicate exclusively through `eventBus`. The widget never holds a reference to the chart, and the chart never queries the widget. State convergence happens via three events: `pclaiWidget:emphasis`, `pclaiWidget:deselect`, and `pclaiWidget:absence`.
+The two components are decoupled — they communicate exclusively through `eventBus`. The widget never holds a reference to the chart, and the chart never queries the widget. State convergence happens via three events: `pclaiWidget:emphasis`, `pclaiWidget:deselect`, and `pclaiWidget:normal`.
 
 ---
 
@@ -18,7 +18,7 @@ The widget owns the list UI and the user's current selection. The chart owns the
 | **PclaiChart** | View | Surface, reference dots, dataset dots, axes; `renderDots`, `clearChart`, `exportToSvg` |
 | **mountPclaiChart** | Bootstrap facade | Wires controller↔chart, owns reference data, card chrome, button |
 | **pclaiCoordinateService** | Data source (singleton) | Coordinate maps keyed by node id and by coordinate key |
-| **pclaiAbsenceCoordinator** | Shared absence-mode arbiter | Counts presenters (`pclaiWidget`, `pclaiChart`) requesting "absent" emphasis |
+| **genomicService** | Subgraph source | `getAssemblyHaplotypeSubgraphNodes(ASM#HAP)` — the selected haplotype's subgraph |
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '18px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 50}}}%%
@@ -38,21 +38,21 @@ flowchart TB
     end
 
     PCS[pclaiCoordinateService<br/>node ↔ coord maps]
-    ABS[pclaiAbsenceCoordinator<br/>shared absence presenter count]
+    GS[genomicService<br/>haplotype subgraph]
     Look[NodeEmphasisLook<br/>3D node coloring]
 
     User[User clicks list item] --> PW
     PW -->|"pclaiWidget:emphasis"| EB
     PW -->|"pclaiWidget:deselect"| EB
-    PW -->|"pclaiWidget:absence"| EB
-    PW -->|getNodeIdsWithCoordinateKey<br/>getAbsentNodeSet| PCS
-    PW -->|acquire/release| ABS
+    PW -->|"pclaiWidget:normal"| EB
+    PW -->|getNodeIdsWithCoordinateKey| PCS
+    PW -->|getAssemblyHaplotypeSubgraphNodes| GS
 
     EB -->|emphasis / deselect| CTRL
     CTRL -->|render| CH
     CTRL -->|getCoordinatesForCoordinateKey<br/>getCoordinatesForNode| PCS
 
-    EB -->|emphasis| Look
+    EB -->|emphasis / normal| Look
 
     MNT -.owns.-> CTRL
     MNT -.owns.-> CH
@@ -71,6 +71,7 @@ sequenceDiagram
     participant User
     participant PW as PCLAIWidget
     participant PCS as pclaiCoordinateService
+    participant GS as genomicService
     participant EB as EventBus
     participant CTRL as PclaiChartController
     participant CH as PclaiChart
@@ -87,9 +88,10 @@ sequenceDiagram
     PW->>PW: emphasizeAssembly(coordinateKey)
     PW->>PCS: getNodeIdsWithCoordinateKey(coordinateKey)
     PCS-->>PW: nodeSet
-    PW->>PCS: getAbsentNodeSet()
-    PCS-->>PW: absentNodeSet
-    PW->>EB: publish('pclaiWidget:emphasis',<br/>{ assembly:{name:coordinateKey}, resolvedAssemblyKey,<br/>  nodeSet, absentNodeSet, deemphasisColor })
+    PW->>GS: getAssemblyHaplotypeSubgraphNodes(coordinateKey)
+    GS-->>PW: subgraph
+    PW->>PW: absentNodeSet = subgraph − nodeSet
+    PW->>EB: publish('pclaiWidget:emphasis',<br/>{ assembly:{name:coordinateKey}, resolvedAssemblyKey,<br/>  nodeSet, absentNodeSet, emphasisColor,<br/>  deemphasisColor, absenceColor })
 
     Note over EB,Look: Two subscribers fan out
     EB->>Look: pclaiWidget:emphasis<br/>(colors 3D nodes)
@@ -112,9 +114,11 @@ sequenceDiagram
 |-------|------|-------|
 | `assembly.name` | string | The coordinate key (`assembly#haplotype`) — controller reads this |
 | `resolvedAssemblyKey` | string | 3-part assembly-walk key for downstream consumers (NodeEmphasisLook) |
-| `nodeSet` | Set\<string\> | Node ids that contain this coordinate key |
-| `absentNodeSet` | Set\<string\> | Node ids absent from any pclai data |
-| `deemphasisColor` | string | `#aaaaaa` — applied to non-emphasized nodes |
+| `nodeSet` | Set\<string\> | Node ids with a placement for this key (active system) |
+| `absentNodeSet` | Set\<string\> | The rest of the haplotype's subgraph: passed through, no placement |
+| `emphasisColor` | Map | Per-node PCLAI RGB |
+| `deemphasisColor` | string | `#E8E6DC` light gray — every node outside the subgraph |
+| `absenceColor` | string | `#aaaaaa` dark gray — absent nodes |
 
 ---
 
@@ -128,7 +132,6 @@ sequenceDiagram
     autonumber
     participant User
     participant PW as PCLAIWidget
-    participant PCS as pclaiCoordinateService
     participant EB as EventBus
     participant CTRL as PclaiChartController
     participant CH as PclaiChart
@@ -138,9 +141,7 @@ sequenceDiagram
     PW->>PW: selectedCoordinateKey = null
     PW->>PW: clearAllSelectorStyles()
 
-    PW->>PCS: getAbsentNodeSet()
-    PCS-->>PW: absentNodeSet
-    PW->>EB: publish('pclaiWidget:absence', { absentNodeSet })
+    PW->>EB: publish('pclaiWidget:normal', { nodeSet: every node })
     PW->>EB: publish('pclaiWidget:deselect', {})
 
     EB->>CTRL: pclaiWidget:deselect
@@ -185,7 +186,7 @@ flowchart TD
 
 ## 5. Visibility — Widget Card Open/Close vs Chart Card Open/Close
 
-Widget and chart cards are independently shown/hidden. They share the **absence coordinator** (`pclaiAbsenceCoordinator`) to track who is requesting absence-mode coloring of nodes that have no pclai data.
+Widget and chart cards are independently shown/hidden. Showing or hiding either card does not change the 3D graph: node coloring changes only on selection (issue #179 removed the shared absence coordinator that used to paint dataset-wide absence while either card was open).
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
@@ -193,18 +194,15 @@ sequenceDiagram
     autonumber
     participant User
     participant PW as PCLAIWidget
-    participant ABS as pclaiAbsenceCoordinator
     participant MNT as mountPclaiChart
     participant CTRL as PclaiChartController
     participant CH as PclaiChart
 
     User->>PW: open widget (showCard)
-    PW->>ABS: acquireAbsence('pclaiWidget')
     Note right of PW: Selection state (selectedCoordinateKey)<br/>persists across hide/show — restored<br/>via restoreSelectedCoordinateKeyVisualState
 
     User->>MNT: click PCLAI Chart button (toggleChart)
     MNT->>MNT: showChart()
-    MNT->>ABS: acquireAbsence('pclaiChart')
     MNT->>CH: updateAxes()
     MNT->>CH: renderReferenceDots(referenceData) if first show
     MNT->>CTRL: refreshForVisibilityChange() → render()
@@ -212,11 +210,9 @@ sequenceDiagram
 
     User->>MNT: click button again
     MNT->>MNT: hideChart()
-    MNT->>ABS: releaseAbsence('pclaiChart')
 
-    User->>PW: close widget
-    PW->>ABS: releaseAbsence('pclaiWidget')
-    Note right of ABS: When count drops to zero,<br/>absence-mode coloring is released
+    User->>PW: close widget (hideCard)
+    Note right of PW: Switching to another widget calls reset()<br/>first, which publishes pclaiWidget:normal
 ```
 
 ### Key Points
@@ -241,7 +237,8 @@ PCLAIWidget.onAssemblySelectorClick
         │
         ├── (toggle / replace selection)
         ├── pclaiCoordinateService.getNodeIdsWithCoordinateKey(key)
-        ├── pclaiCoordinateService.getAbsentNodeSet()
+        ├── genomicService.getAssemblyHaplotypeSubgraphNodes(key)
+        ├── absentNodeSet = subgraph − nodeSet
         │
         ▼
 eventBus.publish('pclaiWidget:emphasis', { assembly:{name}, nodeSet, ... })
@@ -273,8 +270,9 @@ eventBus.publish('pclaiWidget:emphasis', { assembly:{name}, nodeSet, ... })
 | PCLAIWidget | NodeEmphasisLook | `eventBus.publish('pclaiWidget:emphasis', ...)` | New selection |
 | PCLAIWidget | PclaiChartController | `eventBus.publish('pclaiWidget:emphasis', ...)` | New selection |
 | PCLAIWidget | PclaiChartController | `eventBus.publish('pclaiWidget:deselect', {})` | Click on selected toggles off |
-| PCLAIWidget | NodeEmphasisLook | `eventBus.publish('pclaiWidget:absence', { absentNodeSet })` | Selection cleared / replaced |
-| PCLAIWidget | pclaiCoordinateService | direct call: `getNodeIdsWithCoordinateKey`, `getAbsentNodeSet` | On click |
+| PCLAIWidget | NodeEmphasisLook | `eventBus.publish('pclaiWidget:normal', { nodeSet })` | Selection cleared / widget reset |
+| PCLAIWidget | pclaiCoordinateService | direct call: `getNodeIdsWithCoordinateKey` | On click |
+| PCLAIWidget | genomicService | direct call: `getAssemblyHaplotypeSubgraphNodes` | On click |
 | PclaiChartController | pclaiCoordinateService | direct call: `getCoordinatesForCoordinateKey`, `getCoordinatesForNode` | Inside `render()` |
 | mountPclaiChart | PclaiChart | direct method: `renderDots`, `clearChart`, `renderReferenceDots`, `updateAxes`, `exportToSvg` | Through controller's chartDelegate or directly on show |
 
