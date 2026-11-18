@@ -41,13 +41,10 @@ Open the PCLAI card and you see:
 
 The gesture is binary again: zero or one coordinate key is selected.
 
-But the widget has a second behavior the other two do not: just by being
-**open**, it activates an **absence** mode. Every node that lacks
-PCLAI placement data is marked with a distinct neutral color from the
-moment the card appears — before the user has selected anything. The mere
-act of opening the widget reveals where the placement model could not
-speak. (This is bookkeeping that survives card close/reopen via
-`pclaiAbsenceCoordinator`.)
+Opening the widget changes nothing on the graph. Only a selection does —
+and a selection reveals one thing the other widgets cannot: where the
+selected haplotype passes through a node but the placement model has
+nothing to say about it there (**absent**, §3).
 
 `src/widgets/pclaiWidget.ts`
 
@@ -65,7 +62,6 @@ dense set of indexes from the dataset's per-node placement data:
 | `coordinatesForNode` | `nodeId → Map<coordKey, {coords, RGB}>` | chart, on hover |
 | `coordinatesForCoordinateKey` | `coordKey → Map<nodeId, {coords, RGB}>` | chart, on selection |
 | `nodeIdsWithCoordinateKey` | `coordKey → Set<nodeId>` | 3D graph emphasis |
-| `absentNodeSet` | `Set<nodeId>` (nodes with `pclai_hg38 == {}`) | absence coloring |
 | per-key color maps | `coordKey → (nodeId → RGB)` | 3D graph color |
 
 Like the assembly story, the *data-as-stored* shape (per-node lists of
@@ -108,8 +104,8 @@ sequenceDiagram
   User->>Widget: click "HG00408#1"
   Widget->>Bus: publish('pclaiWidget:emphasis', { nodeSet, absentNodeSet, emphasisColor, … })
   par 3D graph
-    Bus->>Look: emphasize nodes with this key
-    Look->>Scene: emphasized → per-key RGB · deemphasized → grey · absent → neutral
+    Bus->>Look: partition nodes by this haplotype's subgraph
+    Look->>Scene: emphasized → per-key RGB · absent → dark grey · deemphasized → light grey
   and 2D chart
     Bus->>Ctl: selectedCoordinateKey = "HG00408#1"
     Ctl->>Chart: render the placement of this key across every node it appears in
@@ -142,20 +138,26 @@ Crossing the two is what makes the chart feel coupled to the graph.
 
 ### The three node colorings, simultaneously
 
-In emphasis mode the graph's nodes are painted in three categories at
-once:
+With a coord key selected, the graph's nodes split three ways by the
+selected haplotype's **subgraph** — every node it passes through, the
+same set the Assembly widget paints red by default (issue #179):
 
-- **Emphasized** — nodes that carry the selected coord key, painted in
-  the per-node RGB the data ships with.
-- **Deemphasized** — nodes that have PCLAI placements but not for this
-  key, painted muted grey.
-- **Absent** — nodes that have no PCLAI placement at all, painted in a
-  separate neutral tone.
+- **Emphasized** — in the subgraph, with a placement in the active
+  coordinate system: painted in the per-node RGB the data ships with.
+- **Absent** — in the subgraph, with no placement: dark grey. The
+  haplotype is here, but the model is *silent* about it here.
+- **De-emphasized** — outside the subgraph: light grey, whether or not
+  other haplotypes have placements there.
 
-The absence color is reserved — it stays even with no selection (whenever
-the widget is open), so the user always knows which nodes the model is
-*silent* about. This is what makes PCLAI's third category necessary;
-neither Assembly nor Population needs to express "no data."
+Absence is relative to the selection (see `CONTEXT.md` §emphasized /
+de-emphasized / absent). A placement only exists where the haplotype
+passes through, so the emphasized set always sits inside the subgraph.
+Example in `cici.json`: with `HG01167#1` selected, nodes `5504+`–`5510+`
+are absent. With no selection the graph is drawn normally.
+
+The PCLAI key is 2-part (`ASM#HAP`); subgraphs are keyed by the 3-part
+assembly key. `genomicService.getAssemblyHaplotypeSubgraphNodes` bridges
+them by taking the union over every 3-part key with that prefix.
 
 ---
 
@@ -223,7 +225,7 @@ selection to a graph emphasis and a chart render in the same gesture.
 - 3D look: `src/looks/nodeEmphasisLook.ts` (shared with Assembly)
 - Chart: `src/widgets/pclaiChart.js` · `src/widgets/pclaiCoordinateSpace.js`
 - Chart controller (state machine): `src/widgets/pclaiChartController.js`
-- Absence coordinator: `src/widgets/pclaiAbsenceCoordinator.js`
+- Subgraph bridge: `genomicService.getAssemblyHaplotypeSubgraphNodes`
 - Data shape: `pclai_hg38` and `pclai_asm` blocks per node — see
   [`dataset-skeleton.html`](../dataset-skeleton.html).
 - Reference paper: Geleta, Bu, Turner, et al. *Point cloud local

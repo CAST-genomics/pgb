@@ -1,14 +1,19 @@
 import { Draggable } from '../utils/draggable.js';
 import eventBus from '../utils/eventBus.ts';
 import { pclaiCoordinateService, PCLACoordinateService } from "./pclaiCoordinateService.js"
-import { acquireAbsence, releaseAbsence } from './pclaiAbsenceCoordinator.js'
 
-const ABSENCE_PRESENTER_ID = 'pclaiWidget'
-
+/**
+ * Under a selected assembly-haplotype the graph splits three ways (CONTEXT.md
+ * §emphasized / de-emphasized / absent):
+ *   emphasized   — in the haplotype's subgraph, with a placement: its PCLAI RGB
+ *   absent       — in the subgraph, no placement in the active system: dark gray
+ *   de-emphasized — every node outside the subgraph: light gray
+ * With no selection the graph is drawn normally.
+ */
 class PCLAIWidget {
 
-    static NODE_DEEMPHASIS_COLOR = '#aaaaaa';
-    static NODE_ABSENCE_COLOR = '#E8E6DC';
+    static NODE_ABSENCE_COLOR = '#aaaaaa';
+    static NODE_DEEMPHASIS_COLOR = '#E8E6DC';
 
     pclaiWidgetContainer: HTMLElement
     draggable: any
@@ -105,20 +110,17 @@ class PCLAIWidget {
 
         if (this.selectedCoordinateKey && this.selectedCoordinateKey === coordinateKey) {
 
-            // Deselect current assembly selector — return to absence-only state
+            // Deselect current assembly selector — return the graph to normal
             this.selectedCoordinateKey = null;
             this.clearAllSelectorStyles()
 
-            const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-            eventBus.publish('pclaiWidget:absence', { absentNodeSet, absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR })
+            this.publishNormal()
             eventBus.publish('pclaiWidget:deselect', {})
         } else {
-            // Deselect previous assembly selector if one exists
+            // Deselect previous assembly selector if one exists. No graph reset
+            // is needed: the next emphasis repaints every node.
             if (this.selectedCoordinateKey !== null) {
                 this.clearAllSelectorStyles()
-
-                const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-                eventBus.publish('pclaiWidget:absence', { absentNodeSet, absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR })
             }
 
             console.log(`selected coordinate key ${ coordinateKey }`)
@@ -140,8 +142,11 @@ class PCLAIWidget {
     }
 
     emphasizeAssembly(coordinateKey: string): void {
-        const nodeSet = new Set(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
-        const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
+        // A placement can only exist on a node the haplotype passes through, so
+        // nodeSet ⊆ subgraph and the three-way split is a clean partition.
+        const subgraph: Set<string> = this.genomicService.getAssemblyHaplotypeSubgraphNodes(coordinateKey)
+        const nodeSet = new Set<string>(pclaiCoordinateService.getNodeIdsWithCoordinateKey(coordinateKey))
+        const absentNodeSet = (subgraph as any).difference(nodeSet) as Set<string>
         const resolvedAssemblyKey = this.genomicService.resolveAssemblyKey(coordinateKey)
         const emphasisColor = pclaiCoordinateService.getNodeColorMapForCoordinateKey(coordinateKey)
         eventBus.publish('pclaiWidget:emphasis', {
@@ -153,6 +158,11 @@ class PCLAIWidget {
             deemphasisColor: PCLAIWidget.NODE_DEEMPHASIS_COLOR,
             absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR,
         });
+    }
+
+    publishNormal(): void {
+        const nodeSet = this.geometryManager.geometryFactory.getNodeNameSet()
+        eventBus.publish('pclaiWidget:normal', { nodeSet })
     }
 
     initializeSearchInput(): void {
@@ -209,8 +219,6 @@ class PCLAIWidget {
         this.pclaiWidgetContainer.style.top = '0px'
         this.pclaiWidgetContainer.style.left = '0px'
 
-        acquireAbsence(ABSENCE_PRESENTER_ID)
-
         setTimeout(() => {
             this.pclaiWidgetContainer.classList.add('show');
             // Initialize search input when card is shown
@@ -238,7 +246,6 @@ class PCLAIWidget {
 
     hideCard(): void {
         this.pclaiWidgetContainer.classList.remove('show');
-        releaseAbsence(ABSENCE_PRESENTER_ID)
         setTimeout(() => {
             this.pclaiWidgetContainer.style.display = 'none';
             // Clear search input when hiding card
@@ -254,17 +261,11 @@ class PCLAIWidget {
         this.clearAllSelectorStyles()
         this.selectedCoordinateKey = null;
 
-        // Mimic the deselect path so the graph leaves emphasis state cleanly:
-        // (emphasized + absent + deemphasized-remainder) collapses to
-        // (absent + normal-remainder). Restoring only the previously-emphasized
-        // nodeSet here was insufficient — it left the deemphasized remainder
-        // painted, since the remainder is implicitly recolored by the next
-        // setNodeEmphasis() call, not by an enumerated node list.
-        // The subsequent releaseAbsence (in hideCard) then restores absent
-        // → normal if no other presenter is still holding absence.
+        // Mimic the deselect path. Restore *every* node, not just the
+        // emphasized set: the de-emphasized remainder is painted implicitly by
+        // setNodeEmphasis(), not from an enumerated node list.
         if (wasSelected) {
-            const absentNodeSet = pclaiCoordinateService.getAbsentNodeSet()
-            eventBus.publish('pclaiWidget:absence', { absentNodeSet, absenceColor: PCLAIWidget.NODE_ABSENCE_COLOR })
+            this.publishNormal()
             eventBus.publish('pclaiWidget:deselect', {})
         }
     }

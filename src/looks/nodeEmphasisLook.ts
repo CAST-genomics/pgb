@@ -12,12 +12,12 @@ import materialService from '../materialService.js';
  *                         deemphasisColor }.
  *   assembly:normal     — restore a set of nodes to normal (from AssemblyWidget).
  *                         Payload: { nodeSet }.
- *   pclaiWidget:emphasis  — emphasize a set of nodes for a PCLAI coordinate key,
- *                         with optional absent set (from PCLAIWidget). Payload:
- *                         { assembly, nodeSet, absentNodeSet, deemphasisColor }.
- *   pclaiWidget:absence   — mark a set of nodes absent with no emphasis (from
- *                         PCLAIWidget, widget open but no coordinate selected).
- *                         Payload: { absentNodeSet }.
+ *   pclaiWidget:emphasis  — emphasize a set of nodes for a PCLAI coordinate key
+ *                         (from PCLAIWidget). nodeSet = the haplotype's placed
+ *                         nodes; absentNodeSet = the rest of its subgraph;
+ *                         everything else is de-emphasized. Payload:
+ *                         { assembly, nodeSet, absentNodeSet, emphasisColor,
+ *                         deemphasisColor, absenceColor }.
  *   pclaiWidget:normal    — restore a set of nodes to normal (from PCLAIWidget).
  *                         Payload: { nodeSet }.
  */
@@ -41,10 +41,6 @@ class NodeEmphasisLook extends Look {
 
         this.subscribe('assembly:normal', data => {
             this.restoreNodes(data.nodeSet)
-        });
-
-        this.subscribe('pclaiWidget:absence', data => {
-            this.setNodeEmphasis(undefined, new Set(), undefined, data.absentNodeSet, undefined, data.absenceColor);
         });
 
         this.subscribe('pclaiWidget:emphasis', data => {

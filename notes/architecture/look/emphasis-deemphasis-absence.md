@@ -1,75 +1,109 @@
 # Emphasis, De-emphasis, and Absence
 
+The definitions of the three states — and the rule for how *absent* is told
+apart from *de-emphasized* — live in `CONTEXT.md` §emphasized / de-emphasized /
+absent. This note covers how they're implemented.
+
 ## The Three Visual States
 
-When a user interacts with a widget that highlights a subset of nodes, every node in the graph falls into one of three categories:
+When a widget highlights a subset of nodes, every node falls into one of three
+categories:
 
-- **Emphasized** -- the node matches the user's selection. It receives a saturated, attention-grabbing color. This is the figure against ground.
+- **Emphasized** — the node matches the selection: a saturated color, figure
+  against ground.
+- **De-emphasized** — the node is not part of the selection: a muted color.
+- **Absent** — the node *is* part of the selection, but the data the
+  visualization draws is missing there. It must read as a difference of *kind*,
+  not degree.
 
-- **De-emphasized** -- the node participates in the same data space as the selection but doesn't match. It receives a muted color from the same chromatic family as emphasis, signaling that it *could* match under a different selection. It's a blood relative of emphasis, drained of intensity.
+The PCLAI widget is currently the only widget with an absent state. A node is
+absent when the selected haplotype passes through it but has no PCLAI
+**placement** there. Because PCLAI emphasis colors span every hue, no
+temperature is free to mark absence, so the PCLAI widget uses value instead:
+absent is dark gray (`#aaaaaa`), de-emphasized is light gray (`#E8E6DC`).
 
-- **Absent** -- the node lacks the relevant data category entirely. It is outside the data space of the current visualization. It receives a categorically different color (cool gray/blue-gray) to signal a difference of *kind*, not degree.
+## Absence Is an Interaction-Time State
 
-The key design insight is the warm/cool split. Emphasis and de-emphasis live on a warm axis (red to dusty rose). Absence lives on a cool axis (blue-gray). A viewer reads the temperature shift as a categorical boundary, not a gradation.
-
-## Where Absence Differs from Emphasis/De-emphasis
-
-Emphasis and de-emphasis are *interaction-time* states. They change every time the user clicks a different item in a widget. They are the look's core job.
-
-Absence is a *data-space* property. It's determined by what the dataset contains, not by which item the user clicked. Once you know which nodes lack pclai_coordinates, that set is fixed for the life of the dataset. It's computed once at data load time by `pclaiCoordinateService` and cached as an immutable set.
-
-However, absence is only *visualized* when the relevant widget is active. When the PCLAI widget opens, absent nodes are painted. When the PCLAI widget is dismissed, all nodes return to default. Absence is a property of the data but a visual state tied to widget lifecycle.
+All three states are interaction-time: they are recomputed on every selection.
+Absence used to be a dataset-wide property (nodes with no placement for *any*
+haplotype), painted whenever the PCLAI widget or chart was open. Issue #179
+replaced that: absence is now asked only of nodes in the selected haplotype's
+subgraph, and with no selection the graph is drawn normally.
 
 ## How It Fits Into the Look System
 
 The look system has two levels of operation:
 
-1. **Scene/Look swap** -- changes the *kind of question* being asked (e.g., assembly emphasis vs. population heatmap). This is the heavyweight mechanism: different scenes, different materials, different rendering strategies.
+1. **Scene/Look swap** — changes the *kind of question* being asked (e.g.,
+   assembly emphasis vs. population heatmap). Heavyweight: different scenes,
+   different materials, different rendering strategies.
+2. **State changes within a look** — changes to individual node appearances
+   while the question stays the same. Material swaps, color changes.
+   Lightweight.
 
-2. **State changes within a look** -- changes to individual node appearances while the question stays the same. Material swaps, Z-offset adjustments, color changes. This is the lightweight mechanism.
+Absence is a case of #2. It lives inside `NodeEmphasisLook` as a state
+alongside emphasis and de-emphasis. The `emphasisStates` Map holds per-node
+state strings drawn from `'normal' | 'emphasized' | 'deemphasized' | 'absent' |
+'off-walk'` (`off-walk` belongs to the Assembly widget's Walk mode).
 
-Absence is a case of #2. It does not require a new look or a new scene. It lives inside the existing `NodeEmphasisLook` as a third visual state alongside emphasis and de-emphasis (with `'normal'` as the default off-state). The `emphasisStates` Map holds per-node state strings drawn from `'normal' | 'emphasized' | 'deemphasized' | 'absent'`.
-
-## The Event-Driven Flow
-
-### Data load
-`pclaiCoordinateService.loadCoordinates()` parses the JSON, builds coordinate maps, and computes the absent node set as a byproduct. If the dataset has no pclai data at all, the absent set stays empty -- absence as a concept only exists relative to a dataset that has the relevant data.
-
-### PCLAI widget opens (`pclaiWidget:absence`)
-The absent set is published via a dedicated event. The look's `setNodeEmphasis()` method is called with an empty emphasis set and the absent set, painting absent nodes and restoring all other nodes to their default appearance. No emphasis or de-emphasis occurs yet.
+## The Event-Driven Flow (PCLAI widget)
 
 ### User clicks a dot (`pclaiWidget:emphasis`)
-The event payload carries four things: the emphasis node set, the absent node set, the emphasis color (per-node color map from pclai data), and an optional de-emphasis color. The look's `setNodeEmphasis()` performs a three-way partition:
+
+`PCLAIWidget.emphasizeAssembly()` builds the partition inputs:
 
 ```
-emphasisSet    = nodes matching the selected coordinate key
-absentSet      = nodes with no pclai_coordinates (from payload)
-deemphasisSet  = everything else (allNodes - emphasisSet - absentSet)
+subgraph   = genomicService.getAssemblyHaplotypeSubgraphNodes(ASM#HAP)
+nodeSet    = nodes with a placement for ASM#HAP in the active system
+absentSet  = subgraph − nodeSet
 ```
 
-Each partition gets its own material and Z-offset treatment.
+A placement can only exist where the haplotype passes through, so
+`nodeSet ⊆ subgraph`. The payload carries `nodeSet`, `absentNodeSet`, the
+per-node emphasis color map, `deemphasisColor` and `absenceColor`. The look's
+`setNodeEmphasis()` performs the three-way partition:
 
-### User unclicks a dot (`pclaiWidget:absence`)
-Returns to the "widget open, no selection" state. Absent nodes stay painted; everything else returns to default. This reuses the same `pclaiWidget:absence` event as widget-open.
+```
+emphasized   = nodeSet
+absent       = absentNodeSet
+deemphasized = allNodes − nodeSet − absentNodeSet
+```
 
-### PCLAI widget dismissed (`pclaiWidget:normal`)
-All nodes return to default color, including absent nodes. The visualization returns to its baseline.
+### User clicks a different dot
 
-## Per-Widget De-emphasis Color
+The new `pclaiWidget:emphasis` repaints every node, so no reset is published
+in between.
 
-Different widgets can specify different de-emphasis colors. The assembly widget uses a warm dusty rose; the PCLAI widget uses a neutral gray. Each widget defines its own `NODE_DEEMPHASIS_COLOR` as a static property and passes it through the event payload. The look falls back to `Look.NODE_DEEMPHASIS_COLOR` when no override is provided.
+### User unclicks the dot, or the widget is reset (`pclaiWidget:normal`)
 
-This keeps the look generic -- it doesn't need to know which widget is driving it. The widget owns its palette and communicates it through the event.
+The widget publishes `pclaiWidget:normal` with *every* node, then
+`pclaiWidget:deselect`. Every node is restored, not just the emphasized set:
+the de-emphasized remainder is painted implicitly by `setNodeEmphasis()`, not
+from an enumerated node list.
+
+## Per-Widget Colors
+
+Each widget defines its own palette as static properties
+(`NODE_DEEMPHASIS_COLOR`, `NODE_ABSENCE_COLOR`, …) and passes the colors
+through its event payload. The assembly widget uses a warm dusty rose for
+de-emphasis; the PCLAI widget uses the two grays above. The look falls back to
+`Look.NODE_DEEMPHASIS_COLOR` when no override is provided.
+
+This keeps the look generic: it doesn't need to know which widget is driving
+it. The widget owns its palette and communicates it through the event.
 
 ## Adding Absence to a New Widget
 
-If a future widget needs to introduce absent nodes:
+If a future widget needs absent nodes:
 
-1. Identify the data-space condition that defines absence for your context
-2. Compute the absent set at data load time (or when the relevant data becomes available) and cache it
-3. Publish a dedicated `yourWidget:absence` event when the widget opens, carrying the absent set
-4. Include `absentNodeSet` and optionally `deemphasisColor` in your emphasis event payload
-5. Subscribe to the new events in `NodeEmphasisLook.activate()` (or in a new look if the visualization warrants one)
-6. Publish `yourWidget:normal` when the widget is dismissed to restore all nodes to default
+1. Define, for your selection, which nodes the selection covers and which of
+   those lack the data you draw. Absent = covered but lacking.
+2. Include `absentNodeSet` and `absenceColor` in your emphasis event payload.
+3. Choose an absence color that reads as a difference of *kind* against your
+   emphasis and de-emphasis colors, and record the rule in `CONTEXT.md`.
+4. Subscribe to the event in `NodeEmphasisLook.activate()` (or in a new look if
+   the visualization warrants one).
+5. Publish `yourWidget:normal` with every node when the selection is cleared.
 
-The look-side infrastructure (the three-way partition in `setNodeEmphasis`, the `'absent'` case in `applyEmphasisState`) is already in place and will work for any widget that follows this pattern.
+The look-side infrastructure (the partition in `setNodeEmphasis`, the
+`'absent'` case in `applyEmphasisState`) is already in place.

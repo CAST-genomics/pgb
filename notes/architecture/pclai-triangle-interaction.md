@@ -1,6 +1,6 @@
 # PCLAI Triangle Interaction Diagrams
 
-Interaction flows for the **PCLAI chart subsystem** after the PR #48 refactor (closes issues #46, #47). The 970-line `pclaiChartService` singleton was split into four small collaborators plus a refcount coordinator: a pure projection kernel, a view, a state-machine controller, and a bootstrap facade.
+Interaction flows for the **PCLAI chart subsystem** after the PR #48 refactor (closes issues #46, #47). The 970-line `pclaiChartService` singleton was split into four small collaborators: a pure projection kernel, a view, a state-machine controller, and a bootstrap facade. (PR #48 also added a refcount absence coordinator; issue #179 removed it — see §7.)
 
 ---
 
@@ -11,13 +11,12 @@ The PCLAI chart shows dataset PCLAI coordinates as dots on a 2D scatter plot wit
 | Component | Role | Owns |
 |-----------|------|------|
 | **App** | Orchestrator | Constructs facade once in its constructor; stores handle as `this.pclaiChart` |
-| **mountPclaiChart (facade)** | Bootstrap | Card DOM, navbar button, reference-TSV fetch, `isVisible`/`isInitialized`, absence acquire/release |
+| **mountPclaiChart (facade)** | Bootstrap | Card DOM, navbar button, reference-TSV fetch, `isVisible`/`isInitialized` |
 | **PclaiCoordinateSpace** | Pure projection kernel | `project(x, y) → { left, top, size }`; immutable; no DOM/events |
 | **PclaiChart** | View | Surface, axes, dataset dots, reference dots, hover emphasis, desaturation |
 | **PclaiChartController** | State machine | `{ hoveredNodeId, selectedCoordinateKey }`; event subscriptions; single `render()` path |
-| **pclaiAbsenceCoordinator** | Gatekeeper | Refcounted presenter set; sole publisher of `pclaiWidget:absence` / `pclaiWidget:normal` |
-| **PCLAIWidget** | Sibling presenter | Coordinate-key list card; publishes `pclaiWidget:emphasis` / `:deselect`; also acquires absence |
-| **pclaiCoordinateService** | Data source | Coordinate maps, bounding box, absent-node set |
+| **PCLAIWidget** | Sibling presenter | Coordinate-key list card; publishes `pclaiWidget:emphasis` / `:normal` / `:deselect` |
+| **pclaiCoordinateService** | Data source | Coordinate maps, bounding box |
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '18px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 50}}}%%
@@ -26,7 +25,7 @@ flowchart TB
         APP[App<br/>constructs facade]
         PW[PCLAIWidget<br/>coordinate-key list]
         R3D[3D Graph<br/>raycast hover]
-        PCLAI[pclaiCoordinateService<br/>coordinate maps<br/>absent-node set]
+        PCLAI[pclaiCoordinateService<br/>coordinate maps]
     end
 
     subgraph Facade["mountPclaiChart (facade)"]
@@ -39,7 +38,6 @@ flowchart TB
         PCC[PclaiChartController<br/>state machine]
     end
 
-    AC[pclaiAbsenceCoordinator<br/>refcounted gate]
     EB[(eventBus)]
 
     APP -->|"mountPclaiChart()"| MPC
@@ -50,10 +48,7 @@ flowchart TB
     PCC -->|"delegate: clearChart / renderCoordinateMap"| PC
     PCC -->|reads hovered/selected map| PCLAI
     PCC -->|subscribes| EB
-    MPC -->|"acquire/release('pclaiChart')"| AC
-    PW -->|"acquire/release('pclaiWidget')"| AC
-    AC -->|"publish pclaiWidget:absence / :normal"| EB
-    PW -->|"publish pclaiWidget:emphasis / :deselect"| EB
+    PW -->|"publish pclaiWidget:emphasis / :normal / :deselect"| EB
     R3D -->|"publish lineIntersection / clearIntersection"| EB
     EB -->|delivers events| PCC
 ```
@@ -65,7 +60,7 @@ flowchart TB
 | Projection math lives in exactly one place | `PclaiCoordinateSpace`; pinned by 8 characterization tests |
 | View knows nothing about events or dataset | `PclaiChart` has no `eventBus` import |
 | Rendered chart is a pure function of `(hoveredNodeId, selectedCoordinateKey)` | `PclaiChartController.render()` |
-| `pclaiWidget:absence` / `:normal` has exactly one publisher | `pclaiAbsenceCoordinator` |
+| 3D node coloring changes only on selection, never on card visibility | `PCLAIWidget` is the sole publisher of `pclaiWidget:emphasis` / `:normal` |
 
 ---
 
@@ -165,9 +160,9 @@ sequenceDiagram
 
 ---
 
-## 4. Show Chart — Acquire Absence
+## 4. Show Chart
 
-Clicking the PCLAI Chart button toggles visibility. Showing the chart acquires the absence presenter slot — the first presenter to do so triggers `pclaiWidget:absence`, which tells the 3D graph to paint PCLAI-absent nodes in "absence" color.
+Clicking the PCLAI Chart button toggles visibility. Showing the chart does not change the 3D graph.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
@@ -178,9 +173,6 @@ sequenceDiagram
     participant MPC as mountPclaiChart
     participant PC as PclaiChart
     participant PCC as PclaiChartController
-    participant AC as pclaiAbsenceCoordinator
-    participant EB as EventBus
-    participant R3D as 3D Graph
 
     User->>BTN: click
     BTN->>MPC: toggleChart()
@@ -190,14 +182,6 @@ sequenceDiagram
         MPC->>PC: renderReferenceDots(referenceData)
         MPC->>PCC: refreshForVisibilityChange()
         PCC->>PCC: render() [idle — both state fields null]
-        MPC->>AC: acquireAbsence('pclaiChart')
-
-        alt first presenter (set was empty)
-            AC->>EB: publish pclaiWidget:absence { absentNodeSet }
-            EB->>R3D: paint absent nodes
-        else another presenter already holds it
-            AC->>AC: no-op (refcount only)
-        end
     else already visible
         MPC->>PC: (hideChart path — see §8)
     end
@@ -290,43 +274,9 @@ sequenceDiagram
 
 ---
 
-## 7. Refcounted Absence — Dismiss One Presenter
+## 7. Absence — No Longer a Visibility Concern
 
-Both the PCLAI widget card and the PCLAI chart panel want the 3D graph in absence mode while they're visible. Without coordination, dismissing the widget would publish `pclaiWidget:normal` and wipe absence state the chart still needs. The coordinator refcounts presenters by ID and only publishes `:normal` when the last presenter releases.
-
-```mermaid
-%%{init: {'themeVariables': {'fontSize': '16px'}}}%%
-sequenceDiagram
-    autonumber
-    participant User
-    participant PW as PCLAIWidget
-    participant MPC as mountPclaiChart
-    participant AC as pclaiAbsenceCoordinator
-    participant EB as EventBus
-    participant R3D as 3D Graph
-
-    Note over PW,MPC: Both presenters are already visible<br/>presenters = { 'pclaiWidget', 'pclaiChart' }
-
-    User->>PW: dismiss widget card
-    PW->>AC: releaseAbsence('pclaiWidget')
-    AC->>AC: presenters = { 'pclaiChart' }
-    Note right of AC: size > 0 → no publish<br/>absence stays on for chart
-
-    User->>MPC: click chart button (hide)
-    MPC->>AC: releaseAbsence('pclaiChart')
-    AC->>AC: presenters = ∅
-    AC->>EB: publish pclaiWidget:normal { nodeSet }
-    EB->>R3D: clear absence
-```
-
-### Coordinator contract
-
-| Rule | Behavior |
-|---|---|
-| First `acquire()` (set was empty) | Publish `pclaiWidget:absence` |
-| Re-entrant `acquire()` from same ID | No-op |
-| `release()` from unknown ID | No-op |
-| Last `release()` (set becomes empty) | Publish `pclaiWidget:normal` |
+PR #48 added `pclaiAbsenceCoordinator`, a refcount gate so that the widget card and the chart panel could both hold the 3D graph in a dataset-wide "absence" mode while visible. Issue #179 removed it: *absent* is now relative to the selected haplotype (see `CONTEXT.md` §emphasized / de-emphasized / absent), so it is computed by `PCLAIWidget` on selection and carried in `pclaiWidget:emphasis`. Card visibility no longer affects the 3D graph, and nothing needs refcounting.
 
 ---
 
@@ -342,14 +292,12 @@ sequenceDiagram
     participant MPC as mountPclaiChart
     participant PC as PclaiChart
     participant PCC as PclaiChartController
-    participant AC as pclaiAbsenceCoordinator
     participant EB as EventBus
 
     rect rgb(245,245,245)
     Note over MPC: hideChart — user closes panel
     MPC->>MPC: chartContainer.style.display = 'none'
     MPC->>MPC: isVisible = false
-    MPC->>AC: releaseAbsence('pclaiChart')
     end
 
     rect rgb(245,245,245)
@@ -392,8 +340,7 @@ flowchart LR
     end
 
     subgraph Rind["Thin rind"]
-        MPC["mountPclaiChart<br/>• DOM + button<br/>• reference TSV<br/>• isVisible / isInitialized<br/>• absence acquire/release"]
-        AC["pclaiAbsenceCoordinator<br/>• refcounted presenters"]
+        MPC["mountPclaiChart<br/>• DOM + button<br/>• reference TSV<br/>• isVisible / isInitialized"]
     end
 
     MPC --> PC
@@ -401,7 +348,6 @@ flowchart LR
     MPC --> PCS
     PC --> PCS
     PCC --> PC
-    MPC --> AC
 ```
 
 | Module | Imports eventBus? | Imports DOM? | Imports dataset model? |
@@ -410,7 +356,6 @@ flowchart LR
 | `PclaiChart` | no | yes | no |
 | `PclaiChartController` | yes | no | yes (pclaiCoordinateService) |
 | `mountPclaiChart` (facade) | yes | yes | yes |
-| `pclaiAbsenceCoordinator` | yes | no | yes |
 
 ---
 
@@ -423,8 +368,8 @@ flowchart LR
 | `clearIntersection` | 3D graph raycast | controller | hover ended |
 | `pclaiWidget:emphasis` | PCLAIWidget | controller | user selected a coordinate key |
 | `pclaiWidget:deselect` | PCLAIWidget | controller | user re-clicked the selected key (#47 fix) |
-| `pclaiWidget:absence` | `pclaiAbsenceCoordinator` | 3D graph Look | paint absent nodes |
-| `pclaiWidget:normal` | `pclaiAbsenceCoordinator` | 3D graph Look | clear absence |
+| `pclaiWidget:emphasis` | PCLAIWidget | 3D graph Look | paint emphasized / absent / de-emphasized |
+| `pclaiWidget:normal` | PCLAIWidget | 3D graph Look, controller | restore every node to normal |
 
 ---
 
@@ -470,7 +415,6 @@ DOM dots in chartSurface
 | `src/widgets/pclaiChart.js` | View |
 | `src/widgets/pclaiChartController.js` | State machine |
 | `src/widgets/mountPclaiChart.js` | Facade / bootstrap |
-| `src/widgets/pclaiAbsenceCoordinator.js` | Refcount gate |
 | `src/widgets/pclaiWidget.ts` | Sibling presenter (not part of the triangle, but a collaborator) |
 | `src/__tests__/pclaiCoordinateSpace.test.js` | 8 characterization tests pinning the projection spec |
 

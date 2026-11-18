@@ -28,7 +28,6 @@ class PCLACoordinateService {
         this.coordinateKeysBySystem = new Map();
         this.boundingBoxBySystem = new Map();
 
-        this.absentNodeSet = new Set(); // nodes with no valid pclai coords in any system
 
         this.activeSystem = DEFAULT_SYSTEM;
 
@@ -39,8 +38,8 @@ class PCLACoordinateService {
      * Load PCA coordinates from a parsed DatasetModel.
      *
      * Builds per-system runtime structures and resets the active system to the
-     * default ('hg38'). Index-derived facts (bounding box, coordinate keys,
-     * absent nodes) are read from `dataset.index`.
+     * default ('hg38'). Index-derived facts (bounding box, coordinate keys)
+     * are read from `dataset.index`.
      */
     loadCoordinates(dataset) {
         this.coordinatesBySystem.clear();
@@ -54,7 +53,6 @@ class PCLACoordinateService {
         for (const [system, bbox] of dataset.index.pclaiBoundingBoxBySystem) {
             this.boundingBoxBySystem.set(system, bbox);
         }
-        this.absentNodeSet = dataset.index.pclaiAbsentNodes;
 
         // Build per-system runtime THREE.Color maps.
         for (const [nodeId, node] of dataset.nodes) {
@@ -102,7 +100,7 @@ class PCLACoordinateService {
 
         const activeMap = this._activeCoordinatesMap();
         const activeBox = this.boundingBoxBySystem.get(this.activeSystem);
-        console.log(`PCLACoordinateService: Loaded coordinates for ${activeMap.size} nodes (system="${this.activeSystem}", available=${JSON.stringify(available)}), ${this.absentNodeSet.size} absent nodes`);
+        console.log(`PCLACoordinateService: Loaded coordinates for ${activeMap.size} nodes (system="${this.activeSystem}", available=${JSON.stringify(available)})`);
         if (activeBox) {
             console.log(`PCLACoordinateService: Bounding box - x: [${activeBox.x.min.toFixed(3)}, ${activeBox.x.max.toFixed(3)}], y: [${activeBox.y.min.toFixed(3)}, ${activeBox.y.max.toFixed(3)}]`);
         }
@@ -130,6 +128,10 @@ class PCLACoordinateService {
      * Switch the active coordinate system. No-op if the system has no data
      * or is already active. Publishes 'pclai-system-changed' so downstream
      * looks/widgets can refresh.
+     *
+     * Nothing subscribes yet. Whoever adds a system toggle must have the PCLAI
+     * widget re-publish its emphasis: emphasized vs. absent is judged in the
+     * active system, so switching moves nodes between the two.
      */
     setActiveSystem(systemId) {
         if (systemId === this.activeSystem) return;
@@ -248,21 +250,12 @@ class PCLACoordinateService {
     }
 
     /**
-     * Get the set of node IDs that have no pclai_coordinates in any system.
-     * @returns {Set<string>}
-     */
-    getAbsentNodeSet() {
-        return this.absentNodeSet;
-    }
-
-    /**
      * Clear all stored coordinate data
      */
     clear() {
         this.coordinatesBySystem.clear();
         this.coordinateKeysBySystem.clear();
         this.boundingBoxBySystem.clear();
-        this.absentNodeSet = new Set();
         this.activeSystem = DEFAULT_SYSTEM;
     }
 }

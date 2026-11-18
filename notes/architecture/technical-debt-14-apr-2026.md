@@ -15,7 +15,7 @@
 - **`PclaiCoordinateSpace`** — pure projection math, immutable, no DOM, no events
 - **`PclaiChart`** — view layer (DOM construction, dot rendering)
 - **`PclaiChartController`** — event wiring, state machine (`{hoveredNodeId, selectedCoordinateKey}`)
-- **`pclaiAbsenceCoordinator`** — refcount gatekeeper for 3D absence mode
+- **`pclaiAbsenceCoordinator`** — refcount gatekeeper for 3D absence mode *(removed in #179: absence became selection-relative)*
 - **`mountPclaiChart()`** facade — single entry point from `app.ts`
 
 The old singleton `pclaiChartService.js` is deleted. `PclaiCoordinateSpace` is the second service in the app with real unit tests (8 characterization tests in `pclaiCoordinateSpace.test.js`). The deselect toggle (`pclaiWidget:deselect`) cleans up a UX gap at the same time.
@@ -128,7 +128,7 @@ The annotation split moved 12 `: any` annotations from one file into four files 
 - **The event bus itself.** The channel is fine. The gap is consumer-side typing.
 - **The widget → Look activation path.** PR #43 settled this.
 - **`App.loadDataset` (from #45).** Thin fan-out, correctly placed.
-- **The PCLAI triangle.** PR #48 made this the second-cleanest subsystem. `PclaiCoordinateSpace` is pure, tested, and immutable. `PclaiChartController` owns all event state. `pclaiAbsenceCoordinator` is a clean refcount pattern. Leave it.
+- **The PCLAI triangle.** PR #48 made this the second-cleanest subsystem. `PclaiCoordinateSpace` is pure, tested, and immutable. `PclaiChartController` owns all event state. `pclaiAbsenceCoordinator` is a clean refcount pattern. Leave it. *(The coordinator was later removed in #179, when absence became selection-relative.)*
 - **The annotation track modules.** PR #50 followed the same deep-module pattern. `AnnotationCoordinateIndex` is pure and tested. `mountAnnotationTrack()` facade is the entry point. Leave it.
 
 ---

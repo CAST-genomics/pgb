@@ -16,9 +16,6 @@ import { pclaiCoordinateService } from './pclaiCoordinateService.js'
 import { PclaiCoordinateSpace } from './pclaiCoordinateSpace.js'
 import { PclaiChart } from './pclaiChart.js'
 import { PclaiChartController } from './pclaiChartController.js'
-import { acquireAbsence, releaseAbsence } from './pclaiAbsenceCoordinator.js'
-
-const ABSENCE_PRESENTER_ID = 'pclaiChart'
 
 const DOT_SIZE_PERCENT = 1
 const CHART_PADDING = 20
@@ -105,14 +102,11 @@ export function mountPclaiChart({ containerId = 'pclai-chart-container' } = {}) 
             }
             controller.refreshForVisibilityChange()
         }
-
-        acquireAbsence(ABSENCE_PRESENTER_ID)
     }
 
     function hideChart() {
         chartContainer.style.display = 'none'
         isVisible = false
-        releaseAbsence(ABSENCE_PRESENTER_ID)
     }
 
     function toggleChart() {
