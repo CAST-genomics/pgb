@@ -66,7 +66,6 @@ export interface PclaiBoundingBox {
 export interface DatasetIndex {
     pclaiBoundingBoxBySystem: Map<PclaiCoordSystem, PclaiBoundingBox>;
     pclaiCoordinateKeysBySystem: Map<PclaiCoordSystem, Set<string>>;
-    pclaiAbsentNodes: Set<string>;
     assemblyTotals: { totalAssemblies: number };
     hasPclaiData: boolean;
     hasAssemblyMetadata: boolean;

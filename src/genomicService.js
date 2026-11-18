@@ -218,6 +218,24 @@ class GenomicService {
         return undefined;
     }
 
+    /**
+     * Subgraph nodes for an assembly-haplotype (`ASM#HAP`, the PCLAI coordinate
+     * key): the union of the subgraphs of every 3-part assembly key with that
+     * prefix. Usually exactly one, but a haplotype may span several contigs.
+     * @param {string} assemblyHaplotype
+     * @returns {Set<string>}
+     */
+    getAssemblyHaplotypeSubgraphNodes(assemblyHaplotype) {
+        const prefix = `${assemblyHaplotype}#`;
+        const nodes = new Set();
+        for (const key of this.assemblySet) {
+            if (!key.startsWith(prefix)) continue;
+            const walkInfo = this.assemblyWalkMap.get(key);
+            for (const id of walkInfo?.assemblySubgraph?.nodes ?? []) nodes.add(id);
+        }
+        return nodes;
+    }
+
     getSequenceId(assemblyKey) {
         const sequenceId = assemblyKey.split('#')[2] ?? '';
         const isReference = (sequenceId === this.locus.chr);

@@ -57,9 +57,8 @@ class WidgetService {
         event.stopPropagation();
 
         // Hide and reset other widgets when switching to assembly.
-        // pclaiWidget.reset() must run before hideCard() so the graph leaves
-        // emphasis state before absence is released — otherwise the
-        // deemphasized-remainder painted during emphasis is never restored.
+        // pclaiWidget.reset() restores every node to normal if a PCLAI key was
+        // selected — otherwise the de-emphasized remainder stays painted.
         this.populationWidget.hideCard();
         this.populationWidget.reset();
         this.pclaiWidget.reset();

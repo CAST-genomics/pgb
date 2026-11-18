@@ -337,7 +337,6 @@ function normalizeSpineBlock(raw: unknown): Partial<DatasetLayout> {
 function buildDatasetIndex(nodes: Map<string, NodeModel>): DatasetIndex {
     const pclaiCoordinateKeysBySystem = new Map<PclaiCoordSystem, Set<string>>();
     const pclaiBoundingBoxBySystem    = new Map<PclaiCoordSystem, PclaiBoundingBox>();
-    const pclaiAbsentNodes            = new Set<string>();
     const nodesWithPclai              = new Set<string>();
 
     let totalAssemblies = 0;
@@ -398,16 +397,9 @@ function buildDatasetIndex(nodes: Map<string, NodeModel>): DatasetIndex {
         }
     }
 
-    if (nodesWithPclai.size > 0) {
-        for (const nodeId of nodes.keys()) {
-            if (!nodesWithPclai.has(nodeId)) pclaiAbsentNodes.add(nodeId);
-        }
-    }
-
     return {
         pclaiBoundingBoxBySystem,
         pclaiCoordinateKeysBySystem,
-        pclaiAbsentNodes,
         assemblyTotals: { totalAssemblies },
         hasPclaiData: nodesWithPclai.size > 0,
         hasAssemblyMetadata,

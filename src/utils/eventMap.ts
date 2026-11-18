@@ -12,7 +12,6 @@ export interface EventMap {
     'assembly:normal':            { nodeSet: Set<string> };
     'pclaiWidget:emphasis':         { assembly: { name: string }; resolvedAssemblyKey?: string; nodeSet: Set<string>; absentNodeSet: Set<string>; emphasisColor: any; deemphasisColor: string; absenceColor: string };
     'pclaiWidget:normal':           { nodeSet: Set<string> };
-    'pclaiWidget:absence':          { absentNodeSet: Set<string>; absenceColor: string };
     'pclaiWidget:deselect':         Record<string, never>;
     'population:selected':        { acronym: string };
     'population:deselected':      { population: object; acronym: string };

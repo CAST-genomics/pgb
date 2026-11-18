@@ -456,13 +456,12 @@ describe('validation', () => {
 
 describe('dataset index', () => {
 
-    it('empty pclai → no bbox, absent set empty, flags off', () => {
+    it('empty pclai → no bbox, flags off', () => {
         const result = parseDataset(makeV3({ withHg38: false, withAsm: false }))
         const idx = result.index
         expect(idx.pclaiBoundingBoxBySystem.size).toBe(0)
         expect(idx.pclaiCoordinateKeysBySystem.get('hg38').size).toBe(0)
         expect(idx.pclaiCoordinateKeysBySystem.get('asm').size).toBe(0)
-        expect(idx.pclaiAbsentNodes.size).toBe(0)
         expect(idx.hasPclaiData).toBe(false)
     })
 
@@ -490,22 +489,6 @@ describe('dataset index', () => {
         expect(idx.pclaiBoundingBoxBySystem.has('hg38')).toBe(true)
         expect(idx.pclaiBoundingBoxBySystem.has('asm')).toBe(false)
         expect(idx.pclaiCoordinateKeysBySystem.get('asm').size).toBe(0)
-    })
-
-    it('places nodes without pclai into the absent-node set', () => {
-        const v3 = makeV3()
-        // A second node with no PCLAI coordinates of any kind.
-        v3.node['20+'] = {
-            name: '20+',
-            length: 30,
-            assembly: [],
-            duplicated_assembly: [],
-            ogdf_coordinates: [{ x: 20, y: 10 }],
-        }
-        const result = parseDataset(v3)
-        const idx = result.index
-        expect(idx.pclaiAbsentNodes.has('20+')).toBe(true)
-        expect(idx.pclaiAbsentNodes.has('10+')).toBe(false)
     })
 
     it('sums assemblyTotals from sex counts across nodes', () => {

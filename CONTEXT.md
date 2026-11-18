@@ -280,13 +280,17 @@ The three visual states a node can occupy under a selection. *Emphasized*
 matches the selection (saturated, figure against ground). *De-emphasized*
 lives in the same data space but doesn't match (muted, same chromatic
 family — it could match under a different selection). *Absent* lacks the
-relevant data category entirely and gets a categorically different cool
-color. The warm/cool split is load-bearing: a viewer reads the temperature
-shift as a difference of *kind*, not degree.
+relevant data for the selection, and must read as a difference of *kind*,
+not degree. The PCLAI widget is currently the only widget with an absent
+state, and it carries the difference by value — absent is dark,
+de-emphasized is light — because PCLAI emphasis colors already span every
+hue, leaving no temperature free to carry it.
 
-Emphasis and de-emphasis are interaction-time states. Absence is a
-data-space property — fixed for the life of the dataset — that is only
-*visualized* while the relevant widget is active.
+All three are interaction-time states. *Absent* is relative to the
+selection: a node is absent when the selected haplotype passes through
+it but carries no **placement** there. Nodes the selection does not
+touch are de-emphasized, never absent — absence is only asked of nodes
+in the selection's subgraph.
 
 ### widget
 
@@ -653,9 +657,11 @@ either way.
 
 ### placement
 
-A **strand**'s PCLAI coordinate within one **sequence tube map** document,
-carried on every **band** as `pclaiX` / `pclaiY`, or **absent** — spelled
-`pclaiX="None"`, which the renderer already draws grey.
+A haplotype's PCLAI coordinate at one **node** — PCLAI is per (haplotype,
+node). In the 3D graph it is read from the active coordinate system; in a
+**sequence tube map** document it is carried on every **band** as
+`pclaiX` / `pclaiY`, or **absent** — spelled `pclaiX="None"`, which the
+renderer already draws grey.
 
 How many strands are unplaced is a property of the document and never a
 constant: 6 in `stm-chr1-25331046-25331646`, 12 in
