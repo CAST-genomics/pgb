@@ -1,0 +1,42 @@
+{
+  "queried_locus": "GRCh38#0#chr1:25240000-25460000",
+  "actual_locus": "GRCh38#0#chr1:25200904-25582458",
+  "node": {
+    "5504+": {
+      "name": "5504+",
+      "length": 35895,
+      "assembly": [
+        {
+          "assembly_name": "HG01167",
+          "haplotype": "1",
+          "metadata": [
+            {
+              "sequence_id": "CM094523.1",
+              "path_strand": "+",
+              "node_strand": ">",
+              "start": 25328993,
+              "end": 25364893,
+              "pclai_hg38": {},
+              "pclai_asm": {},
+              "take": "yes"
+            }
+          ]
+        }
+      ],
+      "ogdf_coordinates": [
+        {
+          "x": 5696,
+          "y": 2560
+        },
+        {
+          "x": 5464,
+          "y": 2413
+        },
+        {
+          "x": 5162,
+          "y": 2221
+        }
+      ]
+    }
+  }
+}
