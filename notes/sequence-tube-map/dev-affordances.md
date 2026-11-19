@@ -471,7 +471,7 @@ choosing **Sequence Tube Map** (`src/tubeMapMenuCommand.ts`). Right-click only; 
 stays unclaimed.
 
 An ineligible node gets the item **disabled with the reason shown**, never hidden — fifteen
-of the forty-five nodes in `public/datasets/api-v3/cici.json` have no GRCh38 placement, and an
+of the forty-five nodes in `public/datasets/api-v3/cici.json` have no GRCh38 interval, and an
 item that vanishes for a third of the graph is indistinguishable from a mis-click.
 
 The gate is not optional and cannot move to the server: **the API answers an unknown
