@@ -1,15 +1,30 @@
 import {getAppleCrayonColorHexStringByName} from "./utils/color/color.js"
 import appConfig from "./appConfig.js"
+import {
+    contentHeight, DEFAULT_DISPLAY_MODE, DISPLAY_MODE_LABELS, DISPLAY_MODES,
+    featureRowCount, trackGeometry,
+    type DisplayMode, type TrackGeometry,
+} from "./annotationTrackLayout.ts"
 
 /**
- * Owns the annotation track's canvas, visual feedback element, and spinner.
- * Handles DPR-aware resize and two rendering modes (gene annotations vs. extent markers).
+ * Owns the annotation track's canvas, visual feedback element, spinner, and
+ * display-mode control. Handles DPR-aware sizing and two rendering modes
+ * (gene annotations vs. extent markers).
  *
- * No events, no coordinate math — just DOM and canvas drawing.
+ * The track has a fixed height. Gene annotations are laid out in feature rows
+ * according to the display mode (Collapsed / Squished / Expanded); rows that
+ * overflow scroll vertically inside the scroller. The feedback line, spinner,
+ * and mode control live outside the scroller so they stay put while it scrolls.
+ *
+ * No events, no bp ↔ node math — just DOM and canvas drawing.
  */
 class AnnotationCanvas {
 
     private container: HTMLElement
+    private scroller: HTMLElement
+    private canvas: HTMLCanvasElement
+    private displayModeControl: HTMLElement
+    private displayMode: DisplayMode
     private visualFeedbackElement: HTMLElement
     private spinnerElement: HTMLElement
     private overlayCanvas: HTMLCanvasElement | null
@@ -23,6 +38,9 @@ class AnnotationCanvas {
 
     constructor(container: HTMLElement) {
         this.container = container
+        this.scroller = container.querySelector('.pgb-gene-annotation-track-container__scroller') as HTMLElement
+        this.canvas = this.scroller.querySelector('canvas') as HTMLCanvasElement
+        this.displayMode = DEFAULT_DISPLAY_MODE
 
         this.hasGeneAnnotations = false
         this.featureRenderer = undefined
@@ -34,8 +52,48 @@ class AnnotationCanvas {
         this.overlayConfig = undefined
         this.deEmphasisCanvas = this.createDeEmphasisCanvas()
         this.deEmphasisConfig = undefined
+        this.displayModeControl = this.createDisplayModeControl()
 
         this.resize()
+    }
+
+    /**
+     * Width (css px) of the drawable track — the scroller's client width, which
+     * excludes the reserved scrollbar gutter. Drawing and hover both map
+     * through this one width.
+     */
+    get trackWidth(): number {
+        return this.scroller.clientWidth
+    }
+
+    /** Left edge (client px) of the drawable track. */
+    get trackLeft(): number {
+        return this.scroller.getBoundingClientRect().left
+    }
+
+    get viewportHeight(): number {
+        return this.scroller.clientHeight
+    }
+
+    geometry(bpStart: number, bpEnd: number): TrackGeometry {
+        return trackGeometry(bpStart, bpEnd, this.trackWidth)
+    }
+
+    getDisplayMode(): DisplayMode {
+        return this.displayMode
+    }
+
+    /** Switch display mode, redraw, and return to the top feature row. */
+    setDisplayMode(mode: DisplayMode): void {
+        if (mode === this.displayMode) return
+        this.displayMode = mode
+        this.syncDisplayModeControl()
+        this.resetScroll()
+        this.resize()
+    }
+
+    resetScroll(): void {
+        this.scroller.scrollTop = 0
     }
 
     /** Draw gene features (exons, introns, etc.) when annotation data is available. */
@@ -44,16 +102,21 @@ class AnnotationCanvas {
         if (renderConfig) {
             const {bpStart, bpEnd, features} = renderConfig
 
-            const canvas = this.container.querySelector('canvas')!
-            const {width: pixelWidth, height: pixelHeight} = canvas.getBoundingClientRect()
+            this.featureRenderer.displayMode = this.displayMode
 
-            const bpPerPixel = (bpEnd - bpStart) / pixelWidth
+            const rowCount = featureRowCount(features, bpStart, bpEnd)
+            const pixelHeight = contentHeight(this.displayMode, rowCount, this.viewportHeight, this.featureRenderer)
+            this.sizeCanvases(pixelHeight)
+
+            const { trackWidth: pixelWidth, bpPerPixel } = this.geometry(bpStart, bpEnd)
             const viewportWidth = pixelWidth
 
-            const context = (canvas as HTMLCanvasElement).getContext('2d')
+            const context = this.canvas.getContext('2d')
             this.drawConfig = {container: this.container, bpStart, bpEnd, features, context, bpPerPixel, viewportWidth, pixelWidth, pixelHeight}
             this.featureRenderer.draw(this.drawConfig)
         }
+
+        this.displayModeControl.style.display = this.hasGeneAnnotations ? 'block' : 'none'
     }
 
     /** Draw vertical tick marks at anchor boundaries when gene annotation data is unavailable. */
@@ -62,23 +125,23 @@ class AnnotationCanvas {
         const { anchors, bpStart: assemblyBPStart, bpEnd: assemblyBPEnd } = config
 
         this.drawConfig = config
+        this.displayModeControl.style.display = 'none'
 
-        const canvas = this.container.querySelector('canvas')!
-        const { width, height } = canvas.getBoundingClientRect();
+        const height = this.viewportHeight
+        this.sizeCanvases(height)
 
-        const ctx = (canvas as HTMLCanvasElement).getContext('2d')!
+        const { trackWidth: width, pxFromBp } = this.geometry(assemblyBPStart, assemblyBPEnd)
+
+        const ctx = this.canvas.getContext('2d')!
         ctx.clearRect(0, 0, width, height);
-
-        const bpLength = Math.max(1, assemblyBPEnd - assemblyBPStart);
-        const pixelPerBP = width / bpLength
 
         ctx.fillStyle = getAppleCrayonColorHexStringByName('aluminum')
 
         for (let i = 0; i < anchors.length; i++) {
             const { refStart, refEnd } = anchors[i]
 
-            const extentStart = Math.floor((refStart - assemblyBPStart) * pixelPerBP)
-            const extentEnd   = Math.floor((refEnd   - assemblyBPStart) * pixelPerBP)
+            const extentStart = Math.floor(pxFromBp(refStart))
+            const extentEnd   = Math.floor(pxFromBp(refEnd))
 
             if (i > 0) {
                 ctx.fillRect(extentStart, 0, 1, height)
@@ -108,12 +171,11 @@ class AnnotationCanvas {
 
         ctx.clearRect(0, 0, width, height)
 
-        const bpLength = Math.max(1, bpEnd - bpStart)
-        const pixelPerBP = width / bpLength
+        const { pxFromBp } = this.geometry(bpStart, bpEnd)
 
         for (const anchor of anchors) {
-            const x0 = (anchor.refStart - bpStart) * pixelPerBP
-            const x1 = (anchor.refEnd - bpStart) * pixelPerBP
+            const x0 = pxFromBp(anchor.refStart)
+            const x1 = pxFromBp(anchor.refEnd)
             ctx.fillStyle = bpBandColorForNode(anchor.nodeId)
             ctx.fillRect(x0, 0, Math.max(1, x1 - x0), height)
         }
@@ -135,55 +197,51 @@ class AnnotationCanvas {
 
         if (!walkNodeIds) return
 
-        const bpLength = Math.max(1, bpEnd - bpStart)
-        const pixelPerBP = width / bpLength
+        const { pxFromBp } = this.geometry(bpStart, bpEnd)
 
         ctx.imageSmoothingEnabled = false
         ctx.fillStyle = 'rgba(120, 120, 120, 0.45)'
 
         for (const anchor of anchors) {
             if (walkNodeIds.has(anchor.nodeId)) continue
-            const x0 = Math.floor((anchor.refStart - bpStart) * pixelPerBP)
-            const x1 = Math.floor((anchor.refEnd - bpStart) * pixelPerBP)
+            const x0 = Math.floor(pxFromBp(anchor.refStart))
+            const x1 = Math.floor(pxFromBp(anchor.refEnd))
             ctx.fillRect(x0, 0, Math.max(1, x1 - x0), height)
         }
     }
 
-    resize(): void {
-        const dpr = window.devicePixelRatio || 1;
-        const {width, height} = this.container.getBoundingClientRect();
+    /**
+     * Size the primary canvas and the content overlays to the track width and
+     * the given content height (css px), DPR-aware. Resetting a canvas's
+     * backing store clears it, so callers redraw afterwards.
+     */
+    private sizeCanvases(height: number): void {
+        const dpr = window.devicePixelRatio || 1
+        const width = this.trackWidth
 
-        const canvas = this.container.querySelector('canvas') as HTMLCanvasElement
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-
-        const ctx = canvas.getContext('2d')!
-        ctx.scale(dpr, dpr);
-
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`
-
-        if (this.overlayCanvas) {
-            this.overlayCanvas.width = width * dpr
-            this.overlayCanvas.height = height * dpr
-            this.overlayCanvas.getContext('2d')!.scale(dpr, dpr)
-            this.overlayCanvas.style.width = `${width}px`
-            this.overlayCanvas.style.height = `${height}px`
+        const canvases = [this.canvas, this.deEmphasisCanvas, this.overlayCanvas].filter(Boolean) as HTMLCanvasElement[]
+        for (const c of canvases) {
+            c.width = Math.round(width * dpr)
+            c.height = Math.round(height * dpr)
+            c.style.width = `${width}px`
+            c.style.height = `${height}px`
+            c.getContext('2d')!.setTransform(dpr, 0, 0, dpr, 0, 0)
         }
 
+        // Keep the mode control clear of the scrollbar gutter (0 with overlay scrollbars).
+        const gutter = this.scroller.offsetWidth - this.scroller.clientWidth
+        this.displayModeControl.style.right = `${4 + gutter}px`
+    }
+
+    /** Re-layout and redraw everything from the retained configs (window resize, mode change). */
+    resize(): void {
         if (this.hasGeneAnnotations && this.drawConfig) {
             this.renderGeneAnnotation(this.drawConfig);
         } else if (!this.hasGeneAnnotations && this.drawConfig) {
             this.renderGenomicExtents(this.drawConfig)
         } else {
-            ctx.clearRect(0, 0, width, height);
+            this.sizeCanvases(this.viewportHeight)
         }
-
-        this.deEmphasisCanvas.width = width * dpr
-        this.deEmphasisCanvas.height = height * dpr
-        this.deEmphasisCanvas.getContext('2d')!.scale(dpr, dpr)
-        this.deEmphasisCanvas.style.width = `${width}px`
-        this.deEmphasisCanvas.style.height = `${height}px`
 
         if (this.overlayConfig) this.renderBpBandOverlay(this.overlayConfig)
         if (this.deEmphasisConfig) this.renderDeEmphasisOverlay(this.deEmphasisConfig)
@@ -224,24 +282,17 @@ class AnnotationCanvas {
 
     clear(): void {
         this.drawConfig = undefined
-        const { width, height } = this.container.getBoundingClientRect();
-        const canvas = this.container.querySelector('canvas') as HTMLCanvasElement
-        const ctx = canvas.getContext('2d')!
-        ctx.clearRect(0, 0, width, height);
-
-        if (this.overlayCanvas) {
-            this.overlayConfig = undefined
-            this.overlayCanvas.getContext('2d')!.clearRect(0, 0, width, height)
-        }
-
+        this.overlayConfig = undefined
         this.deEmphasisConfig = undefined
-        this.deEmphasisCanvas.getContext('2d')!.clearRect(0, 0, width, height)
+        this.displayModeControl.style.display = 'none'
+        this.resetScroll()
+        // Re-sizing clears every canvas and collapses the content to the viewport.
+        this.sizeCanvases(this.viewportHeight)
     }
 
     showFeedbackAtParam(param: number): void {
         this.visualFeedbackElement.style.display = 'block';
-        const { width } = this.container.getBoundingClientRect();
-        this.visualFeedbackElement.style.left = `${Math.floor(width * param)}px`;
+        this.visualFeedbackElement.style.left = `${Math.floor(this.trackWidth * param)}px`;
     }
 
     showFeedbackAtPixel(px: number): void {
@@ -275,6 +326,9 @@ class AnnotationCanvas {
         if (this.deEmphasisCanvas?.parentNode) {
             this.deEmphasisCanvas.parentNode.removeChild(this.deEmphasisCanvas);
         }
+        if (this.displayModeControl?.parentNode) {
+            this.displayModeControl.parentNode.removeChild(this.displayModeControl);
+        }
         this.drawConfig = null;
         this.featureRenderer = null;
         this.overlayCanvas = null;
@@ -297,18 +351,56 @@ class AnnotationCanvas {
         return el;
     }
 
+    // Content overlays live inside the scroller so they scroll with the feature rows.
     private createOverlayCanvas(): HTMLCanvasElement {
         const el = document.createElement('canvas');
         el.className = 'pgb-gene-annotation-track-container__bp-band-overlay';
-        this.container.appendChild(el);
+        this.scroller.appendChild(el);
         return el;
     }
 
     private createDeEmphasisCanvas(): HTMLCanvasElement {
         const el = document.createElement('canvas');
         el.className = 'pgb-gene-annotation-track-container__deemphasis-overlay';
-        this.container.appendChild(el);
+        this.scroller.appendChild(el);
         return el;
+    }
+
+    private createDisplayModeControl(): HTMLElement {
+        const el = document.createElement('div');
+        el.className = 'btn-group btn-group-sm pgb-gene-annotation-track-container__display-mode';
+        el.setAttribute('role', 'group');
+        el.setAttribute('aria-label', 'Annotation display mode');
+
+        for (const mode of DISPLAY_MODES) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-outline-secondary';
+            button.dataset.displayMode = mode;
+            button.textContent = DISPLAY_MODE_LABELS[mode];
+            button.addEventListener('click', () => this.setDisplayMode(mode));
+            el.appendChild(button);
+        }
+
+        // Hovering the control is not hovering the genome: keep the track's
+        // mousemove (track → 3D dot) from firing underneath it.
+        el.addEventListener('mousemove', event => event.stopPropagation());
+
+        this.container.appendChild(el);
+        this.syncDisplayModeControlOn(el);
+        return el;
+    }
+
+    private syncDisplayModeControl(): void {
+        this.syncDisplayModeControlOn(this.displayModeControl)
+    }
+
+    private syncDisplayModeControlOn(el: HTMLElement): void {
+        for (const button of Array.from(el.querySelectorAll('button'))) {
+            const active = (button as HTMLElement).dataset.displayMode === this.displayMode
+            button.classList.toggle('active', active)
+            button.setAttribute('aria-pressed', String(active))
+        }
     }
 }
 

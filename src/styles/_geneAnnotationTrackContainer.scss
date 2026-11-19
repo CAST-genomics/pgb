@@ -1,8 +1,16 @@
 @use 'appleCrayonColors' as colors;
 
+// The annotation track's fixed height. Panels that float below the track
+// (widget buttons, widgets, PCLAI chart, tube map panel) offset from it.
+:root {
+  --pgb-annotation-track-height: 130px;
+}
+
 .pgb-gene-annotation-track-container {
   position: relative;
-  height: 64px;
+  // Fixed height: the track never grows and is not user-resizable (see
+  // CONTEXT.md, *annotation track*). Feature rows that overflow scroll inside.
+  height: var(--pgb-annotation-track-height);
   background-color: transparent;
   border-top-width: thin;
   border-top-style: solid;
@@ -11,8 +19,57 @@
   border-bottom-style: solid;
   border-bottom-color: colors.$silver;
 
+  // Vertical scroller holding the canvas and the content overlays. The
+  // scrollbar gutter is always reserved so the track width never changes when
+  // a scrollbar appears — drawing and hover share that one width.
+  &__scroller {
+    position: absolute;
+    inset: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
   &__canvas {
+    display: block;
     cursor: pointer;
+  }
+
+  // Collapsed / Squished / Expanded control, floating top-right over the
+  // track (outside the scroller so it stays put while the rows scroll).
+  &__display-mode {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 1002;
+    display: none;
+    opacity: 0.45;
+    transition: opacity 120ms ease-in-out;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    .btn {
+      font-size: 0.7rem;
+      line-height: 1;
+      padding: 0.2rem 0.4rem;
+      background-color: white;
+    }
+
+    // Bootstrap's outline hover is white text on a grey fill; with our white
+    // fill that blanks the label. Darken instead to signal "selectable".
+    .btn:not(.active):hover {
+      color: colors.$licorice;
+      background-color: colors.$mercury;
+      border-color: colors.$steel;
+    }
+
+    .btn.active {
+      color: white;
+      background-color: colors.$steel;
+      border-color: colors.$steel;
+    }
   }
 
   &__spinner {

@@ -5,7 +5,8 @@
     top: 0;
     left: 0;
     margin-left: 10rem;
-    margin-top: 10rem;
+    // Tuned against the original 64px annotation track; follows the track height.
+    margin-top: calc(10rem + var(--pgb-annotation-track-height) - 64px);
     min-width: 300px;
     height: 200px; // Smaller height for metadata widget
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

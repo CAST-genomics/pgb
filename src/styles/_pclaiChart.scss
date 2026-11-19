@@ -27,7 +27,8 @@
   top: 0;
   left: 0;
   margin-left: 10rem;
-  margin-top: 10rem;
+  // Tuned against the original 64px annotation track; follows the track height.
+  margin-top: calc(10rem + var(--pgb-annotation-track-height) - 64px);
   width: var(--pclai-chart-card-width);
   height: var(--pclai-chart-card-height);
   transition: opacity 0.2s ease;

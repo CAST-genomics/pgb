@@ -6,7 +6,8 @@
   top: 0;
   left: 0;
   margin-left: 1em;
-  margin-top: 10em;
+  // Tuned against the original 64px annotation track; follows the track height.
+  margin-top: calc(10em + var(--pgb-annotation-track-height) - 64px);
   display: inline-flex;
   align-items: center;
   justify-content: center;

@@ -326,6 +326,31 @@ available. Split into a pure coordinate kernel
 wiring (`AnnotationTrackController`) behind the `mountAnnotationTrack`
 facade.
 
+The track has a fixed height. Content taller than the track scrolls
+vertically inside it; the track never grows, and the user cannot resize it.
+
+### feature row
+
+One horizontal row of the **annotation track** in which gene features
+are laid out. Features that overlap in genomic coordinates go on separate
+feature rows; features that don't overlap share one. Distinct from the
+haplotype rows of the widgets and band labels.
+
+### display mode
+
+How the **annotation track** arranges **feature rows**, inherited from
+IGV.js:
+
+- **Collapsed** — every feature drawn on a single row, overlaps and all.
+- **Expanded** — one feature row per lane of non-overlapping features, with
+  gene labels.
+- **Squished** — the same feature rows as Expanded, drawn shorter and
+  without labels, so more of them fit in view.
+
+Expanded and Squished scroll when their feature rows exceed the track
+height. Display mode applies only to gene annotations, not to the
+node-boundary tick marks drawn when no annotation is available.
+
 ### bidirectional mapping
 
 The 1:1 correspondence between a position on the **annotation track** (1D

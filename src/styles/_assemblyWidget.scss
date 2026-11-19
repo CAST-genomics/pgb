@@ -6,7 +6,8 @@
     top: 0;
     left: 0;
     margin-left: 10em;
-    margin-top: 10em;
+    // Tuned against the original 64px annotation track; follows the track height.
+    margin-top: calc(10em + var(--pgb-annotation-track-height) - 64px);
     min-width: 18.75em;
     height: 40em;
     box-shadow: 0 0.25em 0.375em rgba(0, 0, 0, 0.1);
