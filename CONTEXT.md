@@ -798,7 +798,9 @@ nodes that haplotype is placed on, marks the ones it passes through
 
 The 2D scatter card paired with the **PCLAI widget**: hovering a **node** in
 the 3D graph plots that node's **placement**s over the **reference panel**.
-Not to be confused with the **PCLAI inset**.
+With a **coordinate key** selected, the chart shows that haplotype's
+placements. Hovering a node where it is placed narrows the chart to that one
+dot. Hovering any other node changes nothing. Not to be confused with the **PCLAI inset**.
 
 ### PCLAI inset
 
