@@ -92,7 +92,9 @@ export class PclaiChartController {
      *   hover set, no selection         → all keys for the hovered node
      *   selection set, no hover         → all nodes for the selected key
      *   hover + selection               → single dot for (node, key) if
-     *                                     present, else idle
+     *                                     the haplotype is placed on the
+     *                                     node, else the selection view
+     *                                     (as if nothing were hovered)
      */
     render() {
         if (!this.chartDelegate.isInitialized()) return
@@ -116,24 +118,24 @@ export class PclaiChartController {
             return
         }
 
-        if (!hovered && selected) {
-            const map = pclaiCoordinateService.getCoordinatesForCoordinateKey(selected)
-            if (!map || map.size === 0) {
-                this.chartDelegate.clearChart()
+        if (hovered && selected) {
+            const map = pclaiCoordinateService.getCoordinatesForNode(hovered)
+            if (map && map.has(selected)) {
+                this.chartDelegate.renderCoordinateMap(new Map([[selected, map.get(selected)]]))
                 return
             }
-            this.chartDelegate.renderCoordinateMap(map)
-            return
+            // No placement for the selected haplotype here (absent or
+            // de-emphasized node): hovering it changes nothing, so fall
+            // through to the selection view (issue #183).
         }
 
-        // hovered && selected
-        const map = pclaiCoordinateService.getCoordinatesForNode(hovered)
-        if (!map || !map.has(selected)) {
+        // selection set, no hover — or a hover that doesn't count
+        const map = pclaiCoordinateService.getCoordinatesForCoordinateKey(selected)
+        if (!map || map.size === 0) {
             this.chartDelegate.clearChart()
             return
         }
-        const filtered = new Map([[selected, map.get(selected)]])
-        this.chartDelegate.renderCoordinateMap(filtered)
+        this.chartDelegate.renderCoordinateMap(map)
     }
 
     /** Called by the facade when the chart is re-shown. */
