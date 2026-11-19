@@ -5,10 +5,12 @@ commit message, a refactor proposal, a hypothesis, or a test name, use the
 term as defined here rather than a synonym. Where a term has a deliberate
 alias, both are recorded.
 
-Two halves. **Domain vocabulary** is genomics — written for someone fluent
+Three parts. **Domain vocabulary** is genomics — written for someone fluent
 in software but new to the biology, and for me on a future conversation
 when I have forgotten. **System vocabulary** is PGB's own architecture: the
-words that only mean something inside this codebase.
+words that only mean something inside this codebase. **PCLAI vocabulary** is
+everything — biology and machinery alike — that PGB uses only for PCLAI,
+kept apart so it never reads as general.
 
 Rules and conventions live in [`CLAUDE.md`](CLAUDE.md); decisions live in
 `docs/adr/`. This file defines terms only — it does not tell you what to do.
@@ -17,17 +19,10 @@ Rules and conventions live in [`CLAUDE.md`](CLAUDE.md); decisions live in
 
 ## Domain vocabulary
 
-Terms appearing across the [Assembly](notes/data-format/stories/assembly.md),
-[Population](notes/data-format/stories/population.md), and
-[PCLAI](notes/data-format/stories/pclai.md) stories.
-
-### admixture
-
-The mixture of ancestries within a single individual's genome, produced by
-matings between members of historically separate populations. An admixed
-genome is a mosaic of segments that trace back to different ancestral
-sources. PCLAI quantifies admixture as the spread of a haplotype's
-**point cloud** in PCA space.
+Terms appearing across the [Assembly](notes/data-format/stories/assembly.md)
+and [Population](notes/data-format/stories/population.md) stories, and
+underneath everything else. Ancestry terms that PGB uses only for PCLAI
+live in **PCLAI vocabulary** below.
 
 ### allele
 
@@ -41,19 +36,12 @@ A consensus DNA sequence reconstructed for one individual's genome (or
 one of their haplotypes). In PGB datasets, each assembly is identified by
 its sample id (e.g. `HG00408`).
 
-### assembly-haplotype (a.k.a. coordinate key)
+### assembly-haplotype
 
 An assembly paired with one of its two haplotypes — for diploid humans,
 each individual contributes two. Written as `ASM#HAP`, e.g.
-`HG00408#1`. The [Assembly widget](notes/data-format/stories/assembly.md) and
-[PCLAI widget](notes/data-format/stories/pclai.md) both list assembly-haplotypes as their rows.
-
-### breakpoint
-
-A point along the genome where two adjacent segments trace to different
-ancestries — i.e. a **recombination** event in the haplotype's history.
-In PGB, the boundaries between graph nodes are the candidate breakpoints
-PCLAI's continuous model regresses between.
+`HG00408#1`. The [Assembly widget](notes/data-format/stories/assembly.md)
+lists assembly-haplotypes as its rows.
 
 ### contig
 
@@ -73,20 +61,24 @@ A directed link between two nodes in the pangenome graph, representing
 "this segment can immediately follow that segment in some assembly."
 Stored flat in `dataset.edge[]`.
 
-### F₂
-
-A statistic from population genetics measuring accumulated genetic drift
-(or branch length) between two populations. Equal to the expected squared
-distance between their allele-frequency vectors. PCLAI's PCA space is
-constructed so that Euclidean distance approximates F₂, which is what
-makes the visual proximity of two dots in the chart biologically
-meaningful.
-
 ### GRCh38
 
 The current standard linear human reference genome (Genome Reference
-Consortium Human Build 38). PGB datasets often anchor coordinates to
-GRCh38; PCLAI placements are recorded against it in `pclai_hg38`.
+Consortium Human Build 38). PGB datasets often anchor genomic positions
+to GRCh38: a node's position on the reference is a **genomic interval** on it.
+
+### genomic interval
+
+A contiguous span of one linear sequence — a GRCh38 chromosome or an
+assembly **contig** — given as sequence name, start and end in base pairs,
+e.g. `chr1:25240000-25460000`. The term for any purely genomic extent: a
+**locus**, a node's span on the reference, an annotation feature. Bare
+*interval* is fine where nothing else is in play; say *genomic interval*
+wherever PCLAI vocabulary is nearby. A single base-pair location is a
+**genomic position**.
+
+Never *coordinate* unqualified: in PGB that word also means a **PCLAI
+coordinate**, a point in ancestry space with no genomic meaning at all.
 
 ### haplotype
 
@@ -95,36 +87,19 @@ per chromosome. PGB datasets carry per-haplotype data because that's the
 unit at which ancestry varies — your two copies of a chromosome may have
 very different histories.
 
-### local ancestry inference (LAI)
-
-The task of labeling each genomic window of a haplotype with the
-ancestry it traces back to. Classical LAI produces discrete labels (a
-finite set like AFR/EUR/EAS); PCLAI replaces these with **continuous
-coordinates** in a learned embedding space.
-
-### lobe
-
-One of the five clusters the PCLAI coordinates fall into. k-means finds
-k=5 in all six surveyed datasets at silhouette 0.89–0.93, and **99.5–99.8%**
-of the coordinate's variance lies *between* lobes against 0.2–0.5% within
-them. So the lobe is the thing a PCLAI coordinate individuates: it answers
-*which ancestry group*, and cannot answer *which haplotype* — the
-information is not in the coordinate. See
-[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
-
 ### locus
 
 A specific region of the genome. Each PGB dataset is one locus,
 identified by a `queried_locus` (what was asked for) and an
 `actual_locus` (what the graph spans — usually wider, extending to
-clean boundary nodes).
+clean boundary nodes). Each of those is a **genomic interval**.
 
 ### node
 
 A vertex in the pangenome graph — one haplotypic segment of DNA. Stored
 as a map keyed by oriented node id (e.g. `"141452+"`, where `+`/`−` is
 the strand orientation). Each node has a length, a sequence, a list of
-assemblies that walk through it, and (for HPRC data) PCLAI placements.
+assemblies that walk through it.
 
 Also called a **minigraph node** — the deliberate alias, used where the
 **sequence tube map** is involved and the word has to be told apart from a
@@ -144,33 +119,6 @@ shared nodes; variation appears as alternative paths. Replaces the
 single-reference paradigm (e.g. "the human genome") with a many-genome
 paradigm.
 
-### PCA (principal component analysis)
-
-A linear projection of high-dimensional data onto its directions of
-maximum variance. Applied to genetic data, PCA's top components
-typically recapitulate broad geographic ancestry structure. PCLAI's
-default coordinate space is the PCA space of a labeled reference panel.
-
-### PCLAI (Point Cloud Local Ancestry Inference)
-
-A continuous, coordinate-based approach to local ancestry inference.
-Each haplotype is represented as a **point cloud** of per-window
-coordinates in a genetic embedding space (PCA by default; UMAP also
-supported). Recombination breakpoints emerge as discrete junctions
-where the coordinate changes abruptly. See [`pclai.md`](notes/data-format/stories/pclai.md) for
-how PGB visualizes this.
-
-> Geleta, Bu, Turner, et al. *Point cloud local ancestry inference
-> (PCLAI): continuous coordinate-based ancestry along the genome.*
-> Nature Genetics, 2026.
-
-### point cloud
-
-A set of points in some coordinate space. In PCLAI, an individual
-haplotype's point cloud is its set of per-window PCA coordinates — one
-point per genomic window. The *shape* of this cloud is the admixture
-signal: tight cluster = single ancestry; spread / multi-modal = admixed.
-
 ### population
 
 A relatively fine-grained ancestry category (e.g. `ACB`, `CHS`,
@@ -187,16 +135,8 @@ every selection in the [Population widget](notes/data-format/stories/population.
 
 The biological process by which a child's chromosome is constructed by
 splicing together segments from each parent's two homologous
-chromosomes. Each splice is a **breakpoint**. Recombination is the
+chromosomes. Recombination is the
 reason ancestry varies along a single chromosome.
-
-### reference panel
-
-A labeled dataset of known-ancestry haplotypes used to *define* a
-coordinate space (for PCA fitting) and to *visually anchor* the
-[PCLAI chart](notes/data-format/stories/pclai.md) (drawn as colored regions for AFR / EUR / EAS /
-AMR / WAS). In PGB the reference panel comes from
-`hprc-reference-pca.tsv`.
 
 ### spine
 
@@ -218,13 +158,6 @@ being on its main walk. Default emphasis target for the
 A coarse-grained ancestry category (e.g. `AFR`, `AMR`, `EAS`, `EUR`,
 `SAS`) — typically continental-scale. HPRC datasets carry 6
 superpopulations, each containing several **populations**.
-
-### UMAP
-
-A non-linear dimensionality reduction technique that preserves local
-neighborhood structure better than PCA at the cost of distorting global
-distances. PCLAI supports UMAP as an alternative coordinate space; PGB
-datasets currently ship PCA placements.
 
 ### walk
 
@@ -250,8 +183,8 @@ pipeline stays simple. Base class in `src/looks/look.ts`.
 ### NodeEmphasisLook / HeatmapLook
 
 The two concrete Looks. `NodeEmphasisLook` owns the emphasized /
-de-emphasized / absent partitioning driven by the Assembly and PCLAI
-widgets. `HeatmapLook` owns continuous frequency coloring for the
+de-emphasized partitioning driven by the Assembly and PCLAI widgets,
+and the PCLAI view's third state, **absent**. `HeatmapLook` owns continuous frequency coloring for the
 Population widget.
 
 ### one Look per Scene
@@ -274,23 +207,14 @@ The heavyweight operation — changing the *kind of question* being asked
 within a Look**, the lightweight operation that alters individual node
 appearance while the question stays the same.
 
-### emphasized / de-emphasized / absent
+### emphasized / de-emphasized
 
-The three visual states a node can occupy under a selection. *Emphasized*
+The two visual states a node occupies under a selection. *Emphasized*
 matches the selection (saturated, figure against ground). *De-emphasized*
 lives in the same data space but doesn't match (muted, same chromatic
-family — it could match under a different selection). *Absent* lacks the
-relevant data for the selection, and must read as a difference of *kind*,
-not degree. The PCLAI widget is currently the only widget with an absent
-state, and it carries the difference by value — absent is dark,
-de-emphasized is light — because PCLAI emphasis colors already span every
-hue, leaving no temperature free to carry it.
-
-All three are interaction-time states. *Absent* is relative to the
-selection: a node is absent when the selected haplotype passes through
-it but carries no **placement** there. Nodes the selection does not
-touch are de-emphasized, never absent — absence is only asked of nodes
-in the selection's subgraph.
+family — it could match under a different selection). Both are
+interaction-time states. The PCLAI view adds a third, **absent**, defined
+in **PCLAI vocabulary**.
 
 ### widget
 
@@ -680,32 +604,6 @@ per-band geometry on the CPU, which is what the pass exists to avoid. The two
 differ only inside a thirty-second of a css pixel, and both strands are named
 either way.
 
-### placement
-
-A haplotype's PCLAI coordinate at one **node** — PCLAI is per (haplotype,
-node). In the 3D graph it is read from the active coordinate system; in a
-**sequence tube map** document it is carried on every **band** as
-`pclaiX` / `pclaiY`, or **absent** — spelled `pclaiX="None"`, which the
-renderer already draws grey.
-
-How many strands are unplaced is a property of the document and never a
-constant: 6 in `stm-chr1-25331046-25331646`, 12 in
-`stm-chr8-78771162-78771252`, 99 in `5520+`. A strand has one placement per
-document because each document covers one **node** — that is a property of
-the window, not of the haplotype, since PCLAI is per (haplotype, node).
-
-### PCLAI inset
-
-The passive chart over a **sequence tube map**, plotting one dot per placed
-**strand** in the open document over the ancestry colour ramp. Holding the
-feeler over a strand recedes the crowd and rings that haplotype's dot.
-
-Distinct from the [PCLAI chart](notes/data-format/stories/pclai.md), the
-**widget** card that indexes **node**s in the 3D graph: the two share a
-coordinate space and a ramp and nothing else. The inset takes no pointer input
-at all — why, and what that costs, is
-[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
-
 ### tube map panel
 
 The floating, draggable, resizable card that hosts a **sequence tube map**,
@@ -721,14 +619,210 @@ the other two — is
 
 ---
 
+## PCLAI vocabulary
+
+These terms belong to PCLAI functionality and stop there. The rule is
+one-way: a PCLAI entry may cite any general term, but no Domain or System
+entry is defined in PCLAI terms. Where a general entry names a PCLAI one —
+the **sequence tube map** shares its screen with the **PCLAI inset** — it is a
+cross-reference, not a dependency. A word used only for PCLAI is defined
+here, so it cannot be mistaken for a property of every dataset.
+
+**The biology.** Ancestry concepts PGB meets only through PCLAI.
+
+### PCLAI (Point Cloud Local Ancestry Inference)
+
+A continuous, coordinate-based approach to local ancestry inference.
+Each haplotype is represented as a **point cloud** of per-window
+**PCLAI coordinates** in a genetic embedding space (PCA by default; UMAP also
+supported). **Ancestry breakpoints** emerge as discrete junctions
+where the PCLAI coordinate changes abruptly. See [`pclai.md`](notes/data-format/stories/pclai.md) for
+how PGB visualizes this.
+
+> Geleta, Bu, Turner, et al. *Point cloud local ancestry inference
+> (PCLAI): continuous coordinate-based ancestry along the genome.*
+> Nature Genetics, 2026.
+
+### local ancestry inference (LAI)
+
+The task of labeling each genomic window of a haplotype with the
+ancestry it traces back to. Classical LAI produces discrete labels (a
+finite set like AFR/EUR/EAS); PCLAI replaces these with **continuous
+coordinates** in a learned embedding space.
+
+### PCLAI coordinate
+
+A point in PCLAI's embedding space — `(x, y)` in the PCA space by default.
+It locates *ancestry*, not sequence: it has no genomic meaning, and two
+PCLAI coordinates near each other say two segments share ancestry, not
+that they sit near each other on any genome. Contrast **genomic
+position** and **genomic interval**.
+
+### point cloud
+
+A set of points in some coordinate space. In PCLAI, an individual
+haplotype's point cloud is its set of per-window PCLAI coordinates — one
+point per genomic window. The *shape* of this cloud is the admixture
+signal: tight cluster = single ancestry; spread / multi-modal = admixed.
+
+### admixture
+
+The mixture of ancestries within a single individual's genome, produced by
+matings between members of historically separate populations. An admixed
+genome is a mosaic of segments that trace back to different ancestral
+sources. PCLAI quantifies admixture as the spread of a haplotype's
+**point cloud** in PCA space.
+
+### ancestry breakpoint
+
+A point along a haplotype where two adjacent segments trace to different
+ancestries — the trace a **recombination** event leaves in that
+haplotype's history. In PGB, the boundaries between graph nodes are the
+candidate ancestry breakpoints PCLAI's continuous model regresses between.
+
+Always qualified: a bare *breakpoint*, in pangenome and structural-variant
+work, means a genomic event, which this is not.
+
+### lobe
+
+One of the five clusters the PCLAI coordinates fall into. k-means finds
+k=5 in all six surveyed datasets at silhouette 0.89–0.93, and **99.5–99.8%**
+of the PCLAI coordinate's variance lies *between* lobes against 0.2–0.5% within
+them. So the lobe is the thing a PCLAI coordinate individuates: it answers
+*which ancestry group*, and cannot answer *which haplotype* — the
+information is not in the PCLAI coordinate. See
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
+
+### F₂
+
+A statistic from population genetics measuring accumulated genetic drift
+(or branch length) between two populations. Equal to the expected squared
+distance between their allele-frequency vectors. PCLAI's PCA space is
+constructed so that Euclidean distance approximates F₂, which is what
+makes the visual proximity of two dots in the chart biologically
+meaningful.
+
+### PCA (principal component analysis)
+
+A linear projection of high-dimensional data onto its directions of
+maximum variance. Applied to genetic data, PCA's top components
+typically recapitulate broad geographic ancestry structure. PCLAI's
+default embedding space is the PCA space of a labeled reference panel.
+
+### UMAP
+
+A non-linear dimensionality reduction technique that preserves local
+neighborhood structure better than PCA at the cost of distorting global
+distances. PCLAI supports UMAP as an alternative embedding space; PGB
+datasets currently ship PCA placements.
+
+### reference panel
+
+A labeled dataset of known-ancestry haplotypes used to *define* an
+embedding space (for PCA fitting) and to *visually anchor* the
+[PCLAI chart](notes/data-format/stories/pclai.md) (drawn as colored regions for AFR / EUR / EAS /
+AMR / WAS). In PGB the reference panel comes from
+`hprc-reference-pca.tsv`.
+
+**In PGB.** How PCLAI data is named, read and drawn in the app.
+
+### coordinate key
+
+How PCLAI data names a haplotype: `ASM#HAP`, e.g. `HG00408#1` — the keys of
+each node's `pclai_hg38` / `pclai_asm` block, and the rows of the **PCLAI
+widget**. It looks like an **assembly-haplotype** but belongs to PCLAI, and
+the two do not interchange: a coordinate key may name a haplotype with no
+**walk** in the current locus, and the rest of the app keys assemblies by
+three parts, `ASM#HAP#sequenceId`. The two cross at exactly one point,
+`genomicService.resolveAssemblyKey`, which may answer nothing.
+
+### PCLAI frame
+
+The genome a PCLAI inference was run against: the **GRCh38 frame** or the
+**assembly frame** (the haplotype's own assembly). v3 datasets carry both
+per node, as `pclai_hg38` and `pclai_asm`. One frame is active at a time —
+GRCh38 when the dataset has it — and there is no UI to switch yet. A
+placement only means anything within its frame.
+
+The code calls this a *coordinate system* (`PclaiCoordSystem`,
+`pclai_coord_system`). Don't in prose: *coordinate* is ambiguous here, and
+*PCLAI coordinate system* reads as PCA vs. **UMAP**, which is the embedding
+space, not the frame.
+
+### placement
+
+A haplotype's **PCLAI coordinate** at one **node** — PCLAI is per
+(haplotype, node). In the 3D graph it is read
+from the active **PCLAI frame**; in a **sequence tube map** document it is
+carried on every **band** as `pclaiX` / `pclaiY`, or is missing — spelled
+`pclaiX="None"`, which the renderer already draws grey.
+
+Not a genomic term. Where a node sits on a genome is a **genomic interval**.
+
+How many strands are unplaced is a property of the document and never a
+constant: 6 in `stm-chr1-25331046-25331646`, 12 in
+`stm-chr8-78771162-78771252`, 99 in `5520+`. A strand has one placement per
+document because each document covers one **node** — that is a property of
+the window, not of the haplotype, since PCLAI is per (haplotype, node).
+
+### unplaced
+
+A haplotype is unplaced at a **node** when it passes through the node but
+the dataset carries no **placement** for it there. A fact about the data,
+not a way of drawing it — the visual consequence in the 3D graph is
+**absent**. Observed only in PCLAI data; nothing outside PCLAI has an
+equivalent.
+
+### absent
+
+The PCLAI view's third visual state, alongside **emphasized** and
+**de-emphasized**: the node lacks the relevant data for the selection, and
+must read as a difference of *kind*, not degree. A node is absent when the
+selected **coordinate key** passes through it **unplaced**. Nodes the
+selection does not touch are de-emphasized, never absent — absence is only
+asked of nodes in the selection's subgraph.
+
+The PCLAI widget is the only widget with an absent state. It carries the
+difference by value — absent is dark, de-emphasized is light — because
+PCLAI emphasis colors already span every hue, leaving no temperature free
+to carry it.
+
+### PCLAI widget
+
+The **widget** that lists **coordinate key**s. Selecting one emphasizes the
+nodes that haplotype is placed on, marks the ones it passes through
+**unplaced** as **absent**, and steers the **PCLAI chart**. Story:
+[`pclai.md`](notes/data-format/stories/pclai.md).
+
+### PCLAI chart
+
+The 2D scatter card paired with the **PCLAI widget**: hovering a **node** in
+the 3D graph plots that node's **placement**s over the **reference panel**.
+Not to be confused with the **PCLAI inset**.
+
+### PCLAI inset
+
+The passive chart over a **sequence tube map**, plotting one dot per placed
+**strand** in the open document over the ancestry colour ramp. Holding the
+**feeler** over a strand recedes the crowd and rings that haplotype's dot.
+
+Distinct from the [PCLAI chart](notes/data-format/stories/pclai.md), the
+**widget** card that indexes **node**s in the 3D graph: the two share an
+embedding space and a ramp and nothing else. The inset takes no pointer input
+at all — why, and what that costs, is
+[ADR 0003](docs/adr/0003-passive-pclai-inset.md).
+
+---
+
 ## Reading suggestions
 
 - New to pangenomes? Start with **pangenome graph**, **node**, **edge**,
   **walk**.
-- New to ancestry? Start with **local ancestry inference**, **admixture**,
+- New to ancestry? Start with **haplotype**, **recombination**,
   **superpopulation** / **population**.
-- New to PCLAI? Read **PCA**, **point cloud**, **breakpoint** in that
-  order, then the [PCLAI story](notes/data-format/stories/pclai.md).
+- New to PCLAI? Read **local ancestry inference**, **PCA**, **point cloud**,
+  **ancestry breakpoint** in that order, then **placement** / **unplaced** /
+  **absent**, then the [PCLAI story](notes/data-format/stories/pclai.md).
 - New to the codebase? Read **Look**, **one Look per Scene**, **widget**,
-  and **emphasized / de-emphasized / absent**, then
+  and **emphasized / de-emphasized**, then
   [`notes/architecture/look/`](notes/architecture/look/).

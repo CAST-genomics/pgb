@@ -4,7 +4,7 @@ How the engineering skills should consume this repo's domain documentation when 
 
 ## Before exploring, read these
 
-- **`CONTEXT.md`** at the repo root — the ubiquitous language, in two halves: domain (genomics) vocabulary and system (PGB architecture) vocabulary.
+- **`CONTEXT.md`** at the repo root — the ubiquitous language, in three parts: domain (genomics) vocabulary, system (PGB architecture) vocabulary, and PCLAI vocabulary — terms PGB uses only for PCLAI, kept apart so they never read as general. Don't carry a PCLAI term (placement, unplaced, absent, coordinate key, PCLAI frame) into non-PCLAI work; for purely genomic extents say *genomic interval*.
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in.
 - **`notes/`** — this repo's knowledge base. See the map below.
 
@@ -43,7 +43,7 @@ Themed directories, and when to reach for each:
 
 ## Use the glossary's vocabulary
 
-When your output names a domain concept (an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids — note that several PGB terms have deliberate aliases recorded there (e.g. *assembly-haplotype*, a.k.a. *coordinate key*).
+When your output names a domain concept (an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids — note that several PGB terms have deliberate aliases recorded there (e.g. *strand*, a.k.a. *track* in the tube map's SVG).
 
 If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).
 
