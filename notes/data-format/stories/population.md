@@ -113,10 +113,11 @@ landscape.
   of the **core graph** — shared by essentially everyone.
 - A node that paints **uniformly dark** is a **rare allele**.
 
-The hover tooltip on any node (powered by the same
-`assemblyMetadataService`) gives the full demographic breakdown — every
-population, with counts and percentages — so the scientist can drop from
-the landscape view down into per-node detail without leaving the gesture.
+Clicking a node opens its **population breakdown** (CONTEXT.md) — every
+population, with counts and percentages, fed by the same
+`assemblyMetadataService` — so the scientist can drop from the landscape
+view down into per-node detail without leaving the gesture. Hover shows
+only the ordinary node tooltip (#174).
 
 The Population widget is the only one of the three theme widgets that
 **changes the look**. The others modulate the existing look's parameters;
@@ -144,7 +145,7 @@ carries this?"* — by recoloring the entire graph as a single gradient.
 ## Pointers
 
 - Widget: `src/widgets/populationOnlyWidget.ts`
-- Look: `src/looks/heatmapLook.ts` (activated on selection)
+- Look: `src/looks/heatmapLook.ts` (active while the widget is up)
 - Data source: `assembly_metadata.frequency` per node
 - Taxonomy: `src/utils/populationUtils.js`
-- Tooltip / breakdown HTML: `src/assemblyMetadataService.ts`
+- Breakdown rows: `src/assemblyMetadataService.ts`; panel: `src/populationBreakdown.ts`

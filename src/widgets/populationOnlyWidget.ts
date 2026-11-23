@@ -207,19 +207,23 @@ class PopulationOnlyWidget {
         this.populateList();
     }
 
+    /**
+     * Clear any selection and leave heatmapScene: reset() is how every path that
+     * takes the card down (its own button, another widget's, a dataset load)
+     * hands the graph back to nodeEmphasisScene.
+     */
     reset(): void {
         // Publish before leaving heatmapScene, so HeatmapLook is still active to
         // repaint its nodes to the default color for the next time the card opens.
         if (this.selectedPopulation) {
             const deselectedPopulation = this.selectedPopulation;
             eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
-            globals.widgetService.activateLook('nodeEmphasisScene');
         } else if (this.selectedSuperpopulation) {
             const deselectedSuperpopulation = this.selectedSuperpopulation;
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
-            globals.widgetService.activateLook('nodeEmphasisScene');
         }
         this.clearAllSelections();
+        globals.widgetService.activateLook('nodeEmphasisScene');
     }
 
     destroy(): void {

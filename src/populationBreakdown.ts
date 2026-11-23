@@ -47,6 +47,7 @@ export class PopulationBreakdown {
     private rows: PopulationBreakdownRow[] = []
     private selectedAcronym: string | null = null
     private hasBeenDragged = false
+    private positionAtPress: { left: string; top: string } | null = null
 
     constructor(options: PopulationBreakdownOptions) {
         this.options = options
@@ -81,16 +82,30 @@ export class PopulationBreakdown {
         this.element.append(this.header, this.body)
         ;(options.parent ?? document.body).appendChild(this.element)
 
-        this.header.addEventListener('mousedown', () => { this.hasBeenDragged = true })
+        this.header.addEventListener('mousedown', () => {
+            this.positionAtPress = { left: this.element.style.left, top: this.element.style.top }
+        })
         this.draggable = new Draggable(this.element, { handle: this.header })
 
-        this.onWindowChange = this.onWindowChange.bind(this)
-        document.addEventListener('mouseup', this.onWindowChange)
-        window.addEventListener('resize', this.onWindowChange)
+        this.onDragEnd = this.onDragEnd.bind(this)
+        this.onResize = this.onResize.bind(this)
+        document.addEventListener('mouseup', this.onDragEnd)
+        window.addEventListener('resize', this.onResize)
     }
 
-    /** After a drag or a window resize, re-fit the height to where the panel now sits. */
-    private onWindowChange(): void {
+    /** A press on the header that moved the panel makes its position the one to reopen at. */
+    private onDragEnd(): void {
+        const atPress = this.positionAtPress
+        if (!atPress) return
+        this.positionAtPress = null
+
+        if (atPress.left !== this.element.style.left || atPress.top !== this.element.style.top) {
+            this.hasBeenDragged = true
+        }
+        this.fitToViewport()
+    }
+
+    private onResize(): void {
         this.fitToViewport()
     }
 
@@ -116,7 +131,9 @@ export class PopulationBreakdown {
 
         if (!wasOpen) {
             this.element.style.display = ''
-            if (!this.hasBeenDragged) {
+            if (this.hasBeenDragged) {
+                this.keepOnScreen()
+            } else {
                 const { left, top } = this.options.defaultPosition(this.element)
                 this.element.style.left = `${left}px`
                 this.element.style.top = `${top}px`
@@ -136,6 +153,20 @@ export class PopulationBreakdown {
         this.element.style.maxHeight = `${Math.max(room, PopulationBreakdown.MIN_HEIGHT_PX)}px`
     }
 
+    /**
+     * Bring a remembered position back inside the viewport, which may have shrunk
+     * while the panel was closed: the header must stay reachable.
+     */
+    private keepOnScreen(): void {
+        const margin = PopulationBreakdown.VIEWPORT_MARGIN_PX
+        const maxLeft = Math.max(0, window.innerWidth - this.element.offsetWidth - margin)
+        const maxTop = Math.max(0, window.innerHeight - PopulationBreakdown.MIN_HEIGHT_PX - margin)
+        const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max)
+
+        this.element.style.left = `${clamp(parseFloat(this.element.style.left) || 0, maxLeft)}px`
+        this.element.style.top = `${clamp(parseFloat(this.element.style.top) || 0, maxTop)}px`
+    }
+
     /** Move the bold row to `acronym`; null bolds none (e.g. a superpopulation is selected). */
     setSelectedPopulation(acronym: string | null): void {
         this.selectedAcronym = acronym
@@ -150,8 +181,8 @@ export class PopulationBreakdown {
     }
 
     destroy(): void {
-        document.removeEventListener('mouseup', this.onWindowChange)
-        window.removeEventListener('resize', this.onWindowChange)
+        document.removeEventListener('mouseup', this.onDragEnd)
+        window.removeEventListener('resize', this.onResize)
         this.draggable.destroy()
         this.element.remove()
     }

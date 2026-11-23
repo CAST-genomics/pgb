@@ -45,6 +45,27 @@ import { PopulationBreakdown } from "../populationBreakdown.ts"
  * every node mesh in NodeMeshGroup has. Non-mesh children (helpers, feedback
  * dots) and multi-material meshes are skipped rather than blindly cast.
  */
+/**
+ * The slice of RaycastService HeatmapLook binds to: its click hook. Left-click
+ * arrives as a `pointerup` with button 0; right-click arrives both as a
+ * `pointerup` with button 2 and as a `contextmenu`. `intersection` is null on
+ * a background click.
+ */
+interface NodeClickSource {
+    registerClickHandler(handler: (intersection: NodeClickIntersection | null, event: { type: string; button: number }) => void): () => void
+}
+
+interface NodeClickIntersection {
+    object: THREE.Object3D
+}
+
+/** The halo on the node the breakdown describes, and what to restore on removal. */
+interface BreakdownMark {
+    mesh: THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>
+    node: THREE.Mesh
+    nodeRenderOrder: number
+}
+
 function isSingleMaterialMesh(object: THREE.Object3D): object is THREE.Mesh<THREE.BufferGeometry, THREE.Material> {
     return (object as THREE.Mesh).isMesh === true && !Array.isArray((object as THREE.Mesh).material)
 }
@@ -59,11 +80,10 @@ class HeatmapLook extends Look {
     static BREAKDOWN_MARK_WIDTH_PIXELS = Look.NODE_LINE_WIDTH_PIXELS + 8
     static BREAKDOWN_MARGIN_PX = 12
 
-    raycastService: any
+    raycastService: NodeClickSource | undefined
     graphContainer: HTMLElement | null
     private breakdown: PopulationBreakdown | null = null
-    private breakdownMark: THREE.Mesh | null = null
-    private markedNodeRenderOrder = 0
+    private breakdownMark: BreakdownMark | null = null
     private selectedPopulationAcronym: string | null = null
 
     constructor(name: string, config: any) {
@@ -168,7 +188,7 @@ class HeatmapLook extends Look {
 
         if (this.raycastService) {
             this.unsubs.push(this.raycastService.registerClickHandler(
-                (intersection: any, event: any) => this.onNodeClick(intersection, event)))
+                (intersection, event) => this.onNodeClick(intersection, event)))
         }
     }
 
@@ -191,14 +211,16 @@ class HeatmapLook extends Look {
      * button (which also arrives here, as a pointerup and as a contextmenu),
      * edges, empty background — leaves the breakdown as it is.
      */
-    private onNodeClick(intersection: any, event: any): void {
-        if (event?.type !== 'pointerup' || event.button !== 0) return
-        if (intersection?.object?.userData?.type !== 'node') return
+    private onNodeClick(intersection: NodeClickIntersection | null, event: { type: string; button: number }): void {
+        if (event.type !== 'pointerup' || event.button !== 0) return
 
-        const nodeName: string = intersection.object.userData.nodeName
+        const node = intersection?.object
+        if (!(node instanceof THREE.Mesh) || node.userData.type !== 'node') return
+
+        const nodeName: string = node.userData.nodeName
         if (this.breakdown?.nodeName === nodeName) return
 
-        this.openBreakdown(nodeName, intersection.object)
+        this.openBreakdown(nodeName, node)
     }
 
     private openBreakdown(nodeName: string, nodeMesh: THREE.Mesh): void {
@@ -226,7 +248,7 @@ class HeatmapLook extends Look {
     /** Upper right of the graph area, below the locus caption at its top. */
     private breakdownDefaultPosition(panel: HTMLElement): { left: number; top: number } {
         const margin = HeatmapLook.BREAKDOWN_MARGIN_PX
-        const container = this.graphContainer ?? document.getElementById('pgb-three-container')
+        const container = this.graphContainer
         if (!container) {
             return { left: margin, top: margin }
         }
@@ -263,24 +285,19 @@ class HeatmapLook extends Look {
             material.uniforms.halfWidth.value = RibbonMaterialFactory.computeHalfWidth(
                 camera as THREE.OrthographicCamera, HeatmapLook.BREAKDOWN_MARK_WIDTH_PIXELS, renderer.domElement)
         }
-        mark.userData.markedNode = nodeMesh
 
-        this.markedNodeRenderOrder = nodeMesh.renderOrder
+        this.breakdownMark = { mesh: mark, node: nodeMesh, nodeRenderOrder: nodeMesh.renderOrder }
         nodeMesh.renderOrder = 2
-
         this.activeScene.add(mark)
-        this.breakdownMark = mark
     }
 
     private removeBreakdownMark(): void {
-        const mark = this.breakdownMark
-        if (!mark) return
+        if (!this.breakdownMark) return
+        const { mesh, node, nodeRenderOrder } = this.breakdownMark
 
-        const markedNode = mark.userData.markedNode as THREE.Mesh | undefined
-        if (markedNode) markedNode.renderOrder = this.markedNodeRenderOrder
-
-        mark.removeFromParent()
-        ;(mark.material as THREE.Material).dispose()
+        node.renderOrder = nodeRenderOrder
+        mesh.removeFromParent()
+        mesh.material.dispose()
         this.breakdownMark = null
     }
 

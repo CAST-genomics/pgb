@@ -109,7 +109,7 @@ describe('PopulationBreakdown', () => {
 
         const header = p.element.querySelector('.population-breakdown__header') as HTMLElement
         header.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 710, clientY: 130 }))
-        document.dispatchEvent(new MouseEvent('mousemove', { clientX: 410, clientY: 330 }))
+        document.dispatchEvent(new MouseEvent('mousemove', { clientX: 910, clientY: 330 }))
         document.dispatchEvent(new MouseEvent('mouseup', {}))
         const dragged = { left: p.element.style.left, top: p.element.style.top }
         expect(dragged).not.toEqual({ left: '700px', top: '120px' })
@@ -130,6 +130,38 @@ describe('PopulationBreakdown', () => {
         } finally {
             Object.defineProperty(window, 'innerHeight', { value: innerHeight, configurable: true })
         }
+    })
+
+    it('a press on the header that does not move it keeps the default position for later opens', () => {
+        let left = 700
+        panel = new PopulationBreakdown({ defaultPosition: () => ({ left, top: 120 }) })
+        panel.show('5519+', ROWS, null)
+
+        const header = panel.element.querySelector('.population-breakdown__header') as HTMLElement
+        header.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 710, clientY: 130 }))
+        document.dispatchEvent(new MouseEvent('mouseup', {}))
+        panel.close()
+
+        left = 500 // e.g. the window was resized while closed
+        panel.show('42-', ROWS, null)
+        expect(panel.element.style.left).toBe('500px')
+    })
+
+    it('a remembered position that is now off screen is brought back into the viewport', () => {
+        const p = makePanel()
+        p.show('5519+', ROWS, null)
+        const header = p.element.querySelector('.population-breakdown__header') as HTMLElement
+        header.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }))
+        document.dispatchEvent(new MouseEvent('mousemove', { clientX: 5000, clientY: 5000 }))
+        document.dispatchEvent(new MouseEvent('mouseup', {}))
+        p.close()
+
+        p.show('42-', ROWS, null)
+
+        expect(parseFloat(p.element.style.left)).toBeLessThan(window.innerWidth)
+        expect(parseFloat(p.element.style.top)).toBeLessThan(window.innerHeight)
+        expect(parseFloat(p.element.style.left)).toBeGreaterThanOrEqual(0)
+        expect(parseFloat(p.element.style.top)).toBeGreaterThanOrEqual(0)
     })
 
     it('a press on the close button does not start a drag', () => {
