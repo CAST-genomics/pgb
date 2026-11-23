@@ -24,7 +24,7 @@ selection can sit at *either* level of the hierarchy. Clicking the selected
 bucket again deselects it; clicking a different bucket replaces the
 selection without an intermediate empty state.
 
-`src/widgets/populationWidget.ts`
+`src/widgets/populationOnlyWidget.ts`
 
 ---
 
@@ -143,7 +143,7 @@ carries this?"* — by recoloring the entire graph as a single gradient.
 
 ## Pointers
 
-- Widget: `src/widgets/populationWidget.ts`
+- Widget: `src/widgets/populationOnlyWidget.ts`
 - Look: `src/looks/heatmapLook.ts` (activated on selection)
 - Data source: `assembly_metadata.frequency` per node
 - Taxonomy: `src/utils/populationUtils.js`
