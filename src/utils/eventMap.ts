@@ -20,6 +20,9 @@ export interface EventMap {
     'lineIntersection':           { t: number; nodeName: string; nodeLine: Object3DLike };
     'clearIntersection':          Record<string, never>;
     'datasetLoaded':              { dataset: DatasetModel };
+    // The current graph is about to be torn down for a rebuild (new locus,
+    // Version switch, new dataset). Published before anything is cleared.
+    'graph:clearing':             Record<string, never>;
     // Widget asks for a re-fetch under a different layout; main.js performs it.
     'layout:rebuild':             { mode: 'linear' | 'force'; spineAssembly: string | null };
     // Fetch finished, success or failure — clears the widget's in-flight lock.

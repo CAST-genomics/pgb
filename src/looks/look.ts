@@ -222,12 +222,27 @@ class Look {
 
     /**
      * Creates HTML content for a node tooltip that appears on hover.
-     * Displays node name and length information.
+     * Displays node name, length and emphasis state.
      */
     createNodeTooltipContent(nodeObject: THREE.Object3D): string {
+        return this.createNodeDetailsTooltip(nodeObject, { showState: true })
+    }
+
+    /**
+     * The default node tooltip: Node and Length, plus the node's emphasis State
+     * when `showState` is set. A Look whose nodes have no emphasis states to
+     * speak of (HeatmapLook, where State would always read "normal") leaves it off.
+     */
+    protected createNodeDetailsTooltip(nodeObject: THREE.Object3D, { showState }: { showState: boolean }): string {
         const { nodeName } = nodeObject.userData
         const { length } = this.genomicService.nodeMetadata.get(nodeName)
-        const emphasisState = this.emphasisStates.get(nodeName) || 'normal'
+        const stateRow = showState
+            ? `
+                    <tr class="node-detail-row">
+                        <td class="node-detail-label">State:</td>
+                        <td class="node-detail-value">${this.emphasisStates.get(nodeName) || 'normal'}</td>
+                    </tr>`
+            : ''
         const html = `<div class="look-tooltip">
             <div class="node-section">
                 <table class="node-details-table">
@@ -238,11 +253,7 @@ class Look {
                     <tr class="node-detail-row">
                         <td class="node-detail-label">Length:</td>
                         <td class="node-detail-value">${ prettyPrint(length) } bp</td>
-                    </tr>
-                    <tr class="node-detail-row">
-                        <td class="node-detail-label">State:</td>
-                        <td class="node-detail-value">${emphasisState}</td>
-                    </tr>
+                    </tr>${stateRow}
                 </table>
             </div>
         </div>`

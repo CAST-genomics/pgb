@@ -451,6 +451,8 @@ class App {
 
     clearCurrentData(): void {
 
+        eventBus.publish('graph:clearing', {} as Record<string, never>)
+
         globals.annotationTrack.clear()
 
         globals.locusDisplay.clear()

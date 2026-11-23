@@ -106,11 +106,11 @@ class WidgetService {
         } else {
             console.log('show widget - population')
 
-            if (null === this.populationWidget.selectedSuperpopulation && null === this.populationWidget.selectedPopulation){
-                this.activateLook('nodeEmphasisScene')
-            } else {
-                this.activateLook('heatmapScene')
-            }
+            // HeatmapLook is the population page's Look for as long as the card is
+            // up, selection or not: it owns the node click that opens the
+            // population breakdown (#174). With nothing selected its nodes wear
+            // the default color.
+            this.activateLook('heatmapScene')
 
             this.populationWidget.showCard();
             this.setActiveButton(this.populationButton);
