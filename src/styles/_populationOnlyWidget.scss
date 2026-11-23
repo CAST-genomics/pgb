@@ -8,11 +8,13 @@
     margin-left: 10em;
     margin-top: 10em;
     min-width: 18.75em;
-    // Height cap (#187): about 14 rows, never more than 60% of the viewport, and
-    // never past the bottom edge given the default top offset above. In em so the
-    // scale knob resizes the cap too. (No min-height here: it would override the cap.) The card is a Bootstrap flex column: the
-    // header keeps its size and the card-body takes what remains and scrolls.
-    max-height: min(60vh, 23em, calc(100vh - 11em));
+    // Height cap (#187): matches the population breakdown's height (a header
+    // plus one row per population, ~542px at this scale), so the two panels
+    // sit at the same height side by side; never past the bottom edge given
+    // the default top offset above. In em so the scale knob resizes the cap
+    // too. (No min-height here: it would override the cap.) The card is a
+    // Bootstrap flex column: the header keeps its size and the list scrolls.
+    max-height: min(34em, calc(100vh - 11em));
     box-shadow: 0 0.25em 0.375em rgba(0, 0, 0, 0.1);
     transition: opacity 0.2s ease;
     opacity: 0;

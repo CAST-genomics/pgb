@@ -77,7 +77,7 @@ class HeatmapLook extends Look {
     // distinct from the cyan track-pointer dot.
     static BREAKDOWN_MARK_COLOR = '#ff8c1a'
     // Total on-screen width of the halo; the node ribbon sits centered in it.
-    static BREAKDOWN_MARK_WIDTH_PIXELS = Look.NODE_LINE_WIDTH_PIXELS + 8
+    static BREAKDOWN_MARK_WIDTH_PIXELS = Look.NODE_LINE_WIDTH_PIXELS + 4
     static BREAKDOWN_MARGIN_PX = 12
 
     raycastService: NodeClickSource | undefined
