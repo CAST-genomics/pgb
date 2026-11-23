@@ -10,7 +10,7 @@
 import type { NodeModel } from './datasetModel.js'
 import type { TubeMapEncoding } from './tubemap/tubeMapEncoding.ts'
 
-/** The host that serves both `/json` (the dataset) and `/seqtubemap` (the map). */
+/** The host that serves both `/bandage` (the dataset) and `/seqtubemap` (the map). */
 const PANGENOME_API_ORIGIN = 'https://pangenome-api.ucsd.edu:8000'
 
 /** The reference the tube map is addressed in. A node absent from it has no map. */

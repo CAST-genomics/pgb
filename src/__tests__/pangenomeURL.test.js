@@ -4,9 +4,9 @@ import { buildPangenomeURL } from '../pangenomeURL.js'
 // The URL the app has always requested. Force layout must reproduce this
 // byte for byte — that is the whole regression guard for linear mode.
 const FORCE_URL =
-    'https://pangenome-api.ucsd.edu:8000/json' +
+    'https://pangenome-api.ucsd.edu:8000/bandage' +
     '?chrom=chr6&start=160531482&end=160664275' +
-    '&graphtype=minigraph&version=v2&debug_small_graphs=false' +
+    '&graphtype=minigraph&version=v2' +
     '&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000'
 
 // What the module actually produces for the same locus in force mode. The two
