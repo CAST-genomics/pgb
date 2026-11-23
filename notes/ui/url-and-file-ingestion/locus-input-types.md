@@ -32,7 +32,7 @@ The PGB application supports multiple input types in a single input field, provi
 - Uses `fetch()` API for loading
 - Handles network errors gracefully
 
-**Example**: `https://pangenome-api.ucsd.edu:8000/json?chrom=chr1&start=25240000&end=25460000&graphtype=minigraph&version=v1`
+**Example**: `https://pangenome-api.ucsd.edu:8000/bandage?chrom=chr1&start=25240000&end=25460000&graphtype=minigraph&version=v2&minnodelen=5&nodeseglen=20&edgelen=5&nodelenpermb=1000`
 
 ### 4. Local Files
 **Format**: File paths relative to the `public/` directory
