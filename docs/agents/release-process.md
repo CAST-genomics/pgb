@@ -4,8 +4,8 @@ PGB ships as a tagged GitHub release. There is no npm publish and no automated d
 this repo — a release is a **git tag**, a **release page**, a **version in `package.json`**
 that agrees with both, and the **`release` branch** moved forward to that same commit.
 
-Releases so far: `v2.5.0`, `v2.6.0`, `v2.7.0`, `v2.8.0`, `v2.8.1`, `v2.8.3`, `v2.9.0`. The
-tag is the version with a leading `v`.
+Releases so far: `v2.5.0`, `v2.6.0`, `v2.7.0`, `v2.8.0`, `v2.8.1`, `v2.8.3`, `v2.9.0`,
+`v2.9.1`, `v2.10.0`. The tag is the version with a leading `v`.
 
 Two gaps in that ladder are worth knowing, because both illustrate rules stated below.
 
