@@ -73,11 +73,11 @@ function isSingleMaterialMesh(object: THREE.Object3D): object is THREE.Mesh<THRE
 class HeatmapLook extends Look {
 
     static BREAKDOWN_MARK_NAME = 'PopulationBreakdownMark'
-    // Warm against the single-hue blue heatmap ramp and the ivory background;
-    // distinct from the cyan track-pointer dot.
-    static BREAKDOWN_MARK_COLOR = '#ff8c1a'
+    // Bright red: stands out against the single-hue blue heatmap ramp and the
+    // ivory background, and is distinct from the cyan track-pointer dot.
+    static BREAKDOWN_MARK_COLOR = '#ff0000'
     // Total on-screen width of the halo; the node ribbon sits centered in it.
-    static BREAKDOWN_MARK_WIDTH_PIXELS = Look.NODE_LINE_WIDTH_PIXELS + 4
+    static BREAKDOWN_MARK_WIDTH_PIXELS = Look.NODE_LINE_WIDTH_PIXELS + 2
     static BREAKDOWN_MARGIN_PX = 12
 
     raycastService: NodeClickSource | undefined
