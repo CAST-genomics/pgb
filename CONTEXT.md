@@ -224,6 +224,16 @@ to invent their own events and payload shapes, and Look reuse across
 widgets is opportunistic rather than symmetric. The three are Assembly,
 Population, and PCLAI.
 
+### population breakdown
+
+One **node**'s count and frequency in every **population**, opened by
+clicking the node while the Population widget is up. It stands on its own
+above the graph and stays until closed, naming the node it describes, which
+stays marked in the graph while it is open; one is open at a time, and
+clicking another node changes which node it describes. The selected
+population's row stands out. Hovering a node never shows it.
+_Avoid_: population tooltip, population table
+
 ### Walk mode / Subgraph mode
 
 The Assembly widget's two emphasis targets. *Subgraph* (the default)

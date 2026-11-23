@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", async (event) => {
     sceneManager.lookManager.setLook('nodeEmphasisScene', nodeEmphasisLook);
 
     // Heatmap Look & Scene
-    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, assemblyWidget })
+    const heatmapLook = HeatmapLook.createHeatmapLook('heatmapLook', { genomicService, geometryManager, assemblyWidget, raycastService, graphContainer: threeJSContainer })
     sceneManager.createScene('heatmapScene', rubinColors.rubinIvory)
     sceneManager.lookManager.setLook('heatmapScene', heatmapLook);
 

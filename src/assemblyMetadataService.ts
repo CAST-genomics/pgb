@@ -1,6 +1,6 @@
 import { getSuperpopulationName, getPopulationName, findSuperpopulationForPopulation } from './utils/populationUtils.js';
 import {frequencyAnalysisService} from "./frequencyAnalysisService.js"
-import eventBus from "./utils/eventBus.ts"
+import type { PopulationBreakdownRow } from "./populationBreakdown.ts"
 
 /**
  * AssemblyMetadataService - Manages and provides access to assembly metadata
@@ -13,9 +13,6 @@ class AssemblyMetadataService {
 
     metadata!: Map<string, any>
     totalAssemblies!: number
-    selectedPopulation!: string | null
-    private popSelectUnsub!: (() => void) | null
-    private popDeselectUnsub!: (() => void) | null
 
     constructor() {
         if (AssemblyMetadataService.instance) {
@@ -24,22 +21,8 @@ class AssemblyMetadataService {
 
         this.metadata = new Map(); // nodeId -> metadata object
         this.totalAssemblies = 0; // Total count across all nodes
-        this.selectedPopulation = null;
-
-        this.popSelectUnsub = eventBus.subscribe('population:selected', data => {
-            this.handleSelectionEvent(data, 'population');
-        })
-
-        this.popDeselectUnsub = eventBus.subscribe('population:deselected', data => {
-            this.selectedPopulation = null;
-        });
 
         AssemblyMetadataService.instance = this;
-    }
-
-    handleSelectionEvent(data: { acronym: string }, eventType: string): void {
-        const { acronym } = data
-        this.selectedPopulation = acronym;
     }
 
     /**
@@ -155,35 +138,23 @@ class AssemblyMetadataService {
     }
 
     /**
-     * Generate HTML snippet showing population breakdown for a node
-     * Simple presentation of population frequency values as percentages
+     * The rows of a node's population breakdown (CONTEXT.md): one per population,
+     * in dataset order, with its count and display-ready frequency. N/A is left out.
+     * Empty when the node carries no population metadata.
      */
-    getPopulationTooltip(nodeId: string): string {
+    getPopulationBreakdownRows(nodeId: string): PopulationBreakdownRow[] {
+        const nodeData = this.metadata.get(nodeId)
+        const frequencies: Record<string, number> = nodeData?.frequency?.population ?? {}
+        const counts: Record<string, number> = nodeData?.count?.population ?? {}
 
-        let html = '<div class="population-tooltip">'
-
-        const { frequency, count } = this.metadata.get(nodeId)
-
-        const populationCounts = Object.entries(count.population)
-        const populationFrequencies = Object.entries(frequency.population)
-
-        for (let i = 0; i < populationFrequencies.length; i++ ) {
-
-            const [ acronym, frequency ] = populationFrequencies[ i ];
-            const  [_, count ] = populationCounts[ i ];
-
-            if ('N/A' === acronym) {
-                continue;
-            }
-
-            const emphasisStyle = acronym === this.selectedPopulation ? 'style="font-size: 0.9rem; font-weight: bold;"' : '';
-
-            html += `<div class="population-item"><span class="population-name" ${emphasisStyle}>${getPopulationName(acronym)}</span><span class="population-count" ${emphasisStyle}>${count}</span><span class="population-percentage" ${emphasisStyle}>${ AssemblyMetadataService.formatNumber(frequency as number) }</span></div>`;
-        }
-
-        html += '</div>';
-
-        return html;
+        return Object.entries(frequencies)
+            .filter(([acronym]) => 'N/A' !== acronym)
+            .map(([acronym, frequency]) => ({
+                acronym,
+                name: getPopulationName(acronym),
+                count: counts[acronym] ?? 0,
+                frequency: AssemblyMetadataService.formatNumber(frequency),
+            }))
     }
 
     /**

@@ -109,7 +109,8 @@ class PopulationOnlyWidget {
             const deselectedSuperpopulation = this.selectedSuperpopulation;
             this.selectedSuperpopulation = null;
 
-            globals.widgetService.activateLook('nodeEmphasisScene');
+            // Stay on heatmapScene: the card is still up. HeatmapLook repaints
+            // the default color on the deselection.
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
         } else {
             // Clear all previous selections
@@ -135,7 +136,8 @@ class PopulationOnlyWidget {
             const deselectedPopulation = this.selectedPopulation;
             this.selectedPopulation = null;
 
-            globals.widgetService.activateLook('nodeEmphasisScene');
+            // Stay on heatmapScene: the card is still up. HeatmapLook repaints
+            // the default color on the deselection.
             eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
         } else {
             // Clear all previous selections
@@ -206,14 +208,16 @@ class PopulationOnlyWidget {
     }
 
     reset(): void {
+        // Publish before leaving heatmapScene, so HeatmapLook is still active to
+        // repaint its nodes to the default color for the next time the card opens.
         if (this.selectedPopulation) {
             const deselectedPopulation = this.selectedPopulation;
-            globals.widgetService.activateLook('nodeEmphasisScene');
             eventBus.publish('population:deselected', { population: deselectedPopulation, acronym: deselectedPopulation.acronym });
+            globals.widgetService.activateLook('nodeEmphasisScene');
         } else if (this.selectedSuperpopulation) {
             const deselectedSuperpopulation = this.selectedSuperpopulation;
-            globals.widgetService.activateLook('nodeEmphasisScene');
             eventBus.publish('superpopulation:deselected', { superpopulation: deselectedSuperpopulation, acronym: deselectedSuperpopulation.acronym });
+            globals.widgetService.activateLook('nodeEmphasisScene');
         }
         this.clearAllSelections();
     }

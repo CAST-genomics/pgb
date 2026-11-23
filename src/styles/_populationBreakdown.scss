@@ -1,0 +1,84 @@
+@use 'appleCrayonColors' as colors;
+
+// Population breakdown (#174; CONTEXT.md "population breakdown").
+// The table keeps the design of the former population hover tooltip: three
+// columns — name, count, percentage. Added: a header naming the node, which is
+// also the drag handle, and a height cap (set in JS from where the panel sits)
+// under which the rows scroll and the header stays put.
+
+.population-breakdown {
+  // fixed: Draggable writes viewport coordinates into left/top.
+  position: fixed;
+  z-index: 1001;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+  color: #495057;
+  border: 1px solid colors.$magnesium;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  font-size: 0.875rem;
+  line-height: 1.4;
+  min-width: 300px;
+
+  &__header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid colors.$magnesium;
+    cursor: move;
+    user-select: none;
+  }
+
+  &__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  &__close {
+    font-size: 0.6rem;
+    cursor: pointer;
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 250px 30px 80px;
+    gap: 0.75rem;
+    align-items: center;
+
+    &--selected > * {
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+  }
+
+  &__name {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__count,
+  &__frequency {
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: #6c757d;
+    text-align: right;
+  }
+}
