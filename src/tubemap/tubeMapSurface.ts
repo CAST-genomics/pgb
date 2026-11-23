@@ -190,6 +190,8 @@ export function mountTubeMapSurface(
             surface.clear()
             showLoading()
 
+            console.log(`Sequence Tube Map URL: ${url}`)
+
             try {
                 const response = await fetchDocument(url, controller.signal, options.patienceMs, encoding)
 
