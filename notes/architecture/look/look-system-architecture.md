@@ -1,5 +1,7 @@
 # Look System Architecture
 
+**Last verified against code:** 2026-11-26.
+
 ## Overview
 
 A **Look** is the central abstraction for controlling the visual appearance of the pan genome graph. It encapsulates materials, color schemes, emphasis states, tooltips, and per-frame animation behavior for all nodes and edges in a scene.
@@ -30,16 +32,18 @@ The base class defines the full contract for a Look:
 | Responsibility | Key Methods |
 |----------------|-------------|
 | **Mesh creation** | `createMesh()`, `createNodeMesh()`, `createEdgeMesh()` |
-| **Material management** | `getNodeRibbonMaterial()`, `getNodeRibbonEmphasisMaterial()`, `getNodeRibbonDeemphasisMaterial()`, `getNodeRibbonAbsenceMaterial()`, `getEdgeMaterial()` |
-| **Color hooks** | `getNodeColor()`, `getEdgeColors()` — override in subclasses |
-| **Emphasis** | `setNodeEmphasis()` — partitions nodes into emphasized / absent / remainder and applies materials |
-| **Z-offset layering** | `getZOffset()`, `updateGeometryPositions()` |
-| **Lifecycle** | `activate()`, `deactivate()`, `dispose()` |
+| **Material management** | `getNodeRibbonMaterial()`, `getNodeRibbonEmphasisMaterial()`, `getNodeRibbonDeemphasisMaterial()`, `getNodeRibbonAbsenceMaterial()`, `getNodeRibbonOffWalkMaterial()`, `getEdgeMaterial()` |
+| **Emphasis** | `setNodeEmphasis()` — partitions nodes into emphasized / off-walk / absent / remainder and applies materials; `restoreNodes()` returns a set to normal |
+| **Draw-order layering** | `applyEmphasisState()` sets `mesh.renderOrder` — 1 for emphasized, 0 otherwise — so emphasized nodes draw over overlapping neighbours |
+| **Lifecycle** | `activate(activeScene)`, `deactivate()`, `dispose()` |
 | **Event subscriptions** | `subscribe()` — typed wrapper; auto-cleanup on `deactivate()` |
-| **Animation** | `updateBehavior(deltaTime, scene)` — called every frame |
 | **Tooltips** | `createNodeTooltipContent()` — override for custom tooltip content |
 
-Materials are cached in `materialCache: Map<cacheKey, Material>` and registered with `lineMaterialResolutionService` for resolution-aware rendering.
+Node emphasis states are `normal`, `emphasized`, `deemphasized`, `absent`, and `off-walk`. The remainder (nodes in none of the passed sets) becomes `deemphasized` when anything is emphasized, `normal` otherwise. `off-walk` is used in Assembly Walk mode for nodes that carry the selected assembly but lie off its monotonic walk; it is the 3D partner of the gray veil on the annotation track.
+
+Node ribbon materials are cached in `materialCache: Map<string, ShaderMaterial>`, keyed `ribbon:<nodeName>:<state>[:<color or assembly>]`. Per-frame line-width resolution is owned by `RibbonNode` (`tickRibbonResolution()` in `src/ribbonNode.ts`), not by the Look.
+
+Z-offset layering (`getZOffset()` / `updateGeometryPositions()`) was removed in PR #41; per-frame `updateBehavior()` was removed in PR #21.
 
 ### LookManager
 **File**: `src/looks/lookManager.js`
@@ -47,7 +51,7 @@ Materials are cached in `materialCache: Map<cacheKey, Material>` and registered 
 Central registry mapping scene names to Look instances.
 
 - `setLook(sceneName, look)` — register a Look for a scene
-- `activateLook(sceneName)` — deactivate all looks, then activate the one for the named scene
+- `activateLook(sceneName, activeScene)` — deactivate every other look, then call `activate(activeScene)` on the one for the named scene
 - `clearAllMaterialCaches()` — clear cached materials across all looks
 - `dispose()` — dispose all looks
 
@@ -57,17 +61,22 @@ Central registry mapping scene names to Look instances.
 Manages Three.js Scene lifecycle and delegates to LookManager for Look activation.
 
 - `createScene(sceneName, backgroundColor)` — create and register a scene
-- `setActiveScene(sceneName, renderer, camera)` — sets active scene, calls `lookManager.activateLook()`, compiles scene
+- `setActiveScene(sceneName, renderer, camera)` — sets active scene, calls `lookManager.activateLook(sceneName, scene)`, compiles scene
 - `getActiveLook()` — convenience: returns the Look for the active scene
 - `clearCurrentData()` — clears all material caches and scene objects
 
 ### App
-**File**: `src/app.js`
+**File**: `src/app.ts`
 
 Owns the render loop and scene switching.
 
-- `animate()` — each frame: update line material resolution, update map controls, call `look.updateBehavior()`, render
+- `animate()` — each frame: `tickRibbonResolution()`, update map controls, render the active scene
 - `setActiveScene(sceneName, doPauseAnimation)` — pauses animation, delegates to `sceneManager.setActiveScene()`, ensures raycast visual feedback is present, resumes animation
+
+### WidgetService
+**File**: `src/widgets/widgetService.js`
+
+The widget buttons are what switch Looks in practice. `activateLook(sceneName)` is a thin wrapper over `globals.app.setActiveScene(sceneName, true)`: the Assembly and PCLAI buttons select `nodeEmphasisScene`, the Population button selects `heatmapScene`.
 
 ---
 
@@ -76,9 +85,9 @@ Owns the render loop and scene switching.
 ### NodeEmphasisLook
 **File**: `src/looks/nodeEmphasisLook.ts`
 
-Default visualization. Highlights assemblies or PCLAI coordinate keys by emphasizing matching nodes/edges and deemphasizing others via material swaps and Z-offset layering.
+Default visualization. Highlights assemblies or PCLAI coordinate keys by emphasizing matching nodes and deemphasizing others via material swaps (with `renderOrder` putting emphasized nodes on top). `assembly:emphasis` may also carry an off-walk node set; `pclaiWidget:emphasis` carries an absent node set.
 
-**Overrides**: `getZOffset()` (state-based Z), `updateBehavior()` (edge arrow animation — currently disabled), `activate()`/`deactivate()` (event subscriptions)
+**Overrides**: `activate()` (event subscriptions), `dispose()`
 
 **Listens to**: `assembly:emphasis`, `assembly:normal`, `pclaiWidget:emphasis`, `pclaiWidget:normal`
 
@@ -87,9 +96,11 @@ Default visualization. Highlights assemblies or PCLAI coordinate keys by emphasi
 
 Population frequency visualization. Colors every node based on how frequently a selected population or superpopulation appears in that node's assemblies.
 
-**Overrides**: `createNodeTooltipContent()` (population frequency tooltip), `activate()`/`deactivate()` (event subscriptions)
+Left-clicking a node opens a population breakdown panel for it, marked by a halo on the node.
 
-**Listens to**: `superpopulation:selected`, `superpopulation:deselected`, `population:selected`, `population:deselected`
+**Overrides**: `createNodeTooltipContent()` (Node and Length, no State row), `activate()`/`deactivate()` (event subscriptions; deactivate closes the breakdown), `dispose()`
+
+**Listens to**: `superpopulation:selected`, `superpopulation:deselected`, `population:selected`, `population:deselected`, `graph:clearing`, plus a node-click hook registered with `RaycastService` (released with the bus subscriptions on deactivate)
 
 ---
 
@@ -110,10 +121,10 @@ From `main.js`:
 
 ## Key Design Decisions
 
-**One Look per Scene**: Each Look gets its own Three.js Scene. This avoids material conflicts and provides clean isolation. Switching looks means switching scenes via `app.setActiveScene()`.
+**One Look per Scene**: Each Look gets its own Three.js Scene. This avoids material conflicts and provides clean isolation. Switching looks means switching scenes — `App.setActiveScene()` does it, and widgets reach it only through `globals.widgetService.activateLook()`.
 
 **Event-driven emphasis**: Looks subscribe to events in `activate()` and unsubscribe in `deactivate()`. This means only the active Look responds to widget interactions. Widgets don't need to know which Look is active.
 
-**Material caching**: Every Look maintains its own material cache. Materials are created lazily on first mesh creation and reused thereafter. Cache keys use `Look.getCacheKey(nodeName)`.
+**Material caching**: Every Look maintains its own ribbon material cache. Materials are created lazily on first request and reused thereafter, keyed by node name plus state (and color or assembly where relevant).
 
-**Z-offset layering**: Emphasized elements are brought forward, deemphasized elements are pushed back. `NodeEmphasisLook` overrides `getZOffset()` to implement state-dependent layering.
+**Draw-order layering**: Emphasized nodes get `renderOrder = 1`, everything else 0, so emphasis wins where ribbons overlap. Geometry positions are not touched.
