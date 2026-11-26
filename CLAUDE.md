@@ -44,6 +44,8 @@ Two tiers, split by authority rather than topic.
 
 **Descriptive — advisory.** The `notes/` tree. Large, read on demand by topic. Explanatory prose, design rationale, spike write-ups, domain primers, API references. Consult it freely; never treat it as permission or prohibition. A note describes how something works — it does not license a change.
 
+**Source first.** For a code task, search and read `src/` first — the code is the ground truth for how things work now. Open a note only when you need the reasoning behind a design or domain background the code can't give you, and reach it through the map in `docs/agents/domain.md` rather than through repo-wide search hits. When a note and the code disagree, trust the code and say the note is stale.
+
 Consequences for writing:
 
 - **New rules, conventions, and domain vocabulary go in this file** (or `CONTEXT.md` / an ADR), not into a new note. The vocabulary is largely stable; the main source of genuinely new terms is incoming integration work such as `notes/sequence-tube-map/`.

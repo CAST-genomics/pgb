@@ -82,6 +82,13 @@ the window was anchored in; both produce a `[x, y]` PCA placement, an
 `RGB`, and a `confidence_score`. Either may be empty (`{}`) for a
 given node-assembly pair when the model has no placement to report.
 
+> **Observed 2026-04-28:** a live API v3 response labelled the blocks the
+> other way round — `pclai_hg38` carried `"pclai_coord_system": "assembly"`
+> and `pclai_asm` carried `"GRCh38"` (with identical coordinates in both).
+> Some test fixtures (`datasetParser.test.js`, `assemblyWidgetLinear.test.ts`)
+> copy that swapped pairing. Don't trust the label to agree with the key
+> until the API side confirms which is authoritative.
+
 `src/widgets/pclaiCoordinateService.js`
 
 ---

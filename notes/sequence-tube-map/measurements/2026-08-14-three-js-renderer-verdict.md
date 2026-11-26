@@ -1,7 +1,6 @@
 # The three.js renderer works — verdict, 2026-08-14
 
-Answers the question fixed in
-[`2026-08-14-three-js-spike-restarted.md`](./2026-08-14-three-js-spike-restarted.md):
+Answers the question fixed when the spike was restarted on 2026-08-14 (that plan has been removed):
 **does a three.js renderer of the tube map look good and feel right under pan and zoom?**
 
 **It does.** All three failure conditions clear. The renderer is `spike/`, built across

@@ -1,8 +1,6 @@
 # How much of the background shows through the bundle
 
-**Date:** 2026-08-15. **Reproduce:** `npm run dev`, add the temporary hook described at the top
-of [`2026-08-15-probe-transmittance.mjs`](./2026-08-15-probe-transmittance.mjs), then
-`node notes/2026-08-15-probe-transmittance.mjs`.
+**Date:** 2026-08-15. The one-shot probe script that produced these numbers no longer ran against PGB and has been removed; retrieve it from git history if you need to rerun it.
 
 Raised by the user against a claim I had made while explaining where alpha comes from: that at
 one device pixel per band and above, a band's interior is opaque and the map is therefore
