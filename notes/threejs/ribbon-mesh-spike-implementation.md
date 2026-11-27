@@ -3,7 +3,6 @@
 **Status:** Implemented (Phase 1 — solid color rendering), Line2 code fully removed
 **Branch:** `ribbon-mesh`
 **Date:** 2026-03-10
-**Companion document:** [ribbon-mesh-spike-plan.md](./ribbon-mesh-spike-plan.md)
 
 ## Overview
 

@@ -1,6 +1,7 @@
 # Technical Debt Assessment
 
 **Date:** 2026-04-16 (updated)
+**Status:** All 6 roadmap entries resolved (#5 closed by PR #54). Of the 5 non-roadmap debt items, none is fully resolved: singletons down 5 → 4 (`lineMaterialResolutionService` absorbed into `src/ribbonNode.ts` by PR #54); TypeScript is now the majority (59 TS / 40 JS); `: any` down 99 → 94; `globals.*` up 29 → 37. Verified against `src/` 2026-11-26. The analysis below is the 2026-04-16 text; inline *Verified 2026-11-26* notes record what has changed since.
 **Context:** Updated after PRs #48 and #50 landed — completing roadmap entries #6 (PCLAI triangle) and #4 (AnnotationRenderService catch-all). The original assessment was written 2026-04-14 after PRs #41, #43, and #45. All five roadmap entries that had clear refactors (#1–#4, #6) are now resolved.
 
 **Overall level:** low-to-moderate. The five deepenings (#41, #43, #45, #48, #50) eliminated every architectural smell that was diagnosed in the original roadmap. What remains is structural: a singleton pattern blocking test coverage, a TypeScript adoption that stalled in an awkward middle, and a `globals.*` coordination backdoor. None of these are worsening, but they limit the ability to add features confidently and write tests cheaply.
@@ -40,7 +41,11 @@ Also absorbed `annotationTrackUtils.js` (148 lines) into the coordinate index. 1
 
 ## Roadmap entry still open
 
-### #5 — RibbonLine raycast + material/Z-offset split
+*Verified 2026-11-26: none — #5 is resolved.*
+
+### #5 — RibbonLine raycast + material/Z-offset split: RESOLVED (PR #54)
+
+*Verified 2026-11-26:* PR #54 (merged 2026-04-25, closes #53) collapsed `ribbonLine.js`, the node-ribbon parts of `lineFactory.js`, and `lineMaterialResolutionService.js` into a single `src/ribbonNode.ts`. Raycast now reads a module-scope `halfWidth` snapshot instead of material uniforms, and the Z layering constant has one private home. `src/ribbonLine.js` and `lineMaterialResolutionService.js` no longer exist. Original description follows.
 
 `src/ribbonLine.js` (134 lines) raycasts by sampling the spline 48× per pointer move and is tightly bound to shader `halfWidth` uniforms owned by `lineMaterialResolutionService`. PR #41 deleted the Look-side Z-offset half, which was progress.
 
@@ -62,6 +67,8 @@ Down from six to five singletons after PR #48 deleted `pclaiChartService`:
 - `materialService` — constructor-guard singleton
 - `lineMaterialResolutionService` — constructor-guard singleton
 
+*Verified 2026-11-26 — still open, 4 remain.* `lineMaterialResolutionService` is gone (absorbed into `src/ribbonNode.ts` by PR #54; only a comment there mentions it). `pclaiCoordinateService` (`src/widgets/pclaiCoordinateService.js`) and `assemblyMetadataService` (`src/assemblyMetadataService.ts`) still carry a constructor guard; `frequencyAnalysisService` and `materialService` are module-level instances exported from their files. None has been converted to the plain-class + facade pattern yet. (`eventBus` and `textureService` are also module-level singletons but were never counted here.)
+
 The effect is unchanged:
 - Services cannot be instantiated with fresh state.
 - They cannot be mocked or replaced for tests.
@@ -78,6 +85,8 @@ Current split:
 - **19 TS files**
 
 TS file count went from 16 → 19 (the four annotation modules from PR #50 are TS). JS file count went from 40 → 43 (the four PCLAI modules from PR #48 are JS).
+
+*Verified 2026-11-26 — no longer stalled; partly resolved.* Now **59 TS / 40 JS** (non-test, non-igvCore, excluding `env.d.ts`). Most new code is TS — `src/tubemap/` alone is 27 TS files — and `ribbonNode.ts` replaced three JS files. `: any` is down to **94 across 14 TS files**: `app.ts` 18, `populationWidget.ts` 11, `populationOnlyWidget.ts` 11, `annotationCanvas.ts` 8, `looks/look.ts` 7, `annotationTrackController.ts` 7, `pclaiWidget.ts` 4, `assemblyWidget.ts` 4, `mountAnnotationTrack.ts` 3, `nodeEmphasisLook.ts` 2, `heatmapLook.ts` 2, and 1 each in `utils/eventMap.ts`, `assemblyMetadataService.ts`, `annotationCoordinateIndex.ts`. All four JS candidates listed below and the four PCLAI files are still JS.
 
 **99 `: any` annotations across 13 TS files:**
 - `app.ts`: 21
@@ -107,6 +116,8 @@ The annotation split moved 12 `: any` annotations from one file into four files 
 
 29 references across 9 files — unchanged. The PR #50 annotation split routes through `globals.annotationTrack` for the facade handle, adding no new references but not reducing them either.
 
+*Verified 2026-11-26 — still open, worse:* 37 `globals.*` references across 9 files.
+
 **Severity:** low per-site, medium in aggregate.
 
 ### Widget DOM construction is imperative and duplicated
@@ -115,9 +126,13 @@ The annotation split moved 12 `: any` annotations from one file into four files 
 
 **Severity:** low. The per-file DOM call counts are smaller and more focused. The absolute increase is structural, not a regression.
 
+*Verified 2026-11-26 — still open.* Widgets still build DOM imperatively. The original counting method wasn't recorded; counting `document.createElement` / `getElementById` / `querySelector(All)`, `.appendChild(` and `.innerHTML` gives 167 across 22 files, which can't be compared directly with 194.
+
 ### Event bus typing coverage is incomplete
 
 36 subscribe/publish call sites across 11 files (was 37 / 9). The PCLAI and annotation refactors distributed event subscriptions into their controller modules. The typed-bus guarantee still doesn't propagate to most handlers.
+
+*Verified 2026-11-26 — still open.* 58 `eventBus.subscribe`/`publish` sites across 15 files. More of them are in TS now, but 40 JS files still consume the bus untyped.
 
 ---
 
@@ -141,36 +156,39 @@ The two highest-leverage items from the previous assessment (#6 and #4) are done
    - **Why first:** the PCLAI and annotation refactors proved the pattern — plain class + facade + unit tests. Applying it to existing singletons is now a known-quantity operation.
    - **Order suggestion:** `pclaiCoordinateService` → `assemblyMetadataService` → `frequencyAnalysisService`. Save `materialService` and `lineMaterialResolutionService` until `ribbon-mesh` lands.
    - **Risk:** touches every import site. One service per PR.
+   - *Verified 2026-11-26: not started.* `pclaiCoordinateService` is still a constructor-guard singleton. `lineMaterialResolutionService` went away with PR #54 rather than through this plan.
 
 2. **Convert the PCLAI triangle files to TypeScript.**
    - **Why:** they're new, small, and `PclaiCoordinateSpace` already has tests pinning behavior. Low-risk conversion that moves the JS/TS balance in the right direction and gives the typed event bus more typed consumers.
    - **Risk:** minimal — four small files, no external consumers beyond `app.ts` and `pclaiWidget.ts`.
+   - *Verified 2026-11-26: not done.* All four files are still JS, and together they have grown to about 910 lines (`pclaiChart.js` 357, `mountPclaiChart.js` 319, `pclaiChartController.js` 152, `pclaiCoordinateSpace.js` 82).
 
 3. **Targeted `: any` sweep of `app.ts` (21 occurrences) and `look.ts` (19 occurrences).**
    - **Why:** these two files account for 40 of the 99 `: any` annotations. Typing them properly would let the event bus guarantees propagate through the two most central files in the app.
    - **Risk:** `app.ts` is 545 lines and touches everything; `look.ts` is a base class — changes ripple to subclasses. Needs care but not creativity.
+   - *Verified 2026-11-26: partly done.* `look.ts` is down 19 → 7 (the `@types/three` work typed the three.js surfaces) and `app.ts` is down 21 → 18 (`app.ts` is now 623 lines).
 
 ---
 
 ## Metrics snapshot (2026-04-16)
 
-For comparison at the next assessment.
+For comparison at the next assessment. The last column was re-measured 2026-11-26 (same scope: non-test, non-igvCore `src/` files, `env.d.ts` excluded).
 
-| Metric | Value | Delta from 04-14 |
-|---|---|---|
-| Source files (excluding tests + igvCore) | 62 | +6 |
-| TS files | 19 | +3 |
-| JS files | 43 | +3 |
-| Total source LOC | 10,837 | −104 |
-| Largest file | `pangenomeService.js` (663) | was `pclaiChartService.js` (1031) |
-| `: any` annotations | 99 across 13 TS files | +10 / +3 files |
-| `globals.*` references | 29 across 9 files | unchanged |
-| `eventBus.*` subscribe/publish sites | 36 across 11 files | −1 / +2 files |
-| Direct DOM calls | 194 across 16 files | +47 / +2 files |
-| Service test files | 2 (`pclaiCoordinateSpace`, `annotationCoordinateIndex`) | +2 |
-| Parser test files | 1 (`datasetParser.test.js`, 37 tests) | unchanged |
-| igvCore test files | 22 | unchanged |
-| Total passing tests | 220 | +27 |
+| Metric | Value | Delta from 04-14 | 2026-11-26 |
+|---|---|---| --- |
+| Source files (excluding tests + igvCore) | 62 | +6 | 99 |
+| TS files | 19 | +3 | 59 |
+| JS files | 43 | +3 | 40 |
+| Total source LOC | 10,837 | −104 | 21,865 |
+| Largest file | `pangenomeService.js` (663) | was `pclaiChartService.js` (1031) | `tubemap/bandSurface.ts` (1467); largest JS still `pangenomeService.js` (663) |
+| `: any` annotations | 99 across 13 TS files | +10 / +3 files | 94 across 14 TS files |
+| `globals.*` references | 29 across 9 files | unchanged | 37 across 9 files |
+| `eventBus.*` subscribe/publish sites | 36 across 11 files | −1 / +2 files | 58 across 15 files |
+| Direct DOM calls | 194 across 16 files | +47 / +2 files | 167 across 22 files (method differs; see above) |
+| Service test files | 2 (`pclaiCoordinateSpace`, `annotationCoordinateIndex`) | +2 | 45 non-igvCore test files in all |
+| Parser test files | 1 (`datasetParser.test.js`, 37 tests) | unchanged | (included in the 45) |
+| igvCore test files | 22 | unchanged | 24 |
+| Total passing tests | 220 | +27 | 731 (69 files) |
 
 ---
 
@@ -178,3 +196,4 @@ For comparison at the next assessment.
 
 - **2026-04-14** — Initial assessment after PRs #41, #43, #45 landed.
 - **2026-04-16** — Updated after PRs #48 (PCLAI triangle split) and #50 (annotation track split). Roadmap entries #4 and #6 marked resolved. Metrics refreshed. Recommendations reordered: singleton pattern and TS conversion are now the top priorities.
+- **2026-11-26** — Verified against `src/`. Roadmap #5 marked resolved (PR #54, `src/ribbonNode.ts`). `lineMaterialResolutionService` dropped from the singleton list. Added a `**Status:**` line, inline verification notes per item, and a 2026-11-26 metrics column. The analysis text was left as written.

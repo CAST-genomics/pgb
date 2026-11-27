@@ -80,8 +80,7 @@ UCSD first, but it is on the table and it was not before.
 - **It is a bug, not a capacity limit.** An unhandled exception at ~18 s on a healthy
   server is a defect UCSD can likely fix, which is a much better conversation than
   "your server is too slow."
-- **The spike still fences this off.** See
-  [`2026-08-13-webgl-band-renderer-spike-brief.md`](./2026-08-13-webgl-band-renderer-spike-brief.md).
+- **The spike still fences this off.** (Its brief, since superseded, has been removed.)
 
 ## What scales with what
 

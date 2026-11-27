@@ -5,7 +5,7 @@ code had already migrated on 2026-08-17 (`src/tubemap/`); this is everything els
 measurements, the surveys, the essays and the captured documents they were run against.
 
 This **reverses** the decision recorded in
-[`integration-punch-list.md`](integration-punch-list.md) §9, which on 2026-08-18 un-archived
+the integration punch list §9 (removed once epic #85 closed), which on 2026-08-18 un-archived
 the spike and kept it live as "a research laboratory… work that wants a standalone surface
 and no obligation to be shippable." That was a reasonable call and it stopped being one: the
 research and the implementation kept needing each other, and two repos meant two places to
@@ -38,7 +38,6 @@ tiers and those are **superseded**, not inherited:
   stories. Stories 29–31 are cited across the ADRs and the strategy documents; story 30
   (*recede the others rather than brighten the one*) is the rule ADR 0003 and pgb#112 test
   rather than obey. It specifies the spike's harness, not PGB's viewer.
-- **[`spike-readme.md`](spike-readme.md)** — how to run the spike's own dev page.
 
 ## What is here
 

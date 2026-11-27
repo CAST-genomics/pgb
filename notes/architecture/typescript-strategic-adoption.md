@@ -1,115 +1,64 @@
 # Strategic TypeScript Adoption in PGB
 
+**Status:** P1 (typed event bus) done, with a small gap; P3 (Look system) partial — converted to `.ts` but `Look` is not abstract; P2 (string-literal unions) and P4 (spine return types) open. Verified against `src/` 2026-11-26.
+
 ## Background
 
-PGB is a JavaScript codebase. In April 2026 we converted the dataset ingestion layer (`datasetModel.ts`, `datasetParser.ts`, `datasetValidator.ts`) to TypeScript as a first incremental step. This document identifies the next high-value targets — places where TypeScript's type system would catch real bugs and enforce contracts that JavaScript cannot.
+PGB started as a JavaScript codebase. In April 2026 the dataset ingestion layer (`datasetModel.ts`, `datasetParser.ts`, `datasetValidator.ts`) was converted to TypeScript as a first incremental step. Since then the event bus, the Look system, the main widgets (`assemblyWidget`, `pclaiWidget`, `populationWidget`, `populationOnlyWidget`, `printPanel`), the annotation track and the whole of `src/tubemap/` have been written or converted in `.ts`. `tsconfig.json` checks only `src/**/*.ts` (`checkJs: false`), so the remaining `.js` files get no type checking; `npm run typecheck` is the gate.
 
-The governing principle — *use TypeScript at contract boundaries*, and write all new files in TypeScript — is stated in [`CLAUDE.md`](../../CLAUDE.md) §New files in TypeScript. In PGB those agreements are currently carried by comments, JSDoc, or nothing at all; TypeScript makes them compiler-enforced.
+The governing principle — *use TypeScript at contract boundaries*, and write all new files in TypeScript — is stated in [`CLAUDE.md`](../../CLAUDE.md) §New files in TypeScript. A contract boundary is where one part of the system hands data to another under an implicit agreement about shape and meaning. In PGB those agreements were carried by comments, JSDoc, or nothing at all; TypeScript makes them compiler-enforced.
 
-This document does the part the rule can't: it names *which* boundaries are worth converting next, in priority order.
+This document does the part the rule can't: it names *which* boundaries are worth converting, in priority order, and records which are done.
 
----
+## Remaining targets at a glance
 
-## Priority 1: Typed Event Bus
-
-### The Problem
-
-`src/utils/eventBus.js` is a simple pub/sub. Publishers call `eventBus.publish('eventName', data)` and subscribers call `eventBus.subscribe('eventName', callback)`. Neither the event name nor the payload shape is checked — they're arbitrary strings and objects.
-
-The codebase has 12+ distinct event types, each with a different payload shape:
-
-| Event | Payload | Published From |
-|-------|---------|---------------|
-| `assembly:emphasis` | `{ assembly: {name}, nodeSet: Set, deemphasisColor }` | assemblyWidget.js |
-| `assembly:normal` | `{ nodeSet: Set }` | assemblyWidget.js |
-| `pclaiWidget:emphasis` | `{ assembly: {name}, nodeSet: Set, absentNodeSet: Set, deemphasisColor }` | pclaiWidget.js |
-| `pclaiWidget:normal` | `{ nodeSet: Set }` | pclaiWidget.js |
-| `pclaiWidget:absence` | `{ absentNodeSet: Set }` | pclaiWidget.js |
-| `population:selected` | `{ acronym: string }` | populationWidget.js |
-| `population:deselected` | `{ population, acronym }` | populationWidget.js |
-| `superpopulation:selected` | `{ acronym: string }` | populationWidget.js |
-| `superpopulation:deselected` | `{ superpopulation, acronym }` | populationWidget.js |
-| `lineIntersection` | `{ t, nodeName, nodeLine: THREE.Object3D }` | app.js |
-| `clearIntersection` | `{}` | app.js |
-| `datasetLoaded` | `{ dataset: DatasetModel }` | app.js |
-
-Subscribers destructure these payloads with no compile-time verification. If a publisher changes the payload shape, every subscriber silently receives the wrong data.
-
-### The TypeScript Feature: Generic Mapped Types
-
-TypeScript can tie event names to payload shapes via a single registry interface:
-
-```typescript
-// eventMap.ts — single source of truth for all events
-interface EventMap {
-    'assembly:emphasis':       { assembly: { name: string }; nodeSet: Set<string>; deemphasisColor: string };
-    'assembly:normal':         { nodeSet: Set<string> };
-    'pclaiWidget:emphasis':      { assembly: { name: string }; nodeSet: Set<string>; absentNodeSet: Set<string>; deemphasisColor: string };
-    'pclaiWidget:normal':        { nodeSet: Set<string> };
-    'pclaiWidget:absence':       { absentNodeSet: Set<string> };
-    'population:selected':     { acronym: string };
-    'population:deselected':   { population: object; acronym: string };
-    'superpopulation:selected':   { acronym: string };
-    'superpopulation:deselected': { superpopulation: object; acronym: string };
-    'lineIntersection':        { t: number; nodeName: string; nodeLine: THREE.Object3D };
-    'clearIntersection':       Record<string, never>;
-    'datasetLoaded':           { dataset: DatasetModel };
-}
-```
-
-The bus itself becomes generic — the compiler infers the payload type from the event name:
-
-```typescript
-class EventBus {
-    publish<K extends keyof EventMap>(event: K, data: EventMap[K]): void;
-    subscribe<K extends keyof EventMap>(event: K, cb: (data: EventMap[K]) => void): () => void;
-}
-```
-
-Now:
-- Publishing `'assembly:emphasis'` without a `nodeSet` is a compile error
-- A subscriber destructuring `{ acronym }` from an `assembly:emphasis` event is a compile error
-- Adding a new event requires adding it to `EventMap` — the registry is the documentation
-
-### Known Bugs This Would Surface
-
-The codebase exploration found what appear to be subscription/unsubscription mismatches in `nodeEmphasisLook.js`. Unsubscribe handles (`deemphasizePCLAIChartUnsub`, `restorePCLAIChartUnsub`) are checked in `deactivate()` but never assigned in `activate()`. A typed event bus would make this class of bug structurally harder to introduce.
-
-### Scope of Change
-
-- Convert `eventBus.js` to `eventBus.ts`
-- Create `eventMap.ts` with the `EventMap` interface
-- Every publisher and subscriber file would need import updates, but the logic stays identical — only the types are added
+| Priority | Target | State | What's left |
+|---|---|---|---|
+| 1 | Typed event bus | Done | Add `locus:token` to `EventMap`; JS publishers/subscribers are unchecked until converted |
+| 2 | String-literal unions for magic strings | Open | Spine option/event-type unions, `GeometryContext` discriminated union |
+| 3 | Abstract `Look` base class | Partial | Make `Look` abstract with required lifecycle hooks; type `createMesh` `context` |
+| 4 | Spine-feature return types | Open | `SpineResult` / `SpineEvent` interfaces for `getSpineFeatures()` |
 
 ---
 
-## Priority 2: String Literal Unions for Magic Strings
+## Priority 1: Typed Event Bus — DONE
+
+`src/utils/eventBus.ts` is generic over the `EventMap` registry in `src/utils/eventMap.ts`: `publish<K extends keyof EventMap>(event: K, data: EventMap[K])` and likewise `subscribe`. In `.ts` files a wrong event name or payload shape is a compile error, and adding an event means adding it to `EventMap` — the registry is the documentation of the event set.
+
+Remaining gaps:
+
+- **`locus:token` is missing from `EventMap`.** It is published in `src/locusInput.js` and subscribed in `src/main.js` and `src/widgets/mountPclaiChart.js`; because those are `.js` and `checkJs` is off, nothing flags it. Add `'locus:token': { token: string | null }`.
+- **JS callers are unchecked.** `main.js`, `locusInput.js`, `widgets/pclaiChartController.js`, `widgets/mountPclaiChart.js` and `widgets/pclaiCoordinateService.js` still call the bus from `.js`. Per the implementation strategy below, these get checked when they are next converted, not in a dedicated pass.
+
+The unsubscription bug this priority was expected to surface (unsubscribe handles in `nodeEmphasisLook` checked but never assigned) is gone: `Look` now has a protected `subscribe()` that records every unsubscribe and releases them all in `deactivate()`.
+
+---
+
+## Priority 2: String Literal Unions for Magic Strings — OPEN
 
 ### The Problem
 
 Several services use string constants as informal enums, documented only in comments:
 
-**pangenomeService.js — `getSpineFeatures()` options:**
+**`src/pangenomeService.js` — `getSpineFeatures()` and walk options** (documented only in comments/JSDoc; set by the caller in `src/genomicService.js`):
 ```javascript
 includeOffSpineComponents = "none"     // "none" | "summary" | "full"
 startPolicy: "preferArrowEndpoint"     // "preferEndpoint" | "forceFromNode" | "preferArrowEndpoint"
 directionPolicy: "edgeFlow"            // "edgeFlow" | "asIs"
 ```
 
-**pangenomeService.js — spine event types:**
+**`src/pangenomeService.js` — spine event types:**
 ```javascript
 type: "braid"  // "braid" | "pill" | "simple_bubble" | "dangling"
 ```
 
-**geometryFactory.js — cache key prefixes and context types:**
+**`src/geometryFactory.js` — geometry context types:**
 ```javascript
 { type: 'node', ... }  // vs { type: 'edge', ... }
 ```
+`src/looks/look.ts` consumes these as `context: any` in `createMesh()`, `createNodeMesh()` and `createEdgeMesh()`, branching on `context.type` with no narrowing.
 
-**look.js — `getNodeRibbonEmphasisMaterial()` parameter overloading:**
-```javascript
-// nodeColor can be THREE.Color OR Map<string, THREE.Color> — no hint which
-```
+(The `nodeColor` overloading in `getNodeRibbonEmphasisMaterial()`, once listed here, is now typed: `look.ts` exports `type NodeColor = THREE.ColorRepresentation | Map<string, THREE.Color>`.)
 
 A typo like `"summry"` or `"perferEndpoint"` compiles fine in JavaScript and fails silently at runtime.
 
@@ -146,26 +95,15 @@ With discriminated unions, the compiler knows that inside `if (context.type === 
 
 ### Scope of Change
 
-This could be done incrementally. The types could live in standalone `.ts` files (e.g., `spineTypes.ts`, `geometryTypes.ts`) and be imported where needed. The service files themselves could remain `.js` initially, with JSDoc `@type` annotations referencing the TypeScript types for IDE support.
+None of these types exist yet in `src/` (no `OffSpineOption`, `StartPolicy`, `SpineEventType` or `GeometryContext`). This can be done incrementally: the types can live in standalone `.ts` files (e.g. `spineTypes.ts`, `geometryTypes.ts`) and be imported where needed. `look.ts` can use `GeometryContext` immediately. The service files can stay `.js` at first, with JSDoc `@type` annotations referencing the types — but with `checkJs: false` that gives IDE hints only, not compiler enforcement; enforcement arrives when the producer is converted.
 
 ---
 
-## Priority 3: Abstract Classes for the Look System
+## Priority 3: Abstract Classes for the Look System — PARTIAL
 
-### The Problem
+**Done.** `src/looks/look.ts`, `nodeEmphasisLook.ts` and `heatmapLook.ts` are TypeScript. The base class owns subscription cleanup: subclasses call the protected `subscribe()` and `deactivate()` releases every handle, so the activate/deactivate subscription pairing no longer depends on each subclass. (`src/looks/lookManager.js` is still `.js`.)
 
-The Look system (`src/looks/look.js`) uses a base class with methods that subclasses are expected to override: `activate()`, `deactivate()`, and optionally `getZOffset()`, `createNodeTooltipContent()`, etc. But there's no enforcement — a subclass can forget to implement a required method, and the failure shows up only at runtime.
-
-Current concrete looks: `NodeEmphasisLook`, `HeatmapLook`.
-
-The contract also requires that:
-- `activate()` subscribes to events, `deactivate()` unsubscribes from the same events
-- Subclasses call `super.activate()` / `super.deactivate()`
-- Each look manages its own materials and emphasis state
-
-None of this is enforced.
-
-### The TypeScript Feature: Abstract Classes
+**Remaining.** `Look` is a plain `class Look` (`look.ts` line 16), not `abstract`. `activate(activeScene)` and `deactivate()` are overridable methods, so a subclass that forgets its activation logic, or overrides `deactivate()` without calling `super.deactivate()` (which would leak its subscriptions), still compiles. The target is the template-method shape:
 
 ```typescript
 abstract class Look {
@@ -174,43 +112,30 @@ abstract class Look {
     protected abstract onDeactivate(): void;
 
     // Base class controls the lifecycle — calls subclass hooks
-    activate(): void {
+    activate(activeScene: THREE.Scene): void {
         this.isActive = true;
+        this.activeScene = activeScene;
         this.onActivate();
     }
 
     deactivate(): void {
         this.onDeactivate();
+        for (const unsub of this.unsubs) unsub();
+        this.unsubs.length = 0;
         this.isActive = false;
     }
-
-    // Optional overrides — subclasses CAN override but don't have to
-    getZOffset(_objectId: string): number { return 0; }
-    createNodeTooltipContent(_nodeObject: THREE.Object3D): HTMLElement | null { return null; }
-
-    // Concrete shared methods remain as-is
-    createMesh(geometry: THREE.BufferGeometry, context: GeometryContext): void { ... }
 }
 ```
 
-With this pattern:
-- A new Look subclass that forgets `onActivate()` is a compile error
-- The base class guarantees `super` is called (the template method pattern)
-- Optional overrides have default implementations, so subclasses only override what they need
-
-### Scope of Change
-
-- Convert `look.js` to `look.ts` with the abstract base class
-- Convert `nodeEmphasisLook.js` and `heatmapLook.js` to `.ts`
-- This is a relatively self-contained change — the Look system is well-isolated from the rest of the codebase
+With this, a new Look that forgets `onActivate()` is a compile error and the base class guarantees cleanup runs. Typing `createMesh()`'s `context` with `GeometryContext` (Priority 2) belongs in the same change. The Look system is well isolated, so this remains a self-contained change.
 
 ---
 
-## Priority 4: Service Return Types (Spine Features)
+## Priority 4: Service Return Types (Spine Features) — OPEN
 
 ### The Problem
 
-`pangenomeService.getSpineFeatures()` returns a deeply nested object with spine data, events, off-spine components, and an abort flag. The structure is complex:
+`getSpineFeatures()` in `src/pangenomeService.js` (still `.js`) returns a deeply nested object with spine data, events, off-spine components, and an abort flag. The structure is complex:
 
 ```javascript
 return {
@@ -228,7 +153,7 @@ return {
 }
 ```
 
-Consumers (`annotationRenderService`, `genomicService`, etc.) must reverse-engineer this structure from usage patterns. There's no single place that documents the shape.
+`src/genomicService.js` calls it and stores the result as `spineFeatures` in its `assemblyWalkMap`; `src/geometryFactory.js` and `src/widgets/assemblyWidget.ts` read `spineFeatures.spine.nodes` from there. Each consumer reverse-engineers the structure from usage; there is no single place that documents the shape, and `assemblyWidget.ts` reads it untyped despite being TypeScript.
 
 ### The TypeScript Solution
 
@@ -253,22 +178,22 @@ interface SpineEvent {
 }
 ```
 
-The interfaces serve as both compiler-enforced contracts and self-documenting references. When a consumer needs to know "what fields does a spine event have?", the answer is in `SpineEvent` — not scattered across producer and consumer code.
+No `SpineResult` or `SpineEvent` type exists in `src/` yet. The interfaces would serve as both compiler-enforced contracts and self-documenting references. When a consumer needs to know "what fields does a spine event have?", the answer is in `SpineEvent` — not scattered across producer and consumer code.
 
 ---
 
-## What These Four Targets Have in Common
+## What the Four Targets Have in Common
 
 They are all **contracts between parts of the system**:
 
-| Target | Contract Between | Current Enforcement |
+| Target | Contract Between | Enforcement Today |
 |--------|-----------------|-------------------|
-| Event bus | Widgets/Looks that publish ↔ Looks/Services that subscribe | None — arbitrary strings and objects |
-| Magic strings | Callers ↔ Services that interpret string params | Comments only |
-| Look system | Base class ↔ Concrete subclasses | Convention only |
-| Spine features | pangenomeService ↔ annotation/genomic consumers | Reverse engineering |
+| Event bus | Publishers ↔ subscribers | `EventMap` in `.ts` files; none in `.js` callers |
+| Magic strings | Callers ↔ services that interpret string params | Comments only |
+| Look system | Base class ↔ concrete subclasses | Types on methods; lifecycle by convention |
+| Spine features | `pangenomeService` ↔ `genomicService` / `geometryFactory` / `assemblyWidget` | Reverse engineering |
 
-The dataset ingestion layer (already converted) was the contract between **external data** and the app. These four are the contracts **within** the app. The same principle applies: TypeScript is most valuable where it enforces agreements between parts of the system that would otherwise drift apart silently.
+The dataset ingestion layer was the contract between **external data** and the app. These four are the contracts **within** the app. The same principle applies: TypeScript is most valuable where it enforces agreements between parts of the system that would otherwise drift apart silently.
 
 ---
 
@@ -276,9 +201,9 @@ The dataset ingestion layer (already converted) was the contract between **exter
 
 The same incremental approach used for the dataset layer works here:
 
-1. **One target at a time.** Convert the event bus, verify, commit. Then the Look system. Then spine types. Don't convert everything at once.
-2. **Types in `.ts`, logic can stay in `.js` temporarily.** You can define interfaces in a `.ts` file and reference them from `.js` files via JSDoc `@type {import('./eventMap.ts').EventMap}`. This lets you get IDE support before fully converting a file.
-3. **`tsc --noEmit` is your safety net.** Vite handles the build; TypeScript only checks types. No build process changes needed.
+1. **One target at a time.** The event bus went first; next are the abstract `Look`, then the spine types (P2's spine unions and P4 are naturally one change). Don't convert everything at once.
+2. **Types in `.ts`, logic can stay in `.js` temporarily.** You can define interfaces in a `.ts` file and reference them from `.js` files via JSDoc `@type {import('./eventMap.ts').EventMap}`. With `checkJs: false` this gives IDE support only; the compiler checks a file once it is `.ts`.
+3. **`npm run typecheck` (`tsc --noEmit`) is your safety net.** Vite handles the build; TypeScript only checks types. No build process changes needed.
 4. **Convert consumers lazily.** When you next touch a file that subscribes to events, update its imports. No need to convert all consumers in one pass.
 
 ---

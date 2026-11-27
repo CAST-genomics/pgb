@@ -93,7 +93,7 @@ Two constraints survive from this, and they pull in opposite directions:
 
 ## What changed, and what did not
 
-`measurements/2026-08-13-direct-strand-interaction-is-not-viable.md` measured the first attempt
+The first attempt was measured on 2026-08-13 (the 28 ms history is kept in [ADR 0002](../../docs/adr/0002-webgl-band-renderer.md))
 and produced a rule: *appearance changes must be discrete, user-initiated events, budgeted
 at ~28 ms each; nothing wired to pointer position.*
 
