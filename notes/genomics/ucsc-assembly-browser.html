@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UCSC Assembly Hub Browser</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #fafafa;
+      color: #1a1a1a;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+    .header {
+      position: sticky;
+      top: 0;
+      background: #fafafa;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 0 24px;
+      z-index: 10;
+    }
+    h1 { font-size: 1.25rem; font-weight: normal; margin-bottom: 2px; }
+    .meta { font-size: 0.75rem; color: #666; }
+    .search-row { margin-top: 16px; }
+    .search-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.9375rem;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: #1a1a1a;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.8125rem;
+    }
+    .filter-label { color: #666; }
+    .clade-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .clade-pill {
+      padding: 4px 10px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .clade-pill:hover { border-color: #1a1a1a; }
+    .clade-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .legacy-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 16px;
+    }
+    .legacy-toggle input { cursor: pointer; }
+    .result-count { margin-top: 12px; font-size: 0.8125rem; color: #666; }
+    .loading, .error { padding: 48px 0; text-align: center; color: #666; }
+    .error { color: #8b0000; }
+    .clade-section {
+      margin-top: 24px;
+      border: 1px solid #e0e0e0;
+      background: #fff;
+    }
+    .clade-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.875rem;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .clade-header:hover { background: #f5f5f5; }
+    .clade-header.collapsed { border-bottom: none; }
+    .clade-name { font-weight: 500; }
+    .clade-count { color: #666; font-weight: normal; }
+    .clade-toggle { font-size: 0.75rem; color: #666; }
+    .clade-body { overflow-x: auto; }
+    .clade-body.collapsed { display: none; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    tr:nth-child(even) { background: #f9f9f9; }
+    tr:hover { background: #f0f0f0; }
+    .mono { font-family: ui-monospace, monospace; font-size: 0.75rem; }
+    a { color: #1a1a1a; text-decoration: underline; }
+    a:hover { text-decoration: none; }
+    .legacy { color: #888; font-style: italic; }
+    .clear-btn {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .clear-btn:hover { border-color: #1a1a1a; }
+    .empty-state { padding: 48px 0; text-align: center; color: #666; }
+    code { font-family: ui-monospace, monospace; font-size: 0.875em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>UCSC Assembly Hub Browser</h1>
+      <p class="meta">Genome assemblies from UCSC Genome Browser · <span id="last-update">—</span></p>
+      <div class="search-row">
+        <input type="text" class="search-input" id="search" placeholder="Search common name, scientific name, assembly, accession…" autocomplete="off">
+        <div class="filters">
+          <span class="filter-label">Clade:</span>
+          <div class="clade-pills" id="clade-pills"></div>
+          <label class="legacy-toggle">
+            <input type="checkbox" id="include-legacy" checked>
+            Include legacy
+          </label>
+          <button type="button" class="clear-btn" id="clear-btn">Clear</button>
+          <button type="button" class="clear-btn" id="expand-all">Expand all</button>
+          <button type="button" class="clear-btn" id="collapse-all">Collapse all</button>
+        </div>
+        <p class="result-count" id="result-count"></p>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="loading" id="loading">Loading assembly data…</div>
+      <div class="error" id="error" style="display:none"></div>
+      <div id="content" style="display:none"></div>
+    </main>
+  </div>
+
+  <script>
+    const DATA_URL = 'https://hgdownload.soe.ucsc.edu/hubs/UCSC_GI.assemblyHubList.txt';
+    const CLADE_ORDER = ['mammals', 'primates', 'birds', 'fish', 'vertebrate', 'invertebrate', 'plants', 'fungi', 'viral', 'archaea', 'bacteria'];
+
+    let allAssemblies = [];
+    let lastUpdate = '';
+
+    function parseData(text) {
+      const lines = text.split('\n');
+      const rows = [];
+      const updateMatch = text.match(/# last update: ([^,]+)/);
+      if (updateMatch) lastUpdate = updateMatch[1].trim();
+      for (const line of lines) {
+        if (line.startsWith('#') || !line.trim()) continue;
+        const parts = line.split('\t');
+        if (parts.length >= 6) {
+          const accession = parts[0]?.trim() || '';
+          const assembly = parts[1]?.trim() || '';
+          const scientificName = parts[2]?.trim() || '';
+          const commonName = parts[3]?.trim() || '';
+          const taxonId = parts[4]?.trim() || '';
+          const cladeRaw = (parts[parts.length - 1] || '').trim();
+          const cladeBase = cladeRaw.replace(/\(L\)$/, '');
+          const isLegacy = cladeRaw.endsWith('(L)');
+          rows.push({
+            accession,
+            assembly,
+            scientificName,
+            commonName,
+            taxonId,
+            clade: cladeBase,
+            isLegacy,
+            searchText: [commonName, scientificName, assembly, accession].join(' ').toLowerCase()
+          });
+        }
+      }
+      return rows;
+    }
+
+    function getClades(assemblies) {
+      const set = new Set();
+      for (const a of assemblies) set.add(a.clade);
+      return CLADE_ORDER.filter(c => set.has(c)).concat([...set].filter(c => !CLADE_ORDER.includes(c)).sort());
+    }
+
+    function filterAssemblies(assemblies, search, selectedClades, includeLegacy) {
+      let out = assemblies;
+      if (!includeLegacy) out = out.filter(a => !a.isLegacy);
+      if (selectedClades.size > 0) out = out.filter(a => selectedClades.has(a.clade));
+      if (search) {
+        const q = search.toLowerCase().trim();
+        const terms = q.split(/\s+/).filter(Boolean);
+        out = out.filter(a => terms.every(t => a.searchText.includes(t)));
+      }
+      return out;
+    }
+
+    function groupByClade(assemblies) {
+      const groups = {};
+      for (const a of assemblies) {
+        if (!groups[a.clade]) groups[a.clade] = [];
+        groups[a.clade].push(a);
+      }
+      return CLADE_ORDER.filter(c => groups[c]?.length).concat(
+        Object.keys(groups).filter(c => !CLADE_ORDER.includes(c)).sort()
+      ).map(clade => ({ clade, items: groups[clade] }));
+    }
+
+    function renderTable(items) {
+      return `<table>
+        <thead><tr>
+          <th>Common name</th>
+          <th>Scientific name</th>
+          <th>Assembly</th>
+          <th>Accession</th>
+        </tr></thead>
+        <tbody>
+          ${items.slice(0, 500).map(a => `
+            <tr>
+              <td class="${a.isLegacy ? 'legacy' : ''}">${escapeHtml(a.commonName)}</td>
+              <td>${escapeHtml(a.scientificName)}</td>
+              <td class="mono">${escapeHtml(a.assembly)}</td>
+              <td class="mono"><a href="https://genome.ucsc.edu/h/${a.accession}" target="_blank" rel="noopener">${escapeHtml(a.accession)}</a></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      ${items.length > 500 ? `<p style="padding:12px 16px;font-size:0.75rem;color:#666">Showing first 500 of ${items.length} in this clade. Refine search to see more.</p>` : ''}`;
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function debounce(fn, ms) {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    function render(state) {
+      const { search, cladeFilter, includeLegacy } = state;
+      const filtered = filterAssemblies(allAssemblies, search, cladeFilter, includeLegacy);
+      const groups = groupByClade(filtered);
+
+      document.getElementById('result-count').textContent =
+        `Showing ${filtered.length.toLocaleString()} of ${allAssemblies.length.toLocaleString()}`;
+
+      const content = document.getElementById('content');
+      if (filtered.length === 0) {
+        content.innerHTML = '<div class="empty-state">No assemblies match your filters.</div>';
+        content.style.display = 'block';
+        return;
+      }
+
+      content.innerHTML = groups.map(({ clade, items }) => `
+        <div class="clade-section" data-clade="${escapeHtml(clade)}">
+          <div class="clade-header" data-collapsed="false">
+            <span class="clade-name">${escapeHtml(clade)} <span class="clade-count">(${items.length.toLocaleString()})</span></span>
+            <span class="clade-toggle">▼</span>
+          </div>
+          <div class="clade-body">${renderTable(items)}</div>
+        </div>
+      `).join('');
+      content.style.display = 'block';
+
+      content.querySelectorAll('.clade-header').forEach(h => {
+        h.addEventListener('click', () => {
+          const section = h.closest('.clade-section');
+          const body = section.querySelector('.clade-body');
+          const collapsed = body.style.display === 'none';
+          body.style.display = collapsed ? '' : 'none';
+          h.classList.toggle('collapsed', !collapsed);
+          h.querySelector('.clade-toggle').textContent = collapsed ? '▼' : '▶';
+          h.dataset.collapsed = !collapsed;
+        });
+      });
+    }
+
+    function initPills(state) {
+      const clades = getClades(allAssemblies);
+      const pills = document.getElementById('clade-pills');
+      pills.innerHTML = clades.map(c => `
+        <button type="button" class="clade-pill ${state.cladeFilter.has(c) ? 'active' : ''}" data-clade="${escapeHtml(c)}">${escapeHtml(c)}</button>
+      `).join('');
+      pills.querySelectorAll('.clade-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (state.cladeFilter.has(btn.dataset.clade)) {
+            state.cladeFilter.delete(btn.dataset.clade);
+          } else {
+            state.cladeFilter.add(btn.dataset.clade);
+          }
+          btn.classList.toggle('active', state.cladeFilter.has(btn.dataset.clade));
+          render(state);
+        });
+      });
+    }
+
+    async function load() {
+      try {
+        const res = await fetch(DATA_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        allAssemblies = parseData(text);
+        const match = text.match(/last update: ([^,]+)/);
+        if (match) document.getElementById('last-update').textContent = match[1].trim();
+        document.getElementById('loading').style.display = 'none';
+
+        const state = {
+          search: '',
+          cladeFilter: new Set(),
+          includeLegacy: true
+        };
+
+        initPills(state);
+        render(state);
+
+        document.getElementById('search').addEventListener('input', debounce(e => {
+          state.search = e.target.value;
+          render(state);
+        }, 200));
+
+        document.getElementById('include-legacy').addEventListener('change', e => {
+          state.includeLegacy = e.target.checked;
+          render(state);
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+          state.search = '';
+          state.cladeFilter.clear();
+          state.includeLegacy = true;
+          document.getElementById('search').value = '';
+          document.getElementById('include-legacy').checked = true;
+          initPills(state);
+          render(state);
+        });
+
+        document.getElementById('expand-all').addEventListener('click', () => {
+          document.querySelectorAll('.clade-body').forEach(b => { b.style.display = ''; });
+          document.querySelectorAll('.clade-header').forEach(h => {
+            h.classList.remove('collapsed');
+            h.querySelector('.clade-toggle').textContent = '▼';
+          });
+        });
+        document.getElementById('collapse-all').addEventListener('click', () => {
+          document.querySelectorAll('.clade-body').forEach(b => { b.style.display = 'none'; });
+          document.querySelectorAll('.clade-header').forEach(h => {
+            h.classList.add('collapsed');
+            h.querySelector('.clade-toggle').textContent = '▶';
+          });
+        });
+      } catch (err) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('error').innerHTML = `Failed to load data: ${escapeHtml(err.message)}. If opening as a file, try serving via a local server (e.g. <code>python -m http.server</code>).`;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

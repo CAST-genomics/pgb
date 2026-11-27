@@ -297,7 +297,7 @@ https://hgdownload.soe.ucsc.edu/hubs/UCSC_GI.assemblyHubList.txt
 
 **UCSC Browser URL:** https://genome.ucsc.edu/h/{accession}
 
-
+This project includes a web tool ([`ucsc-assembly-browser.html`](ucsc-assembly-browser.html)) to search and browse this list.
 
 ---
 

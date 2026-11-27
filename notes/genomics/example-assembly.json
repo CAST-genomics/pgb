@@ -1,0 +1,16 @@
+{
+  "reference": {
+    "id": "HG01081_pat",
+    "name": "HG01081 paternal (HPRC)",
+    "fastaURL": "https://yourserver.com/genomes/HG01081_pat.fa",
+    "indexURL": "https://yourserver.com/genomes/HG01081_pat.fa.fai"
+  },
+  "tracks": [
+    {
+      "name": "Gene annotations",
+      "url": "https://yourserver.com/genomes/HG01081_pat_hprc_r2_v1.0.1_cat_v1.1.gff3.gz",
+      "format": "gff3",
+      "indexed": false
+    }
+  ]
+}
